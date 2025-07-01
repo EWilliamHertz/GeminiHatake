@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HatakeSocial - User Profile</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css" onerror="alert('Error loading css/style.css! Check file path and server.');">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header Section (Consistent with index.html and shop.html) -->
+    <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <!-- Logo and Site Title -->
+            <div class="flex items-center">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+            </div>
+
+            <!-- Search Bar (centered on desktop, hidden on small screens) -->
+            <div class="hidden md:flex flex-grow justify-center mx-4">
+                <div class="relative w-full max-w-md">
+                    <input type="text" placeholder="Search HatakeSocial..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Navigation Icons and User Avatar -->
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:block">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" id="nav-home" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a></li>
+                        <li><a href="shop.html" id="nav-shop" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a></li>
+                        <li><a href="my_collection.html" id="nav-my-collection" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-exchange-alt"></i></a></li>
+                        <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-shopping-cart"></i></a></li>
+                        <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-calendar-alt"></i></a></li>
+                        <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-envelope"></i></a></li>
+                        <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-cog"></i></a></li>
+                    </ul>
+                </nav>
+                <div class="relative flex items-center">
+                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300 hidden">Login</button>
+                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2 hidden">Register</button>
+                    <img src="/images/user_avatar.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden" id="userAvatar">
+                    <!-- Dropdown Menu (hidden by default) -->
+                    <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
+                        <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Profile Content -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <!-- Profile Banner -->
+            <div class="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600">
+                <img id="profileBanner" src="/images/default_banner.png" onerror="this.onerror=null;this.src='https://placehold.co/1200x200/6b46c1/ffffff?text=Profile+Banner';" alt="Profile Banner" class="w-full h-full object-cover">
+                <input type="file" id="bannerUploadInput" accept="image/*" class="hidden">
+                <button id="editBannerBtn" class="absolute bottom-4 right-4 bg-white text-gray-800 px-4 py-2 rounded-full shadow-md hover:bg-gray-100 transition duration-300 text-sm">
+                    <i class="fas fa-camera mr-2"></i> Edit Banner
+                </button>
+            </div>
+
+            <!-- Profile Avatar and Info -->
+            <div class="relative px-6 pb-6 -mt-16 sm:-mt-20 flex flex-col sm:flex-row items-center sm:items-start">
+                <div class="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-lg bg-gray-200">
+                    <img id="profileAvatar" src="/images/user_profile.png" onerror="this.onerror=null;this.src='https://placehold.co/160x160?text=Avatar';" alt="Profile Avatar" class="w-full h-full object-cover rounded-full">
+                    <input type="file" id="avatarUploadInput" accept="image/*" class="hidden">
+                    <button id="editAvatarBtn" class="absolute bottom-0 right-0 bg-white text-gray-800 p-2 rounded-full shadow-md hover:bg-gray-100 transition duration-300 text-sm">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+
+                <div class="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left flex-grow">
+                    <h1 id="profileDisplayName" class="text-3xl font-bold text-gray-800">Loading Name...</h1>
+                    <p id="profileHandle" class="text-gray-600 text-lg">@loading_handle</p>
+                    <span id="profileVerificationBadge" class="inline-block bg-blue-500 text-white text-xs px-2 py-1 rounded-full mt-2 hidden"><i class="fas fa-check-circle mr-1"></i> Verified</span>
+                </div>
+
+                <button id="editProfileButton" class="mt-4 sm:mt-0 px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">
+                    <i class="fas fa-edit mr-2"></i> Edit Profile
+                </button>
+            </div>
+
+            <!-- Profile Tabs -->
+            <div class="border-b border-gray-200 mt-6">
+                <nav class="-mb-px flex justify-center space-x-8" aria-label="Tabs">
+                    <button id="tabOverview" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg focus:outline-none transition duration-300 text-blue-600 border-blue-600">
+                        Overview
+                    </button>
+                    <button id="tabCollection" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg focus:outline-none transition duration-300 text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Collection Showcase
+                    </button>
+                    <button id="tabAchievements" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg focus:outline-none transition duration-300 text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Achievements
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Overview Tab Content -->
+                <div id="overviewContent" class="tab-content">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">About Me</h3>
+                    <p id="profileBio" class="text-gray-700 mb-4">Loading bio...</p>
+                    <p class="text-gray-700 mb-2"><strong>Location:</strong> <span id="profileLocation">Loading location...</span></p>
+                    <p class="text-gray-700 mb-2"><strong>TCG Interests:</strong> <span id="profileInterests">Loading interests...</span></p>
+                    <p class="text-gray-700 mb-2"><strong>Favorite Games:</strong> <span id="profileFavoriteGames">Loading games...</span></p>
+                </div>
+
+                <!-- Collection Showcase Tab Content (Placeholder) -->
+                <div id="collectionContent" class="tab-content hidden">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Featured Collection</h3>
+                    <p class="text-gray-600">This section will display your featured cards or collection highlights. (Full collection management is in <a href="my_collection.html" class="text-blue-600 hover:underline">My Collection</a> page).</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                        <!-- Placeholder for featured cards -->
+                        <div class="bg-gray-100 p-4 rounded-lg text-center">
+                            <img src="/images/charizard_vmax.png" onerror="this.onerror=null;this.src='https://placehold.co/150x200?text=Card';" alt="Featured Card" class="w-full h-auto object-contain mb-2">
+                            <p class="font-semibold text-gray-800">Charizard VMAX</p>
+                            <p class="text-gray-600 text-sm">Pokemon TCG</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg text-center">
+                            <img src="/images/mtg_modern_horizons_3.png" onerror="this.onerror=null;this.src='https://placehold.co/150x200?text=Card';" alt="Featured Card" class="w-full h-auto object-contain mb-2">
+                            <p class="font-semibold text-gray-800">Modern Horizons 3</p>
+                            <p class="text-gray-600 text-sm">Magic: The Gathering</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg text-center">
+                            <img src="https://placehold.co/150x200/e0e0e0/333333?text=Card+3" alt="Featured Card" class="w-full h-auto object-contain mb-2">
+                            <p class="font-semibold text-gray-800">Card Name</p>
+                            <p class="text-gray-600 text-sm">Game Name</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievements Tab Content (Placeholder) -->
+                <div id="achievementsContent" class="tab-content hidden">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Achievements & Badges</h3>
+                    <p class="text-gray-600 mb-4">Earn badges for trading milestones, community contributions, and game achievements!</p>
+                    <div class="flex flex-wrap gap-4">
+                        <!-- Placeholder for achievement badges -->
+                        <div class="bg-yellow-200 text-yellow-800 px-4 py-2 rounded-full flex items-center text-sm font-semibold">
+                            <i class="fas fa-medal mr-2"></i> First Trade
+                        </div>
+                        <div class="bg-green-200 text-green-800 px-4 py-2 rounded-full flex items-center text-sm font-semibold">
+                            <i class="fas fa-star mr-2"></i> Community Contributor
+                        </div>
+                        <div class="bg-blue-200 text-blue-800 px-4 py-2 rounded-full flex items-center text-sm font-semibold">
+                            <i class="fas fa-trophy mr-2"></i> Tournament Winner
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal-overlay">
+        <div class="modal-content w-full max-w-2xl">
+            <button class="close-button" id="closeEditProfileModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Edit Your Profile</h2>
+            <form id="editProfileForm" class="space-y-4">
+                <!-- Avatar Upload -->
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Profile Avatar:</label>
+                    <div class="flex items-center space-x-4">
+                        <img id="editAvatarPreview" src="/images/user_profile.png" onerror="this.onerror=null;this.src='https://placehold.co/80x80?text=Avatar';" alt="Avatar Preview" class="w-20 h-20 rounded-full object-cover border-2 border-gray-300">
+                        <input type="file" id="editAvatarInput" accept="image/*" class="hidden">
+                        <button type="button" id="selectEditAvatarBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition duration-300 text-sm">
+                            <i class="fas fa-upload mr-2"></i> Upload Avatar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Banner Upload -->
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Profile Banner:</label>
+                    <div class="relative w-full h-24 border border-gray-300 rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
+                        <img id="editBannerPreview" src="/images/default_banner.png" onerror="this.onerror=null;this.src='https://placehold.co/400x100/e0e0e0/333333?text=Banner';" alt="Banner Preview" class="w-full h-full object-cover">
+                        <input type="file" id="editBannerInput" accept="image/*" class="hidden">
+                        <button type="button" id="selectEditBannerBtn" class="absolute bg-white text-gray-800 px-3 py-1 rounded-full shadow-md hover:bg-gray-100 transition duration-300 text-xs">
+                            <i class="fas fa-upload mr-1"></i> Change Banner
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Text Fields -->
+                <div>
+                    <label for="editDisplayName" class="block text-gray-700 text-sm font-bold mb-2">Display Name:</label>
+                    <input type="text" id="editDisplayName" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+                <div>
+                    <label for="editBio" class="block text-gray-700 text-sm font-bold mb-2">Bio:</label>
+                    <textarea id="editBio" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline resize-y" rows="3"></textarea>
+                </div>
+                <div>
+                    <label for="editLocation" class="block text-gray-700 text-sm font-bold mb-2">Location:</label>
+                    <input type="text" id="editLocation" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div>
+                    <label for="editInterests" class="block text-gray-700 text-sm font-bold mb-2">TCG Interests (comma-separated):</label>
+                    <input type="text" id="editInterests" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic, Pokemon, Yu-Gi-Oh">
+                </div>
+                <div>
+                    <label for="editFavoriteGames" class="block text-gray-700 text-sm font-bold mb-2">Favorite Games (comma-separated):</label>
+                    <input type="text" id="editFavoriteGames" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Commander, Standard, Modern">
+                </div>
+
+                <button type="submit" id="saveProfileChangesBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Save Changes</button>
+                <p id="editProfileMessage" class="text-center text-sm mt-2"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer Section (Consistent with index.html and shop.html) -->
+    <footer class="bg-gray-800 text-white py-6 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 HatakeSocial. All rights reserved.</p>
+            <div class="flex justify-center space-x-6 mt-4">
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- External JavaScript -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="js/script.js" onerror="alert('Error loading js/script.js! Check file path and browser console.');"></script>
+</body>
+</html>
