@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HatakeSocial - TCG Social Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css" onerror="alert('Error loading css/style.css! Check file path and server.');">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header Section -->
+    <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <!-- Logo and Site Title -->
+            <div class="flex items-center">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+            </div>
+
+            <!-- Search Bar (centered on desktop, hidden on small screens) -->
+            <div class="hidden md:flex flex-grow justify-center mx-4">
+                <div class="relative w-full max-w-md">
+                    <input type="text" placeholder="Search HatakeSocial..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Navigation Icons and User Avatar -->
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:block">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" id="nav-home" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a></li>
+                        <li><a href="shop.html" id="nav-shop" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a></li>
+                        <li><a href="my_collection.html" id="nav-my-collection" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-exchange-alt"></i></a></li>
+                        <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-shopping-cart"></i></a></li>
+                        <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-calendar-alt"></i></a></li>
+                        <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-envelope"></i></a></li>
+                        <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-cog"></i></a></li>
+                    </ul>
+                </nav>
+                <div class="relative flex items-center">
+                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
+                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
+                    <img src="/images/user_avatar.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden" id="userAvatar">
+                    <!-- Dropdown Menu (hidden by default) -->
+                    <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
+                        <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md">
+            <button class="close-button" id="closeLoginModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Login to HatakeSocial</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                    <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                    <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password (min 6 characters)" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
+                <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-full shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
+                </button>
+                <p id="loginMessage" class="text-center text-red-500 text-sm mt-2"></p>
+            </form>
+            <p class="text-center mt-4">
+                <a href="forgot_password.html" class="text-blue-600 hover:underline text-sm">Forgot Password?</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md">
+            <button class="close-button" id="closeRegisterModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Register for HatakeSocial</h2>
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label for="registerEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                    <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+                </div>
+                <div>
+                    <label for="registerPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password (min 6 characters)" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
+                <button type="button" id="googleRegisterButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-full shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Register with Google
+                </button>
+                <p id="registerMessage" class="text-center text-red-500 text-sm mt-2"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Area (Home Feed) -->
+    <div id="home-page" class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Left Sidebar (Navigation/User Info) -->
+        <aside class="md:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit sticky top-20 hidden md:block" id="left-sidebar">
+            <div class="flex items-center mb-6" id="sidebar-user-info">
+                <img src="/images/user_profile.png" onerror="this.onerror=null;this.src='https://placehold.co/64x64?text=Profile';" alt="User Profile" class="h-16 w-16 rounded-full border-2 border-blue-500 mr-4" id="sidebar-user-avatar">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800" id="sidebar-user-name">John Doe</h2>
+                    <p class="text-gray-600 text-sm" id="sidebar-user-handle">@johndoe_tcg</p>
+                </div>
+            </div>
+            <nav>
+                <ul class="space-y-4">
+                    <li><a href="index.html" class="flex items-center text-gray-700 hover:text-blue-600 font-medium text-lg"><i class="fas fa-stream mr-3 text-xl"></i> Feed</a></li>
+                    <li><a href="my_collection.html" class="flex items-center text-gray-700 hover:text-blue-600 font-medium text-lg"><i class="fas fa-box-open mr-3 text-xl"></i> My Collection</a></li>
+                    <li><a href="trades.html" class="flex items-center text-gray-700 hover:text-blue-600 font-medium text-lg"><i class="fas fa-exchange-alt mr-3 text-xl"></i> Trades</a></li>
+                    <li><a href="marketplace.html" class="flex items-center text-gray-700 hover:text-blue-600 font-medium text-lg"><i class="fas fa-shopping-cart mr-3 text-xl"></i> Marketplace</a></li>
+                    <li><a href="events.html" class="flex items-center text-gray-700 hover:text-blue-600 font-medium text-lg"><i class="fas fa-calendar-alt mr-3 text-xl"></i> Events</a></li>
+                    <li><a href="settings.html" class="flex items-center text-gray-700 hover:text-blue-600 font-medium text-lg"><i class="fas fa-cog mr-3 text-xl"></i> Settings</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Central Content Area (Main Feed/Posts) -->
+        <section class="md:col-span-2 space-y-6">
+            <!-- Create Post Section -->
+            <div class="bg-white p-6 rounded-lg shadow-md" id="create-post-section">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Create New Post</h2>
+                <textarea id="postContent" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y mb-4" rows="4" placeholder="What's on your mind?"></textarea>
+                <input type="file" id="postImageUpload" accept="image/*,video/*" class="hidden">
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-4">
+                        <button id="uploadImageBtn" class="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition duration-300">
+                            <i class="fas fa-image mr-2"></i> Photo
+                        </button>
+                        <button id="uploadVideoBtn" class="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition duration-300">
+                            <i class="fas fa-video mr-2"></i> Video
+                        </button>
+                        <button class="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition duration-300">
+                            <i class="fas fa-tags mr-2"></i> Card
+                        </button>
+                    </div>
+                    <button id="submitPostBtn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">
+                        Post
+                    </button>
+                </div>
+                <div id="postStatusMessage" class="text-center mt-2"></div>
+            </div>
+
+            <!-- Posts Container (will be dynamically populated) -->
+            <section id="postsContainer" class="space-y-6">
+                <!-- Real posts will be loaded here -->
+                <p class="text-center text-gray-500">Loading posts...</p>
+            </section>
+        </section>
+
+        <!-- Right Sidebar (Trending/Suggestions) -->
+        <aside class="md:col-span-1 space-y-6 h-fit sticky top-20 hidden lg:block">
+            <!-- Trending Section -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Trending</h2>
+                <ul class="space-y-3">
+                    <li><a href="#" class="block text-blue-600 hover:underline font-medium">#YuGiOhMeta</a> <span class="text-gray-500 text-sm">1.2K posts</span></li>
+                    <li><a href="#" class="block text-blue-600 hover:underline font-medium">#PokemonGOCommunityDay</a> <span class="text-gray-500 text-sm">980 posts</span></li>
+                    <li><a href="#" class="block text-blue-600 hover:underline font-medium">#MTGCommander</a> <span class="text-gray-500 text-sm">750 posts</span></li>
+                    <li><a href="#" class="block text-blue-600 hover:underline font-medium">#TCGCollection</a> <span class="text-gray-500 text-sm">600 posts</span></li>
+                </ul>
+            </div>
+
+            <!-- Who to Follow/Suggestions -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Who to Follow</h2>
+                <ul class="space-y-4">
+                    <li class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="/images/user_c.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full mr-3">
+                            <div>
+                                <p class="font-semibold text-gray-800">Card King</p>
+                                <p class="text-gray-500 text-sm">@cardking</p>
+                            </div>
+                        </div>
+                        <button class="px-4 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition duration-300">Follow</button>
+                    </li>
+                    <li class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="/images/user_d.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full mr-3">
+                            <div>
+                                <p class="font-semibold text-gray-800">Deck Builder Pro</p>
+                                <p class="text-gray-500 text-sm">@deckpro</p>
+                            </div>
+                        </div>
+                        <button class="px-4 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition duration-300">Follow</button>
+                    </li>
+                    <li class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <img src="/images/user_e.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full mr-3">
+                            <div>
+                                <p class="font-semibold text-gray-800">Rare Finds</p>
+                                <p class="text-gray-500 text-sm">@rarefinds</p>
+                            </div>
+                        </div>
+                        <button class="px-4 py-1 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition duration-300">Follow</button>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Footer Section -->
+    <footer class="bg-gray-800 text-white py-6 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 HatakeSocial. All rights reserved.</p>
+            <div class="flex justify-center space-x-6 mt-4">
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-linkedin-in"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- External JavaScript -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="js/script.js" onerror="alert('Error loading js/script.js! Check file path and browser console.');"></script>
+</body>
+</html>
