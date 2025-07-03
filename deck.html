@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HatakeSocial - Deck Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css" onerror="alert('Error loading css/style.css! Check file path and server.');">
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:block">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a></li>
+                        <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-layer-group"></i></a></li>
+                        <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a></li>
+                        <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-box-open"></i></a></li>
+                    </ul>
+                </nav>
+                <div class="relative flex items-center">
+                    <img src="/images/user_avatar.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden" id="userAvatar">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">MTG Deck Builder</h1>
+            <p class="text-gray-600 mb-6">Paste your decklist from services like Manabox or MTGGoldfish. The format should be `1 Card Name` on each line.</p>
+
+            <form id="deck-builder-form">
+                <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y mb-4" placeholder="1 Black Lotus&#10;4 Sol Ring&#10;..."></textarea>
+                <button type="submit" id="build-deck-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">
+                    Build Deck
+                </button>
+            </form>
+        </div>
+
+        <div id="deck-display-container" class="mt-8">
+            <div id="deck-stats" class="bg-white p-6 rounded-lg shadow-md mb-8 hidden">
+                <h2 class="text-2xl font-bold text-gray-800">Deck Summary</h2>
+                <p class="text-lg text-gray-700">Total Cards: <span id="total-cards-count" class="font-bold">0</span></p>
+                <p class="text-xl text-blue-600">Total Price (USD): <span id="total-deck-price" class="font-extrabold">$0.00</span></p>
+                <div id="deck-builder-status" class="text-gray-500 mt-2"></div>
+            </div>
+            <div id="deck-cards-display" class="space-y-6">
+                </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-6 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 HatakeSocial. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="js/script.js" onerror="alert('Error loading js/script.js! Check file path and browser console.');"></script>
+</body>
+</html>
