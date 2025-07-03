@@ -578,8 +578,14 @@ document.addEventListener('DOMContentLoaded', () => {
    
   
  // --- MY_COLLECTION.HTML LOGIC ---
+  // --- MY_COLLECTION.HTML LOGIC ---
    const setupMyCollectionPage = () => {
-       if (!document.getElementById('search-card-form')) return;
+       console.log("setupMyCollectionPage function started"); // DEBUG
+
+       if (!document.getElementById('search-card-form')) {
+           console.log("search-card-form not found, exiting setupMyCollectionPage"); // DEBUG
+           return;
+       }
 
        const tabs = document.querySelectorAll('.tab-button');
        const tabContents = document.querySelectorAll('.tab-content');
@@ -593,47 +599,122 @@ document.addEventListener('DOMContentLoaded', () => {
        const editCardModal = document.getElementById('edit-card-modal');
        const editCardForm = document.getElementById('edit-card-form');
 
-       // MOVED THIS FUNCTION UP
        const loadCardList = async (listType) => {
+           console.log(`loadCardList called for: ${listType}`); // DEBUG
            const container = document.getElementById(`${listType}-list`);
            const user = auth.currentUser;
-           if (!user) { container.innerHTML = `<p>Please log in to view your ${listType}.</p>`; return; }
+           if (!user) {
+               container.innerHTML = `<p>Please log in to view your ${listType}.</p>`;
+               return;
+           }
            container.innerHTML = '<p>Loading...</p>';
 
-           const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
-           if (snapshot.empty) { container.innerHTML = `<p>Your ${listType} is empty.</p>`; return; }
-          
-           container.innerHTML = '';
-           snapshot.forEach(doc => {
-               const card = doc.data();
-               const cardEl = document.createElement('div');
-               cardEl.className = 'relative';
-               cardEl.innerHTML = `
-                   <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full">
-                   <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg">
-                       <button class="edit-card-btn text-white text-xs" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-edit"></i></button>
-                       <button class="delete-card-btn text-white text-xs ml-1" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-trash"></i></button>
-                   </div>
-                   <div class="absolute bottom-0 left-0 right-0 p-1 bg-black bg-opacity-50 text-white text-xs text-center">
-                       <p>$${card.isFoil ? (card.priceUsdFoil || card.priceUsd) : card.priceUsd} (${card.quantity})</p>
-                   </div>
-               `;
-               container.appendChild(cardEl);
-           });
-
-           container.querySelectorAll('.edit-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
-               const cardId = e.currentTarget.dataset.id;
-               const list = e.currentTarget.dataset.list;
-               openEditModal(cardId, list);
-           }));
-           container.querySelectorAll('.delete-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
-               const cardId = e.currentTarget.dataset.id;
-               const list = e.currentTarget.dataset.list;
-               if (confirm("Are you sure you want to delete this card?")) {
-                   deleteCard(cardId, list);
+           try {
+               const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
+               if (snapshot.empty) {
+                   container.innerHTML = `<p>Your ${listType} is empty.</p>`;
+                   return;
                }
-           }));
+              
+               container.innerHTML = '';
+               snapshot.forEach(doc => {
+                   const card = doc.data();
+                   const cardEl = document.createElement('div');
+                   cardEl.className = 'relative';
+                   cardEl.innerHTML = `
+                       <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full">
+                       <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg">
+                           <button class="edit-card-btn text-white text-xs" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-edit"></i></button>
+                           <button class="delete-card-btn text-white text-xs ml-1" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-trash"></i></button>
+                       </div>
+                       <div class="absolute bottom-0 left-0 right-0 p-1 bg-black bg-opacity-50 text-white text-xs text-center">
+                           <p>$${card.isFoil ? (card.priceUsdFoil || card.priceUsd) : card.priceUsd} (${card.quantity})</p>
+                       </div>
+                   `;
+                   container.appendChild(cardEl);
+               });
+
+               container.querySelectorAll('.edit-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                   const cardId = e.currentTarget.dataset.id;
+                   const list = e.currentTarget.dataset.list;
+                   openEditModal(cardId, list);
+               }));
+               container.querySelectorAll('.delete-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                   const cardId = e.currentTarget.dataset.id;
+                   const list = e.currentTarget.dataset.list;
+                   if (confirm("Are you sure you want to delete this card?")) {
+                       deleteCard(cardId, list);
+                   }
+               }));
+           } catch (error) {
+               console.error("Error loading card list:", error); // DEBUG
+               container.innerHTML = `<p class="text-red-500">Error loading your ${listType}. See console for details.</p>`;
+           }
        };
+
+       csvUploadBtn.addEventListener('click', () => {
+           console.log("CSV Upload button clicked"); // DEBUG
+           const user = auth.currentUser;
+           if (!user) {
+               alert("Please log in.");
+               console.log("CSV Upload: User not logged in."); // DEBUG
+               return;
+           }
+           if (csvUploadInput.files.length === 0) {
+               alert("Please select a file.");
+               console.log("CSV Upload: No file selected."); // DEBUG
+               return;
+           }
+          
+           console.log("Starting CSV parsing..."); // DEBUG
+           Papa.parse(csvUploadInput.files[0], {
+               header: true,
+               complete: async (results) => {
+                   console.log("CSV parsing complete. Results:", results); // DEBUG
+                   if (results.errors.length > 0) {
+                        console.error("CSV parsing errors:", results.errors); // DEBUG
+                        alert("There were errors parsing your CSV file. Please check the console for details.");
+                   }
+
+                   const statusEl = document.getElementById('csv-status');
+                   statusEl.textContent = `Processing ${results.data.length} cards...`;
+                   const batch = db.batch();
+                   const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+
+                   for (const row of results.data) {
+                       const cardName = row['Card Name'];
+                       if (cardName) {
+                           const docRef = collectionRef.doc();
+                           batch.set(docRef, {
+                               name: cardName,
+                               quantity: parseInt(row.Count, 10) || 1,
+                               set: row.Set,
+                               setName: row['Set Name'],
+                               isFoil: (row.Foil && row.Foil.toLowerCase() === 'foil'),
+                               condition: row.Condition || 'Near Mint',
+                               imageUrl: 'https://placehold.co/223x310?text=Loading...',
+                               addedAt: new Date(),
+                               tcg: "Magic: The Gathering"
+                           });
+                       }
+                   }
+                   try {
+                       console.log("Committing batch to Firestore..."); // DEBUG
+                       await batch.commit();
+                       statusEl.textContent = `Import complete! Refreshing collection...`;
+                       console.log("Batch commit successful. Calling loadCardList."); // DEBUG
+                       loadCardList('collection');
+                   } catch(error) {
+                       console.error("CSV Upload Error (Firestore batch commit): ", error); // DEBUG
+                       statusEl.textContent = "Error uploading. Check console for details.";
+                   }
+               },
+               error: (err) => {
+                    console.error("PapaParse Error:", err); // DEBUG
+                    alert("A critical error occurred while parsing the CSV. Check the console for details.");
+               }
+           });
+       });
 
        const switchTab = (tabId) => {
            tabs.forEach(item => {
@@ -735,48 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
            }
        };
       
-       csvUploadBtn.addEventListener('click', () => {
-           const user = auth.currentUser;
-           if (!user) { alert("Please log in."); return; }
-           if (csvUploadInput.files.length === 0) { alert("Please select a file."); return; }
-          
-           Papa.parse(csvUploadInput.files[0], {
-               header: true,
-               complete: async (results) => {
-                   const statusEl = document.getElementById('csv-status');
-                   statusEl.textContent = `Processing ${results.data.length} cards...`;
-                   const batch = db.batch();
-                   const collectionRef = db.collection('users').doc(user.uid).collection('collection');
-
-                   for (const row of results.data) {
-                       const cardName = row['Card Name'];
-                       if (cardName) {
-                           const docRef = collectionRef.doc();
-                           batch.set(docRef, {
-                               name: cardName,
-                               quantity: parseInt(row.Count, 10) || 1,
-                               set: row.Set,
-                               setName: row['Set Name'],
-                               isFoil: (row.Foil && row.Foil.toLowerCase() === 'foil'),
-                               condition: row.Condition || 'Near Mint',
-                               imageUrl: 'https://placehold.co/223x310?text=Loading...',
-                               addedAt: new Date(),
-                               tcg: "Magic: The Gathering"
-                           });
-                       }
-                   }
-                   try {
-                       await batch.commit();
-                       statusEl.textContent = `Import complete! Refreshing collection...`;
-                       loadCardList('collection'); // This call will now work correctly
-                   } catch(error) {
-                       console.error("CSV Upload Error: ", error);
-                       statusEl.textContent = "Error uploading. Check console for details.";
-                   }
-               }
-           });
-       });
-
        const openEditModal = async (cardId, listType) => {
            const user = auth.currentUser;
            const docRef = db.collection('users').doc(user.uid).collection(listType).doc(cardId);
@@ -816,8 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
            await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
            loadCardList(listType);
        };
-   };
-  
+   };  
    // --- Page Initialization ---
    setupCoreUI();
    if (document.getElementById('postsContainer')) {
