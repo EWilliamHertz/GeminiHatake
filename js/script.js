@@ -535,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     
-      // --- MY_COLLECTION.HTML LOGIC ---
+      // --- // --- MY_COLLECTION.HTML LOGIC ---
     const setupMyCollectionPage = () => {
         if (!document.getElementById('search-card-form')) return;
 
@@ -553,8 +553,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const switchTab = (tabId) => {
             tabs.forEach(item => {
-                item.classList.toggle('text-blue-600', item.id === tabId);
-                item.classList.toggle('border-blue-600', item.id === tabId);
+                const isTarget = item.id === tabId;
+                item.classList.toggle('text-blue-600', isTarget);
+                item.classList.toggle('border-blue-600', isTarget);
                 item.classList.toggle('text-gray-500', !isTarget);
                 item.classList.toggle('hover:border-gray-300', !isTarget);
             });
@@ -640,9 +641,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 addedAt: new Date()
             };
             
-            await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
-            alert(`${cardData.name} (${cardData.set_name}) added to your ${listType}!`);
-            loadCardList(listType);
+            try {
+                await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
+                alert(`${cardData.name} (${cardData.set_name}) added to your ${listType}!`);
+                loadCardList(listType);
+            } catch(error) {
+                console.error("Error adding card: ", error);
+                alert("Could not add card. See console for details.");
+            }
         };
         
         csvUploadBtn.addEventListener('click', () => {
@@ -675,9 +681,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                         }
                     }
-                    await batch.commit();
-                    statusEl.textContent = `Import complete! Refreshing collection...`;
-                    loadCardList('collection');
+                    try {
+                        await batch.commit();
+                        statusEl.textContent = `Import complete! Refreshing collection...`;
+                        loadCardList('collection');
+                    } catch(error) {
+                        console.error("CSV Upload Error: ", error);
+                        statusEl.textContent = "Error uploading. Check console for details.";
+                    }
                 }
             });
         });
@@ -697,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'relative';
                 cardEl.innerHTML = `
-                    <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full">
+                    <img src="${card.imageUrl || 'https://placehold.co/223x310?text=No+Image'}" class="rounded-lg shadow-md w-full">
                     <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg">
                         <button class="edit-card-btn text-white text-xs" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-edit"></i></button>
                         <button class="delete-card-btn text-white text-xs ml-1" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-trash"></i></button>
@@ -775,4 +786,3 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('search-card-form')) {
         setupMyCollectionPage();
     }
-});
