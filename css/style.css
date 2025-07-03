@@ -472,3 +472,35 @@ body {
         font-size: 1.5rem;
     }
 }
+/* Add to your existing style.css */
+
+.card-link {
+    position: relative;
+    display: inline-block;
+}
+
+.card-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: none;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.card-link:hover .card-tooltip {
+    display: block;
+}
+
+.card-tooltip img {
+    width: 200px;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
