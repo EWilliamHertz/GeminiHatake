@@ -256,9 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const switchTab = (tabId) => {
             tabs.forEach(item => {
-                const isTarget = item.id === tabId;
-                item.classList.toggle('text-blue-600', isTarget);
-                item.classList.toggle('border-blue-600', isTarget);
+                item.classList.toggle('text-blue-600', item.id === tabId);
+                item.classList.toggle('border-blue-600', item.id === tabId);
                 item.classList.toggle('text-gray-500', !isTarget);
                 item.classList.toggle('hover:border-gray-300', !isTarget);
             });
@@ -306,11 +305,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const uniqueSets = [...new Set(cardSearchResults.map(card => card.set_name))];
+            const uniqueSets = [...new Set(cardSearchResults.map(card => card.set_name))].sort();
             setFilter.innerHTML = '<option value="">All Sets</option>';
             uniqueSets.forEach(setName => setFilter.innerHTML += `<option value="${cardSearchResults.find(c=>c.set_name === setName).set}">${setName}</option>`);
             
-            const uniqueTypes = [...new Set(cardSearchResults.map(card => card.type_line.split('—')[0].trim()))];
+            const uniqueTypes = [...new Set(cardSearchResults.map(card => card.type_line ? card.type_line.split('—')[0].trim() : 'Unknown'))].sort();
             typeFilter.innerHTML = '<option value="">All Types</option>';
             uniqueTypes.forEach(typeName => typeFilter.innerHTML += `<option value="${typeName}">${typeName}</option>`);
 
@@ -339,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setName: cardData.set_name,
                 imageUrl: cardData.image_uris?.normal || '',
                 priceUsd: cardData.prices?.usd || '0.00',
+                priceUsdFoil: cardData.prices?.usd_foil || '0.00',
                 quantity: 1, isFoil: false, condition: 'Near Mint',
                 addedAt: new Date()
             };
@@ -358,15 +358,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 complete: async (results) => {
                     const statusEl = document.getElementById('csv-status');
                     statusEl.textContent = `Processing ${results.data.length} cards...`;
+                    const batch = db.batch();
+                    const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+
                     for (const row of results.data) {
                         const cardName = row['Card Name'];
-                        await db.collection('users').doc(user.uid).collection('collection').add({
-                            name: cardName,
-                            quantity: parseInt(row.Quantity, 10) || 1,
-                            addedAt: new Date()
-                        });
+                        if (cardName) {
+                            const docRef = collectionRef.doc(); // Create a new doc reference
+                            batch.set(docRef, {
+                                name: cardName,
+                                quantity: parseInt(row.Count, 10) || 1,
+                                set: row.Set,
+                                setName: row['Set Name'],
+                                isFoil: (row.Foil && row.Foil.toLowerCase() === 'foil'),
+                                condition: row.Condition || 'Near Mint',
+                                imageUrl: 'https://placehold.co/223x310?text=Loading...', // Placeholder
+                                addedAt: new Date(),
+                                tcg: "Magic: The Gathering"
+                            });
+                        }
                     }
-                    statusEl.textContent = `Import complete!`;
+                    await batch.commit();
+                    statusEl.textContent = `Import complete! Refreshing collection...`;
                     loadCardList('collection');
                 }
             });
@@ -387,13 +400,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'relative';
                 cardEl.innerHTML = `
-                    <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full">
+                    <img src="${card.imageUrl || 'https://placehold.co/223x310?text=No+Image'}" class="rounded-lg shadow-md w-full">
                     <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg">
                         <button class="edit-card-btn text-white text-xs" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-edit"></i></button>
                         <button class="delete-card-btn text-white text-xs ml-1" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-trash"></i></button>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 p-1 bg-black bg-opacity-50 text-white text-xs text-center">
-                        <p>$${card.isFoil ? card.priceUsdFoil : card.priceUsd} (${card.quantity})</p>
+                        <p>$${card.isFoil ? (card.priceUsdFoil || card.priceUsd) : card.priceUsd} (${card.quantity})</p>
                     </div>
                 `;
                 container.appendChild(cardEl);
@@ -452,8 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
             await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
             loadCardList(listType);
         };
-        
-        // Initial Load
+    };
+         // Initial Load
         loadCardList('collection');
     };
     
@@ -469,3 +482,4 @@ document.addEventListener('DOMContentLoaded', () => {
         setupMyCollectionPage();
     }
 });
+
