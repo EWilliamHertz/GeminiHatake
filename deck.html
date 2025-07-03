@@ -6,55 +6,85 @@
     <title>HatakeSocial - Deck Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css" onerror="alert('Error loading css/style.css! Check file path and server.');">
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col bg-gray-100">
 
+    <!-- Header Section -->
     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center">
-                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
-                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+                <a href="index.html">
+                    <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                </a>
+                <a href="index.html" class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</a>
             </div>
-
-            <div class="flex items-center space-x-6">
-                <nav class="hidden md:block">
-                    <ul class="flex space-x-6">
-                        <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a></li>
-                        <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-layer-group"></i></a></li>
-                        <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a></li>
-                        <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-box-open"></i></a></li>
-                    </ul>
-                </nav>
-                <div class="relative flex items-center">
-                    <img src="/images/user_avatar.png" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden" id="userAvatar">
-                </div>
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a>
+                <a href="deck.html" class="text-blue-600 text-xl"><i class="fas fa-layer-group"></i></a>
+                <a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a>
+            </nav>
+            <div class="flex items-center">
+                <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden" id="userAvatar">
             </div>
         </div>
     </header>
 
+    <!-- Main Content -->
     <main class="flex-grow container mx-auto px-4 py-8">
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">MTG Deck Builder</h1>
-            <p class="text-gray-600 mb-6">Paste your decklist from services like Manabox or MTGGoldfish. The format should be `1 Card Name` on each line.</p>
-
-            <form id="deck-builder-form">
-                <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y mb-4" placeholder="1 Black Lotus&#10;4 Sol Ring&#10;..."></textarea>
-                <button type="submit" id="build-deck-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">
-                    Build Deck
-                </button>
-            </form>
+        <!-- Tab Navigation -->
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="flex -mb-px space-x-8" aria-label="Tabs">
+                <button id="tab-builder" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">Deck Builder</button>
+                <button id="tab-my-decks" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">My Decks</button>
+                <button id="tab-community-decks" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">Community Decks</button>
+            </nav>
         </div>
 
-        <div id="deck-display-container" class="mt-8">
-            <div id="deck-stats" class="bg-white p-6 rounded-lg shadow-md mb-8 hidden">
-                <h2 class="text-2xl font-bold text-gray-800">Deck Summary</h2>
-                <p class="text-lg text-gray-700">Total Cards: <span id="total-cards-count" class="font-bold">0</span></p>
-                <p class="text-xl text-blue-600">Total Price (USD): <span id="total-deck-price" class="font-extrabold">$0.00</span></p>
-                <div id="deck-builder-status" class="text-gray-500 mt-2"></div>
-            </div>
-            <div id="deck-cards-display" class="space-y-6">
+        <!-- Tab Content -->
+        <div>
+            <!-- Deck Builder Tab -->
+            <div id="content-builder" class="tab-content">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-4">MTG Deck Builder</h1>
+                    <p class="text-gray-600 mb-6">Paste your decklist from services like Manabox or MTGGoldfish. The format should be `1 Card Name` on each line.</p>
+                    <form id="deck-builder-form">
+                        <input type="text" id="deck-name-input" class="w-full p-3 border border-gray-300 rounded-md mb-4" placeholder="Enter Deck Name (e.g., Mono-Red Goblins)" required>
+                        <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4" placeholder="1 Black Lotus&#10;4 Sol Ring&#10;..."></textarea>
+                        <div class="flex items-center justify-between">
+                            <button type="submit" id="build-deck-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Build & Price Deck</button>
+                            <button type="button" id="save-deck-btn" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 hidden">Save Deck</button>
+                        </div>
+                    </form>
                 </div>
+                <div id="deck-display-container" class="mt-8">
+                    <div id="deck-stats" class="bg-white p-6 rounded-lg shadow-md mb-8 hidden">
+                        <h2 id="deck-stats-name" class="text-2xl font-bold text-gray-800">Deck Summary</h2>
+                        <p class="text-lg text-gray-700">Total Cards: <span id="total-cards-count" class="font-bold">0</span></p>
+                        <p class="text-xl text-blue-600">Total Price (USD): <span id="total-deck-price" class="font-extrabold">$0.00</span></p>
+                        <div id="deck-builder-status" class="text-gray-500 mt-2"></div>
+                    </div>
+                    <div id="deck-cards-display" class="space-y-6"></div>
+                </div>
+            </div>
+
+            <!-- My Decks Tab -->
+            <div id="content-my-decks" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">My Saved Decks</h2>
+                <div id="my-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- User's decks will be loaded here -->
+                    <p>Loading your decks...</p>
+                </div>
+            </div>
+
+            <!-- Community Decks Tab -->
+            <div id="content-community-decks" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Community Decks</h2>
+                <div id="community-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Public decks will be loaded here -->
+                    <p>Loading community decks...</p>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -67,6 +97,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="js/script.js" onerror="alert('Error loading js/script.js! Check file path and browser console.');"></script>
+    <script src="js/script.js"></script>
 </body>
 </html>
