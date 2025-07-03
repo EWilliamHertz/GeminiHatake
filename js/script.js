@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         projectId: "hatakesocial-88b5e",
         storageBucket: "hatakesocial-88b5e.appspot.com",
         messagingSenderId: "1091697032506",
-        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403" // User-updated App ID
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
     // --- Firebase Initialization ---
@@ -380,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error(error);
-            communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing. Please check the browser console for a link to create it.</p>`;
+            communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing. Please check the browser console for a link to create it, or create it manually.</p>`;
         }
     };
 
@@ -388,9 +388,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('mouseover', async (e) => {
         if (e.target.classList.contains('card-link')) {
             const featuredCardImg = document.getElementById('deck-display-featured-card');
-            if (featuredCardImg && e.target.dataset.cardImage) {
+            if (featuredCardImg && e.target.dataset.cardImage && e.target.closest('#deck-display-list')) {
                 // Handle hover on deck list page
-                featuredCardImg.src = e.target.dataset.cardImage;
+                if (e.target.dataset.cardImage !== 'undefined') {
+                    featuredCardImg.src = e.target.dataset.cardImage;
+                }
             } else {
                 // Handle hover on feed page (tooltip)
                 if (document.querySelector('.card-tooltip')) return;
