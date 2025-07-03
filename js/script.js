@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         projectId: "hatakesocial-88b5e",
         storageBucket: "hatakesocial-88b5e.appspot.com",
         messagingSenderId: "1091697032506",
-        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403" // User-updated App ID
     };
 
     // --- Firebase Initialization ---
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const renderComments = (commentsListEl, comments) => {
             commentsListEl.innerHTML = !comments || comments.length === 0 ? '<p class="text-gray-500 text-sm">No comments yet.</p>' : '';
-            comments?.sort((a, b) => a.timestamp - b.timestamp).forEach(comment => {
+            comments?.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds).forEach(comment => {
                 commentsListEl.innerHTML += `<div class="pt-2 border-t mt-2"><p><strong>${comment.author || 'Anonymous'}:</strong> ${comment.content}</p></div>`;
             });
         };
@@ -220,32 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // **FIX**: Added card hover functionality back
-        postsContainer.addEventListener('mouseover', async (e) => {
-            if (e.target.classList.contains('card-link')) {
-                const cardName = e.target.dataset.cardName;
-                if (e.target.querySelector('.card-tooltip')) return;
-                try {
-                    const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
-                    if (!response.ok) return;
-                    const card = await response.json();
-                    if (card.image_uris) {
-                        const tooltip = document.createElement('div');
-                        tooltip.className = 'card-tooltip';
-                        tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}">`;
-                        e.target.appendChild(tooltip);
-                    }
-                } catch (error) { console.error("Scryfall hover error:", error); }
-            }
-        });
-
-        postsContainer.addEventListener('mouseout', (e) => {
-            if (e.target.classList.contains('card-link')) {
-                const tooltip = e.target.querySelector('.card-tooltip');
-                if (tooltip) tooltip.remove();
-            }
-        });
-
         document.getElementById('uploadImageBtn')?.addEventListener('click', () => postImageUpload.click());
         document.getElementById('uploadVideoBtn')?.addEventListener('click', () => postImageUpload.click());
         if (postImageUpload) postImageUpload.addEventListener('change', e => selectedFile = e.target.files[0]);
@@ -262,9 +236,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(item => item.classList.replace('text-blue-600', 'text-gray-500') || item.classList.replace('border-blue-600', 'hover:border-gray-300'));
-                tab.classList.replace('text-gray-500', 'text-blue-600');
-                tab.classList.replace('hover:border-gray-300', 'border-blue-600');
+                tabs.forEach(item => {
+                    item.classList.remove('text-blue-600', 'border-blue-600');
+                    item.classList.add('text-gray-500', 'hover:border-gray-300');
+                });
+                tab.classList.add('text-blue-600', 'border-blue-600');
+                tab.classList.remove('text-gray-500', 'hover:border-gray-300');
                 const targetId = tab.id.replace('tab-', 'content-');
                 tabContents.forEach(content => content.id === targetId ? content.classList.remove('hidden') : content.classList.add('hidden'));
                 if (tab.id === 'tab-my-decks') loadMyDecks();
@@ -277,6 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const deckNameInput = document.getElementById('deck-name-input');
             const decklistInput = document.getElementById('decklist-input');
             const statusEl = document.getElementById('deck-builder-status');
+            const buildBtn = document.getElementById('build-deck-btn');
+
+            buildBtn.disabled = true;
             statusEl.textContent = 'Building deck... This may take a moment.';
             saveDeckBtn.classList.add('hidden');
 
@@ -284,16 +264,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const cardPromises = lines.map(line => {
                 const match = line.match(/^(\d+)\s+(.*)/);
                 if (!match) return null;
-                return fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(match[2].trim())}`)
+                const cardName = match[2].trim().replace(/\s\/\/.*$/, '');
+                return fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
                     .then(res => res.ok ? res.json() : null)
                     .then(cardData => cardData ? { ...cardData, quantity: parseInt(match[1], 10) } : null);
             }).filter(p => p);
 
             const cardResults = (await Promise.all(cardPromises)).filter(c => c);
             currentDeck = { name: deckNameInput.value, cards: cardResults, createdAt: new Date() };
-            displayDeck(currentDeck);
+            displayDeckAsList(currentDeck);
             saveDeckBtn.classList.remove('hidden');
             statusEl.textContent = 'Deck built successfully! You can now save it.';
+            buildBtn.disabled = false;
         });
 
         saveDeckBtn.addEventListener('click', async () => {
@@ -306,54 +288,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 await db.collection('users').doc(user.uid).collection('decks').add(currentDeck);
                 statusEl.textContent = `Deck "${currentDeck.name}" saved! Switching to 'My Decks'...`;
                 setTimeout(() => {
-                    document.getElementById('tab-my-decks').click(); // **FIX**: Automatically switch to My Decks tab
+                    document.getElementById('tab-my-decks').click();
                 }, 1500);
             } catch (error) { statusEl.textContent = "Failed to save deck."; }
         });
     };
 
-    const displayDeck = (deck) => {
-        const cardsDisplayEl = document.getElementById('deck-cards-display');
-        const deckStatsEl = document.getElementById('deck-stats');
-        cardsDisplayEl.innerHTML = '';
-        deckStatsEl.classList.remove('hidden');
-        document.getElementById('deck-stats-name').textContent = deck.name;
+    const displayDeckAsList = (deck) => {
+        const container = document.getElementById('deck-display-container');
+        const listEl = document.getElementById('deck-display-list');
+        const featuredCardImg = document.getElementById('deck-display-featured-card');
+        container.classList.remove('hidden');
+        listEl.innerHTML = '';
+
+        document.getElementById('deck-display-name').textContent = deck.name;
 
         const categorizedCards = {};
-        let totalCards = 0, totalPrice = 0;
+        let totalPrice = 0;
         deck.cards.forEach(card => {
-            const type = card.type_line.split('—')[0].trim();
+            const type = card.type_line.includes('Creature') ? 'Creatures' :
+                         card.type_line.includes('Planeswalker') ? 'Planeswalkers' :
+                         card.type_line.includes('Instant') ? 'Instants' :
+                         card.type_line.includes('Sorcery') ? 'Sorceries' :
+                         card.type_line.includes('Artifact') ? 'Artifacts' :
+                         card.type_line.includes('Enchantment') ? 'Enchantments' :
+                         card.type_line.includes('Land') ? 'Lands' : 'Other';
             if (!categorizedCards[type]) categorizedCards[type] = [];
             categorizedCards[type].push(card);
-            totalCards += card.quantity;
             totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
         });
 
-        // **FIX**: Sort categories for consistent display order
-        const sortedCategories = Object.keys(categorizedCards).sort((a, b) => {
-            const order = ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land'];
-            const indexA = order.indexOf(a);
-            const indexB = order.indexOf(b);
-            if (indexA > -1 && indexB > -1) return indexA - indexB;
-            if (indexA > -1) return -1;
-            if (indexB > -1) return 1;
-            return a.localeCompare(b);
-        });
+        document.getElementById('deck-display-price').textContent = `$${totalPrice.toFixed(2)}`;
+        if (deck.cards.length > 0) {
+            featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+        }
 
-        sortedCategories.forEach(category => {
-            const categoryEl = document.createElement('div');
-            const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
-            categoryEl.innerHTML = `<h3 class="text-xl font-bold border-b-2 pb-2 mb-4">${category} (${cardCount})</h3>`;
-            const gridEl = document.createElement('div');
-            gridEl.className = 'grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4';
-            categorizedCards[category].forEach(card => {
-                gridEl.innerHTML += `<div><img src="${card.image_uris?.normal}" alt="${card.name}" class="rounded-lg shadow-md"><p class="text-center font-semibold mt-1">${card.quantity}x ${card.name}</p><p class="text-center text-sm text-gray-600">$${card.prices.usd || 'N/A'}</p></div>`;
-            });
-            categoryEl.appendChild(gridEl);
-            cardsDisplayEl.appendChild(categoryEl);
+        const order = ['Creatures', 'Planeswalkers', 'Instants', 'Sorceries', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
+        order.forEach(category => {
+            if (categorizedCards[category]) {
+                const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
+                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category} (${cardCount})</h3>`;
+                categorizedCards[category].forEach(card => {
+                    categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
+                });
+                categoryHTML += `</div>`;
+                listEl.innerHTML += categoryHTML;
+            }
         });
-        document.getElementById('total-cards-count').textContent = totalCards;
-        document.getElementById('total-deck-price').textContent = `$${totalPrice.toFixed(2)}`;
     };
 
     const loadMyDecks = async () => {
@@ -372,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-gray-600">${deck.createdAt.toDate().toLocaleDateString()}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
             deckCard.addEventListener('click', () => {
                 document.getElementById('tab-builder').click();
-                displayDeck(deck);
+                displayDeckAsList(deck);
             });
             myDecksList.appendChild(deckCard);
         });
@@ -393,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-gray-600">${deck.createdAt.toDate().toLocaleDateString()}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
                 deckCard.addEventListener('click', () => {
                     document.getElementById('tab-builder').click();
-                    displayDeck(deck);
+                    displayDeckAsList(deck);
                 });
                 communityDecksList.appendChild(deckCard);
             });
@@ -403,11 +384,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- GLOBAL EVENT LISTENERS (FOR CARD HOVER) ---
+    document.body.addEventListener('mouseover', async (e) => {
+        if (e.target.classList.contains('card-link')) {
+            const featuredCardImg = document.getElementById('deck-display-featured-card');
+            if (featuredCardImg && e.target.dataset.cardImage) {
+                // Handle hover on deck list page
+                featuredCardImg.src = e.target.dataset.cardImage;
+            } else {
+                // Handle hover on feed page (tooltip)
+                if (document.querySelector('.card-tooltip')) return;
+                const cardName = e.target.dataset.cardName;
+                try {
+                    const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
+                    if (!response.ok) return;
+                    const card = await response.json();
+                    if (card.image_uris) {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'card-tooltip';
+                        tooltip.style.position = 'fixed';
+                        tooltip.style.left = `${e.clientX + 20}px`;
+                        tooltip.style.top = `${e.clientY - 150}px`;
+                        tooltip.style.zIndex = '1000';
+                        tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}" style="width: 220px; border-radius: 10px;">`;
+                        document.body.appendChild(tooltip);
+                        e.target.addEventListener('mouseout', () => tooltip.remove(), { once: true });
+                    }
+                } catch (error) { console.error("Scryfall hover error:", error); }
+            }
+        }
+    });
+
     // --- Page Initialization ---
     setupCoreUI();
-    if (window.location.pathname.includes('index.html') || window.location.pathname === '/') {
+    if (document.getElementById('postsContainer')) {
         setupIndexPage();
-    } else if (window.location.pathname.includes('deck.html')) {
+    }
+    if (document.getElementById('deck-builder-form')) {
         setupDeckPage();
     }
 });
