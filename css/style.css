@@ -1,3 +1,78 @@
+/* Add these styles to the end of your existing css/style.css file */
+
+/* --- Profile Page Tabs --- */
+.profile-tab-button {
+    @apply whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300;
+}
+.profile-tab-button.active {
+    @apply text-blue-600 border-blue-600;
+}
+
+/* --- Messenger Widget --- */
+#messenger-widget {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    width: 350px;
+    z-index: 1000;
+    transition: all 0.3s ease-in-out;
+}
+
+#messenger-widget-header {
+    background-color: #1d4ed8; /* blue-800 */
+    color: white;
+    padding: 0.75rem 1rem;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#messenger-widget-body {
+    background-color: white;
+    height: 400px;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    transition: height 0.3s ease-in-out;
+}
+
+#messenger-widget.minimized #messenger-widget-body {
+    height: 0;
+    padding: 0;
+    border: none;
+}
+
+/* --- Full Page Messenger --- */
+#conversations-list .conversation-item {
+    @apply flex items-center p-3 cursor-pointer hover:bg-gray-100 border-b border-gray-200;
+}
+#conversations-list .conversation-item.active {
+    @apply bg-blue-50;
+}
+
+#messages-container .message {
+    @apply mb-4 flex;
+}
+#messages-container .message.sent {
+    @apply justify-end;
+}
+#messages-container .message.received {
+    @apply justify-start;
+}
+#messages-container .message-bubble {
+    @apply p-3 rounded-lg max-w-xs;
+}
+#messages-container .message.sent .message-bubble {
+    @apply bg-blue-600 text-white;
+}
+#messages-container .message.received .message-bubble {
+    @apply bg-gray-200 text-gray-800;
+}
+
 /* Base Styles */
 body {
     font-family: 'Inter', sans-serif;
