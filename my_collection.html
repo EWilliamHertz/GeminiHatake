@@ -10,6 +10,7 @@
 </head>
 <body class="bg-gray-100">
 
+    <!-- Header Section (Corrected and Full) -->
     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <a href="index.html" class="flex items-center">
@@ -47,7 +48,9 @@
         </div>
     </header>
 
+    <!-- Main Content -->
     <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- Tab Navigation -->
         <div class="mb-6 border-b border-gray-200">
             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                 <button id="tab-collection" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">My Collection</button>
@@ -55,9 +58,11 @@
             </nav>
         </div>
 
+        <!-- Add Card & Upload Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-2xl font-bold mb-4">Add to Your Collection</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Add Single Card Form -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Search for a Card</h3>
                     <div id="search-card-form" class="space-y-3">
@@ -65,6 +70,7 @@
                         <button type="button" id="search-card-btn" class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700">Search</button>
                     </div>
                 </div>
+                <!-- CSV Upload -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Import from ManaBox (.csv)</h3>
                     <p class="text-sm text-gray-600 mb-3">Export your collection from ManaBox and upload it here.</p>
@@ -75,6 +81,7 @@
             </div>
         </div>
 
+        <!-- Card Search Results Section -->
         <div id="card-search-results-section" class="hidden">
             <hr class="my-8">
             <h2 class="text-2xl font-bold mb-4">Search Results</h2>
@@ -92,12 +99,15 @@
             <div id="card-search-results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
         </div>
 
+        <!-- Tab Content -->
         <div class="mt-8">
+            <!-- My Collection Tab -->
             <div id="content-collection" class="tab-content">
                 <h2 class="text-3xl font-bold text-gray-800 mb-4">My Collection</h2>
                 <div id="collection-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
             </div>
 
+            <!-- My Wishlist Tab -->
             <div id="content-wishlist" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-4">My Wishlist</h2>
                 <div id="wishlist-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
@@ -105,6 +115,7 @@
         </div>
     </main>
     
+    <!-- Edit Card Modal -->
     <div id="edit-card-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md">
             <button id="close-edit-card-modal" class="close-button">&times;</button>
