@@ -144,13 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const postElement = document.createElement('div');
             postElement.classList.add('bg-white', 'p-4', 'rounded-lg', 'shadow-md');
 
-            let content = post.content;
             const cardRegex = /\[(.*?)\]/g;
-            let match;
-            while ((match = cardRegex.exec(post.content)) !== null) {
-                const cardName = match[1];
-                content = content.replace(`[${cardName}]`, `<a href="#" class="text-blue-500 card-link" data-card-name="${cardName}">${cardName}</a>`);
-            }
+            const content = post.content.replace(cardRegex, (match, cardName) => {
+                return `<a href="#" class="text-blue-500 card-link" data-card-name="${cardName}">${cardName}</a>`;
+            });
 
             postElement.innerHTML = `
                 <div class="flex items-center mb-4">
@@ -304,13 +301,25 @@ document.addEventListener('DOMContentLoaded', () => {
     postsContainer.addEventListener('mouseover', async e => {
         if (e.target.classList.contains('card-link')) {
             const cardName = e.target.dataset.cardName;
-            const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${cardName}`);
-            const card = await response.json();
-            if (card.image_uris) {
-                const tooltip = document.createElement('div');
-                tooltip.classList.add('card-tooltip');
-                tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}">`;
-                e.target.appendChild(tooltip);
+
+            // Prevent multiple tooltips
+            if (e.target.querySelector('.card-tooltip')) return;
+
+            try {
+                const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
+                if (!response.ok) {
+                    console.error("Scryfall API error:", response.status, response.statusText);
+                    return;
+                }
+                const card = await response.json();
+                if (card.image_uris) {
+                    const tooltip = document.createElement('div');
+                    tooltip.classList.add('card-tooltip');
+                    tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}">`;
+                    e.target.appendChild(tooltip);
+                }
+            } catch (error) {
+                console.error("Error fetching card data:", error);
             }
         }
     });
