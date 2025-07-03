@@ -17,9 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
     // --- Global State & Helpers ---
-    let currentDeck = null;
     let deckToShare = null;
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
     const openModal = (modal) => { if (modal) modal.classList.add('open'); };
     const closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
 
@@ -235,10 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const deckBuilderForm = document.getElementById('deck-builder-form');
         if (!deckBuilderForm) return;
 
-        const saveDeckBtn = document.getElementById('save-deck-btn');
         const tabs = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
-        const shareDeckModal = document.getElementById('share-deck-modal');
         const deckFilters = document.getElementById('deck-filters');
         const tcgFilterButtons = document.getElementById('tcg-filter-buttons');
         const formatFilterContainer = document.getElementById('format-filter-container');
@@ -345,45 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
             buildDeckBtn.textContent = 'Build & Price Deck';
         });
         
-        document.getElementById('share-deck-to-feed-btn')?.addEventListener('click', () => {
-             if (deckToShare) openModal(shareDeckModal);
-        });
-        document.getElementById('close-share-deck-modal')?.addEventListener('click', () => closeModal(shareDeckModal));
-        document.getElementById('share-deck-form')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const user = auth.currentUser;
-            const message = document.getElementById('share-deck-message').value;
-            const statusEl = document.getElementById('share-deck-status');
-            if (!user) { statusEl.textContent = "You must be logged in."; return; }
-            if (!deckToShare || !deckToShare.id) { statusEl.textContent = "Please save the deck before sharing."; return; }
-
-            statusEl.textContent = "Posting...";
-            const deckLink = `[deck:${deckToShare.id}:${deckToShare.name}]`;
-            const postContent = message ? `${message}\n\n${deckLink}` : deckLink;
-
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                const userData = userDoc.data();
-                await db.collection('posts').add({
-                    author: userData.displayName || 'Anonymous',
-                    authorId: user.uid,
-                    authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-                    content: postContent,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    likes: [], comments: []
-                });
-                statusEl.textContent = "Successfully posted to feed!";
-                setTimeout(() => {
-                    closeModal(shareDeckModal);
-                    statusEl.textContent = "";
-                    document.getElementById('share-deck-message').value = "";
-                }, 1500);
-            } catch (error) {
-                statusEl.textContent = "Failed to post.";
-                console.error("Share error: ", error);
-            }
-        });
-
         const applyFilters = () => {
             const activeTcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
             const activeFormat = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
