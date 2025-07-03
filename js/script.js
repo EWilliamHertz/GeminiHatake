@@ -17,9 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
     // --- Global State & Helpers ---
-    let currentDeck = null;
     let deckToShare = null;
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
     const openModal = (modal) => { if (modal) modal.classList.add('open'); };
     const closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
 
@@ -324,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 authorId: user?.uid || null,
                 authorName: user?.displayName || 'Anonymous'
             };
-            viewDeck(newDeck, null, true); // Pass true to show save button
+            viewDeck(newDeck, null, true);
             buildBtn.disabled = false;
             buildBtn.textContent = 'Build & Price Deck';
         });
@@ -343,9 +341,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.getElementById('share-deck-to-feed-btn')?.addEventListener('click', () => {
-            if (deckToShare) openModal(document.getElementById('share-deck-modal'));
+             if (deckToShare) openModal(shareDeckModal);
         });
-        document.getElementById('close-share-deck-modal')?.addEventListener('click', () => closeModal(document.getElementById('share-deck-modal')));
+        document.getElementById('close-share-deck-modal')?.addEventListener('click', () => closeModal(shareDeckModal));
         document.getElementById('share-deck-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const user = auth.currentUser;
@@ -371,13 +369,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 statusEl.textContent = "Successfully posted to feed!";
                 setTimeout(() => {
-                    closeModal(document.getElementById('share-deck-modal'));
+                    closeModal(shareDeckModal);
                     statusEl.textContent = "";
                     document.getElementById('share-deck-message').value = "";
                 }, 1500);
             } catch (error) {
                 statusEl.textContent = "Failed to post.";
                 console.error("Share error: ", error);
+            }
+        });
+
+        tcgFilterButtons.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tcg-filter-btn')) {
+                tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+                e.target.classList.add('filter-btn-active');
+                
+                const selectedTcg = e.target.dataset.tcg;
+                formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
+                if (selectedTcg !== 'all' && formats[selectedTcg]) {
+                    formats[selectedTcg].forEach(format => {
+                        formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
+                    });
+                    formatFilterContainer.classList.remove('hidden');
+                } else {
+                    formatFilterContainer.classList.add('hidden');
+                }
+                
+                const activeTab = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
+                if (activeTab === 'my') loadMyDecks(selectedTcg);
+                else loadCommunityDecks(selectedTcg);
+            }
+        });
+
+        formatFilterButtons.addEventListener('click', (e) => {
+            if (e.target.classList.contains('format-filter-btn')) {
+                formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+                e.target.classList.add('filter-btn-active');
+
+                const selectedTcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
+                const selectedFormat = e.target.dataset.format;
+                
+                const activeTab = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
+                if (activeTab === 'my') loadMyDecks(selectedTcg, selectedFormat);
+                else loadCommunityDecks(selectedTcg, selectedFormat);
             }
         });
 
