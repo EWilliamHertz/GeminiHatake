@@ -3,25 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HatakeSocial - Deck Builder</title>
+    <title>My Collection - HatakeSocial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="min-h-screen flex flex-col bg-gray-100">
+<body class="bg-gray-100">
 
-    <!-- Header Section -->
+    <!-- Header Section (Corrected and Full) -->
     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
                 <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
             </a>
-            <nav class="hidden md:flex items-center space-x-6">
-                <a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a>
-                <a href="deck.html" class="text-blue-600 text-xl"><i class="fas fa-layer-group"></i></a>
-                <a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-box-open"></i></a>
-                <a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a>
+            <div class="hidden md:flex flex-grow justify-center mx-4">
+                <div class="relative w-full max-w-md">
+                    <input type="text" placeholder="Search HatakeSocial..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+            <nav class="hidden md:block">
+                <ul class="flex items-center space-x-6">
+                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-home"></i></a></li>
+                    <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-layer-group"></i></a></li>
+                    <li><a href="my_collection.html" class="text-blue-600 text-xl"><i class="fas fa-box-open"></i></a></li>
+                    <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-store"></i></a></li>
+                    <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-exchange-alt"></i></a></li>
+                    <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-shopping-cart"></i></a></li>
+                    <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-calendar-alt"></i></a></li>
+                    <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-envelope"></i></a></li>
+                    <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl"><i class="fas fa-cog"></i></a></li>
+                </ul>
             </nav>
             <div class="relative flex items-center">
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
@@ -37,51 +50,98 @@
 
     <!-- Main Content -->
     <main class="flex-grow container mx-auto px-4 py-8">
-        <!-- ... (Your existing deck builder content) ... -->
+        <!-- Tab Navigation -->
         <div class="mb-6 border-b border-gray-200">
             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                <button id="tab-builder" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">Deck Builder</button>
-                <button id="tab-my-decks" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">My Decks</button>
-                <button id="tab-community-decks" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">Community Decks</button>
+                <button id="tab-collection" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">My Collection</button>
+                <button id="tab-wishlist" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">My Wishlist</button>
             </nav>
         </div>
-        <!-- ... (The rest of your deck page content) ... -->
+
+        <!-- Add Card & Upload Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold mb-4">Add to Your Collection</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Add Single Card Form -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Search for a Card</h3>
+                    <div id="search-card-form" class="space-y-3">
+                        <input type="text" id="search-card-name" class="w-full p-2 border rounded-md" placeholder="Card Name (e.g., Sol Ring)" required>
+                        <button type="button" id="search-card-btn" class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700">Search</button>
+                    </div>
+                </div>
+                <!-- CSV Upload -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">Import from ManaBox (.csv)</h3>
+                    <p class="text-sm text-gray-600 mb-3">Export your collection from ManaBox and upload it here.</p>
+                    <input type="file" id="csv-upload-input" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" accept=".csv">
+                    <button id="csv-upload-btn" class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700">Upload CSV</button>
+                    <p id="csv-status" class="text-center text-sm mt-2"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Search Results Section -->
+        <div id="card-search-results-section" class="hidden">
+            <hr class="my-8">
+            <h2 class="text-2xl font-bold mb-4">Search Results</h2>
+            <div class="flex items-center space-x-4 mb-4 bg-white p-3 rounded-lg shadow-sm">
+                <select id="filter-set" class="p-2 border rounded-md"></select>
+                <select id="filter-type" class="p-2 border rounded-md"></select>
+                 <div class="flex items-center space-x-4">
+                    <label>Add to:</label>
+                    <input type="radio" id="add-to-collection" name="add-to-list" value="collection" checked>
+                    <label for="add-to-collection">Collection</label>
+                    <input type="radio" id="add-to-wishlist" name="add-to-list" value="wishlist">
+                    <label for="add-to-wishlist">Wishlist</label>
+                </div>
+            </div>
+            <div id="card-search-results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="mt-8">
+            <!-- My Collection Tab -->
+            <div id="content-collection" class="tab-content">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">My Collection</h2>
+                <div id="collection-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            </div>
+
+            <!-- My Wishlist Tab -->
+            <div id="content-wishlist" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">My Wishlist</h2>
+                <div id="wishlist-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            </div>
+        </div>
     </main>
     
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal-overlay">
+    <!-- Edit Card Modal -->
+    <div id="edit-card-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md">
-            <button class="close-button" id="closeLoginModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Login to HatakeSocial</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+            <button id="close-edit-card-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Edit Card</h2>
+            <form id="edit-card-form">
+                <input type="hidden" id="edit-card-id">
+                <input type="hidden" id="edit-card-list-type">
+                <div class="mb-4">
+                    <label for="edit-card-quantity" class="block font-bold mb-1">Quantity</label>
+                    <input type="number" id="edit-card-quantity" class="w-full p-2 border rounded" min="1">
                 </div>
-                <div>
-                    <label for="loginPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
+                <div class="mb-4">
+                    <label for="edit-card-condition" class="block font-bold mb-1">Condition</label>
+                    <select id="edit-card-condition" class="w-full p-2 border rounded">
+                        <option>Near Mint</option>
+                        <option>Lightly Played</option>
+                        <option>Moderately Played</option>
+                        <option>Heavily Played</option>
+                        <option>Damaged</option>
+                    </select>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700">Login</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Register Modal -->
-    <div id="registerModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md">
-            <button class="close-button" id="closeRegisterModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Register for HatakeSocial</h2>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label for="registerEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+                <div class="mb-6">
+                    <input type="checkbox" id="edit-card-foil" class="mr-2">
+                    <label for="edit-card-foil">Foil</label>
                 </div>
-                <div>
-                    <label for="registerPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password (min 6 characters)" required>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700">Register</button>
+                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700">Save Changes</button>
             </form>
         </div>
     </div>
@@ -89,6 +149,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="js/script.js"></script>
 </body>
 </html>
