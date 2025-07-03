@@ -254,7 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                if (tab.id === 'tab-deck-view') return;
+                // This check prevents the hidden tab from being clickable by the user
+                if (tab.id === 'tab-deck-view' && !tab.classList.contains('text-blue-600')) return;
                 switchTab(tab.id);
                 if (tab.id === 'tab-my-decks') loadMyDecks();
                 if (tab.id === 'tab-community-decks') loadCommunityDecks();
