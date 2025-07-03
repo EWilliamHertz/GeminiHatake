@@ -45,7 +45,7 @@
             </nav>
         </div>
 
-        <!-- TCG and Format Filters (for My Decks and Community Decks) -->
+        <!-- TCG and Format Filters -->
         <div id="deck-filters" class="hidden mb-6">
             <div class="bg-white p-4 rounded-lg shadow-md">
                 <div class="mb-4">
@@ -60,37 +60,34 @@
                 </div>
                 <div id="format-filter-container" class="hidden">
                     <h3 class="font-bold text-lg mb-2">Filter by Format</h3>
-                    <div id="format-filter-buttons" class="flex flex-wrap gap-2">
-                        <!-- Format buttons will be injected here -->
-                    </div>
+                    <div id="format-filter-buttons" class="flex flex-wrap gap-2"></div>
                 </div>
             </div>
         </div>
 
-
         <!-- Tab Content -->
         <div>
-            <!-- Deck Builder Tab -->
+            <!-- Deck Builder / Edit Tab -->
             <div id="content-builder" class="tab-content">
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-4">MTG Deck Builder</h1>
+                    <h1 id="builder-title" class="text-3xl font-bold text-gray-800 mb-4">Create New Deck</h1>
                     <form id="deck-builder-form">
+                        <input type="hidden" id="editing-deck-id">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <input type="text" id="deck-name-input" class="w-full p-3 border border-gray-300 rounded-md" placeholder="Enter Deck Name" required>
-                            <div>
-                                <select id="deck-tcg-select" class="w-full p-3 border border-gray-300 rounded-md" required>
-                                    <option value="" disabled selected>Select a Game</option>
-                                    <option value="Magic: The Gathering">Magic: The Gathering</option>
-                                    <option value="Pokémon">Pokémon</option>
-                                    <option value="Flesh and Blood">Flesh and Blood</option>
-                                    <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
-                                </select>
-                            </div>
+                            <select id="deck-tcg-select" class="w-full p-3 border border-gray-300 rounded-md" required>
+                                <option value="" disabled selected>Select a Game</option>
+                                <option value="Magic: The Gathering">Magic: The Gathering</option>
+                                <option value="Pokémon">Pokémon</option>
+                                <option value="Flesh and Blood">Flesh and Blood</option>
+                                <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
+                            </select>
                         </div>
                         <div id="deck-format-select-container" class="mb-4 hidden">
-                            <select id="deck-format-select" class="w-full p-3 border border-gray-300 rounded-md">
-                                <!-- Format options will be injected here -->
-                            </select>
+                            <select id="deck-format-select" class="w-full p-3 border border-gray-300 rounded-md"></select>
+                        </div>
+                        <div class="mb-4">
+                            <textarea id="deck-bio-input" class="w-full p-3 border border-gray-300 rounded-md resize-y" rows="3" placeholder="Enter a short description for your deck..."></textarea>
                         </div>
                         <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4" placeholder="Paste your decklist here..."></textarea>
                         <button type="submit" id="build-deck-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build & Price Deck</button>
@@ -102,24 +99,21 @@
             <div id="content-my-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4">My Decks</h2><div id="my-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
             <div id="content-community-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4">Community Decks</h2><div id="community-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
             
-            <!-- Deck View Tab (Read-Only) -->
+            <!-- Deck View Tab -->
             <div id="content-deck-view" class="tab-content hidden">
                  <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div class="flex justify-between items-start">
+                    <div class="flex justify-between items-start mb-4">
                         <div>
                             <h2 id="deck-view-name" class="text-3xl font-bold text-gray-800 mb-1"></h2>
-                            <p id="deck-view-author" class="text-md text-gray-500 mb-2"></p>
-                            <p class="text-lg text-gray-500 mb-6">Total Price: <span id="deck-view-price" class="font-bold text-blue-600"></span></p>
+                            <p id="deck-view-author" class="text-md text-gray-500"></p>
+                            <p class="text-lg text-gray-500">Format: <span id="deck-view-format" class="font-semibold"></span></p>
+                            <p class="text-lg text-gray-500">Total Price: <span id="deck-view-price" class="font-bold text-blue-600"></span></p>
                         </div>
-                        <div>
-                            <button id="save-deck-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 flex items-center mb-2 hidden">
-                                <i class="fas fa-save mr-2"></i> Save Deck
-                            </button>
-                            <button id="share-deck-to-feed-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 flex items-center">
-                                <i class="fas fa-share-square mr-2"></i> Share to Feed
-                            </button>
-                        </div>
+                        <button id="share-deck-to-feed-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 flex items-center">
+                            <i class="fas fa-share-square mr-2"></i> Share to Feed
+                        </button>
                     </div>
+                    <p id="deck-view-bio" class="mb-6 p-4 bg-gray-50 rounded-lg italic"></p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div id="deck-view-list" class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6"></div>
                         <div id="deck-view-image-container" class="md:col-span-1">
