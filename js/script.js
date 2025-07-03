@@ -49,6 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitPostBtn = document.getElementById('submitPostBtn');
     const postStatusMessage = document.getElementById('postStatusMessage');
     const searchBar = document.getElementById('searchBar');
+
+    // Sidebar Elements
+    const sidebarUserInfo = document.getElementById('sidebar-user-info');
+    const sidebarUserAvatar = document.getElementById('sidebar-user-avatar');
+    const sidebarUserName = document.getElementById('sidebar-user-name');
+    const sidebarUserHandle = document.getElementById('sidebar-user-handle');
+
     let selectedFile = null;
 
     // --- Modal Functions ---
@@ -62,19 +69,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeRegisterModal) closeRegisterModal.addEventListener('click', () => closeModal(registerModal));
     if (closeShareModal) closeShareModal.addEventListener('click', () => closeModal(shareModal));
 
+    // **FIX**: Added event listener for header avatar dropdown
+    if (userAvatar) userAvatar.addEventListener('click', () => {
+        userDropdown.classList.toggle('hidden');
+    });
+
     // --- Firebase Auth ---
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async (user) => {
         if (user) {
             loginButton.classList.add('hidden');
             registerButton.classList.add('hidden');
             userAvatar.classList.remove('hidden');
-            logoutButton.classList.remove('hidden');
-            userAvatar.src = user.photoURL || 'https://i.imgur.com/B06rBhI.png';
+            userAvatar.src = user.photoURL || 'https://i.imgur.com/B06rBhI.png'; // Use photoURL from auth object for immediate UI update
+
+            // **FIX**: Added logic to update the sidebar with user info
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                if (sidebarUserInfo) sidebarUserInfo.classList.remove('hidden');
+                if (sidebarUserAvatar) sidebarUserAvatar.src = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                if (sidebarUserName) sidebarUserName.textContent = userData.displayName || 'User';
+                if (sidebarUserHandle) sidebarUserHandle.textContent = `@${(userData.displayName || 'user').toLowerCase().replace(/\s/g, '')}`;
+
+                // Update header avatar with DB value in case it's different
+                userAvatar.src = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+            }
+
         } else {
             loginButton.classList.remove('hidden');
             registerButton.classList.remove('hidden');
             userAvatar.classList.add('hidden');
-            logoutButton.classList.add('hidden');
+            userDropdown.classList.add('hidden'); // Hide dropdown on logout
+            if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden'); // Hide sidebar info on logout
         }
     });
 
@@ -108,7 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
                     // Assign a default avatar for email/password sign-ups
-                    const defaultPhotoURL = `https://ui-avatars.com/api/?name=${email.charAt(0)}&background=random`;
+                    const defaultPhotoURL = `https://ui-avatars.com/api/?name=${email.charAt(0)}&background=random&color=fff`;
+                    // Update the auth profile itself
+                    cred.user.updateProfile({
+                        displayName: email.split('@')[0],
+                        photoURL: defaultPhotoURL
+                    });
+                    // Store details in Firestore
                     return db.collection('users').doc(cred.user.uid).set({
                         displayName: email.split('@')[0],
                         email: email,
@@ -135,7 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (logoutButton) {
-        logoutButton.addEventListener('click', () => auth.signOut());
+        logoutButton.addEventListener('click', () => {
+            auth.signOut();
+            userDropdown.classList.add('hidden');
+        });
     }
 
     // --- Firestore & Posts ---
@@ -181,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    renderPosts();
+    if(postsContainer) renderPosts();
 
     if (submitPostBtn) {
         submitPostBtn.addEventListener('click', async () => {
@@ -194,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             postStatusMessage.textContent = 'Posting...';
 
-            // **FIX**: Fetch user data from Firestore to get the correct display name and avatar
+            // Fetch user data from Firestore to get the correct display name and avatar
             const userDocRef = db.collection('users').doc(user.uid);
             const userDoc = await userDocRef.get();
             const userData = userDoc.exists ? userDoc.data() : { displayName: 'Anonymous', photoURL: 'https://i.imgur.com/B06rBhI.png' };
@@ -211,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             await db.collection('posts').add({
-                // **FIX**: Use the reliable data from the Firestore document
+                // Use the reliable data from the Firestore document
                 author: userData.displayName,
                 authorId: user.uid,
                 authorPhotoURL: userData.photoURL,
@@ -236,123 +271,115 @@ document.addEventListener('DOMContentLoaded', () => {
     if (postImageUpload) postImageUpload.addEventListener('change', e => selectedFile = e.target.files[0]);
 
     // --- Post Interactions ---
-    postsContainer.addEventListener('click', async e => {
-        const target = e.target;
-        const postElement = target.closest('.bg-white');
-        const postId = target.closest('button')?.dataset.id;
-        if (!postId) return;
-
-        const postRef = db.collection('posts').doc(postId);
-        const user = auth.currentUser;
-        if (!user) {
-            alert('Please login to interact with posts.');
-            return;
-        }
-
-        if (target.closest('.like-btn')) {
-            db.runTransaction(async transaction => {
-                const postDoc = await transaction.get(postRef);
-                if (!postDoc.exists) throw "Document does not exist!";
-
-                const likes = postDoc.data().likes || [];
-                const userLikeIndex = likes.indexOf(user.uid);
-
-                if (userLikeIndex === -1) {
-                    likes.push(user.uid);
-                } else {
-                    likes.splice(userLikeIndex, 1);
-                }
-                transaction.update(postRef, { likes: likes });
-                return likes;
-            }).then(likes => {
-                const likesCount = postElement.querySelector('.likes-count');
-                likesCount.textContent = likes.length;
-            });
-        }
-
-        if (target.closest('.comment-btn')) {
-            const commentsSection = postElement.querySelector('.comments-section');
-            commentsSection.classList.toggle('hidden');
-        }
-
-        if (target.closest('.share-btn')) {
-            openModal(shareModal);
-            // In a real app, you'd pass the post URL to the share links
-        }
-    });
-
-    postsContainer.addEventListener('submit', async e => {
-        e.preventDefault();
-        const target = e.target;
-        if (target.classList.contains('comment-form')) {
+    if (postsContainer) {
+        postsContainer.addEventListener('click', async e => {
+            const target = e.target;
             const postElement = target.closest('.bg-white');
-            const postId = postElement.querySelector('.like-btn').dataset.id;
-            const input = target.querySelector('input');
-            const content = input.value;
+            if(!postElement) return;
+
+            const postId = postElement.querySelector('.like-btn')?.dataset.id;
+            if (!postId) return;
+
+            const postRef = db.collection('posts').doc(postId);
             const user = auth.currentUser;
+            if (!user) {
+                alert('Please login to interact with posts.');
+                return;
+            }
 
-            if (content && user) {
-                const postRef = db.collection('posts').doc(postId);
-                const comment = {
-                    author: user.displayName,
-                    authorId: user.uid,
-                    content: content,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                await postRef.update({
-                    comments: firebase.firestore.FieldValue.arrayUnion(comment)
+            if (target.closest('.like-btn')) {
+                db.runTransaction(async transaction => {
+                    const postDoc = await transaction.get(postRef);
+                    if (!postDoc.exists) throw "Document does not exist!";
+
+                    const likes = postDoc.data().likes || [];
+                    const userLikeIndex = likes.indexOf(user.uid);
+
+                    if (userLikeIndex === -1) {
+                        likes.push(user.uid);
+                    } else {
+                        likes.splice(userLikeIndex, 1);
+                    }
+                    transaction.update(postRef, { likes: likes });
+                    return likes;
+                }).then(likes => {
+                    const likesCount = postElement.querySelector('.likes-count');
+                    likesCount.textContent = likes.length;
                 });
-                input.value = '';
-                // You would re-render the comments here
             }
-        }
-    });
 
-    // --- Scryfall API ---
-    postsContainer.addEventListener('mouseover', async e => {
-        if (e.target.classList.contains('card-link')) {
-            const cardName = e.target.dataset.cardName;
+            if (target.closest('.comment-btn')) {
+                const commentsSection = postElement.querySelector('.comments-section');
+                commentsSection.classList.toggle('hidden');
+            }
 
-            // Prevent multiple tooltips
-            if (e.target.querySelector('.card-tooltip')) return;
+            if (target.closest('.share-btn')) {
+                openModal(shareModal);
+            }
+        });
 
-            try {
-                const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
-                if (!response.ok) {
-                    console.error("Scryfall API error:", response.status, response.statusText);
-                    return;
+        postsContainer.addEventListener('submit', async e => {
+            e.preventDefault();
+            const target = e.target;
+            if (target.classList.contains('comment-form')) {
+                const postElement = target.closest('.bg-white');
+                const postId = postElement.querySelector('.like-btn').dataset.id;
+                const input = target.querySelector('input');
+                const content = input.value;
+                const user = auth.currentUser;
+
+                if (content && user) {
+                    const postRef = db.collection('posts').doc(postId);
+                    const comment = {
+                        author: user.displayName,
+                        authorId: user.uid,
+                        content: content,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await postRef.update({
+                        comments: firebase.firestore.FieldValue.arrayUnion(comment)
+                    });
+                    input.value = '';
                 }
-                const card = await response.json();
-                if (card.image_uris) {
-                    const tooltip = document.createElement('div');
-                    tooltip.classList.add('card-tooltip');
-                    tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}">`;
-                    e.target.appendChild(tooltip);
-                }
-            } catch (error) {
-                console.error("Error fetching card data:", error);
             }
-        }
-    });
+        });
 
-    postsContainer.addEventListener('mouseout', e => {
-        if (e.target.classList.contains('card-link')) {
-            const tooltip = e.target.querySelector('.card-tooltip');
-            if (tooltip) {
-                tooltip.remove();
+        // --- Scryfall API ---
+        postsContainer.addEventListener('mouseover', async e => {
+            if (e.target.classList.contains('card-link')) {
+                const cardName = e.target.dataset.cardName;
+                if (e.target.querySelector('.card-tooltip')) return;
+                try {
+                    const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
+                    if (!response.ok) return;
+                    const card = await response.json();
+                    if (card.image_uris) {
+                        const tooltip = document.createElement('div');
+                        tooltip.classList.add('card-tooltip');
+                        tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}">`;
+                        e.target.appendChild(tooltip);
+                    }
+                } catch (error) {
+                    console.error("Error fetching card data:", error);
+                }
             }
-        }
-    });
+        });
+
+        postsContainer.addEventListener('mouseout', e => {
+            if (e.target.classList.contains('card-link')) {
+                const tooltip = e.target.querySelector('.card-tooltip');
+                if (tooltip) tooltip.remove();
+            }
+        });
+    }
 
     // --- Search ---
     if (searchBar) {
         searchBar.addEventListener('keyup', async e => {
             if (e.key === 'Enter') {
                 const query = searchBar.value.toLowerCase();
-                // This is a simplified search. A real implementation would likely use a dedicated search service like Algolia.
                 const usersRef = db.collection('users');
                 const usersSnapshot = await usersRef.where('displayName', '>=', query).where('displayName', '<=', query + '\uf8ff').get();
-                // You would then display these results.
             }
         });
     }
