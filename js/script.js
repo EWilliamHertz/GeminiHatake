@@ -1305,12 +1305,245 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
+    // --- Messenger Widget & Page Logic ---
 
-    // --- Page Initialization ---
-    // This will call the correct setup function based on the current page.
-    setupCoreUI();
+/**
+ * Injects the messenger widget into the page if the user is logged in.
+ * @param {object} user - The current Firebase user object.
+ */
+const injectMessengerWidget = (user) => {
+    // Don't inject if the widget already exists or if we are on the main messages page.
+    if (document.getElementById('messenger-widget') || window.location.pathname.includes('messages.html')) {
+        return;
+    }
+
+    const widgetHTML = `
+        <div id="messenger-widget" class="minimized">
+            <div id="messenger-widget-header">
+                <h3 class="font-bold">Messages</h3>
+                <button id="messenger-toggle-btn"><i class="fas fa-chevron-up"></i></button>
+            </div>
+            <div id="messenger-widget-body" class="hidden">
+                <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
+                <a href="/messages.html" class="block text-center p-2 bg-gray-200 hover:bg-gray-300 text-sm font-semibold">View Full Conversation</a>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', widgetHTML);
+
+    const widget = document.getElementById('messenger-widget');
+    const toggleBtn = document.getElementById('messenger-toggle-btn');
+    const body = document.getElementById('messenger-widget-body');
+
+    // Add event listener to expand/collapse the widget
+    toggleBtn.addEventListener('click', () => {
+        widget.classList.toggle('minimized');
+        body.classList.toggle('hidden');
+        toggleBtn.innerHTML = widget.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+    });
+    
+    // Load recent conversations into the widget
+    loadConversations(user.uid, document.getElementById('widget-conversations-list'), true);
+};
+
+/**
+ * Loads a user's conversations into a specified container.
+ * @param {string} currentUserId - The UID of the currently logged-in user.
+ * @param {HTMLElement} container - The HTML element to populate with conversations.
+ * @param {boolean} isWidget - True if this is for the small widget, false for the full page.
+ */
+const loadConversations = async (currentUserId, container, isWidget) => {
+    // This is a simplified approach. A scalable app would have a 'conversations' collection.
+    // For now, we list all other users as potential people to chat with.
+    const usersSnapshot = await db.collection('users').get();
+    container.innerHTML = '';
+    usersSnapshot.forEach(doc => {
+        if (doc.id === currentUserId) return; // Don't list the user themselves
+        const userData = doc.data();
+        const item = document.createElement('div');
+        item.className = 'conversation-item';
+        item.innerHTML = `
+            <img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3">
+            <span class="font-bold">${userData.displayName}</span>
+        `;
+        item.addEventListener('click', () => {
+            // Clicking a conversation in the widget opens the full messages page
+            if (isWidget) {
+                window.location.href = `/messages.html?with=${doc.id}`;
+            } else {
+                // On the full messages page, this would open the chat view.
+                // (Full implementation for this part would be in setupMessagesPage)
+                alert(`Opening chat with ${userData.displayName}`);
+            }
+        });
+        container.appendChild(item);
+    });
+};
+
+/**
+ * Sets up the logic for the full-screen messages.html page.
+ * @param {object} currentUser - The current Firebase user object.
+ */
+const setupMessagesPage = (currentUser) => {
+    // Only run this code on messages.html
+    if (!document.getElementById('chat-area') || !currentUser) {
+        return;
+    }
+    
+    const conversationsListEl = document.getElementById('conversations-list');
+    loadConversations(currentUser.uid, conversationsListEl, false);
+
+    // Further implementation for sending/receiving messages would go here.
+};
+
+
+// --- Dynamic Profile Page Logic ---
+
+/**
+ * Sets up the logic for the dynamic profile.html page.
+ * @param {object} currentUser - The current Firebase user object.
+ */
+const setupProfilePage = async (currentUser) => {
+    // Only run this code on profile.html
+    if (!document.getElementById('profile-displayName')) {
+        return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const username = params.get('user'); // Check for a username like ?user=somebody
+
+    let profileUserId;
+    let profileUserData;
+
+    if (username) {
+        // If a username is in the URL, find that user
+        const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
+        if (!userQuery.empty) {
+            const userDoc = userQuery.docs[0];
+            profileUserId = userDoc.id;
+            profileUserData = userDoc.data();
+        } else {
+            document.querySelector('main').innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">User not found.</h1>';
+            return;
+        }
+    } else if (currentUser) {
+        // If no username in URL, show the logged-in user's profile
+        profileUserId = currentUser.uid;
+        const userDoc = await db.collection('users').doc(profileUserId).get();
+        profileUserData = userDoc.data();
+    } else {
+        // If no user is specified and nobody is logged in, show an error
+        alert("Please log in to see your profile or specify a user in the URL (e.g., ?user=profilename).");
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // --- Populate Profile Header ---
+    document.getElementById('profile-displayName').textContent = profileUserData.displayName;
+    document.getElementById('profile-handle').textContent = `@${profileUserData.handle}`;
+    document.getElementById('profile-bio').textContent = profileUserData.bio;
+    document.getElementById('profile-fav-tcg').textContent = profileUserData.favoriteTcg || 'Not set';
+    document.getElementById('profile-avatar').src = profileUserData.photoURL || 'https://placehold.co/128x128';
+    document.getElementById('profile-banner').src = profileUserData.bannerURL || 'https://placehold.co/1200x300';
+
+    // --- Show Action Buttons (Follow, Message, Edit) ---
+    const actionButtonsContainer = document.getElementById('profile-action-buttons');
+    if (currentUser && currentUser.uid !== profileUserId) {
+        // Viewing someone else's profile
+        actionButtonsContainer.innerHTML = `
+            <button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>
+            <button id="follow-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm">Follow</button>
+            <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>
+        `;
+        document.getElementById('message-btn').addEventListener('click', (e) => {
+            window.location.href = `/messages.html?with=${e.currentTarget.dataset.uid}`;
+        });
+    } else if (currentUser && currentUser.uid === profileUserId) {
+        // Viewing your own profile
+        document.getElementById('edit-profile-btn').classList.remove('hidden');
+    }
+
+    // --- Setup Profile Tabs ---
+    const tabs = document.querySelectorAll('.profile-tab-button');
+    const tabContents = document.querySelectorAll('.profile-tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            const targetContentId = `tab-content-${tab.dataset.tab}`;
+            tabContents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(targetContentId).classList.remove('hidden');
+        });
+    });
+
+    // --- Load Content for Profile Tabs ---
+    loadProfileDecks(profileUserId);
+    loadProfileCollection(profileUserId, 'collection');
+    loadProfileCollection(profileUserId, 'wishlist');
+};
+
+/**
+ * Loads a specific user's public decks into their profile page.
+ * @param {string} userId - The UID of the user whose decks to load.
+ */
+const loadProfileDecks = async (userId) => {
+    const container = document.getElementById('tab-content-decks');
+    container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
+    const snapshot = await db.collection('users').doc(userId).collection('decks').get();
+    if (snapshot.empty) {
+        container.innerHTML = '<p class="text-gray-500">This user has no public decks.</p>';
+        return;
+    }
+    container.innerHTML = '';
+    snapshot.forEach(doc => {
+        const deck = doc.data();
+        const deckCard = document.createElement('div');
+        deckCard.className = 'bg-white p-4 rounded-lg shadow-md';
+        deckCard.innerHTML = `
+            <h3 class="text-xl font-bold truncate">${deck.name}</h3>
+            <p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>
+        `;
+        container.appendChild(deckCard);
+    });
+};
+
+/**
+ * Loads a specific user's collection or wishlist into their profile page.
+ * @param {string} userId - The UID of the user whose items to load.
+ * @param {string} listType - The name of the list ('collection' or 'wishlist').
+ */
+const loadProfileCollection = async (userId, listType) => {
+    const container = document.getElementById(`tab-content-${listType}`);
+    container.innerHTML = '<p class="text-gray-500">Loading...</p>';
+    const snapshot = await db.collection('users').doc(userId).collection(listType).limit(24).get();
+    if (snapshot.empty) {
+        container.innerHTML = `<p class="text-gray-500">This user's ${listType} is empty or private.</p>`;
+        return;
+    }
+    container.innerHTML = '';
+    snapshot.forEach(doc => {
+        const card = doc.data();
+        const cardEl = document.createElement('div');
+        cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full">`;
+        container.appendChild(cardEl);
+    });
+};
+
+
+ // --- Page Initialization ---
+// This new structure ensures Firebase auth is checked before running page logic.
+auth.onAuthStateChanged(user => {
+    // Inject the messenger for logged-in users on any page except messages.html
+    if (user && !window.location.pathname.includes('messages.html')) {
+        injectMessengerWidget(user);
+    }
+
+    // Run all page-specific setup functions.
+    // They will internally check if they are on the correct page before running.
+    setupCoreUI(); // This still handles the main login/logout buttons
     setupIndexPage();
     setupDeckPage();
     setupMyCollectionPage();
-    setupProfilePage();
+    setupProfilePage(user); // Pass the user object to the profile page setup
+    setupMessagesPage(user); // Pass the user object to the messages page setup
 });
