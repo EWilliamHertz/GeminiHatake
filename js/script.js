@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Global State & Helpers ---
     let deckToShare = null;
+    let cardSearchResults = [];
     const openModal = (modal) => { if (modal) modal.classList.add('open'); };
     const closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
 
