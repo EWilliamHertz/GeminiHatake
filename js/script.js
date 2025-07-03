@@ -69,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeRegisterModal) closeRegisterModal.addEventListener('click', () => closeModal(registerModal));
     if (closeShareModal) closeShareModal.addEventListener('click', () => closeModal(shareModal));
 
-    // **FIX**: Added event listener for header avatar dropdown
     if (userAvatar) userAvatar.addEventListener('click', () => {
         userDropdown.classList.toggle('hidden');
     });
@@ -80,9 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loginButton.classList.add('hidden');
             registerButton.classList.add('hidden');
             userAvatar.classList.remove('hidden');
-            userAvatar.src = user.photoURL || 'https://i.imgur.com/B06rBhI.png'; // Use photoURL from auth object for immediate UI update
+            userAvatar.src = user.photoURL || 'https://i.imgur.com/B06rBhI.png';
 
-            // **FIX**: Added logic to update the sidebar with user info
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
@@ -90,17 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (sidebarUserAvatar) sidebarUserAvatar.src = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
                 if (sidebarUserName) sidebarUserName.textContent = userData.displayName || 'User';
                 if (sidebarUserHandle) sidebarUserHandle.textContent = `@${(userData.displayName || 'user').toLowerCase().replace(/\s/g, '')}`;
-
-                // Update header avatar with DB value in case it's different
                 userAvatar.src = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
             }
-
         } else {
             loginButton.classList.remove('hidden');
             registerButton.classList.remove('hidden');
             userAvatar.classList.add('hidden');
-            userDropdown.classList.add('hidden'); // Hide dropdown on logout
-            if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden'); // Hide sidebar info on logout
+            userDropdown.classList.add('hidden');
+            if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden');
         }
     });
 
@@ -133,14 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const favoriteTcg = registerFavoriteTcg.value;
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
-                    // Assign a default avatar for email/password sign-ups
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${email.charAt(0)}&background=random&color=fff`;
-                    // Update the auth profile itself
                     cred.user.updateProfile({
                         displayName: email.split('@')[0],
                         photoURL: defaultPhotoURL
                     });
-                    // Store details in Firestore
                     return db.collection('users').doc(cred.user.uid).set({
                         displayName: email.split('@')[0],
                         email: email,
@@ -167,7 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (logoutButton) {
-        logoutButton.addEventListener('click', () => {
+        logoutButton.addEventListener('click', (e) => {
+            e.preventDefault();
             auth.signOut();
             userDropdown.classList.add('hidden');
         });
@@ -181,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const post = doc.data();
             const postElement = document.createElement('div');
             postElement.classList.add('bg-white', 'p-4', 'rounded-lg', 'shadow-md');
-
             const cardRegex = /\[(.*?)\]/g;
             const content = post.content ? post.content.replace(cardRegex, (match, cardName) => {
                 return `<a href="#" class="text-blue-500 card-link" data-card-name="${cardName}">${cardName}</a>`;
@@ -216,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    if(postsContainer) renderPosts();
+    if (postsContainer) renderPosts();
 
     if (submitPostBtn) {
         submitPostBtn.addEventListener('click', async () => {
@@ -227,55 +219,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            postStatusMessage.textContent = 'Posting...';
-
-            // Fetch user data from Firestore to get the correct display name and avatar
-            const userDocRef = db.collection('users').doc(user.uid);
-            const userDoc = await userDocRef.get();
-            const userData = userDoc.exists ? userDoc.data() : { displayName: 'Anonymous', photoURL: 'https://i.imgur.com/B06rBhI.png' };
-
-
-            let mediaUrl = null;
-            let mediaType = null;
-            if (selectedFile) {
-                const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
-                const fileRef = storage.ref(filePath);
-                await fileRef.put(selectedFile);
-                mediaUrl = await fileRef.getDownloadURL();
-                mediaType = selectedFile.type;
+            if (!content.trim() && !selectedFile) {
+                postStatusMessage.textContent = 'Please write something or upload a file.';
+                return;
             }
 
-            await db.collection('posts').add({
-                // Use the reliable data from the Firestore document
-                author: userData.displayName,
-                authorId: user.uid,
-                authorPhotoURL: userData.photoURL,
-                content: content,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                likes: [],
-                comments: [],
-                mediaUrl: mediaUrl,
-                mediaType: mediaType
-            });
+            postStatusMessage.textContent = 'Posting...';
 
-            postContentInput.value = '';
-            selectedFile = null;
-            postStatusMessage.textContent = 'Posted!';
-            setTimeout(() => postStatusMessage.textContent = '', 2000);
-            renderPosts();
+            // **FIX**: Added try...catch block to handle errors during post creation
+            try {
+                const userDocRef = db.collection('users').doc(user.uid);
+                const userDoc = await userDocRef.get();
+
+                if (!userDoc.exists) {
+                    throw new Error("Your user profile could not be found. Please try logging out and back in.");
+                }
+                const userData = userDoc.data();
+
+                let mediaUrl = null;
+                let mediaType = null;
+                if (selectedFile) {
+                    const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
+                    const fileRef = storage.ref(filePath);
+                    await fileRef.put(selectedFile);
+                    mediaUrl = await fileRef.getDownloadURL();
+                    mediaType = selectedFile.type;
+                }
+
+                await db.collection('posts').add({
+                    author: userData.displayName,
+                    authorId: user.uid,
+                    authorPhotoURL: userData.photoURL,
+                    content: content,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: [],
+                    comments: [],
+                    mediaUrl: mediaUrl,
+                    mediaType: mediaType
+                });
+
+                postContentInput.value = '';
+                postImageUpload.value = '';
+                selectedFile = null;
+                postStatusMessage.textContent = 'Posted!';
+                setTimeout(() => postStatusMessage.textContent = '', 2000);
+                renderPosts();
+
+            } catch (error) {
+                console.error("Failed to create post:", error);
+                postStatusMessage.textContent = `Error: ${error.message}`;
+            }
         });
     }
 
     if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => postImageUpload.click());
     if (uploadVideoBtn) uploadVideoBtn.addEventListener('click', () => postImageUpload.click());
-    if (postImageUpload) postImageUpload.addEventListener('change', e => selectedFile = e.target.files[0]);
+    if (postImageUpload) {
+        postImageUpload.addEventListener('change', e => {
+            selectedFile = e.target.files[0];
+            if(selectedFile) {
+                postStatusMessage.textContent = `Selected: ${selectedFile.name}`;
+            }
+        });
+    }
+
 
     // --- Post Interactions ---
     if (postsContainer) {
         postsContainer.addEventListener('click', async e => {
             const target = e.target;
             const postElement = target.closest('.bg-white');
-            if(!postElement) return;
+            if (!postElement) return;
 
             const postId = postElement.querySelector('.like-btn')?.dataset.id;
             if (!postId) return;
@@ -291,10 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 db.runTransaction(async transaction => {
                     const postDoc = await transaction.get(postRef);
                     if (!postDoc.exists) throw "Document does not exist!";
-
                     const likes = postDoc.data().likes || [];
                     const userLikeIndex = likes.indexOf(user.uid);
-
                     if (userLikeIndex === -1) {
                         likes.push(user.uid);
                     } else {
