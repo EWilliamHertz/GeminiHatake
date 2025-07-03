@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Global State & Helpers ---
     let currentDeck = null;
+    let deckToShare = null;
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
     const openModal = (modal) => { if (modal) modal.classList.add('open'); };
     const closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
 
@@ -127,13 +129,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
                 postElement.dataset.id = doc.id;
 
-                const content = post.content?.replace(/\[(.*?)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`) || '';
+                let content = post.content || '';
+                content = content.replace(/\[(card|deck):([^:]+):([^\]]+)\]/g, (match, type, id, name) => {
+                    if (type === 'deck') {
+                        return `<a href="deck.html?deckId=${id}" class="font-bold text-indigo-600 hover:underline">[Deck: ${name}]</a>`;
+                    }
+                    return `<a href="#" class="text-blue-500 card-link" data-card-name="${name}">${name}</a>`;
+                }).replace(/\[(.*?)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
+
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
                         <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="author" class="h-10 w-10 rounded-full mr-4">
                         <div><p class="font-bold">${post.author || 'Anonymous'}</p><p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p></div>
                     </div>
-                    <p class="mb-4">${content}</p>
+                    <p class="mb-4 whitespace-pre-wrap">${content}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
                     <div class="flex justify-between items-center mt-4 text-gray-600">
                         <button class="like-btn flex items-center hover:text-red-500"><i class="far fa-heart mr-1"></i> <span class="likes-count">${post.likes?.length || 0}</span></button>
@@ -233,17 +242,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveDeckBtn = document.getElementById('save-deck-btn');
         const tabs = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
+        const shareDeckModal = document.getElementById('share-deck-modal');
 
+        const switchTab = (tabId) => {
+            tabs.forEach(item => {
+                const isTarget = item.id === tabId;
+                item.classList.toggle('text-blue-600', isTarget);
+                item.classList.toggle('border-blue-600', isTarget);
+                item.classList.toggle('text-gray-500', !isTarget);
+                item.classList.toggle('hover:border-gray-300', !isTarget);
+            });
+            const targetContentId = tabId.replace('tab-', 'content-');
+            tabContents.forEach(content => content.id === targetContentId ? content.classList.remove('hidden') : content.classList.add('hidden'));
+        };
+        
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(item => {
-                    item.classList.remove('text-blue-600', 'border-blue-600');
-                    item.classList.add('text-gray-500', 'hover:border-gray-300');
-                });
-                tab.classList.add('text-blue-600', 'border-blue-600');
-                tab.classList.remove('text-gray-500', 'hover:border-gray-300');
-                const targetId = tab.id.replace('tab-', 'content-');
-                tabContents.forEach(content => content.id === targetId ? content.classList.remove('hidden') : content.classList.add('hidden'));
+                switchTab(tab.id);
                 if (tab.id === 'tab-my-decks') loadMyDecks();
                 if (tab.id === 'tab-community-decks') loadCommunityDecks();
             });
@@ -257,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const buildBtn = document.getElementById('build-deck-btn');
 
             buildBtn.disabled = true;
-            statusEl.textContent = 'Building deck... This may take a moment.';
+            statusEl.textContent = 'Building deck...';
             saveDeckBtn.classList.add('hidden');
 
             const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
@@ -271,8 +286,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }).filter(p => p);
 
             const cardResults = (await Promise.all(cardPromises)).filter(c => c);
-            currentDeck = { name: deckNameInput.value, cards: cardResults, createdAt: new Date() };
-            displayDeckAsList(currentDeck);
+            const user = auth.currentUser;
+            currentDeck = {
+                name: deckNameInput.value,
+                cards: cardResults,
+                createdAt: new Date(),
+                authorId: user?.uid || null,
+                authorName: user?.displayName || 'Anonymous'
+            };
+            viewDeck(currentDeck, null);
             saveDeckBtn.classList.remove('hidden');
             statusEl.textContent = 'Deck built successfully! You can now save it.';
             buildBtn.disabled = false;
@@ -292,48 +314,95 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 1500);
             } catch (error) { statusEl.textContent = "Failed to save deck."; }
         });
+
+        document.getElementById('share-deck-to-feed-btn')?.addEventListener('click', () => {
+            if (deckToShare) openModal(shareDeckModal);
+        });
+        document.getElementById('close-share-deck-modal')?.addEventListener('click', () => closeModal(shareDeckModal));
+        document.getElementById('share-deck-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            const message = document.getElementById('share-deck-message').value;
+            const statusEl = document.getElementById('share-deck-status');
+            if (!user) { statusEl.textContent = "You must be logged in."; return; }
+            if (!deckToShare) { statusEl.textContent = "No deck selected to share."; return; }
+
+            statusEl.textContent = "Posting...";
+            const deckLink = `[deck:${deckToShare.id}:${deckToShare.name}]`;
+            const postContent = message ? `${message}\n\n${deckLink}` : deckLink;
+
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                const userData = userDoc.data();
+                await db.collection('posts').add({
+                    author: userData.displayName || 'Anonymous',
+                    authorId: user.uid,
+                    authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                    content: postContent,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: [], comments: []
+                });
+                statusEl.textContent = "Successfully posted to feed!";
+                setTimeout(() => {
+                    closeModal(shareDeckModal);
+                    statusEl.textContent = "";
+                    document.getElementById('share-deck-message').value = "";
+                }, 1500);
+            } catch (error) {
+                statusEl.textContent = "Failed to post.";
+                console.error("Share error: ", error);
+            }
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const deckId = urlParams.get('deckId');
+        if (deckId) {
+            db.collectionGroup('decks').where(firebase.firestore.FieldPath.documentId(), '==', deckId).limit(1).get()
+                .then(snapshot => {
+                    if (!snapshot.empty) {
+                        const doc = snapshot.docs[0];
+                        viewDeck(doc.data(), doc.id);
+                    } else {
+                        console.log("Deck not found");
+                    }
+                });
+        }
     };
 
-    const displayDeckAsList = (deck) => {
-        const container = document.getElementById('deck-display-container');
-        const listEl = document.getElementById('deck-display-list');
-        const featuredCardImg = document.getElementById('deck-display-featured-card');
-        container.classList.remove('hidden');
-        listEl.innerHTML = '';
+    const viewDeck = (deck, deckId) => {
+        document.getElementById('tab-deck-view').click();
+        deckToShare = { ...deck, id: deckId };
 
-        document.getElementById('deck-display-name').textContent = deck.name;
+        document.getElementById('deck-view-name').textContent = deck.name;
+        document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
+        
+        const listEl = document.getElementById('deck-view-list');
+        const featuredCardImg = document.getElementById('deck-view-featured-card');
+        listEl.innerHTML = '';
 
         const categorizedCards = {};
         let totalPrice = 0;
         deck.cards.forEach(card => {
             const type = card.type_line.includes('Creature') ? 'Creatures' :
                          card.type_line.includes('Planeswalker') ? 'Planeswalkers' :
-                         card.type_line.includes('Instant') ? 'Instants' :
-                         card.type_line.includes('Sorcery') ? 'Sorceries' :
-                         card.type_line.includes('Artifact') ? 'Artifacts' :
-                         card.type_line.includes('Enchantment') ? 'Enchantments' :
-                         card.type_line.includes('Land') ? 'Lands' : 'Other';
+                         card.type_line.includes('Instant') ? 'Instants' : 'Other';
             if (!categorizedCards[type]) categorizedCards[type] = [];
             categorizedCards[type].push(card);
             totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
         });
 
-        document.getElementById('deck-display-price').textContent = `$${totalPrice.toFixed(2)}`;
+        document.getElementById('deck-view-price').textContent = `$${totalPrice.toFixed(2)}`;
         if (deck.cards.length > 0) {
             featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
         }
 
-        const order = ['Creatures', 'Planeswalkers', 'Instants', 'Sorceries', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
-        order.forEach(category => {
-            if (categorizedCards[category]) {
-                const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
-                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category} (${cardCount})</h3>`;
-                categorizedCards[category].forEach(card => {
-                    categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
-                });
-                categoryHTML += `</div>`;
-                listEl.innerHTML += categoryHTML;
-            }
+        Object.keys(categorizedCards).forEach(category => {
+            let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category}</h3>`;
+            categorizedCards[category].forEach(card => {
+                categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
+            });
+            categoryHTML += `</div>`;
+            listEl.innerHTML += categoryHTML;
         });
     };
 
@@ -350,15 +419,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-            deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-gray-600">${deck.createdAt.toDate().toLocaleDateString()}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
-            deckCard.addEventListener('click', () => {
-                document.getElementById('tab-builder').click();
-                displayDeckAsList(deck);
-            });
+            deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
+            deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
             myDecksList.appendChild(deckCard);
         });
     };
-
+    
     const loadCommunityDecks = async () => {
         const communityDecksList = document.getElementById('community-decks-list');
         communityDecksList.innerHTML = '<p>Loading...</p>';
@@ -371,30 +437,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
                 const deckCard = document.createElement('div');
                 deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-                deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-gray-600">${deck.createdAt.toDate().toLocaleDateString()}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
-                deckCard.addEventListener('click', () => {
-                    document.getElementById('tab-builder').click();
-                    displayDeckAsList(deck);
-                });
+                deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
+                deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
                 communityDecksList.appendChild(deckCard);
             });
         } catch (error) {
             console.error(error);
-            communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing. Please check the browser console for a link to create it, or create it manually.</p>`;
+            communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing.</p>`;
         }
     };
 
     // --- GLOBAL EVENT LISTENERS (FOR CARD HOVER) ---
     document.body.addEventListener('mouseover', async (e) => {
         if (e.target.classList.contains('card-link')) {
-            const featuredCardImg = document.getElementById('deck-display-featured-card');
-            if (featuredCardImg && e.target.dataset.cardImage && e.target.closest('#deck-display-list')) {
-                // Handle hover on deck list page
+            const featuredCardImg = document.getElementById('deck-view-featured-card');
+            if (featuredCardImg && e.target.dataset.cardImage && e.target.closest('#deck-view-list')) {
                 if (e.target.dataset.cardImage !== 'undefined') {
                     featuredCardImg.src = e.target.dataset.cardImage;
                 }
             } else {
-                // Handle hover on feed page (tooltip)
                 if (document.querySelector('.card-tooltip')) return;
                 const cardName = e.target.dataset.cardName;
                 try {
