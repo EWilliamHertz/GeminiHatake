@@ -4,14 +4,8 @@
  * This script manages all frontend logic for the HatakeSocial platform,
  * including Firebase authentication, Firestore database interactions, social feed,
  * deck building, collection management, and the e-commerce shop.
- *
- * It is structured to run page-specific logic only after Firebase auth state
- * has been confirmed, preventing UI race conditions.
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Hide the body initially to prevent flash of incorrect content
-    document.body.style.opacity = '0';
-
     // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
@@ -47,9 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const registerModal = document.getElementById('registerModal');
         const googleLoginButton = document.getElementById('googleLoginButton');
 
-        // This is the main entry point after auth is resolved.
         auth.onAuthStateChanged(async (user) => {
-            // First, update the core UI elements like the header
             const sidebarUserInfo = document.getElementById('sidebar-user-info');
             const createPostSection = document.getElementById('create-post-section');
             if (user) {
@@ -79,21 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (sidebarUserInfo) sidebarUserInfo.style.display = 'none';
                 if (createPostSection) createPostSection.style.display = 'none';
             }
-            
-            // Now that auth is resolved, run all page-specific setups
-            // Pass the user object to them so they have the current auth state
-            setupIndexPage(user);
-            setupDeckPage(user);
-            setupMyCollectionPage(user);
-            setupProfilePage(user);
-            setupShopPage(user); // Shop page doesn't need user, but we pass for consistency
-
-            // Finally, fade in the body content
-            document.body.style.transition = 'opacity 0.3s ease-in-out';
-            document.body.style.opacity = '1';
         });
 
-        // Setup login/logout button listeners
         if (loginButton) loginButton.addEventListener('click', () => openModal(loginModal));
         if (registerButton) registerButton.addEventListener('click', () => openModal(registerModal));
         document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
@@ -114,7 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     userRef.get().then(doc => {
                         if (!doc.exists) {
                             userRef.set({
-                                displayName: user.displayName, email: user.email, photoURL: user.photoURL,
+                                displayName: user.displayName,
+                                email: user.email,
+                                photoURL: user.photoURL,
                                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                                 handle: user.displayName.toLowerCase().replace(/\s/g, ''),
                                 bio: "New HatakeSocial user!"
@@ -137,7 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
                     cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
                     return db.collection('users').doc(cred.user.uid).set({
-                        displayName: displayName, email: email, photoURL: defaultPhotoURL,
+                        displayName: displayName,
+                        email: email,
+                        photoURL: defaultPhotoURL,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: displayName.toLowerCase().replace(/\s/g, ''),
                         bio: "New HatakeSocial user!"
@@ -152,60 +135,109 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // --- SHOP.HTML LOGIC ---
-    const setupShopPage = (user) => { // Accepts user object
+    const setupShopPage = () => {
         if (!document.getElementById('product-grid')) return;
 
         const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
         
         const products = [
             {
-                id: 'prod_001', name: 'Matte Sleeves', price: 89, sku: '0.01', category: 'Sleeves',
-                availability: 'Pre-order Releasing 15 October', units: 1000,
+                id: 'prod_001',
+                name: 'Matte Sleeves',
+                price: 89,
+                sku: '0.01',
+                category: 'Sleeves',
+                availability: 'Pre-order Releasing 15 October',
+                units: 1000,
                 description: 'Hatake TCG Matte Sleeves offer premium protection with a sophisticated matte finish that reduces glare and enhances the handling experience. Each pack contains 100 high-quality black sleeves (66x91mm) designed to fit standard TCG cards perfectly.',
                 features: ['Premium matte finish', 'Acid-free and archival safe', 'Perfect clarity', 'Consistent sizing', 'Durable construction'],
                 specifications: { 'Dimensions': '66x91mm', 'Quantity': '100 sleeves per pack', 'Color': 'Black backing with clear front' },
-                images: ['/images/IMG_9962.jpg', '/images/IMG_9958.jpg', '/images/IMG_9966.jpg', '/images/IMG_9967.jpg', '/images/IMG_9965.jpg', '/images/IMG_9963.jpg', '/images/IMG_9969.jpg', '/images/IMG_9956.jpg'],
+                images: [
+                    '/images/IMG_9962.jpg', '/images/IMG_9958.jpg', '/images/IMG_9966.jpg', '/images/IMG_9967.jpg',
+                    '/images/IMG_9965.jpg', '/images/IMG_9963.jpg', '/images/IMG_9969.jpg', '/images/IMG_9956.jpg'
+                ],
                 stripePriceId: 'price_1RKhmsJqRiYlcnGZ71TjDGD1'
             },
             {
-                id: 'prod_002', name: '480-Slot Binder', price: 360, sku: '0.02', category: 'Binder',
-                availability: 'Pre-order Releasing 15 October', units: 100,
+                id: 'prod_002',
+                name: '480-Slot Binder',
+                price: 360,
+                sku: '0.02',
+                category: 'Binder',
+                availability: 'Pre-order Releasing 15 October',
+                units: 100,
                 description: 'The Hatake TCG 480-Slot Binder is the ultimate storage solution for serious collectors. This premium zippered binder features side-loading pockets to keep your valuable cards secure.',
                 features: ['Premium zippered closure', 'Side-loading pockets', '480 card capacity', 'Acid-free, PVC-free', 'Elegant Nordic-inspired design'],
                 specifications: { 'Capacity': '480 standard-sized cards', 'Material': 'Premium PU leather exterior', 'Closure': 'Heavy-duty zipper' },
-                images: ['/images/IMG_9839.jpg', '/images/IMG_9814.jpg', '/images/IMG_9818.jpg', '/images/IMG_9816.jpg', '/images/IMG_9819.jpg', '/images/IMG_9820.jpg', '/images/IMG_9823.jpg', '/images/IMG_9824.jpg', '/images/IMG_9825.jpg', '/images/IMG_9826.jpg', '/images/IMG_9827.jpg'],
+                images: [
+                    '/images/IMG_9839.jpg', '/images/IMG_9814.jpg', '/images/IMG_9818.jpg', '/images/IMG_9816.jpg',
+                    '/images/IMG_9819.jpg', '/images/IMG_9820.jpg', '/images/IMG_9823.jpg', '/images/IMG_9824.jpg',
+                    '/images/IMG_9825.jpg', '/images/IMG_9826.jpg', '/images/IMG_9827.jpg'
+                ],
                 stripePriceId: 'price_1RKhneJqRiYlcnGZ3yZg0f4q'
             },
             {
-                id: 'prod_003', name: '25x 35pt Top-Loaders', price: 30, sku: '0.031', category: 'Top-Loaders',
-                availability: 'Pre-order Releasing 15 October', units: 550,
+                id: 'prod_003',
+                name: '25x 35pt Top-Loaders',
+                price: 30,
+                sku: '0.031',
+                category: 'Top-Loaders',
+                availability: 'Pre-order Releasing 15 October',
+                units: 550,
                 description: 'Hatake TCG 35pt Top-Loaders provide superior protection for your most valuable standard-sized trading cards. Each pack contains 25 crystal-clear rigid sleeves.',
                 features: ['Crystal-clear PVC', '35pt thickness', 'Acid-free and archival safe', 'Precision-cut edges'],
                 specifications: { 'Thickness': '35pt (standard)', 'Quantity': '25 top-loaders per pack' },
-                images: ['/images/IMG_9971.jpg', '/images/IMG_9970.jpg', '/images/IMG_9972.jpg', '/images/IMG_9973.jpg', '/images/IMG_9974.jpg', '/images/IMG_9975.jpg', '/images/IMG_9976.jpg', '/images/IMG_9978.jpg'],
+                images: [
+                    '/images/IMG_9971.jpg', '/images/IMG_9970.jpg', '/images/IMG_9972.jpg', '/images/IMG_9973.jpg',
+                    '/images/IMG_9974.jpg', '/images/IMG_9975.jpg', '/images/IMG_9976.jpg', '/images/IMG_9978.jpg'
+                ],
                 stripePriceId: 'price_1RKhoHJqRiYlcnGZ8G1Zk3cO'
             },
              {
-                id: 'prod_004', name: '10x 130pt Top-Loaders', price: 35, sku: '0.032', category: 'Top-Loaders',
-                availability: 'Pre-order Releasing 15 October', units: 200,
+                id: 'prod_004',
+                name: '10x 130pt Top-Loaders',
+                price: 35,
+                sku: '0.032',
+                category: 'Top-Loaders',
+                availability: 'Pre-order Releasing 15 October',
+                units: 200,
                 description: 'Hatake TCG 130pt Top-Loaders are designed for maximum protection of multiple cards or oversized collectibles. Each pack contains 10 extra-thick, crystal-clear rigid sleeves.',
                 features: ['Extra-thick 130pt construction', 'Crystal-clear PVC', 'Acid-free and archival safe'],
                 specifications: { 'Thickness': '130pt (extra thick)', 'Quantity': '10 top-loaders per pack' },
-                images: ['/images/IMG_9979.jpg', '/images/IMG_9980.jpg', '/images/IMG_9981.jpg', '/images/IMG_9982.jpg', '/images/IMG_9983.jpg', '/images/IMG_9984.jpg', '/images/IMG_9985.jpg', '/images/IMG_9986.jpg', '/images/IMG_9987.jpg'],
+                images: [
+                    '/images/IMG_9979.jpg', '/images/IMG_9980.jpg', '/images/IMG_9981.jpg', '/images/IMG_9982.jpg',
+                    '/images/IMG_9983.jpg', '/images/IMG_9984.jpg', '/images/IMG_9985.jpg', '/images/IMG_9986.jpg',
+                    '/images/IMG_9987.jpg'
+                ],
                 stripePriceId: 'price_1RKhp5JqRiYlcnGZp5K0y0fP'
             },
             {
-                id: 'prod_005', name: 'PU DeckBox', price: 300, sku: '0.4', category: 'Deckbox',
-                availability: 'Pre-order Releasing 15 October', units: 100,
+                id: 'prod_005',
+                name: 'PU DeckBox',
+                price: 300,
+                sku: '0.4',
+                category: 'Deckbox',
+                availability: 'Pre-order Releasing 15 October',
+                units: 100,
                 description: 'The Hatake TCG PU DeckBox combines elegant Nordic design with practical functionality. With a generous 160+ card capacity and secure magnetic closure, this premium deck box keeps your valuable cards protected in style.',
                 features: ['Premium PU leather exterior', 'Strong magnetic closure', 'Soft interior lining', 'Separate compartments'],
                 specifications: { 'Capacity': '160+ double-sleeved cards', 'Material': 'High-quality PU leather exterior', 'Closure': 'Magnetic' },
-                images: ['/images/IMG_9924.jpg', '/images/IMG_9895.jpg', '/images/IMG_9899.jpg', '/images/IMG_9900.jpg', '/images/IMG_9901.jpg', '/images/IMG_9903.jpg', '/images/IMG_9904.jpg', '/images/IMG_9912.jpg', '/images/IMG_9941.jpg', '/images/IMG_9943.jpg', '/images/IMG_9947.jpg', '/images/IMG_9948.jpg', '/images/IMG_9949.jpg', '/images/IMG_9951.jpg'],
+                images: [
+                    '/images/IMG_9924.jpg', '/images/IMG_9895.jpg', '/images/IMG_9899.jpg', '/images/IMG_9900.jpg',
+                    '/images/IMG_9901.jpg', '/images/IMG_9903.jpg', '/images/IMG_9904.jpg', '/images/IMG_9912.jpg',
+                    '/images/IMG_9941.jpg', '/images/IMG_9943.jpg', '/images/IMG_9947.jpg', '/images/IMG_9948.jpg',
+                    '/images/IMG_9949.jpg', '/images/IMG_9951.jpg'
+                ],
                 stripePriceId: 'price_1RKhpXJqRiYlcnGZ6xRj7fH5'
             },
             {
-                id: 'prod_006', name: 'Duffel Bag', price: 300, sku: '0.5', category: 'Bag',
-                availability: 'Pre-order Releasing 15 July', units: 22,
+                id: 'prod_006',
+                name: 'Duffel Bag',
+                price: 300,
+                sku: '0.5',
+                category: 'Bag',
+                availability: 'Pre-order Releasing 15 July',
+                units: 22,
                 description: 'The Hatake TCG Duffel Bag is the ultimate tournament companion, designed specifically for TCG players who demand both functionality and style. This spacious bag provides ample room for all your gaming essentials.',
                 features: ['Durable water-resistant exterior', 'Padded interior compartments', 'Dedicated sleeve pocket', 'Adjustable shoulder strap'],
                 specifications: { 'Dimensions': '47*28*55cm', 'Material': 'High-quality polyester' },
@@ -213,8 +245,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 stripePriceId: 'price_1RKhpqJqRiYlcnGZ7NqJ6g9Y'
             },
             {
-                id: 'prod_007', name: 'PetDragon Playmat', price: 120, sku: '0.6', category: 'Playmat',
-                availability: 'In Stock', units: 150,
+                id: 'prod_007',
+                name: 'PetDragon Playmat',
+                price: 120,
+                sku: '0.6',
+                category: 'Playmat',
+                availability: 'In Stock',
+                units: 150,
                 description: 'A unique playmat designed by Discus, CEO from our partnered website selling high quality Commander decks. PetDragon and Hatake logo. 14*24 inches shipped inside of a useable tube.',
                 features: ['Unique design by Discus', 'High-quality material', 'Shipped in a protective tube'],
                 specifications: { 'Dimensions': '14x24 inches' },
@@ -407,19 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts();
         updateCart();
     };
-
-    // --- Other Page Setups (Empty placeholders, logic is now inside the main setup calls) ---
-    const setupIndexPage = (user) => { if (!document.getElementById('postsContainer')) return; /* ... Your Index Page Logic Here ... */ };
-    const setupDeckPage = (user) => { if (!document.getElementById('deck-builder-form')) return; /* ... Your Deck Page Logic Here ... */ };
-    const setupMyCollectionPage = (user) => { if (!document.getElementById('search-card-form')) return; /* ... Your Collection Page Logic Here ... */ };
-    const setupProfilePage = (user) => { if (!document.getElementById('profile-displayName')) return; /* ... Your Profile Page Logic Here ... */ };
-
-    // --- Page Initialization ---
-    // This single call will initialize the core UI and then trigger
-    // the correct page-specific setup after auth is confirmed.
-    setupCoreUI();
-});
-
 
 
     // --- INDEX.HTML LOGIC ---
