@@ -577,10 +577,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
    
   
-   // --- MY_COLLECTION.HTML LOGIC ---
+ // --- MY_COLLECTION.HTML LOGIC ---
    const setupMyCollectionPage = () => {
        if (!document.getElementById('search-card-form')) return;
-
 
        const tabs = document.querySelectorAll('.tab-button');
        const tabContents = document.querySelectorAll('.tab-content');
@@ -594,6 +593,47 @@ document.addEventListener('DOMContentLoaded', () => {
        const editCardModal = document.getElementById('edit-card-modal');
        const editCardForm = document.getElementById('edit-card-form');
 
+       // MOVED THIS FUNCTION UP
+       const loadCardList = async (listType) => {
+           const container = document.getElementById(`${listType}-list`);
+           const user = auth.currentUser;
+           if (!user) { container.innerHTML = `<p>Please log in to view your ${listType}.</p>`; return; }
+           container.innerHTML = '<p>Loading...</p>';
+
+           const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
+           if (snapshot.empty) { container.innerHTML = `<p>Your ${listType} is empty.</p>`; return; }
+          
+           container.innerHTML = '';
+           snapshot.forEach(doc => {
+               const card = doc.data();
+               const cardEl = document.createElement('div');
+               cardEl.className = 'relative';
+               cardEl.innerHTML = `
+                   <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full">
+                   <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg">
+                       <button class="edit-card-btn text-white text-xs" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-edit"></i></button>
+                       <button class="delete-card-btn text-white text-xs ml-1" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-trash"></i></button>
+                   </div>
+                   <div class="absolute bottom-0 left-0 right-0 p-1 bg-black bg-opacity-50 text-white text-xs text-center">
+                       <p>$${card.isFoil ? (card.priceUsdFoil || card.priceUsd) : card.priceUsd} (${card.quantity})</p>
+                   </div>
+               `;
+               container.appendChild(cardEl);
+           });
+
+           container.querySelectorAll('.edit-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
+               const cardId = e.currentTarget.dataset.id;
+               const list = e.currentTarget.dataset.list;
+               openEditModal(cardId, list);
+           }));
+           container.querySelectorAll('.delete-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
+               const cardId = e.currentTarget.dataset.id;
+               const list = e.currentTarget.dataset.list;
+               if (confirm("Are you sure you want to delete this card?")) {
+                   deleteCard(cardId, list);
+               }
+           }));
+       };
 
        const switchTab = (tabId) => {
            tabs.forEach(item => {
@@ -607,7 +647,6 @@ document.addEventListener('DOMContentLoaded', () => {
            tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tabId.split('-')[1]}`));
        };
 
-
        tabs.forEach(tab => {
            tab.addEventListener('click', () => {
                switchTab(tab.id);
@@ -616,11 +655,9 @@ document.addEventListener('DOMContentLoaded', () => {
            });
        });
 
-
        searchCardBtn.addEventListener('click', async () => {
            const cardName = document.getElementById('search-card-name').value;
            if (!cardName) return;
-
 
            searchResultsSection.classList.remove('hidden');
            searchResultsContainer.innerHTML = '<p>Searching...</p>';
@@ -636,23 +673,19 @@ document.addEventListener('DOMContentLoaded', () => {
            }
        });
 
-
        const renderSearchResults = () => {
            const set = setFilter.value;
            const type = typeFilter.value;
            let filteredResults = cardSearchResults;
 
-
            if (set) filteredResults = filteredResults.filter(card => card.set === set);
            if (type) filteredResults = filteredResults.filter(card => card.type_line && card.type_line.includes(type));
-
 
            searchResultsContainer.innerHTML = '';
            if (filteredResults.length === 0) {
                searchResultsContainer.innerHTML = '<p>No results match your filters.</p>';
                return;
            }
-
 
            const uniqueSets = [...new Set(cardSearchResults.map(card => card.set_name))].sort();
            setFilter.innerHTML = '<option value="">All Sets</option>';
@@ -661,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
            const uniqueTypes = [...new Set(cardSearchResults.map(card => card.type_line ? card.type_line.split('—')[0].trim() : 'Unknown'))].sort();
            typeFilter.innerHTML = '<option value="">All Types</option>';
            uniqueTypes.forEach(typeName => typeFilter.innerHTML += `<option value="${typeName}">${typeName}</option>`);
-
 
            filteredResults.forEach(card => {
                const cardEl = document.createElement('div');
@@ -674,7 +706,6 @@ document.addEventListener('DOMContentLoaded', () => {
       
        setFilter.addEventListener('change', renderSearchResults);
        typeFilter.addEventListener('change', renderSearchResults);
-
 
        const addCardToDb = async (cardData) => {
            const user = auth.currentUser;
@@ -717,7 +748,6 @@ document.addEventListener('DOMContentLoaded', () => {
                    const batch = db.batch();
                    const collectionRef = db.collection('users').doc(user.uid).collection('collection');
 
-
                    for (const row of results.data) {
                        const cardName = row['Card Name'];
                        if (cardName) {
@@ -738,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
                    try {
                        await batch.commit();
                        statusEl.textContent = `Import complete! Refreshing collection...`;
-                       loadCardList('collection');
+                       loadCardList('collection'); // This call will now work correctly
                    } catch(error) {
                        console.error("CSV Upload Error: ", error);
                        statusEl.textContent = "Error uploading. Check console for details.";
@@ -746,50 +776,6 @@ document.addEventListener('DOMContentLoaded', () => {
                }
            });
        });
-      
-       const loadCardList = async (listType) => {
-           const container = document.getElementById(`${listType}-list`);
-           const user = auth.currentUser;
-           if (!user) { container.innerHTML = `<p>Please log in to view your ${listType}.</p>`; return; }
-           container.innerHTML = '<p>Loading...</p>';
-
-
-           const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
-           if (snapshot.empty) { container.innerHTML = `<p>Your ${listType} is empty.</p>`; return; }
-          
-           container.innerHTML = '';
-           snapshot.forEach(doc => {
-               const card = doc.data();
-               const cardEl = document.createElement('div');
-               cardEl.className = 'relative';
-               cardEl.innerHTML = `
-                   <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full">
-                   <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg">
-                       <button class="edit-card-btn text-white text-xs" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-edit"></i></button>
-                       <button class="delete-card-btn text-white text-xs ml-1" data-id="${doc.id}" data-list="${listType}"><i class="fas fa-trash"></i></button>
-                   </div>
-                   <div class="absolute bottom-0 left-0 right-0 p-1 bg-black bg-opacity-50 text-white text-xs text-center">
-                       <p>$${card.isFoil ? (card.priceUsdFoil || card.priceUsd) : card.priceUsd} (${card.quantity})</p>
-                   </div>
-               `;
-               container.appendChild(cardEl);
-           });
-
-
-           container.querySelectorAll('.edit-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
-               const cardId = e.currentTarget.dataset.id;
-               const list = e.currentTarget.dataset.list;
-               openEditModal(cardId, list);
-           }));
-           container.querySelectorAll('.delete-card-btn').forEach(btn => btn.addEventListener('click', (e) => {
-               const cardId = e.currentTarget.dataset.id;
-               const list = e.currentTarget.dataset.list;
-               if (confirm("Are you sure you want to delete this card?")) {
-                   deleteCard(cardId, list);
-               }
-           }));
-       };
-
 
        const openEditModal = async (cardId, listType) => {
            const user = auth.currentUser;
@@ -806,13 +792,11 @@ document.addEventListener('DOMContentLoaded', () => {
            }
        };
 
-
        editCardForm.addEventListener('submit', async (e) => {
            e.preventDefault();
            const user = auth.currentUser;
            const cardId = document.getElementById('edit-card-id').value;
            const listType = document.getElementById('edit-card-list-type').value;
-
 
            const updatedData = {
                quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
@@ -820,15 +804,12 @@ document.addEventListener('DOMContentLoaded', () => {
                isFoil: document.getElementById('edit-card-foil').checked
            };
 
-
            await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
            closeModal(editCardModal);
            loadCardList(listType);
        });
 
-
        document.getElementById('close-edit-card-modal')?.addEventListener('click', () => closeModal(editCardModal));
-
 
        const deleteCard = async (cardId, listType) => {
            const user = auth.currentUser;
