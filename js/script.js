@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         projectId: "hatakesocial-88b5e",
         storageBucket: "hatakesocial-88b5e.appspot.com",
         messagingSenderId: "1091697032506",
-        appId: "1:1091697032506:web:e0d3c35c3c0a2c3c3c0a2c"
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
     // --- Firebase Initialization ---
@@ -32,10 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const registerModal = document.getElementById('registerModal');
 
         auth.onAuthStateChanged(async (user) => {
+            const sidebarUserInfo = document.getElementById('sidebar-user-info');
+            const createPostSection = document.getElementById('create-post-section');
             if (user) {
                 if (loginButton) loginButton.classList.add('hidden');
                 if (registerButton) registerButton.classList.add('hidden');
                 if (userAvatar) userAvatar.classList.remove('hidden');
+                if (createPostSection) createPostSection.classList.remove('hidden');
 
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
@@ -43,9 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
                     const name = userData.displayName || 'User';
                     if (userAvatar) userAvatar.src = photo;
-                    
-                    const sidebarUserInfo = document.getElementById('sidebar-user-info');
                     if (sidebarUserInfo) {
+                        sidebarUserInfo.classList.remove('hidden');
                         document.getElementById('sidebar-user-avatar').src = photo;
                         document.getElementById('sidebar-user-name').textContent = name;
                         document.getElementById('sidebar-user-handle').textContent = `@${name.toLowerCase().replace(/\s/g, '')}`;
@@ -56,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (registerButton) registerButton.classList.remove('hidden');
                 if (userAvatar) userAvatar.classList.add('hidden');
                 if (userDropdown) userDropdown.classList.add('hidden');
+                if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden');
+                if (createPostSection) createPostSection.classList.add('hidden');
             }
         });
 
@@ -80,9 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${email.charAt(0)}&background=random&color=fff`;
                     cred.user.updateProfile({ displayName: email.split('@')[0], photoURL: defaultPhotoURL });
                     return db.collection('users').doc(cred.user.uid).set({
-                        displayName: email.split('@')[0],
-                        email: email,
-                        photoURL: defaultPhotoURL,
+                        displayName: email.split('@')[0], email: email, photoURL: defaultPhotoURL,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 })
@@ -90,21 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(err => alert(err.message));
         });
 
-        document.getElementById('googleLoginButton')?.addEventListener('click', () => {
-            auth.signInWithPopup(googleProvider).then(result => {
-                if (result.additionalUserInfo.isNewUser) {
-                    const user = result.user;
-                    db.collection('users').doc(user.uid).set({
-                        displayName: user.displayName, email: user.email, photoURL: user.photoURL,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                }
-                closeModal(loginModal);
-            }).catch(error => alert(error.message));
-        });
-
-        if (logoutButton) logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
-        if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+        if (logoutButton) {
+            logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
+        }
+        if (userAvatar) {
+            userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+        }
     };
 
     // --- INDEX.HTML LOGIC ---
@@ -138,10 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
                         <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="author" class="h-10 w-10 rounded-full mr-4">
-                        <div>
-                            <p class="font-bold">${post.author || 'Anonymous'}</p>
-                            <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
-                        </div>
+                        <div><p class="font-bold">${post.author || 'Anonymous'}</p><p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p></div>
                     </div>
                     <p class="mb-4">${content}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
@@ -156,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 postsContainer.appendChild(postElement);
             });
         };
-
         renderPosts();
 
         submitPostBtn.addEventListener('click', async () => {
@@ -231,6 +220,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // **FIX**: Added card hover functionality back
+        postsContainer.addEventListener('mouseover', async (e) => {
+            if (e.target.classList.contains('card-link')) {
+                const cardName = e.target.dataset.cardName;
+                if (e.target.querySelector('.card-tooltip')) return;
+                try {
+                    const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
+                    if (!response.ok) return;
+                    const card = await response.json();
+                    if (card.image_uris) {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'card-tooltip';
+                        tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}">`;
+                        e.target.appendChild(tooltip);
+                    }
+                } catch (error) { console.error("Scryfall hover error:", error); }
+            }
+        });
+
+        postsContainer.addEventListener('mouseout', (e) => {
+            if (e.target.classList.contains('card-link')) {
+                const tooltip = e.target.querySelector('.card-tooltip');
+                if (tooltip) tooltip.remove();
+            }
+        });
+
         document.getElementById('uploadImageBtn')?.addEventListener('click', () => postImageUpload.click());
         document.getElementById('uploadVideoBtn')?.addEventListener('click', () => postImageUpload.click());
         if (postImageUpload) postImageUpload.addEventListener('change', e => selectedFile = e.target.files[0]);
@@ -247,8 +262,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(item => item.classList.remove('text-blue-600', 'border-blue-600'));
-                tab.classList.add('text-blue-600', 'border-blue-600');
+                tabs.forEach(item => item.classList.replace('text-blue-600', 'text-gray-500') || item.classList.replace('border-blue-600', 'hover:border-gray-300'));
+                tab.classList.replace('text-gray-500', 'text-blue-600');
+                tab.classList.replace('hover:border-gray-300', 'border-blue-600');
                 const targetId = tab.id.replace('tab-', 'content-');
                 tabContents.forEach(content => content.id === targetId ? content.classList.remove('hidden') : content.classList.add('hidden'));
                 if (tab.id === 'tab-my-decks') loadMyDecks();
@@ -261,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const deckNameInput = document.getElementById('deck-name-input');
             const decklistInput = document.getElementById('decklist-input');
             const statusEl = document.getElementById('deck-builder-status');
-            statusEl.textContent = 'Building deck...';
+            statusEl.textContent = 'Building deck... This may take a moment.';
             saveDeckBtn.classList.add('hidden');
 
             const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
@@ -277,17 +293,22 @@ document.addEventListener('DOMContentLoaded', () => {
             currentDeck = { name: deckNameInput.value, cards: cardResults, createdAt: new Date() };
             displayDeck(currentDeck);
             saveDeckBtn.classList.remove('hidden');
-            statusEl.textContent = 'Deck built successfully!';
+            statusEl.textContent = 'Deck built successfully! You can now save it.';
         });
 
         saveDeckBtn.addEventListener('click', async () => {
             const user = auth.currentUser;
             if (!user) { alert("You must be logged in to save a deck."); return; }
             if (!currentDeck) { alert("No deck has been built yet."); return; }
+            const statusEl = document.getElementById('deck-builder-status');
+            statusEl.textContent = "Saving...";
             try {
                 await db.collection('users').doc(user.uid).collection('decks').add(currentDeck);
-                alert(`Deck "${currentDeck.name}" saved!`);
-            } catch (error) { alert("Failed to save deck."); }
+                statusEl.textContent = `Deck "${currentDeck.name}" saved! Switching to 'My Decks'...`;
+                setTimeout(() => {
+                    document.getElementById('tab-my-decks').click(); // **FIX**: Automatically switch to My Decks tab
+                }, 1500);
+            } catch (error) { statusEl.textContent = "Failed to save deck."; }
         });
     };
 
@@ -308,9 +329,21 @@ document.addEventListener('DOMContentLoaded', () => {
             totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
         });
 
-        Object.keys(categorizedCards).sort().forEach(category => {
+        // **FIX**: Sort categories for consistent display order
+        const sortedCategories = Object.keys(categorizedCards).sort((a, b) => {
+            const order = ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land'];
+            const indexA = order.indexOf(a);
+            const indexB = order.indexOf(b);
+            if (indexA > -1 && indexB > -1) return indexA - indexB;
+            if (indexA > -1) return -1;
+            if (indexB > -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        sortedCategories.forEach(category => {
             const categoryEl = document.createElement('div');
-            categoryEl.innerHTML = `<h3 class="text-xl font-bold border-b-2 pb-2 mb-4">${category}</h3>`;
+            const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
+            categoryEl.innerHTML = `<h3 class="text-xl font-bold border-b-2 pb-2 mb-4">${category} (${cardCount})</h3>`;
             const gridEl = document.createElement('div');
             gridEl.className = 'grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4';
             categorizedCards[category].forEach(card => {
