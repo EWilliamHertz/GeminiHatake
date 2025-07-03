@@ -226,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             postStatusMessage.textContent = 'Posting...';
 
-            // **FIX**: Added try...catch block to handle errors during post creation
             try {
                 const userDocRef = db.collection('users').doc(user.uid);
                 const userDoc = await userDocRef.get();
@@ -247,9 +246,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 await db.collection('posts').add({
-                    author: userData.displayName,
+                    author: userData.displayName || 'Anonymous',
                     authorId: user.uid,
-                    authorPhotoURL: userData.photoURL,
+                    // **FIX**: Provide a fallback URL if userData.photoURL is undefined
+                    authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
                     content: content,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     likes: [],
