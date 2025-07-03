@@ -210,9 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
         postsContainer.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (e.target.classList.contains('comment-form')) {
-                const user = auth.currentUser, input = e.target.querySelector('input'), content = input.value.trim();
-                if (!content || !user) return;
-                const postElement = e.target.closest('.post-container'), postId = postElement.dataset.id;
+                const user = auth.currentUser;
+                if (!user) return;
+                const input = e.target.querySelector('input');
+                const content = input.value.trim();
+                if (!content) return;
+                const postElement = e.target.closest('.post-container');
+                const postId = postElement.dataset.id;
                 const postRef = db.collection('posts').doc(postId);
                 const newComment = { author: user.displayName || 'Anonymous', authorId: user.uid, content, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
                 await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
