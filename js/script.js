@@ -254,8 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                // This check prevents the hidden tab from being clickable by the user
-                if (tab.id === 'tab-deck-view' && !tab.classList.contains('text-blue-600')) return;
                 switchTab(tab.id);
                 if (tab.id === 'tab-my-decks') loadMyDecks();
                 if (tab.id === 'tab-community-decks') loadCommunityDecks();
@@ -349,6 +347,94 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        const viewDeck = (deck, deckId) => {
+            switchTab('tab-deck-view'); // **FIX**: Call the function to switch tabs correctly
+            deckToShare = { ...deck, id: deckId };
+    
+            document.getElementById('deck-view-name').textContent = deck.name;
+            document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
+            
+            const listEl = document.getElementById('deck-view-list');
+            const featuredCardImg = document.getElementById('deck-view-featured-card');
+            listEl.innerHTML = '';
+    
+            const categorizedCards = {};
+            let totalPrice = 0;
+            deck.cards.forEach(card => {
+                const mainType = card.type_line.split(' // ')[0];
+                let category = 'Other'; // Default category
+                if (mainType.includes('Creature')) category = 'Creatures';
+                else if (mainType.includes('Planeswalker')) category = 'Planeswalkers';
+                else if (mainType.includes('Instant') || mainType.includes('Sorcery')) category = 'Spells';
+                else if (mainType.includes('Artifact')) category = 'Artifacts';
+                else if (mainType.includes('Enchantment')) category = 'Enchantments';
+                else if (mainType.includes('Land')) category = 'Lands';
+                
+                if (!categorizedCards[category]) categorizedCards[category] = [];
+                categorizedCards[category].push(card);
+                totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
+            });
+    
+            document.getElementById('deck-view-price').textContent = `$${totalPrice.toFixed(2)}`;
+            if (deck.cards.length > 0) {
+                featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+            }
+    
+            const order = ['Creatures', 'Planeswalkers', 'Spells', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
+            order.forEach(category => {
+                if (categorizedCards[category]) {
+                    const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
+                    let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category} (${cardCount})</h3>`;
+                    categorizedCards[category].forEach(card => {
+                        categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
+                    });
+                    categoryHTML += `</div>`;
+                    listEl.innerHTML += categoryHTML;
+                }
+            });
+        };
+
+        const loadMyDecks = async () => {
+            const myDecksList = document.getElementById('my-decks-list');
+            const user = auth.currentUser;
+            if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
+            myDecksList.innerHTML = '<p>Loading...</p>';
+            const snapshot = await db.collection('users').doc(user.uid).collection('decks').orderBy('createdAt', 'desc').get();
+            if (snapshot.empty) { myDecksList.innerHTML = '<p>You have no saved decks.</p>'; return; }
+            myDecksList.innerHTML = '';
+            snapshot.forEach(doc => {
+                const deck = doc.data();
+                const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
+                const deckCard = document.createElement('div');
+                deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
+                deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
+                deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
+                myDecksList.appendChild(deckCard);
+            });
+        };
+        
+        const loadCommunityDecks = async () => {
+            const communityDecksList = document.getElementById('community-decks-list');
+            communityDecksList.innerHTML = '<p>Loading...</p>';
+            try {
+                const snapshot = await db.collectionGroup('decks').orderBy('createdAt', 'desc').limit(21).get();
+                if (snapshot.empty) { communityDecksList.innerHTML = '<p>No community decks found.</p>'; return; }
+                communityDecksList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const deck = doc.data();
+                    const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
+                    const deckCard = document.createElement('div');
+                    deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
+                    deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
+                    deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
+                    communityDecksList.appendChild(deckCard);
+                });
+            } catch (error) {
+                console.error(error);
+                communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing.</p>`;
+            }
+        };
+
         const urlParams = new URLSearchParams(window.location.search);
         const deckId = urlParams.get('deckId');
         if (deckId) {
@@ -357,98 +443,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!snapshot.empty) {
                         const doc = snapshot.docs[0];
                         viewDeck(doc.data(), doc.id);
-                    } else {
-                        console.log("Deck not found");
                     }
                 });
-        }
-    };
-
-    const viewDeck = (deck, deckId) => {
-        document.getElementById('tab-deck-view').click();
-        deckToShare = { ...deck, id: deckId };
-
-        document.getElementById('deck-view-name').textContent = deck.name;
-        document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
-        
-        const listEl = document.getElementById('deck-view-list');
-        const featuredCardImg = document.getElementById('deck-view-featured-card');
-        listEl.innerHTML = '';
-
-        const categorizedCards = {};
-        let totalPrice = 0;
-        deck.cards.forEach(card => {
-            const mainType = card.type_line.split(' // ')[0];
-            let category = 'Other';
-            if (mainType.includes('Creature')) category = 'Creatures';
-            else if (mainType.includes('Planeswalker')) category = 'Planeswalkers';
-            else if (mainType.includes('Instant') || mainType.includes('Sorcery')) category = 'Spells';
-            else if (mainType.includes('Artifact')) category = 'Artifacts';
-            else if (mainType.includes('Enchantment')) category = 'Enchantments';
-            else if (mainType.includes('Land')) category = 'Lands';
-            
-            if (!categorizedCards[category]) categorizedCards[category] = [];
-            categorizedCards[category].push(card);
-            totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
-        });
-
-        document.getElementById('deck-view-price').textContent = `$${totalPrice.toFixed(2)}`;
-        if (deck.cards.length > 0) {
-            featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
-        }
-
-        const order = ['Creatures', 'Planeswalkers', 'Spells', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
-        order.forEach(category => {
-            if (categorizedCards[category]) {
-                const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
-                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category} (${cardCount})</h3>`;
-                categorizedCards[category].forEach(card => {
-                    categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
-                });
-                categoryHTML += `</div>`;
-                listEl.innerHTML += categoryHTML;
-            }
-        });
-    };
-
-    const loadMyDecks = async () => {
-        const myDecksList = document.getElementById('my-decks-list');
-        const user = auth.currentUser;
-        if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
-        myDecksList.innerHTML = '<p>Loading...</p>';
-        const snapshot = await db.collection('users').doc(user.uid).collection('decks').orderBy('createdAt', 'desc').get();
-        if (snapshot.empty) { myDecksList.innerHTML = '<p>You have no saved decks.</p>'; return; }
-        myDecksList.innerHTML = '';
-        snapshot.forEach(doc => {
-            const deck = doc.data();
-            const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
-            const deckCard = document.createElement('div');
-            deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-            deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
-            deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
-            myDecksList.appendChild(deckCard);
-        });
-    };
-    
-    const loadCommunityDecks = async () => {
-        const communityDecksList = document.getElementById('community-decks-list');
-        communityDecksList.innerHTML = '<p>Loading...</p>';
-        try {
-            const snapshot = await db.collectionGroup('decks').orderBy('createdAt', 'desc').limit(21).get();
-            if (snapshot.empty) { communityDecksList.innerHTML = '<p>No community decks found.</p>'; return; }
-            communityDecksList.innerHTML = '';
-            snapshot.forEach(doc => {
-                const deck = doc.data();
-                const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
-                const deckCard = document.createElement('div');
-                deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-                deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
-                deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
-                communityDecksList.appendChild(deckCard);
-            });
-        } catch (error) {
-            console.error(error);
-            communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing.</p>`;
         }
     };
 
