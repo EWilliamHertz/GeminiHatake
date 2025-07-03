@@ -45,6 +45,8 @@
                     </ul>
                 </nav>
                 <div class="relative flex items-center">
+                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
+                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
                     <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden" id="userAvatar">
                      <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
                         <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
@@ -73,50 +75,36 @@
             <div id="content-builder" class="tab-content">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h1 class="text-3xl font-bold text-gray-800 mb-4">MTG Deck Builder</h1>
-                    <p class="text-gray-600 mb-6">Paste your decklist from services like Manabox or MTGGoldfish. The format should be `1 Card Name` on each line.</p>
                     <form id="deck-builder-form">
                         <input type="text" id="deck-name-input" class="w-full p-3 border border-gray-300 rounded-md mb-4" placeholder="Enter Deck Name (e.g., Mono-Red Goblins)" required>
-                        <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4" placeholder="1 Black Lotus&#10;4 Sol Ring&#10;..."></textarea>
+                        <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4" placeholder="Paste your decklist here..."></textarea>
                         <div class="flex items-center justify-between">
-                            <button type="submit" id="build-deck-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Build & Price Deck</button>
-                            <button type="button" id="save-deck-btn" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 hidden">Save Deck</button>
+                            <button type="submit" id="build-deck-btn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build Deck</button>
+                            <button type="button" id="save-deck-btn" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 hidden">Save Deck</button>
                         </div>
                     </form>
                 </div>
-                <div id="deck-display-container" class="mt-8">
-                    <div id="deck-stats" class="bg-white p-6 rounded-lg shadow-md mb-8 hidden">
-                        <h2 id="deck-stats-name" class="text-2xl font-bold text-gray-800">Deck Summary</h2>
-                        <p class="text-lg text-gray-700">Total Cards: <span id="total-cards-count" class="font-bold">0</span></p>
-                        <p class="text-xl text-blue-600">Total Price (USD): <span id="total-deck-price" class="font-extrabold">$0.00</span></p>
-                        <div id="deck-builder-status" class="text-gray-500 mt-2"></div>
+                <!-- Deck Display Area (MTGTop8 Style) -->
+                <div id="deck-display-container" class="mt-8 bg-white p-6 rounded-lg shadow-md hidden">
+                    <h2 id="deck-display-name" class="text-3xl font-bold text-gray-800 mb-2"></h2>
+                    <p class="text-lg text-gray-500 mb-6">Total Price: <span id="deck-display-price" class="font-bold text-blue-600"></span></p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div id="deck-display-list" class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6">
+                            <!-- Decklist columns will be injected here -->
+                        </div>
+                        <div id="deck-display-image-container" class="md:col-span-1">
+                            <img id="deck-display-featured-card" src="https://placehold.co/223x310?text=Card+Image" alt="Featured Card" class="w-full rounded-lg shadow-xl sticky top-24">
+                        </div>
                     </div>
-                    <div id="deck-cards-display" class="space-y-6"></div>
+                     <div id="deck-builder-status" class="text-center text-gray-600 mt-4"></div>
                 </div>
             </div>
 
-            <!-- My Decks Tab -->
-            <div id="content-my-decks" class="tab-content hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">My Saved Decks</h2>
-                <div id="my-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <p>Loading your decks...</p>
-                </div>
-            </div>
-
-            <!-- Community Decks Tab -->
-            <div id="content-community-decks" class="tab-content hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Community Decks</h2>
-                <div id="community-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <p>Loading community decks...</p>
-                </div>
-            </div>
+            <!-- My Decks & Community Decks Tabs -->
+            <div id="content-my-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4">My Decks</h2><div id="my-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
+            <div id="content-community-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4">Community Decks</h2><div id="community-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
         </div>
     </main>
-
-    <footer class="bg-gray-800 text-white py-6 mt-8">
-        <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2024 HatakeSocial. All rights reserved.</p>
-        </div>
-    </footer>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
