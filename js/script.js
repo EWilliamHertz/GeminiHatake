@@ -107,12 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const favoriteTcg = registerFavoriteTcg.value;
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
+                    // Assign a default avatar for email/password sign-ups
+                    const defaultPhotoURL = `https://ui-avatars.com/api/?name=${email.charAt(0)}&background=random`;
                     return db.collection('users').doc(cred.user.uid).set({
                         displayName: email.split('@')[0],
                         email: email,
                         city: city,
                         country: country,
-                        favoriteTcg: favoriteTcg
+                        favoriteTcg: favoriteTcg,
+                        photoURL: defaultPhotoURL
                     });
                 })
                 .then(() => closeModal(registerModal))
@@ -145,15 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
             postElement.classList.add('bg-white', 'p-4', 'rounded-lg', 'shadow-md');
 
             const cardRegex = /\[(.*?)\]/g;
-            const content = post.content.replace(cardRegex, (match, cardName) => {
+            const content = post.content ? post.content.replace(cardRegex, (match, cardName) => {
                 return `<a href="#" class="text-blue-500 card-link" data-card-name="${cardName}">${cardName}</a>`;
-            });
+            }) : '';
 
             postElement.innerHTML = `
                 <div class="flex items-center mb-4">
                     <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="author" class="h-10 w-10 rounded-full mr-4">
                     <div>
-                        <p class="font-bold">${post.author}</p>
+                        <p class="font-bold">${post.author || 'Anonymous'}</p>
                         <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                     </div>
                 </div>
@@ -190,6 +193,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             postStatusMessage.textContent = 'Posting...';
+
+            // **FIX**: Fetch user data from Firestore to get the correct display name and avatar
+            const userDocRef = db.collection('users').doc(user.uid);
+            const userDoc = await userDocRef.get();
+            const userData = userDoc.exists ? userDoc.data() : { displayName: 'Anonymous', photoURL: 'https://i.imgur.com/B06rBhI.png' };
+
+
             let mediaUrl = null;
             let mediaType = null;
             if (selectedFile) {
@@ -201,9 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             await db.collection('posts').add({
-                author: user.displayName,
+                // **FIX**: Use the reliable data from the Firestore document
+                author: userData.displayName,
                 authorId: user.uid,
-                authorPhotoURL: user.photoURL,
+                authorPhotoURL: userData.photoURL,
                 content: content,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 likes: [],
