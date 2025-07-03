@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Global State & Helpers ---
     let deckToShare = null;
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
     const openModal = (modal) => { if (modal) modal.classList.add('open'); };
     const closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
 
