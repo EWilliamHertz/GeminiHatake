@@ -130,12 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 postElement.dataset.id = doc.id;
 
                 let content = post.content || '';
-                content = content.replace(/\[(card|deck):([^:]+):([^\]]+)\]/g, (match, type, id, name) => {
-                    if (type === 'deck') {
-                        return `<a href="deck.html?deckId=${id}" class="font-bold text-indigo-600 hover:underline">[Deck: ${name}]</a>`;
-                    }
-                    return `<a href="#" class="text-blue-500 card-link" data-card-name="${name}">${name}</a>`;
-                }).replace(/\[(.*?)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
+                content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
+                content = content.replace(/\[([^\]:]+)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
 
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
@@ -258,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
+                if (tab.id === 'tab-deck-view') return;
                 switchTab(tab.id);
                 if (tab.id === 'tab-my-decks') loadMyDecks();
                 if (tab.id === 'tab-community-decks') loadCommunityDecks();
@@ -268,11 +265,10 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const deckNameInput = document.getElementById('deck-name-input');
             const decklistInput = document.getElementById('decklist-input');
-            const statusEl = document.getElementById('deck-builder-status');
             const buildBtn = document.getElementById('build-deck-btn');
 
             buildBtn.disabled = true;
-            statusEl.textContent = 'Building deck...';
+            buildBtn.textContent = 'Building...';
             saveDeckBtn.classList.add('hidden');
 
             const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
@@ -296,23 +292,21 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             viewDeck(currentDeck, null);
             saveDeckBtn.classList.remove('hidden');
-            statusEl.textContent = 'Deck built successfully! You can now save it.';
             buildBtn.disabled = false;
+            buildBtn.textContent = 'Build & Price Deck';
         });
 
         saveDeckBtn.addEventListener('click', async () => {
             const user = auth.currentUser;
             if (!user) { alert("You must be logged in to save a deck."); return; }
             if (!currentDeck) { alert("No deck has been built yet."); return; }
-            const statusEl = document.getElementById('deck-builder-status');
-            statusEl.textContent = "Saving...";
+            saveDeckBtn.textContent = "Saving...";
             try {
-                await db.collection('users').doc(user.uid).collection('decks').add(currentDeck);
-                statusEl.textContent = `Deck "${currentDeck.name}" saved! Switching to 'My Decks'...`;
-                setTimeout(() => {
-                    document.getElementById('tab-my-decks').click();
-                }, 1500);
-            } catch (error) { statusEl.textContent = "Failed to save deck."; }
+                const docRef = await db.collection('users').doc(user.uid).collection('decks').add(currentDeck);
+                deckToShare = { ...currentDeck, id: docRef.id };
+                alert(`Deck "${currentDeck.name}" saved!`);
+            } catch (error) { alert("Failed to save deck."); }
+            saveDeckBtn.textContent = "Save Deck";
         });
 
         document.getElementById('share-deck-to-feed-btn')?.addEventListener('click', () => {
@@ -325,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const message = document.getElementById('share-deck-message').value;
             const statusEl = document.getElementById('share-deck-status');
             if (!user) { statusEl.textContent = "You must be logged in."; return; }
-            if (!deckToShare) { statusEl.textContent = "No deck selected to share."; return; }
+            if (!deckToShare || !deckToShare.id) { statusEl.textContent = "Please save the deck before sharing."; return; }
 
             statusEl.textContent = "Posting...";
             const deckLink = `[deck:${deckToShare.id}:${deckToShare.name}]`;
@@ -383,11 +377,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const categorizedCards = {};
         let totalPrice = 0;
         deck.cards.forEach(card => {
-            const type = card.type_line.includes('Creature') ? 'Creatures' :
-                         card.type_line.includes('Planeswalker') ? 'Planeswalkers' :
-                         card.type_line.includes('Instant') ? 'Instants' : 'Other';
-            if (!categorizedCards[type]) categorizedCards[type] = [];
-            categorizedCards[type].push(card);
+            const mainType = card.type_line.split(' // ')[0];
+            let category = 'Other';
+            if (mainType.includes('Creature')) category = 'Creatures';
+            else if (mainType.includes('Planeswalker')) category = 'Planeswalkers';
+            else if (mainType.includes('Instant') || mainType.includes('Sorcery')) category = 'Spells';
+            else if (mainType.includes('Artifact')) category = 'Artifacts';
+            else if (mainType.includes('Enchantment')) category = 'Enchantments';
+            else if (mainType.includes('Land')) category = 'Lands';
+            
+            if (!categorizedCards[category]) categorizedCards[category] = [];
+            categorizedCards[category].push(card);
             totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
         });
 
@@ -396,13 +396,17 @@ document.addEventListener('DOMContentLoaded', () => {
             featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
         }
 
-        Object.keys(categorizedCards).forEach(category => {
-            let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category}</h3>`;
-            categorizedCards[category].forEach(card => {
-                categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
-            });
-            categoryHTML += `</div>`;
-            listEl.innerHTML += categoryHTML;
+        const order = ['Creatures', 'Planeswalkers', 'Spells', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
+        order.forEach(category => {
+            if (categorizedCards[category]) {
+                const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
+                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category} (${cardCount})</h3>`;
+                categorizedCards[category].forEach(card => {
+                    categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
+                });
+                categoryHTML += `</div>`;
+                listEl.innerHTML += categoryHTML;
+            }
         });
     };
 
