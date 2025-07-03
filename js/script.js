@@ -535,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     
-  // --- MY_COLLECTION.HTML LOGIC ---
+      // --- MY_COLLECTION.HTML LOGIC ---
     const setupMyCollectionPage = () => {
         if (!document.getElementById('search-card-form')) return;
 
@@ -553,9 +553,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const switchTab = (tabId) => {
             tabs.forEach(item => {
-                const isTarget = item.id === tabId;
-                item.classList.toggle('text-blue-600', isTarget);
-                item.classList.toggle('border-blue-600', isTarget);
+                item.classList.toggle('text-blue-600', item.id === tabId);
+                item.classList.toggle('border-blue-600', item.id === tabId);
                 item.classList.toggle('text-gray-500', !isTarget);
                 item.classList.toggle('hover:border-gray-300', !isTarget);
             });
@@ -764,37 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loadCardList(listType);
         };
     };
-   // --- GLOBAL EVENT LISTENERS (FOR CARD HOVER) ---
-    document.body.addEventListener('mouseover', async (e) => {
-        if (e.target.classList.contains('card-link')) {
-            const featuredCardImg = document.getElementById('deck-view-featured-card');
-            if (featuredCardImg && e.target.dataset.cardImage && e.target.closest('#deck-view-list')) {
-                if (e.target.dataset.cardImage !== 'undefined') {
-                    featuredCardImg.src = e.target.dataset.cardImage;
-                }
-            } else {
-                if (document.querySelector('.card-tooltip')) return;
-                const cardName = e.target.dataset.cardName;
-                try {
-                    const response = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
-                    if (!response.ok) return;
-                    const card = await response.json();
-                    if (card.image_uris) {
-                        const tooltip = document.createElement('div');
-                        tooltip.className = 'card-tooltip';
-                        tooltip.style.position = 'fixed';
-                        tooltip.style.left = `${e.clientX + 20}px`;
-                        tooltip.style.top = `${e.clientY - 150}px`;
-                        tooltip.style.zIndex = '1000';
-                        tooltip.innerHTML = `<img src="${card.image_uris.normal}" alt="${card.name}" style="width: 220px; border-radius: 10px;">`;
-                        document.body.appendChild(tooltip);
-                        e.target.addEventListener('mouseout', () => tooltip.remove(), { once: true });
-                    }
-                } catch (error) { console.error("Scryfall hover error:", error); }
-            }
-        }
-    });
-
+    
     // --- Page Initialization ---
     setupCoreUI();
     if (document.getElementById('postsContainer')) {
