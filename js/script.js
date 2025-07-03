@@ -239,6 +239,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const tabs = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
         const shareDeckModal = document.getElementById('share-deck-modal');
+        const deckFilters = document.getElementById('deck-filters');
+        const tcgFilterButtons = document.getElementById('tcg-filter-buttons');
+        const formatFilterContainer = document.getElementById('format-filter-container');
+        const formatFilterButtons = document.getElementById('format-filter-buttons');
+        const deckTcgSelect = document.getElementById('deck-tcg-select');
+        const deckFormatSelectContainer = document.getElementById('deck-format-select-container');
+        const deckFormatSelect = document.getElementById('deck-format-select');
+
+        const formats = {
+            "Magic: The Gathering": ["Standard", "Modern", "Legacy", "Vintage", "Commander", "Pauper", "Oldschool"],
+            "Pokémon": ["Standard", "Expanded"],
+            "Flesh and Blood": ["Classic Constructed", "Blitz"],
+            "Yu-Gi-Oh!": ["Advanced", "Traditional"]
+        };
 
         const switchTab = (tabId) => {
             tabs.forEach(item => {
@@ -250,6 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const targetContentId = tabId.replace('tab-', 'content-');
             tabContents.forEach(content => content.id === targetContentId ? content.classList.remove('hidden') : content.classList.add('hidden'));
+            
+            if (tabId === 'tab-my-decks' || tabId === 'tab-community-decks') {
+                deckFilters.classList.remove('hidden');
+            } else {
+                deckFilters.classList.add('hidden');
+            }
         };
         
         tabs.forEach(tab => {
@@ -258,6 +278,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (tab.id === 'tab-my-decks') loadMyDecks();
                 if (tab.id === 'tab-community-decks') loadCommunityDecks();
             });
+        });
+
+        deckTcgSelect.addEventListener('change', () => {
+            const selectedTcg = deckTcgSelect.value;
+            if (formats[selectedTcg]) {
+                deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
+                formats[selectedTcg].forEach(format => {
+                    deckFormatSelect.innerHTML += `<option value="${format}">${format}</option>`;
+                });
+                deckFormatSelectContainer.classList.remove('hidden');
+            } else {
+                deckFormatSelectContainer.classList.add('hidden');
+            }
         });
 
         deckBuilderForm.addEventListener('submit', async (e) => {
@@ -282,15 +315,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const cardResults = (await Promise.all(cardPromises)).filter(c => c);
             const user = auth.currentUser;
-            currentDeck = {
+            const newDeck = {
                 name: deckNameInput.value,
                 cards: cardResults,
                 createdAt: new Date(),
+                tcg: deckTcgSelect.value,
+                format: deckFormatSelect.value,
                 authorId: user?.uid || null,
                 authorName: user?.displayName || 'Anonymous'
             };
-            viewDeck(currentDeck, null);
-            saveDeckBtn.classList.remove('hidden');
+            viewDeck(newDeck, null, true); // Pass true to show save button
             buildBtn.disabled = false;
             buildBtn.textContent = 'Build & Price Deck';
         });
@@ -298,20 +332,20 @@ document.addEventListener('DOMContentLoaded', () => {
         saveDeckBtn.addEventListener('click', async () => {
             const user = auth.currentUser;
             if (!user) { alert("You must be logged in to save a deck."); return; }
-            if (!currentDeck) { alert("No deck has been built yet."); return; }
+            if (!deckToShare) { alert("No deck has been built yet."); return; }
             saveDeckBtn.textContent = "Saving...";
             try {
-                const docRef = await db.collection('users').doc(user.uid).collection('decks').add(currentDeck);
-                deckToShare = { ...currentDeck, id: docRef.id };
-                alert(`Deck "${currentDeck.name}" saved!`);
+                const docRef = await db.collection('users').doc(user.uid).collection('decks').add(deckToShare);
+                deckToShare.id = docRef.id;
+                alert(`Deck "${deckToShare.name}" saved!`);
             } catch (error) { alert("Failed to save deck."); }
             saveDeckBtn.textContent = "Save Deck";
         });
 
         document.getElementById('share-deck-to-feed-btn')?.addEventListener('click', () => {
-            if (deckToShare) openModal(shareDeckModal);
+            if (deckToShare) openModal(document.getElementById('share-deck-modal'));
         });
-        document.getElementById('close-share-deck-modal')?.addEventListener('click', () => closeModal(shareDeckModal));
+        document.getElementById('close-share-deck-modal')?.addEventListener('click', () => closeModal(document.getElementById('share-deck-modal')));
         document.getElementById('share-deck-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const user = auth.currentUser;
@@ -337,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 statusEl.textContent = "Successfully posted to feed!";
                 setTimeout(() => {
-                    closeModal(shareDeckModal);
+                    closeModal(document.getElementById('share-deck-modal'));
                     statusEl.textContent = "";
                     document.getElementById('share-deck-message').value = "";
                 }, 1500);
@@ -347,8 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const viewDeck = (deck, deckId) => {
-            switchTab('tab-deck-view'); // **FIX**: Call the function to switch tabs correctly
+        const viewDeck = (deck, deckId, isNewlyBuilt = false) => {
+            switchTab('tab-deck-view');
             deckToShare = { ...deck, id: deckId };
     
             document.getElementById('deck-view-name').textContent = deck.name;
@@ -362,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let totalPrice = 0;
             deck.cards.forEach(card => {
                 const mainType = card.type_line.split(' // ')[0];
-                let category = 'Other'; // Default category
+                let category = 'Other';
                 if (mainType.includes('Creature')) category = 'Creatures';
                 else if (mainType.includes('Planeswalker')) category = 'Planeswalkers';
                 else if (mainType.includes('Instant') || mainType.includes('Sorcery')) category = 'Spells';
@@ -392,15 +426,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     listEl.innerHTML += categoryHTML;
                 }
             });
+
+            if(isNewlyBuilt) {
+                saveDeckBtn.classList.remove('hidden');
+            } else {
+                saveDeckBtn.classList.add('hidden');
+            }
         };
 
-        const loadMyDecks = async () => {
+        const loadMyDecks = async (tcg = 'all', format = 'all') => {
             const myDecksList = document.getElementById('my-decks-list');
             const user = auth.currentUser;
             if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
             myDecksList.innerHTML = '<p>Loading...</p>';
-            const snapshot = await db.collection('users').doc(user.uid).collection('decks').orderBy('createdAt', 'desc').get();
-            if (snapshot.empty) { myDecksList.innerHTML = '<p>You have no saved decks.</p>'; return; }
+            let query = db.collection('users').doc(user.uid).collection('decks');
+            if(tcg !== 'all') query = query.where('tcg', '==', tcg);
+            if(format !== 'all') query = query.where('format', '==', format);
+            const snapshot = await query.orderBy('createdAt', 'desc').get();
+
+            if (snapshot.empty) { myDecksList.innerHTML = '<p>No decks found for the selected filters.</p>'; return; }
             myDecksList.innerHTML = '';
             snapshot.forEach(doc => {
                 const deck = doc.data();
@@ -413,12 +457,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
         
-        const loadCommunityDecks = async () => {
+        const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
             const communityDecksList = document.getElementById('community-decks-list');
             communityDecksList.innerHTML = '<p>Loading...</p>';
             try {
-                const snapshot = await db.collectionGroup('decks').orderBy('createdAt', 'desc').limit(21).get();
-                if (snapshot.empty) { communityDecksList.innerHTML = '<p>No community decks found.</p>'; return; }
+                let query = db.collectionGroup('decks');
+                if(tcg !== 'all') query = query.where('tcg', '==', tcg);
+                if(format !== 'all') query = query.where('format', '==', format);
+                const snapshot = await query.orderBy('createdAt', 'desc').limit(21).get();
+
+                if (snapshot.empty) { communityDecksList.innerHTML = '<p>No decks found for the selected filters.</p>'; return; }
                 communityDecksList.innerHTML = '';
                 snapshot.forEach(doc => {
                     const deck = doc.data();
