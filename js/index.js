@@ -3,12 +3,11 @@
  *
  * This script waits for the 'authReady' event from auth.js before running.
  * It handles all logic for the main feed on index.html, including rendering,
- * creating, and interacting with posts.
+ * creating, and interacting with posts, with robust profile linking.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
-    // If this element doesn't exist, we're not on the index page, so do nothing.
     if (!postsContainer) return;
 
     const postContentInput = document.getElementById('postContent');
@@ -28,7 +27,6 @@ document.addEventListener('authReady', (e) => {
         const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
         postsContainer.innerHTML = '';
 
-        // Create a list of promises to fetch user data
         const userPromises = {};
         postsSnapshot.docs.forEach(doc => {
             const post = doc.data();
@@ -48,7 +46,13 @@ document.addEventListener('authReady', (e) => {
         postsSnapshot.forEach(doc => {
             const post = doc.data();
             const authorData = usersData[post.authorId];
-            const authorHandle = authorData ? authorData.handle : '#';
+            
+            // **THE FIX IS HERE:** Create a robust link.
+            // Use the handle if it exists, otherwise fall back to the user's unique ID.
+            const profileLink = authorData?.handle 
+                ? `profile.html?user=${authorData.handle}` 
+                : `profile.html?uid=${post.authorId}`;
+
             const authorName = post.author || 'Anonymous';
             const authorPhoto = post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png';
 
@@ -62,11 +66,11 @@ document.addEventListener('authReady', (e) => {
 
             postElement.innerHTML = `
                 <div class="flex items-center mb-4">
-                    <a href="profile.html?user=${authorHandle}">
+                    <a href="${profileLink}">
                         <img src="${authorPhoto}" alt="${authorName}" class="h-10 w-10 rounded-full mr-4 object-cover">
                     </a>
                     <div>
-                        <a href="profile.html?user=${authorHandle}" class="font-bold hover:underline">${authorName}</a>
+                        <a href="${profileLink}" class="font-bold hover:underline">${authorName}</a>
                         <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                     </div>
                 </div>
