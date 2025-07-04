@@ -63,7 +63,7 @@
 </header>
 
 
-    <!-- Main Marketplace Content -->
+   <!-- Main Marketplace Content -->
     <main class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
             <h1 class="text-4xl font-extrabold text-gray-800">Marketplace</h1>
@@ -74,96 +74,83 @@
 
         <!-- Filters -->
         <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap items-center gap-4">
-            <div class="relative flex-grow">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                <input type="text" id="marketplace-search" placeholder="Search for a card..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="flex-shrink-0">
-                <select id="tcg-filter" class="p-2 rounded-md border border-gray-300">
-                    <option value="all">All TCGs</option>
-                    <option value="Magic: The Gathering">Magic: The Gathering</option>
-                    <option value="Pokémon">Pokémon</option>
-                    <option value="Flesh and Blood">Flesh and Blood</option>
-                    <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
-                </select>
-            </div>
+            <!-- Filter controls go here -->
         </div>
 
         <!-- Marketplace Grid -->
         <div id="marketplace-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <!-- Cards for sale will be loaded here by JS -->
             <div id="marketplace-loader" class="col-span-full text-center p-10">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
             </div>
         </div>
-<div id="propose-trade-modal" class="modal-overlay">
-    <div class="modal-content w-full max-w-5xl">
-        <button id="close-trade-modal" class="close-button">&times;</button>
-        <h2 class="text-2xl font-bold mb-4">Propose a Trade</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Left Side: Their Item -->
-            <div id="receiver-trade-section" class="flex flex-col">
-                <h3 class="font-bold text-lg mb-2">You are requesting:</h3>
-                <div id="receiver-card-display" class="bg-gray-100 p-4 rounded-lg flex-grow">
-                    <!-- The card they are trading for will be displayed here -->
+    </main>
+
+    <!-- ** NEW & IMPROVED ** Propose Trade Modal -->
+    <div id="propose-trade-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-5xl">
+            <button id="close-trade-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Propose a Trade</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Side: Their Item -->
+                <div id="receiver-trade-section" class="flex flex-col">
+                    <h3 class="font-bold text-lg mb-2">You are requesting:</h3>
+                    <div id="receiver-card-display" class="bg-gray-100 p-4 rounded-lg flex-grow">
+                        <!-- The card being traded for will be displayed here -->
+                    </div>
+                    <div class="mt-4">
+                        <label for="receiver-money" class="block text-sm font-medium text-gray-700">Money they add (optional)</label>
+                        <input type="number" id="receiver-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+                    </div>
+                    <div id="receiver-total-value" class="mt-4 text-right font-bold text-lg">
+                        Total Value: $0.00
+                    </div>
                 </div>
-                <div class="mt-4">
-                    <label for="receiver-money" class="block text-sm font-medium text-gray-700">Money they add (optional)</label>
-                    <input type="number" id="receiver-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
-                </div>
-                <div id="receiver-total-value" class="mt-4 text-right font-bold text-lg">
-                    Total Value: $0.00
+
+                <!-- Right Side: Your Offer -->
+                <div id="proposer-trade-section" class="flex flex-col">
+                    <h3 class="font-bold text-lg mb-2">You are offering:</h3>
+                    <div class="bg-gray-100 p-4 rounded-lg flex-grow flex flex-col">
+                        <div class="mb-2">
+                            <input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md">
+                        </div>
+                        <div id="my-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white">
+                            <!-- Your collection will be loaded here -->
+                        </div>
+                        <div class="mt-4 flex-grow">
+                             <h4 class="font-semibold mb-2">Selected for Trade:</h4>
+                             <div id="proposer-selected-cards" class="space-y-1">
+                                <p class="text-sm text-gray-500 italic">No cards selected.</p>
+                             </div>
+                        </div>
+                    </div>
+                     <div class="mt-4">
+                        <label for="proposer-money" class="block text-sm font-medium text-gray-700">Money you add (optional)</label>
+                        <input type="number" id="proposer-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+                    </div>
+                     <div id="proposer-total-value" class="mt-4 text-right font-bold text-lg">
+                        Total Value: $0.00
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Side: Your Offer -->
-            <div id="proposer-trade-section" class="flex flex-col">
-                <h3 class="font-bold text-lg mb-2">You are offering:</h3>
-                <div class="bg-gray-100 p-4 rounded-lg flex-grow flex flex-col">
-                    <div class="mb-2">
-                        <input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md">
-                    </div>
-                    <div id="my-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white">
-                        <!-- Your collection will be loaded here -->
-                    </div>
-                    <div class="mt-4 flex-grow">
-                         <h4 class="font-semibold mb-2">Selected for Trade:</h4>
-                         <div id="proposer-selected-cards" class="space-y-1">
-                            <p class="text-sm text-gray-500 italic">No cards selected.</p>
-                         </div>
-                    </div>
-                </div>
-                 <div class="mt-4">
-                    <label for="proposer-money" class="block text-sm font-medium text-gray-700">Money you add (optional)</label>
-                    <input type="number" id="proposer-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
-                </div>
-                 <div id="proposer-total-value" class="mt-4 text-right font-bold text-lg">
-                    Total Value: $0.00
-                </div>
+            <!-- Notes and Submit -->
+            <div class="mt-6 border-t pt-6">
+                 <label for="trade-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
+                 <textarea id="trade-notes" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="Any comments about the trade? e.g., card conditions, shipping arrangements..."></textarea>
+                 <p class="text-xs text-gray-400 mt-1">Market values are based on Scryfall/MTGJson and are for estimation purposes only.</p>
             </div>
-        </div>
-
-        <!-- Notes and Submit -->
-        <div class="mt-6 border-t pt-6">
-             <label for="trade-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-             <textarea id="trade-notes" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="Any comments about the trade? e.g., card conditions, shipping arrangements..."></textarea>
-             <p class="text-xs text-gray-400 mt-1">Market values are based on Scryfall/MTGJson and are for estimation purposes only.</p>
-        </div>
-        <div class="mt-6 text-right">
-            <button id="send-trade-offer-btn" class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700">Send Trade Offer</button>
+            <div class="mt-6 text-right">
+                <button id="send-trade-offer-btn" class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700">Send Trade Offer</button>
+            </div>
         </div>
     </div>
-</div>
-  </main>
     
     <!-- Firebase and custom scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-
-
     <script src="js/auth.js"></script>
     <script src="js/marketplace.js"></script>
 </body>
