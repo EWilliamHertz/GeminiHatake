@@ -96,6 +96,59 @@
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
             </div>
         </div>
+        div id="propose-trade-modal" class="modal-overlay">
+    <div class="modal-content w-full max-w-4xl">
+        <button id="close-trade-modal" class="close-button">&times;</button>
+        <h2 class="text-2xl font-bold mb-4">Propose a Trade</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left Side: Their Item -->
+            <div id="receiver-trade-section">
+                <h3 class="font-bold text-lg mb-2">You are requesting:</h3>
+                <div id="receiver-card-display" class="bg-gray-100 p-4 rounded-lg">
+                    <!-- The card they are trading for will be displayed here -->
+                </div>
+                <div class="mt-4">
+                    <label for="receiver-money" class="block text-sm font-medium text-gray-700">Money they add (optional)</label>
+                    <input type="number" id="receiver-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+                </div>
+            </div>
+
+            <!-- Right Side: Your Offer -->
+            <div id="proposer-trade-section">
+                <h3 class="font-bold text-lg mb-2">You are offering:</h3>
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <div class="mb-2">
+                        <input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md">
+                    </div>
+                    <div id="my-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2">
+                        <!-- Your collection will be loaded here -->
+                    </div>
+                    <div class="mt-4">
+                         <h4 class="font-semibold mb-2">Selected for Trade:</h4>
+                         <div id="proposer-selected-cards" class="space-y-1">
+                            <p class="text-sm text-gray-500 italic">No cards selected.</p>
+                         </div>
+                    </div>
+                </div>
+                 <div class="mt-4">
+                    <label for="proposer-money" class="block text-sm font-medium text-gray-700">Money you add (optional)</label>
+                    <input type="number" id="proposer-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes and Submit -->
+        <div class="mt-6 border-t pt-6">
+             <label for="trade-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
+             <textarea id="trade-notes" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="Any comments about the trade?"></textarea>
+        </div>
+        <div class="mt-6 text-right">
+            <button id="send-trade-offer-btn" class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700">Send Trade Offer</button>
+        </div>
+    </div>
+</div>
+
     </main>
 
     
