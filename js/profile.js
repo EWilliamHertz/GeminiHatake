@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Profile Page Script (v3 - Stable & Debugged)
+ * HatakeSocial - Profile Page Script (v4 - Stable & Debugged)
  *
  * This script waits for the 'authReady' event from auth.js before running.
  * It handles all logic for displaying user profiles, including their feed,
  * decks, collection, and wishlist. It can find users by handle OR by UID.
- * This version includes robust error handling and console logging.
+ * This version assumes the 'handle' index has been created in Firestore.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -12,48 +12,39 @@ document.addEventListener('authReady', (e) => {
     // If this element doesn't exist, we're not on the profile page, so do nothing.
     if (!profileContainer) return;
 
-    console.log("profile.js: authReady event received. Starting profile page setup.");
-
     const setupProfilePage = async () => {
         try {
             const params = new URLSearchParams(window.location.search);
             const username = params.get('user');
             const userIdParam = params.get('uid');
-            console.log(`profile.js: URL params are user='${username}' and uid='${userIdParam}'`);
 
-            let profileUserId, profileUserData;
             let userDoc;
 
             if (username) {
-                console.log(`profile.js: Searching for user with handle: ${username}`);
                 const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
                 if (!userQuery.empty) {
                     userDoc = userQuery.docs[0];
-                    console.log("profile.js: Found user by handle.");
+                } else {
+                    throw new Error(`No user found with handle: ${username}`);
                 }
             } else if (userIdParam) {
-                console.log(`profile.js: Searching for user with UID: ${userIdParam}`);
                 userDoc = await db.collection('users').doc(userIdParam).get();
-                if (userDoc.exists) {
-                     console.log("profile.js: Found user by UID.");
-                }
             } else if (currentUser) {
-                console.log(`profile.js: No user in URL, showing current logged-in user: ${currentUser.uid}`);
                 userDoc = await db.collection('users').doc(currentUser.uid).get();
-            }
-
-            if (userDoc && userDoc.exists) {
-                profileUserId = userDoc.id;
-                profileUserData = userDoc.data();
-                console.log("profile.js: Successfully loaded user data:", profileUserData);
             } else {
-                console.log("profile.js: User document not found in Firestore.");
-                profileContainer.innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">User not found.</h1>';
+                 // If no user is specified and nobody is logged in, show an error
+                profileContainer.innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">Please specify a user to view their profile.</h1>';
                 return;
             }
+
+            if (!userDoc || !userDoc.exists) {
+                throw new Error("User document could not be found in the database.");
+            }
             
+            const profileUserId = userDoc.id;
+            const profileUserData = userDoc.data();
+
             // --- Populate Profile Header ---
-            console.log("profile.js: Populating profile header.");
             document.getElementById('profile-displayName').textContent = profileUserData.displayName || 'No Name';
             document.getElementById('profile-handle').textContent = `@${profileUserData.handle || 'no-handle'}`;
             document.getElementById('profile-bio').textContent = profileUserData.bio || 'No bio yet.';
@@ -111,22 +102,21 @@ document.addEventListener('authReady', (e) => {
             });
 
             // --- Load Initial Content for the First Tab ---
-            console.log("profile.js: Loading content for profile tabs.");
             loadProfileFeed(profileUserId);
             loadProfileDecks(profileUserId);
             loadProfileCollection(profileUserId, 'collection');
             loadProfileCollection(profileUserId, 'wishlist');
 
         } catch (error) {
-            console.error("profile.js: A critical error occurred in setupProfilePage:", error);
-            profileContainer.innerHTML = '<h1 class="text-center text-red-500 font-bold mt-10">An error occurred while loading this profile.</h1>';
+            console.error("A critical error occurred while setting up the profile page:", error);
+            profileContainer.innerHTML = `<h1 class="text-center text-red-500 font-bold mt-10">An error occurred while loading this profile. Check the console for details.</h1>`;
         }
     };
     
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
         if (!container) return;
-        container.innerHTML = '<p>Loading feed...</p>';
+        container.innerHTML = '<p class="text-gray-500">Loading feed...</p>';
         try {
             const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
             if(snapshot.empty) {
