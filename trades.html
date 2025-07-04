@@ -12,7 +12,7 @@
 
     <!-- Header Section -->
     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
-        <!-- Paste your standard header HTML here -->
+        <!-- Your Standard Header HTML Goes Here -->
         <div class="container mx-auto px-4 flex justify-between items-center">
              <a href="index.html" class="flex items-center"><img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md"><span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span></a>
             <nav class="hidden md:flex items-center space-x-6">
@@ -61,7 +61,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    
+    <!-- ** THIS IS THE MISSING LINE THAT FIXES THE BLANK PAGE ** -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    
+    <!-- Your Custom Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/trades.js"></script>
 </body>
