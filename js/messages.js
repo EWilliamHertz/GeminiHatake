@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Messages Page Script (v4 - Final & Stable)
+ * HatakeSocial - Messages Page Script (Final - Combined & Stable)
  *
  * This script waits for the 'authReady' event from auth.js before running.
  * It handles all logic for the messages.html page, including searching for users,
@@ -107,13 +107,15 @@ document.addEventListener('authReady', (e) => {
         const conversationId = [currentUser.uid, currentRemoteUser.id].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
 
+        // **FIX #1:** Use a client-side date object instead of serverTimestamp() for arrayUnion.
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
             timestamp: new Date() 
         };
 
-        // This object ensures no 'undefined' values are sent to Firestore.
+        // **FIX #2:** Ensure no 'undefined' values are sent to Firestore.
+        // We use '|| null' to provide a safe fallback value that Firestore accepts.
         const participantInfoData = {
             [currentUser.uid]: { 
                 displayName: currentUser.displayName || 'Anonymous', 
@@ -125,7 +127,7 @@ document.addEventListener('authReady', (e) => {
             }
         };
 
-        messageInput.value = '';
+        messageInput.value = ''; // Clear the input field immediately
 
         try {
             // Use set with merge=true to create the doc if it doesn't exist,
@@ -134,7 +136,7 @@ document.addEventListener('authReady', (e) => {
                 participants: [currentUser.uid, currentRemoteUser.id],
                 participantInfo: participantInfoData,
                 lastMessage: content,
-                updatedAt: new Date(),
+                updatedAt: new Date(), // Use client-side date here as well
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage)
             }, { merge: true });
         } catch (error) {
