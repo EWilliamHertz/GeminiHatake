@@ -1,77 +1,52 @@
 /**
- * HatakeSocial - Marketplace Page Script (v4 - Final & Stable)
+ * HatakeSocial - Marketplace Page Script (Temporary Link Generator v3)
  *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles fetching and displaying all cards listed for sale, assuming the
- * required Firestore index has been created manually.
+ * This script's ONLY purpose is to fail in a specific way that forces
+ * Firestore to generate an index creation link in the developer console.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const marketplaceGrid = document.getElementById('marketplace-grid');
     if (!marketplaceGrid) return;
 
+    // Display a clear message on the screen.
+    marketplaceGrid.innerHTML = `
+        <div class="col-span-full text-center p-8 bg-red-100 text-red-700 rounded-lg">
+            <h2 class="text-2xl font-bold">Action Required: Database Index Missing</h2>
+            <p class="mt-2">To power the marketplace, a one-time database setup is needed.</p>
+            <p class="mt-4 font-semibold">Please follow these steps:</p>
+            <ol class="text-left inline-block mt-2 space-y-1">
+                <li>1. Open the Developer Console (press F12).</li>
+                <li>2. Find the red error message that starts with "THIS IS THE EXPECTED ERROR...".</li>
+                <li>3. Click the long <span class="font-mono bg-gray-200 px-1">https://console.firebase.google.com...</span> link inside that error message.</li>
+                <li>4. A new Firebase tab will open. Click the "Create" button there.</li>
+                <li>5. Wait for the index to build (status becomes "Enabled"), then let me know.</li>
+            </ol>
+        </div>`;
+
     if (!user) {
-        marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">Please log in to view the marketplace.</p>';
-        return;
+        console.log("Marketplace: User not logged in, but still attempting query to generate index link.");
     }
-    
-    const findWishlistBtn = document.getElementById('find-wishlist-btn');
-    if(findWishlistBtn) findWishlistBtn.classList.remove('hidden');
 
-    const loader = document.getElementById('marketplace-loader');
-
-    /**
-     * Fetches and displays cards listed for sale.
-     */
-    const loadMarketplaceCards = async () => {
-        if(loader) loader.style.display = 'block';
-        // Clear previous results, but keep the loader element in the DOM
-        while (marketplaceGrid.firstChild && marketplaceGrid.firstChild !== loader) {
-            marketplaceGrid.removeChild(marketplaceGrid.firstChild);
-        }
-
+    const generateIndexLink = async () => {
         try {
-            // This collectionGroup query now works because the index has been created.
-            const snapshot = await db.collectionGroup('collection').where('forSale', '==', true).get();
+            // This is the specific query that requires the index.
+            // We are running it to intentionally cause an error.
+            console.log("Attempting to run the query that requires an index...");
+            await db.collectionGroup('collection').where('forSale', '==', true).get();
 
-            if(loader) loader.style.display = 'none'; // Hide loader after fetch
-
-            if (snapshot.empty) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards are currently listed for sale.</p>';
-                return;
-            }
-
-            for (const doc of snapshot.docs) {
-                const card = doc.data();
-                // Get the user ID from the card's path in the database
-                const sellerId = doc.ref.parent.parent.id; 
-
-                // We need to fetch the seller's info to get their handle
-                const sellerDoc = await db.collection('users').doc(sellerId).get();
-                const sellerName = sellerDoc.exists ? sellerDoc.data().handle : 'unknown';
-                
-                const priceDisplay = card.salePrice 
-                    ? `${card.salePrice.toFixed(2)} SEK` 
-                    : 'For Trade';
-
-                const cardEl = document.createElement('div');
-                cardEl.className = 'bg-white rounded-lg shadow-md p-2 flex flex-col';
-                cardEl.innerHTML = `
-                    <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
-                    <h4 class="font-bold text-sm truncate">${card.name}</h4>
-                    <p class="text-blue-600 font-semibold text-lg mt-1">${priceDisplay}</p>
-                    <a href="profile.html?user=${sellerName}" class="text-xs text-gray-500 hover:underline mt-auto pt-1">@${sellerName}</a>
-                `;
-                marketplaceGrid.appendChild(cardEl);
-            }
+            // If the code reaches here, it means the index already exists!
+            marketplaceGrid.innerHTML = `<div class="col-span-full text-center p-8 bg-green-100 text-green-700 rounded-lg">
+                <h2 class="text-2xl font-bold">Success!</h2>
+                <p class="mt-2">The database index already exists. Please let me know, and I will provide the final working marketplace.js file.</p>
+            </div>`;
 
         } catch (error) {
-            console.error("Error loading marketplace cards:", error);
-            if(loader) loader.style.display = 'none';
-            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500 p-8">An error occurred while loading the marketplace. Please try again later.</p>`;
+            // This is the expected outcome. The link is inside the error object.
+            console.error("THIS IS THE EXPECTED ERROR. CLICK THE LINK IN THIS ERROR MESSAGE TO CREATE THE INDEX:", error);
         }
     };
 
-    // --- Initial Load ---
-    loadMarketplaceCards();
+    // Run the function to generate the link.
+    generateIndexLink();
 });
