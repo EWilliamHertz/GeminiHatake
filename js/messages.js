@@ -4,6 +4,7 @@
  * This script waits for the 'authReady' event from auth.js before running.
  * It handles all logic for the messages.html page, including searching for users,
  * opening chat conversations, and sending/receiving messages in real-time.
+ * This version includes a fix for the undefined field value error.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -15,8 +16,8 @@ document.addEventListener('authReady', (e) => {
         return;
     }
 
-    let currentChatListener = null; // Holds the real-time listener function to unsubscribe later
-    let currentRemoteUser = null; // Holds the data of the person we are chatting with
+    let currentChatListener = null;
+    let currentRemoteUser = null;
 
     const conversationsListEl = document.getElementById('conversations-list');
     const userSearchInput = document.getElementById('user-search-input');
@@ -26,15 +27,12 @@ document.addEventListener('authReady', (e) => {
     const chatWelcomeScreen = document.getElementById('chat-welcome-screen');
     const chatView = document.getElementById('chat-view');
 
-    /**
-     * Loads all other users into the left-hand panel to start conversations.
-     */
     const loadUserList = async () => {
         const usersSnapshot = await db.collection('users').get();
         if (!conversationsListEl) return;
         conversationsListEl.innerHTML = '';
         usersSnapshot.forEach(doc => {
-            if (doc.id === currentUser.uid) return; // Don't list the user themselves
+            if (doc.id === currentUser.uid) return;
             const userData = doc.data();
             const item = document.createElement('div');
             item.className = 'conversation-item';
@@ -46,10 +44,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Opens a chat window with a specific user and listens for new messages.
-     * @param {object} remoteUser - The user object of the person to chat with.
-     */
     const openChatForUser = (remoteUser) => {
         if (currentChatListener) currentChatListener();
         currentRemoteUser = remoteUser;
@@ -65,7 +59,6 @@ document.addEventListener('authReady', (e) => {
         const conversationRef = db.collection('conversations').doc(conversationId);
         const messagesContainer = document.getElementById('messages-container');
 
-        // --- Real-time Message Listener ---
         currentChatListener = conversationRef.onSnapshot(doc => {
             messagesContainer.innerHTML = '';
             if (doc.exists) {
@@ -82,9 +75,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Sends a message to the currently active chat partner.
-     */
     const sendMessage = async () => {
         const content = messageInput.value.trim();
         if (!content || !currentRemoteUser) return;
@@ -95,8 +85,20 @@ document.addEventListener('authReady', (e) => {
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
-            // **THE FIX IS HERE:** Use a client-side date object instead of serverTimestamp().
             timestamp: new Date() 
+        };
+
+        // **THE FIX IS HERE:** Ensure no 'undefined' values are sent to Firestore.
+        // We use '|| null' to provide a safe fallback value that Firestore accepts.
+        const participantInfoData = {
+            [currentUser.uid]: { 
+                displayName: currentUser.displayName || 'Anonymous', 
+                photoURL: currentUser.photoURL || null 
+            },
+            [currentRemoteUser.id]: { 
+                displayName: currentRemoteUser.displayName || 'Anonymous', 
+                photoURL: currentRemoteUser.photoURL || null 
+            }
         };
 
         messageInput.value = '';
@@ -104,10 +106,7 @@ document.addEventListener('authReady', (e) => {
         try {
             await conversationRef.set({
                 participants: [currentUser.uid, currentRemoteUser.id],
-                participantInfo: {
-                    [currentUser.uid]: { displayName: currentUser.displayName, photoURL: currentUser.photoURL },
-                    [currentRemoteUser.id]: { displayName: currentRemoteUser.displayName, photoURL: currentRemoteUser.photoURL }
-                },
+                participantInfo: participantInfoData,
                 lastMessage: content,
                 updatedAt: new Date(),
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage)
@@ -117,8 +116,6 @@ document.addEventListener('authReady', (e) => {
             alert("Could not send message. Please check the console for errors.");
         }
     };
-
-    // --- Attach Event Listeners ---
 
     sendMessageBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keyup', (e) => {
@@ -154,7 +151,6 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- Initial Load ---
     loadUserList();
 
     const params = new URLSearchParams(window.location.search);
