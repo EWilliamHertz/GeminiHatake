@@ -10,7 +10,7 @@ document.addEventListener('authReady', (e) => {
     // If this element doesn't exist, we're not on the deck page, so do nothing.
     if (!deckBuilderForm) return;
 
-    console.log("Deck.js is running!"); // For debugging
+    console.log("Deck.js is now running safely!"); // For debugging
 
     let deckToShare = null;
 
@@ -29,6 +29,7 @@ document.addEventListener('authReady', (e) => {
     const deckNameInput = document.getElementById('deck-name-input');
     const deckBioInput = document.getElementById('deck-bio-input');
     const decklistInput = document.getElementById('decklist-input');
+    const shareDeckBtn = document.getElementById('share-deck-to-feed-btn');
     
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Legacy", "Vintage", "Commander", "Pauper", "Oldschool"],
@@ -108,18 +109,22 @@ document.addEventListener('authReady', (e) => {
         deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
 
         const editingId = editingDeckIdInput.value;
-        if (editingId) {
-            await db.collection('users').doc(user.uid).collection('decks').doc(editingId).update(deckData);
-            alert("Deck updated successfully!");
-            viewDeck(deckData, editingId);
-        } else {
-            const docRef = await db.collection('users').doc(user.uid).collection('decks').add(deckData);
-            alert("Deck saved successfully!");
-            viewDeck(deckData, docRef.id);
+        try {
+            if (editingId) {
+                await db.collection('users').doc(user.uid).collection('decks').doc(editingId).update(deckData);
+                alert("Deck updated successfully!");
+                viewDeck(deckData, editingId);
+            } else {
+                const docRef = await db.collection('users').doc(user.uid).collection('decks').add(deckData);
+                alert("Deck saved successfully!");
+                viewDeck(deckData, docRef.id);
+            }
+        } catch(error) {
+            alert("Error saving deck: " + error.message);
+        } finally {
+            buildDeckBtn.disabled = false;
+            buildDeckBtn.textContent = 'Build & Price Deck';
         }
-        
-        buildDeckBtn.disabled = false;
-        buildDeckBtn.textContent = 'Build & Price Deck';
     });
     
     const applyFilters = () => {
