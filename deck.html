@@ -174,14 +174,22 @@
    </div>
 
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <!-- Load the core auth script FIRST -->
-    <script src="js/auth.js"></script>
+   <!-- Firebase Libraries (use the compat libraries for v8 syntax) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     
-    <!-- Load the page-specific deck script SECOND -->
+    <!-- PapaParse for CSV (only needed on my_collection.html, but safe to include) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    
+    <!-- Your Custom Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/index.js"></script>
     <script src="js/deck.js"></script>
+    <script src="js/collection.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/messages.js"></script>
 </body>
 </html>
 
