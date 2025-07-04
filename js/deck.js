@@ -1,7 +1,16 @@
+/**
+ * HatakeSocial - Deck Page Script
+ *
+ * This script waits for the 'authReady' event from auth.js before running.
+ * It handles all logic specific to the deck.html page.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
+    // If this element doesn't exist, we're not on the deck page, so do nothing.
     if (!deckBuilderForm) return;
+
+    console.log("Deck.js is running!"); // For debugging
 
     let deckToShare = null;
 
