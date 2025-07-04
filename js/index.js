@@ -147,6 +147,7 @@ document.addEventListener('authReady', (e) => {
             }).then(likes => postElement.querySelector('.likes-count').textContent = likes.length);
         }
     });
+    
 
     postsContainer.addEventListener('submit', async (e) => {
         e.preventDefault();
