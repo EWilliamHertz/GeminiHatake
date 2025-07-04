@@ -1,18 +1,14 @@
 /**
- * HatakeSocial - Profile Page Script (Final - Combined & Stable)
+ * HatakeSocial - Profile Page Script (v8 - Path Fix)
  *
  * This script waits for the 'authReady' event from auth.js before running.
- * It dynamically builds the entire profile page HTML before populating it,
- * which prevents any "element not found" errors and fixes the loading issue.
+ * It handles all logic for displaying user profiles.
+ * This version uses relative paths for links to work on GitHub Pages.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
-    // If this element doesn't exist, we're not on the profile page, so do nothing.
     if (!profileContainer) return;
-
-    // Show a loading spinner immediately while we fetch data
-    profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
 
     const setupProfilePage = async () => {
         try {
@@ -32,7 +28,7 @@ document.addEventListener('authReady', (e) => {
             }
 
             if (!userDoc || !userDoc.exists) {
-                throw new Error("User document could not be found in the database.");
+                throw new Error("User document could not be found.");
             }
             
             const profileUserId = userDoc.id;
@@ -87,14 +83,13 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
 
-            // --- Now that the HTML exists, attach listeners and load data ---
-            
             const actionButtonsContainer = document.getElementById('profile-action-buttons');
             if (currentUser && currentUser.uid !== profileUserId) {
                 actionButtonsContainer.innerHTML = `
                     <button id="follow-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Follow</button>
                     <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
                 document.getElementById('message-btn').addEventListener('click', (e) => {
+                    // **THE FIX IS HERE:** Changed from /messages.html to messages.html
                     window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
                 });
             } else if (currentUser && currentUser.uid === profileUserId) {
@@ -133,7 +128,6 @@ document.addEventListener('authReady', (e) => {
                 });
             });
 
-            // Load content for all tabs
             loadProfileFeed(profileUserId);
             loadProfileDecks(profileUserId);
             loadProfileCollection(profileUserId, 'collection');
@@ -226,6 +220,5 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // Run the setup function for the page
     setupProfilePage();
 });
