@@ -2,13 +2,15 @@
  * HatakeSocial - Index Page (Feed) Script
  *
  * This script waits for the 'authReady' event from auth.js before running.
- * It handles all logic for the main feed on index.html, including rendering,
- * creating, and interacting with posts, with robust profile linking.
+ * It handles all logic for the main feed on index.html.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
+    // If this element doesn't exist, we're not on the index page, so do nothing.
     if (!postsContainer) return;
+
+    console.log("index.js is now running safely!"); // For debugging
 
     const postContentInput = document.getElementById('postContent');
     const submitPostBtn = document.getElementById('submitPostBtn');
@@ -47,8 +49,6 @@ document.addEventListener('authReady', (e) => {
             const post = doc.data();
             const authorData = usersData[post.authorId];
             
-            // **THE FIX IS HERE:** Create a robust link.
-            // Use the handle if it exists, otherwise fall back to the user's unique ID.
             const profileLink = authorData?.handle 
                 ? `profile.html?user=${authorData.handle}` 
                 : `profile.html?uid=${post.authorId}`;
@@ -147,7 +147,6 @@ document.addEventListener('authReady', (e) => {
             }).then(likes => postElement.querySelector('.likes-count').textContent = likes.length);
         }
     });
-    
 
     postsContainer.addEventListener('submit', async (e) => {
         e.preventDefault();
