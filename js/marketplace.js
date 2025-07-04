@@ -58,6 +58,7 @@ document.addEventListener('authReady', (e) => {
                 marketplaceGrid.appendChild(cardEl);
             }
 
+            
         } catch (error) {
             console.error("THIS IS THE EXPECTED ERROR IF THE INDEX IS MISSING. CLICK THE LINK BELOW TO CREATE THE INDEX:", error);
             marketplaceGrid.innerHTML = `
