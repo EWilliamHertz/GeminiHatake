@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Messages Page Script (v3 - Final & Stable)
+ * HatakeSocial - Messages Page Script (v4 - Final & Stable)
  *
  * This script waits for the 'authReady' event from auth.js before running.
  * It handles all logic for the messages.html page, including searching for users,
@@ -8,10 +8,11 @@
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const chatArea = document.getElementById('chat-area');
+    // If this element doesn't exist, or if the user isn't logged in, do nothing.
     if (!chatArea) return;
 
     if (!currentUser) {
-        chatArea.innerHTML = '<p class="text-center p-8 text-gray-500">Please log in to view your messages.</p>';
+        chatArea.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-center p-8 text-gray-500">Please log in to view your messages.</p></div>';
         return;
     }
 
@@ -51,9 +52,14 @@ document.addEventListener('authReady', (e) => {
      * @param {object} remoteUser - The user object of the person to chat with.
      */
     const openChatForUser = (remoteUser) => {
-        if (currentChatListener) currentChatListener();
-        currentRemoteUser = remoteUser;
+        // Unsubscribe from any previous chat listener to prevent getting messages from old chats
+        if (currentChatListener) {
+            currentChatListener();
+        }
 
+        currentRemoteUser = remoteUser; // Set the currently active chat partner
+
+        // Update the UI to show the chat window
         chatWelcomeScreen.classList.add('hidden');
         chatView.classList.remove('hidden');
         chatView.classList.add('flex');
@@ -61,15 +67,19 @@ document.addEventListener('authReady', (e) => {
         document.getElementById('chat-header-avatar').src = remoteUser.photoURL || 'https://placehold.co/40x40';
         document.getElementById('chat-header-name').textContent = remoteUser.displayName;
 
+        // Create a consistent conversation ID by sorting the two user IDs.
+        // This ensures both users load the same conversation document.
         const conversationId = [currentUser.uid, remoteUser.id].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
         const messagesContainer = document.getElementById('messages-container');
 
         // --- Real-time Message Listener ---
+        // This is the core of the real-time functionality.
         currentChatListener = conversationRef.onSnapshot(doc => {
             messagesContainer.innerHTML = '';
             if (doc.exists) {
                 const messages = doc.data().messages || [];
+                // Sort messages by timestamp to ensure correct order
                 messages.sort((a,b) => a.timestamp.toMillis() - b.timestamp.toMillis()).forEach(msg => {
                     const messageEl = document.createElement('div');
                     const isSent = msg.senderId === currentUser.uid;
@@ -78,6 +88,7 @@ document.addEventListener('authReady', (e) => {
                     messagesContainer.appendChild(messageEl);
                 });
             }
+            // Automatically scroll to the newest message
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
     };
@@ -87,7 +98,11 @@ document.addEventListener('authReady', (e) => {
      */
     const sendMessage = async () => {
         const content = messageInput.value.trim();
-        if (!content || !currentRemoteUser) return;
+        // Don't send if there's no active chat or the message is empty
+        if (!content || !currentRemoteUser) {
+            console.error("Cannot send message: No remote user selected.");
+            return;
+        }
 
         const conversationId = [currentUser.uid, currentRemoteUser.id].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
@@ -95,19 +110,29 @@ document.addEventListener('authReady', (e) => {
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
-            // **THE FIX IS HERE:** Use a client-side date object instead of serverTimestamp().
             timestamp: new Date() 
+        };
+
+        // This object ensures no 'undefined' values are sent to Firestore.
+        const participantInfoData = {
+            [currentUser.uid]: { 
+                displayName: currentUser.displayName || 'Anonymous', 
+                photoURL: currentUser.photoURL || null 
+            },
+            [currentRemoteUser.id]: { 
+                displayName: currentRemoteUser.displayName || 'Anonymous', 
+                photoURL: currentRemoteUser.photoURL || null 
+            }
         };
 
         messageInput.value = '';
 
         try {
+            // Use set with merge=true to create the doc if it doesn't exist,
+            // or update it by adding the new message to the array.
             await conversationRef.set({
                 participants: [currentUser.uid, currentRemoteUser.id],
-                participantInfo: {
-                    [currentUser.uid]: { displayName: currentUser.displayName, photoURL: currentUser.photoURL },
-                    [currentRemoteUser.id]: { displayName: currentRemoteUser.displayName, photoURL: currentRemoteUser.photoURL }
-                },
+                participantInfo: participantInfoData,
                 lastMessage: content,
                 updatedAt: new Date(),
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage)
@@ -122,7 +147,9 @@ document.addEventListener('authReady', (e) => {
 
     sendMessageBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') sendMessage();
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
     });
 
     userSearchInput.addEventListener('keyup', async (e) => {
@@ -157,6 +184,7 @@ document.addEventListener('authReady', (e) => {
     // --- Initial Load ---
     loadUserList();
 
+    // Check if the URL has a 'with' parameter to directly open a chat
     const params = new URLSearchParams(window.location.search);
     const chatWithId = params.get('with');
     if (chatWithId) {
