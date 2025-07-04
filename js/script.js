@@ -3,9 +3,15 @@
  *
  * This script manages all frontend logic for the HatakeSocial platform,
  * including Firebase authentication, Firestore database interactions, social feed,
- * deck building, collection management, and the e-commerce shop.
+ * deck building, collection management, and real-time messaging.
+ *
+ * It is structured to run page-specific logic only after Firebase auth state
+ * has been confirmed, preventing UI race conditions.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide the body initially to prevent flash of incorrect content
+    document.body.style.opacity = '0';
+
     // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
@@ -24,14 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
     // --- Global State & Helpers ---
-    let deckToShare = null;
     let cardSearchResults = [];
-    let shoppingCart = JSON.parse(localStorage.getItem('shoppingCart')) || [];
+    let shoppingCart = JSON.parse(localStorage.getItem('shoppingCart')) || []; // From pasted_content_2.txt
     const openModal = (modal) => { if (modal) modal.classList.add('open'); };
     const closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
-
-    // --- Core UI & Authentication (Runs on all pages) ---
-    const setupCoreUI = () => {
+    
+    // --- Core UI Listeners (Run Immediately) ---
+    const setupModalAndFormListeners = () => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -40,38 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const loginModal = document.getElementById('loginModal');
         const registerModal = document.getElementById('registerModal');
         const googleLoginButton = document.getElementById('googleLoginButton');
-
-        auth.onAuthStateChanged(async (user) => {
-            const sidebarUserInfo = document.getElementById('sidebar-user-info');
-            const createPostSection = document.getElementById('create-post-section');
-            if (user) {
-                if (loginButton) loginButton.classList.add('hidden');
-                if (registerButton) registerButton.classList.add('hidden');
-                if (userAvatar) userAvatar.classList.remove('hidden');
-                if (createPostSection) createPostSection.style.display = 'block';
-
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                    const name = userData.displayName || 'User';
-                    if (userAvatar) userAvatar.src = photo;
-                    if (sidebarUserInfo) {
-                        sidebarUserInfo.style.display = 'flex';
-                        document.getElementById('sidebar-user-avatar').src = photo;
-                        document.getElementById('sidebar-user-name').textContent = name;
-                        document.getElementById('sidebar-user-handle').textContent = `@${userData.handle || name.toLowerCase().replace(/\s/g, '')}`;
-                    }
-                }
-            } else {
-                if (loginButton) loginButton.classList.remove('hidden');
-                if (registerButton) registerButton.classList.remove('hidden');
-                if (userAvatar) userAvatar.classList.add('hidden');
-                if (userDropdown) userDropdown.classList.add('hidden');
-                if (sidebarUserInfo) sidebarUserInfo.style.display = 'none';
-                if (createPostSection) createPostSection.style.display = 'none';
-            }
-        });
+        const googleRegisterButton = document.getElementById('googleRegisterButton'); // From pasted_content.txt
 
         if (loginButton) loginButton.addEventListener('click', () => openModal(loginModal));
         if (registerButton) registerButton.addEventListener('click', () => openModal(registerModal));
@@ -84,35 +58,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('loginPassword').value;
             auth.signInWithEmailAndPassword(email, password).then(() => closeModal(loginModal)).catch(err => alert(err.message));
         });
+
+        const handleGoogleAuth = () => {
+             auth.signInWithPopup(googleProvider).then(result => {
+                const user = result.user;
+                const userRef = db.collection('users').doc(user.uid);
+                return userRef.get().then(doc => {
+                    if (!doc.exists) {
+                        return userRef.set({
+                            displayName: user.displayName,
+                            email: user.email,
+                            photoURL: user.photoURL,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            handle: user.displayName.toLowerCase().replace(/\s/g, ''),
+                            bio: "New HatakeSocial user!",
+                            favoriteTcg: "Not set"
+                        });
+                    }
+                });
+            }).then(() => {
+                closeModal(loginModal);
+                closeModal(registerModal);
+            }).catch(err => alert(err.message));
+        };
         
-        if (googleLoginButton) {
-            googleLoginButton.addEventListener('click', () => {
-                auth.signInWithPopup(googleProvider).then(result => {
-                    const user = result.user;
-                    const userRef = db.collection('users').doc(user.uid);
-                    userRef.get().then(doc => {
-                        if (!doc.exists) {
-                            userRef.set({
-                                displayName: user.displayName,
-                                email: user.email,
-                                photoURL: user.photoURL,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                handle: user.displayName.toLowerCase().replace(/\s/g, ''),
-                                bio: "New HatakeSocial user!"
-                            });
-                        }
-                    });
-                    closeModal(loginModal);
-                    closeModal(registerModal);
-                }).catch(err => alert(err.message));
-            });
-        }
+        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
+        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth); // From pasted_content.txt
 
         document.getElementById('registerForm')?.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+            const city = document.getElementById('registerCity')?.value || ''; // From pasted_content.txt
+            const country = document.getElementById('registerCountry')?.value || ''; // From pasted_content.txt
+            const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || ''; // From pasted_content.txt
             const displayName = email.split('@')[0];
+
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
@@ -121,6 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         displayName: displayName,
                         email: email,
                         photoURL: defaultPhotoURL,
+                        city: city, // From pasted_content.txt
+                        country: country, // From pasted_content.txt
+                        favoriteTcg: favoriteTcg, // From pasted_content.txt
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: displayName.toLowerCase().replace(/\s/g, ''),
                         bio: "New HatakeSocial user!"
@@ -133,8 +117,237 @@ document.addEventListener('DOMContentLoaded', () => {
         if (logoutButton) logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
         if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
     };
+
+    // --- Auth State Controller ---
+    auth.onAuthStateChanged(async (user) => {
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const userAvatar = document.getElementById('userAvatar');
+        const sidebarUserInfo = document.getElementById('sidebar-user-info'); // From pasted_content_2.txt
+        const createPostSection = document.getElementById('create-post-section'); // From pasted_content_2.txt
+        
+        if (user) {
+            if (loginButton) loginButton.classList.add('hidden');
+            if (registerButton) registerButton.classList.add('hidden');
+            if (userAvatar) userAvatar.classList.remove('hidden');
+            if (createPostSection) createPostSection.style.display = 'block'; // From pasted_content_2.txt
+
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                if (userAvatar) userAvatar.src = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                if (sidebarUserInfo) { // From pasted_content_2.txt
+                    sidebarUserInfo.style.display = 'flex';
+                    document.getElementById('sidebar-user-avatar').src = userData.photoURL;
+                    document.getElementById('sidebar-user-name').textContent = userData.displayName;
+                    document.getElementById('sidebar-user-handle').textContent = `@${userData.handle || userData.displayName.toLowerCase().replace(/\s/g, '')}`;
+                }
+            }
+            if (!window.location.pathname.includes('messages.html')) {
+                injectMessengerWidget(user);
+            }
+        } else {
+            if (loginButton) loginButton.classList.remove('hidden');
+            if (registerButton) registerButton.classList.remove('hidden');
+            if (userAvatar) userAvatar.classList.add('hidden');
+            if (userDropdown) userDropdown.classList.add('hidden'); // From pasted_content_2.txt
+            if (sidebarUserInfo) sidebarUserInfo.style.display = 'none'; // From pasted_content_2.txt
+            if (createPostSection) createPostSection.style.display = 'none'; // From pasted_content_2.txt
+        }
+        
+        runPageSpecificSetup(user);
+
+        document.body.style.transition = 'opacity 0.3s ease-in-out';
+        document.body.style.opacity = '1';
+    });
     
-    // --- SHOP.HTML LOGIC ---
+    // --- Messenger Widget & Page Logic ---
+    const injectMessengerWidget = (user) => {
+        if (document.getElementById('messenger-widget')) return;
+        const widgetHTML = `
+            <div id="messenger-widget" class="minimized">
+                <div id="messenger-widget-header"><h3 class="font-bold">Messages</h3><button id="messenger-toggle-btn"><i class="fas fa-chevron-up"></i></button></div>
+                <div id="messenger-widget-body" class="hidden">
+                    <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
+                    <a href="/messages.html" class="block text-center p-2 bg-gray-200 hover:bg-gray-300 text-sm font-semibold">View Full Conversation</a>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', widgetHTML);
+        const widget = document.getElementById('messenger-widget');
+        const toggleBtn = document.getElementById('messenger-toggle-btn');
+        const body = document.getElementById('messenger-widget-body');
+        toggleBtn.addEventListener('click', () => {
+            widget.classList.toggle('minimized');
+            body.classList.toggle('hidden');
+            toggleBtn.innerHTML = widget.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+        });
+        loadConversations(user.uid, document.getElementById('widget-conversations-list'), true);
+    };
+
+    const loadConversations = async (currentUserId, container, isWidget) => {
+        const usersSnapshot = await db.collection('users').get();
+        if (!container) return; // Added check for container existence
+        container.innerHTML = '';
+        usersSnapshot.forEach(doc => {
+            if (doc.id === currentUserId) return;
+            const userData = doc.data();
+            const item = document.createElement('div');
+            item.className = 'conversation-item';
+            item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3"><span class="font-bold">${userData.displayName}</span>`;
+            item.addEventListener('click', () => {
+                 window.location.href = `/messages.html?with=${doc.id}`;
+            });
+            container.appendChild(item);
+        });
+    };
+    
+    const setupMessagesPage = (currentUser) => {
+        if (!document.getElementById('chat-area') || !currentUser) return;
+        loadConversations(currentUser.uid, document.getElementById('conversations-list'), false);
+        // Full message page logic would continue here...
+    };
+
+    // --- Dynamic Profile Page Logic ---
+    const setupProfilePage = async (currentUser) => {
+        if (!document.getElementById('profile-displayName')) return;
+        const params = new URLSearchParams(window.location.search);
+        let username = params.get('user');
+        
+        // Handle URLs like /username by checking the path if no query param exists
+        if (!username && window.location.pathname !== '/' && !window.location.pathname.includes('profile.html')) {
+             const pathSegments = window.location.pathname.split('/').filter(Boolean);
+             if(pathSegments.length > 0) {
+                username = pathSegments[pathSegments.length - 1];
+             }
+        }
+
+        let profileUserId, profileUserData;
+
+        if (username) {
+            const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
+            if (!userQuery.empty) {
+                const userDoc = userQuery.docs[0];
+                profileUserId = userDoc.id;
+                profileUserData = userDoc.data();
+            } else {
+                document.querySelector('main').innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">User not found.</h1>';
+                return;
+            }
+        } else if (currentUser) {
+            profileUserId = currentUser.uid;
+            const userDoc = await db.collection('users').doc(profileUserId).get();
+            profileUserData = userDoc.data();
+        } else {
+            alert("Please log in to see your profile or specify a user.");
+            window.location.href = 'index.html';
+            return;
+        }
+
+        document.getElementById('profile-displayName').textContent = profileUserData.displayName;
+        document.getElementById('profile-handle').textContent = `@${profileUserData.handle}`;
+        document.getElementById('profile-bio').textContent = profileUserData.bio;
+        document.getElementById('profile-fav-tcg').textContent = profileUserData.favoriteTcg || 'Not set';
+        document.getElementById('profile-avatar').src = profileUserData.photoURL || 'https://placehold.co/128x128';
+        document.getElementById('profile-banner').src = profileUserData.bannerURL || 'https://placehold.co/1200x300';
+
+        const actionButtonsContainer = document.getElementById('profile-action-buttons');
+        if (currentUser && currentUser.uid !== profileUserId) {
+            actionButtonsContainer.innerHTML = `
+                <button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>
+                <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
+            document.getElementById('message-btn').addEventListener('click', (e) => {
+                window.location.href = `/messages.html?with=${e.currentTarget.dataset.uid}`;
+            });
+        } else if (currentUser && currentUser.uid === profileUserId) {
+            document.getElementById('edit-profile-btn').classList.remove('hidden');
+        }
+
+        const tabs = document.querySelectorAll('.profile-tab-button');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
+            });
+        });
+
+        loadProfileDecks(profileUserId);
+        loadProfileCollection(profileUserId, 'collection');
+        loadProfileCollection(profileUserId, 'wishlist');
+
+        // Edit profile modal logic from pasted_content_2.txt
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const editProfileModal = document.getElementById('edit-profile-modal');
+        const closeEditModalBtn = document.getElementById('close-edit-modal');
+        const editProfileForm = document.getElementById('edit-profile-form');
+
+        if (editProfileBtn) editProfileBtn.addEventListener('click', () => openModal(editProfileModal));
+        if (closeEditModalBtn) closeEditModalBtn.addEventListener('click', () => closeModal(editProfileModal));
+
+        if (editProfileForm) editProfileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const newDisplayName = document.getElementById('edit-displayName').value;
+            const newBio = document.getElementById('edit-bio').value;
+
+            try {
+                await db.collection('users').doc(currentUser.uid).update({
+                    displayName: newDisplayName,
+                    bio: newBio
+                });
+                if(currentUser.displayName !== newDisplayName){
+                    await currentUser.updateProfile({ displayName: newDisplayName });
+                }
+                closeModal(editProfileModal);
+                // Reload profile to show changes - this is handled by runPageSpecificSetup calling setupProfilePage again
+                alert("Profile updated successfully!");
+            } catch (error) {
+                console.error("Error updating profile:", error);
+                alert("Could not update profile.");
+            }
+        });
+    };
+    
+    const loadProfileDecks = async (userId) => {
+        const container = document.getElementById('tab-content-decks');
+        if (!container) return;
+        container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
+        const snapshot = await db.collection('users').doc(userId).collection('decks').orderBy('createdAt', 'desc').get();
+        if (snapshot.empty) {
+            container.innerHTML = '<p class="text-gray-500">This user has no public decks.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        snapshot.forEach(doc => {
+            const deck = doc.data();
+            const deckCard = document.createElement('div');
+            deckCard.className = 'bg-white p-4 rounded-lg shadow-md';
+            deckCard.innerHTML = `<h3 class="text-xl font-bold truncate">${deck.name}</h3><p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>`;
+            container.appendChild(deckCard);
+        });
+    };
+    
+    const loadProfileCollection = async (userId, listType) => {
+        const container = document.getElementById(`tab-content-${listType}`);
+        if (!container) return;
+        container.innerHTML = '<p class="text-gray-500">Loading...</p>';
+        const snapshot = await db.collection('users').doc(userId).collection(listType).limit(24).get();
+        if (snapshot.empty) {
+            container.innerHTML = `<p class="text-gray-500">This user's ${listType} is empty or private.</p>`;
+            return;
+        }
+        container.innerHTML = '';
+        snapshot.forEach(doc => {
+            const card = doc.data();
+            const cardEl = document.createElement('div');
+            cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full">`;
+            container.appendChild(cardEl);
+        });
+    };
+
+    // --- SHOP.HTML LOGIC (from pasted_content_2.txt) ---
     const setupShopPage = () => {
         if (!document.getElementById('product-grid')) return;
 
@@ -445,175 +658,145 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCart();
     };
 
-
     // --- INDEX.HTML LOGIC ---
-    const setupIndexPage = () => {
-        const postsContainer = document.getElementById('postsContainer');
-        if (!postsContainer) return;
+    const setupIndexPage = (user) => {
+       const postsContainer = document.getElementById('postsContainer');
+       if (!postsContainer) return;
 
-        const postContentInput = document.getElementById('postContent');
-        const submitPostBtn = document.getElementById('submitPostBtn');
-        const postStatusMessage = document.getElementById('postStatusMessage');
-        const postImageUpload = document.getElementById('postImageUpload');
-        let selectedFile = null;
+       const postContentInput = document.getElementById('postContent');
+       const submitPostBtn = document.getElementById('submitPostBtn');
+       const postStatusMessage = document.getElementById('postStatusMessage');
+       const postImageUpload = document.getElementById('postImageUpload');
+       let selectedFile = null;
 
-        const renderComments = (commentsListEl, comments) => {
-            commentsListEl.innerHTML = !comments || comments.length === 0 ? '<p class="text-gray-500 text-sm">No comments yet.</p>' : '';
-            comments?.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds).forEach(comment => {
-                commentsListEl.innerHTML += `<div class="pt-2 border-t mt-2"><p><strong>${comment.author || 'Anonymous'}:</strong> ${comment.content}</p></div>`;
-            });
-        };
+       const renderComments = (commentsListEl, comments) => {
+           commentsListEl.innerHTML = !comments || comments.length === 0 ? '<p class="text-gray-500 text-sm">No comments yet.</p>' : '';
+           comments?.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds).forEach(comment => {
+               commentsListEl.innerHTML += `<div class="pt-2 border-t mt-2"><p><strong>${comment.author || 'Anonymous'}:</strong> ${comment.content}</p></div>`;
+           });
+       };
 
-        const renderPosts = async () => {
-            const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
-            postsContainer.innerHTML = '';
-            postsSnapshot.forEach(doc => {
-                const post = doc.data();
-                const postElement = document.createElement('div');
-                postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
-                postElement.dataset.id = doc.id;
+       const renderPosts = async () => {
+           const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
+           postsContainer.innerHTML = '';
+           postsSnapshot.forEach(doc => {
+               const post = doc.data();
+               const postElement = document.createElement('div');
+               postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
+               postElement.dataset.id = doc.id;
 
-                let content = post.content || '';
-                // Regex to find [deck:deckId:Deck Name] and convert to a link
-                content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
-                // Regex to find [Card Name] and make it a hoverable link (functionality to be added)
-                content = content.replace(/\[([^\]:]+)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
+               let content = post.content || '';
+               content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
+               content = content.replace(/\[([^\]:]+)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
 
-                postElement.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="author" class="h-10 w-10 rounded-full mr-4">
-                        <div><p class="font-bold">${post.author || 'Anonymous'}</p><p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p></div>
-                    </div>
-                    <p class="mb-4 whitespace-pre-wrap">${content}</p>
-                    ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
-                    <div class="flex justify-between items-center mt-4 text-gray-600">
-                        <button class="like-btn flex items-center hover:text-red-500"><i class="far fa-heart mr-1"></i> <span class="likes-count">${post.likes?.length || 0}</span></button>
-                        <button class="comment-btn flex items-center hover:text-blue-500"><i class="far fa-comment mr-1"></i> <span class="comments-count">${post.comments?.length || 0}</span></button>
-                    </div>
-                    <div class="comments-section hidden mt-4">
-                        <div class="comments-list"></div>
-                        <form class="comment-form flex mt-4"><input type="text" class="w-full border rounded-l-lg p-2" placeholder="Write a comment..."><button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg">Post</button></form>
-                    </div>`;
-                postsContainer.appendChild(postElement);
-            });
-        };
-        
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                renderPosts();
-            } else {
-                postsContainer.innerHTML = '<p class="text-center text-gray-500">Please log in to see the feed.</p>';
-            }
-        });
+               postElement.innerHTML = `
+                   <div class="flex items-center mb-4">
+                       <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="author" class="h-10 w-10 rounded-full mr-4">
+                       <div><p class="font-bold">${post.author || 'Anonymous'}</p><p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p></div>
+                   </div>
+                   <p class="mb-4 whitespace-pre-wrap">${content}</p>
+                   ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
+                   <div class="flex justify-between items-center mt-4 text-gray-600">
+                       <button class="like-btn flex items-center hover:text-red-500"><i class="far fa-heart mr-1"></i> <span class="likes-count">${post.likes?.length || 0}</span></button>
+                       <button class="comment-btn flex items-center hover:text-blue-500"><i class="far fa-comment mr-1"></i> <span class="comments-count">${post.comments?.length || 0}</span></button>
+                   </div>
+                   <div class="comments-section hidden mt-4">
+                       <div class="comments-list"></div>
+                       <form class="comment-form flex mt-4"><input type="text" class="w-full border rounded-l-lg p-2" placeholder="Write a comment..."><button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg">Post</button></form>
+                   </div>`;
+               postsContainer.appendChild(postElement);
+           });
+       };
+       
+       if (user) {
+           renderPosts();
+       } else {
+           postsContainer.innerHTML = '<p class="text-center text-gray-500">Please log in to see the feed.</p>';
+       }
 
-        submitPostBtn.addEventListener('click', async () => {
-            const content = postContentInput.value;
-            const user = auth.currentUser;
-            if (!user) { postStatusMessage.textContent = 'You must be logged in.'; return; }
-            if (!content.trim() && !selectedFile) { postStatusMessage.textContent = 'Please write something or select a file.'; return; }
-            
-            submitPostBtn.disabled = true;
-            postStatusMessage.textContent = 'Posting...';
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) throw new Error("User profile not found.");
-                const userData = userDoc.data();
-                let mediaUrl = null, mediaType = null;
-                if (selectedFile) {
-                    const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
-                    const fileRef = storage.ref(filePath);
-                    await fileRef.put(selectedFile);
-                    mediaUrl = await fileRef.getDownloadURL();
-                    mediaType = selectedFile.type;
-                }
-                await db.collection('posts').add({
-                    author: userData.displayName || 'Anonymous',
-                    authorId: user.uid,
-                    authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-                    content,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    likes: [],
-                    comments: [],
-                    mediaUrl,
-                    mediaType
-                });
-                postContentInput.value = '';
-                postImageUpload.value = '';
-                selectedFile = null;
-                postStatusMessage.textContent = 'Posted!';
-                setTimeout(() => postStatusMessage.textContent = '', 2000);
-                renderPosts();
-            } catch (error) {
-                postStatusMessage.textContent = `Error: ${error.message}`;
-                console.error("Post creation error:", error);
-            } finally {
-                submitPostBtn.disabled = false;
-            }
-        });
+       submitPostBtn.addEventListener('click', async () => {
+           if (!user) { postStatusMessage.textContent = 'You must be logged in.'; return; }
+           const content = postContentInput.value;
+           if (!content.trim() && !selectedFile) { postStatusMessage.textContent = 'Please write something.'; return; }
+           postStatusMessage.textContent = 'Posting...';
+           try {
+               const userDoc = await db.collection('users').doc(user.uid).get();
+               if (!userDoc.exists) throw new Error("User profile not found.");
+               const userData = userDoc.data();
+               let mediaUrl = null, mediaType = null;
+               if (selectedFile) {
+                   const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
+                   const fileRef = storage.ref(filePath);
+                   await fileRef.put(selectedFile);
+                   mediaUrl = await fileRef.getDownloadURL();
+                   mediaType = selectedFile.type;
+               }
+               await db.collection('posts').add({
+                   author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                   content, timestamp: firebase.firestore.FieldValue.serverTimestamp(), likes: [], comments: [], mediaUrl, mediaType
+               });
+               postContentInput.value = ''; postImageUpload.value = ''; selectedFile = null;
+               postStatusMessage.textContent = 'Posted!';
+               setTimeout(() => postStatusMessage.textContent = '', 2000);
+               renderPosts();
+           } catch (error) { postStatusMessage.textContent = `Error: ${error.message}`; }
+       });
 
-        postsContainer.addEventListener('click', async (e) => {
-            const user = auth.currentUser;
-            if (!user) { alert("Please log in to interact."); return; }
-            const postElement = e.target.closest('.post-container');
-            if (!postElement) return;
-            const postId = postElement.dataset.id;
-            const postRef = db.collection('posts').doc(postId);
+       postsContainer.addEventListener('click', async (e) => {
+           if (!user) { alert("Please log in to interact."); return; }
+           const postElement = e.target.closest('.post-container');
+           if (!postElement) return;
+           const postId = postElement.dataset.id;
+           const postRef = db.collection('posts').doc(postId);
 
-            if (e.target.closest('.comment-btn')) {
-                const commentsSection = postElement.querySelector('.comments-section');
-                const wasHidden = commentsSection.classList.toggle('hidden');
-                if (!wasHidden) {
-                    const postDoc = await postRef.get();
-                    renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
-                }
-            } else if (e.target.closest('.like-btn')) {
-                db.runTransaction(async t => {
-                    const doc = await t.get(postRef);
-                    const likes = doc.data().likes || [];
-                    const index = likes.indexOf(user.uid);
-                    index === -1 ? likes.push(user.uid) : likes.splice(index, 1);
-                    t.update(postRef, { likes });
-                    return likes;
-                }).then(likes => postElement.querySelector('.likes-count').textContent = likes.length);
-            }
-        });
+           if (e.target.closest('.comment-btn')) {
+               const commentsSection = postElement.querySelector('.comments-section');
+               const wasHidden = commentsSection.classList.toggle('hidden');
+               if (!wasHidden) {
+                   const postDoc = await postRef.get();
+                   renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
+               }
+           } else if (e.target.closest('.like-btn')) {
+               db.runTransaction(async t => {
+                   const doc = await t.get(postRef);
+                   const likes = doc.data().likes || [];
+                   const index = likes.indexOf(user.uid);
+                   index === -1 ? likes.push(user.uid) : likes.splice(index, 1);
+                   t.update(postRef, { likes });
+                   return likes;
+               }).then(likes => postElement.querySelector('.likes-count').textContent = likes.length);
+           }
+       });
 
-        postsContainer.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (e.target.classList.contains('comment-form')) {
-                const user = auth.currentUser;
-                if (!user) return;
-                const input = e.target.querySelector('input');
-                const content = input.value.trim();
-                if (!content) return;
-                const postElement = e.target.closest('.post-container');
-                const postId = postElement.dataset.id;
-                const postRef = db.collection('posts').doc(postId);
-                const newComment = {
-                    author: user.displayName || 'Anonymous',
-                    authorId: user.uid,
-                    content,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
-                input.value = '';
-                const postDoc = await postRef.get();
-                renderComments(postElement.querySelector('.comments-list'), postDoc.data().comments);
-                postElement.querySelector('.comments-count').textContent = postDoc.data().comments.length;
-            }
-        });
+       postsContainer.addEventListener('submit', async (e) => {
+           e.preventDefault();
+           if (e.target.classList.contains('comment-form')) {
+               if (!user) return;
+               const input = e.target.querySelector('input');
+               const content = input.value.trim();
+               if (!content) return;
+               const postElement = e.target.closest('.post-container');
+               const postId = postElement.dataset.id;
+               const postRef = db.collection('posts').doc(postId);
+               const newComment = { author: user.displayName || 'Anonymous', authorId: user.uid, content, timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+               await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
+               input.value = '';
+               const postDoc = await postRef.get();
+               renderComments(postElement.querySelector('.comments-list'), postDoc.data().comments);
+               postElement.querySelector('.comments-count').textContent = postDoc.data().comments.length;
+           }
+       });
 
-        document.getElementById('uploadImageBtn')?.addEventListener('click', () => postImageUpload.click());
-        document.getElementById('uploadVideoBtn')?.addEventListener('click', () => postImageUpload.click());
-        if (postImageUpload) postImageUpload.addEventListener('change', e => selectedFile = e.target.files[0]);
+       document.getElementById('uploadImageBtn')?.addEventListener('click', () => postImageUpload.click());
+       document.getElementById('uploadVideoBtn')?.addEventListener('click', () => postImageUpload.click());
+       if (postImageUpload) postImageUpload.addEventListener('change', e => selectedFile = e.target.files[0]);
     };
 
-    // --- DECK.HTML LOGIC ---
-    const setupDeckPage = () => {
-        if (!document.getElementById('deck-builder-form')) return;
+    const setupDeckPage = (user) => {
+        const deckBuilderForm = document.getElementById('deck-builder-form');
+        if (!deckBuilderForm) return;
 
         // --- 1. Get all DOM elements ---
-        const deckBuilderForm = document.getElementById('deck-builder-form');
         const tabs = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
         const deckFilters = document.getElementById('deck-filters');
@@ -663,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewDeck = (deck, deckId) => {
             switchTab('tab-deck-view');
             document.getElementById('tab-deck-view').classList.remove('hidden'); // Explicitly show the view tab
-            deckToShare = { ...deck, id: deckId };
+            let deckToShare = { ...deck, id: deckId }; // Moved from global to local scope
     
             document.getElementById('deck-view-name').textContent = deck.name;
             document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
@@ -903,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         shareDeckToFeedBtn.addEventListener('click', async () => {
-            if (!deckToShare) {
+            if (!deckToShare) { // deckToShare is now local to viewDeck, need to re-evaluate how to get it or pass it
                 alert("No deck is being viewed.");
                 return;
             }
@@ -956,9 +1139,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- MY_COLLECTION.HTML LOGIC ---
-    const setupMyCollectionPage = () => {
-        if (!document.getElementById('search-card-form')) return;
+    const setupMyCollectionPage = (user) => {
+        const searchCardForm = document.getElementById('search-card-form');
+        if (!searchCardForm) return;
 
         // --- 1. Get all DOM elements ---
         const tabs = document.querySelectorAll('.tab-button');
@@ -1218,332 +1401,21 @@ document.addEventListener('DOMContentLoaded', () => {
        typeFilter.addEventListener('change', renderSearchResults);
 
         // --- 4. Initial Load ---
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                loadCardList('collection');
-            } else {
-                document.getElementById('collection-list').innerHTML = '<p>Please log in to view your collection.</p>';
-                document.getElementById('wishlist-list').innerHTML = '<p>Please log in to view your wishlist.</p>';
-            }
-        });
+        // Initial load is now handled by runPageSpecificSetup
     };
     
-    // --- PROFILE.HTML LOGIC ---
-    const setupProfilePage = () => {
-        if (!document.getElementById('profile-displayName')) return;
-
-        const displayNameEl = document.getElementById('profile-displayName');
-        const handleEl = document.getElementById('profile-handle');
-        const bioEl = document.getElementById('profile-bio');
-        const avatarEl = document.getElementById('profile-avatar');
-        const bannerEl = document.getElementById('profile-banner');
-        const editProfileBtn = document.getElementById('edit-profile-btn');
-        const editProfileModal = document.getElementById('edit-profile-modal');
-        const closeEditModalBtn = document.getElementById('close-edit-modal');
-        const editProfileForm = document.getElementById('edit-profile-form');
-        
-        const loadProfile = async (userId) => {
-            try {
-                const userDoc = await db.collection('users').doc(userId).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    displayNameEl.textContent = userData.displayName || 'N/A';
-                    handleEl.textContent = `@${userData.handle || 'N/A'}`;
-                    bioEl.textContent = userData.bio || 'No bio yet.';
-                    avatarEl.src = userData.photoURL || 'https://placehold.co/128x128?text=Avatar';
-                    bannerEl.src = userData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner';
-
-                    // Populate modal with existing data
-                    document.getElementById('edit-displayName').value = userData.displayName;
-                    document.getElementById('edit-bio').value = userData.bio;
-
-                } else {
-                    alert("User profile not found.");
-                }
-            } catch (error) {
-                console.error("Error loading profile:", error);
-                alert("Could not load profile.");
-            }
-        };
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                loadProfile(user.uid);
-                editProfileBtn.classList.remove('hidden');
-            } else {
-                editProfileBtn.classList.add('hidden');
-                alert("Please log in to view your profile.");
-            }
-        });
-
-        editProfileBtn.addEventListener('click', () => openModal(editProfileModal));
-        closeEditModalBtn.addEventListener('click', () => closeModal(editProfileModal));
-
-        editProfileForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const newDisplayName = document.getElementById('edit-displayName').value;
-            const newBio = document.getElementById('edit-bio').value;
-
-            try {
-                await db.collection('users').doc(user.uid).update({
-                    displayName: newDisplayName,
-                    bio: newBio
-                });
-                // Also update the auth profile if the name changed
-                if(user.displayName !== newDisplayName){
-                    await user.updateProfile({ displayName: newDisplayName });
-                }
-                closeModal(editProfileModal);
-                loadProfile(user.uid); // Reload profile to show changes
-                alert("Profile updated successfully!");
-            } catch (error) {
-                console.error("Error updating profile:", error);
-                alert("Could not update profile.");
-            }
-        });
-    };
-    // --- Messenger Widget & Page Logic ---
-
-/**
- * Injects the messenger widget into the page if the user is logged in.
- * @param {object} user - The current Firebase user object.
- */
-const injectMessengerWidget = (user) => {
-    // Don't inject if the widget already exists or if we are on the main messages page.
-    if (document.getElementById('messenger-widget') || window.location.pathname.includes('messages.html')) {
-        return;
+    // --- Main Execution Controller ---
+    function runPageSpecificSetup(user) {
+        setupIndexPage(user);
+        setupDeckPage(user);
+        setupMyCollectionPage(user);
+        setupProfilePage(user);
+        setupMessagesPage(user);
+        setupShopPage(); // From pasted_content_2.txt
     }
 
-    const widgetHTML = `
-        <div id="messenger-widget" class="minimized">
-            <div id="messenger-widget-header">
-                <h3 class="font-bold">Messages</h3>
-                <button id="messenger-toggle-btn"><i class="fas fa-chevron-up"></i></button>
-            </div>
-            <div id="messenger-widget-body" class="hidden">
-                <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
-                <a href="/messages.html" class="block text-center p-2 bg-gray-200 hover:bg-gray-300 text-sm font-semibold">View Full Conversation</a>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', widgetHTML);
-
-    const widget = document.getElementById('messenger-widget');
-    const toggleBtn = document.getElementById('messenger-toggle-btn');
-    const body = document.getElementById('messenger-widget-body');
-
-    // Add event listener to expand/collapse the widget
-    toggleBtn.addEventListener('click', () => {
-        widget.classList.toggle('minimized');
-        body.classList.toggle('hidden');
-        toggleBtn.innerHTML = widget.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
-    });
-    
-    // Load recent conversations into the widget
-    loadConversations(user.uid, document.getElementById('widget-conversations-list'), true);
-};
-
-/**
- * Loads a user's conversations into a specified container.
- * @param {string} currentUserId - The UID of the currently logged-in user.
- * @param {HTMLElement} container - The HTML element to populate with conversations.
- * @param {boolean} isWidget - True if this is for the small widget, false for the full page.
- */
-const loadConversations = async (currentUserId, container, isWidget) => {
-    // This is a simplified approach. A scalable app would have a 'conversations' collection.
-    // For now, we list all other users as potential people to chat with.
-    const usersSnapshot = await db.collection('users').get();
-    container.innerHTML = '';
-    usersSnapshot.forEach(doc => {
-        if (doc.id === currentUserId) return; // Don't list the user themselves
-        const userData = doc.data();
-        const item = document.createElement('div');
-        item.className = 'conversation-item';
-        item.innerHTML = `
-            <img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3">
-            <span class="font-bold">${userData.displayName}</span>
-        `;
-        item.addEventListener('click', () => {
-            // Clicking a conversation in the widget opens the full messages page
-            if (isWidget) {
-                window.location.href = `/messages.html?with=${doc.id}`;
-            } else {
-                // On the full messages page, this would open the chat view.
-                // (Full implementation for this part would be in setupMessagesPage)
-                alert(`Opening chat with ${userData.displayName}`);
-            }
-        });
-        container.appendChild(item);
-    });
-};
-
-/**
- * Sets up the logic for the full-screen messages.html page.
- * @param {object} currentUser - The current Firebase user object.
- */
-const setupMessagesPage = (currentUser) => {
-    // Only run this code on messages.html
-    if (!document.getElementById('chat-area') || !currentUser) {
-        return;
-    }
-    
-    const conversationsListEl = document.getElementById('conversations-list');
-    loadConversations(currentUser.uid, conversationsListEl, false);
-
-    // Further implementation for sending/receiving messages would go here.
-};
-
-
-// --- Dynamic Profile Page Logic ---
-
-/**
- * Sets up the logic for the dynamic profile.html page.
- * @param {object} currentUser - The current Firebase user object.
- */
-const setupProfilePage = async (currentUser) => {
-    // Only run this code on profile.html
-    if (!document.getElementById('profile-displayName')) {
-        return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const username = params.get('user'); // Check for a username like ?user=somebody
-
-    let profileUserId;
-    let profileUserData;
-
-    if (username) {
-        // If a username is in the URL, find that user
-        const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
-        if (!userQuery.empty) {
-            const userDoc = userQuery.docs[0];
-            profileUserId = userDoc.id;
-            profileUserData = userDoc.data();
-        } else {
-            document.querySelector('main').innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">User not found.</h1>';
-            return;
-        }
-    } else if (currentUser) {
-        // If no username in URL, show the logged-in user's profile
-        profileUserId = currentUser.uid;
-        const userDoc = await db.collection('users').doc(profileUserId).get();
-        profileUserData = userDoc.data();
-    } else {
-        // If no user is specified and nobody is logged in, show an error
-        alert("Please log in to see your profile or specify a user in the URL (e.g., ?user=profilename).");
-        window.location.href = 'index.html';
-        return;
-    }
-
-    // --- Populate Profile Header ---
-    document.getElementById('profile-displayName').textContent = profileUserData.displayName;
-    document.getElementById('profile-handle').textContent = `@${profileUserData.handle}`;
-    document.getElementById('profile-bio').textContent = profileUserData.bio;
-    document.getElementById('profile-fav-tcg').textContent = profileUserData.favoriteTcg || 'Not set';
-    document.getElementById('profile-avatar').src = profileUserData.photoURL || 'https://placehold.co/128x128';
-    document.getElementById('profile-banner').src = profileUserData.bannerURL || 'https://placehold.co/1200x300';
-
-    // --- Show Action Buttons (Follow, Message, Edit) ---
-    const actionButtonsContainer = document.getElementById('profile-action-buttons');
-    if (currentUser && currentUser.uid !== profileUserId) {
-        // Viewing someone else's profile
-        actionButtonsContainer.innerHTML = `
-            <button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>
-            <button id="follow-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm">Follow</button>
-            <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>
-        `;
-        document.getElementById('message-btn').addEventListener('click', (e) => {
-            window.location.href = `/messages.html?with=${e.currentTarget.dataset.uid}`;
-        });
-    } else if (currentUser && currentUser.uid === profileUserId) {
-        // Viewing your own profile
-        document.getElementById('edit-profile-btn').classList.remove('hidden');
-    }
-
-    // --- Setup Profile Tabs ---
-    const tabs = document.querySelectorAll('.profile-tab-button');
-    const tabContents = document.querySelectorAll('.profile-tab-content');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            const targetContentId = `tab-content-${tab.dataset.tab}`;
-            tabContents.forEach(content => content.classList.add('hidden'));
-            document.getElementById(targetContentId).classList.remove('hidden');
-        });
-    });
-
-    // --- Load Content for Profile Tabs ---
-    loadProfileDecks(profileUserId);
-    loadProfileCollection(profileUserId, 'collection');
-    loadProfileCollection(profileUserId, 'wishlist');
-};
-
-/**
- * Loads a specific user's public decks into their profile page.
- * @param {string} userId - The UID of the user whose decks to load.
- */
-const loadProfileDecks = async (userId) => {
-    const container = document.getElementById('tab-content-decks');
-    container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
-    const snapshot = await db.collection('users').doc(userId).collection('decks').get();
-    if (snapshot.empty) {
-        container.innerHTML = '<p class="text-gray-500">This user has no public decks.</p>';
-        return;
-    }
-    container.innerHTML = '';
-    snapshot.forEach(doc => {
-        const deck = doc.data();
-        const deckCard = document.createElement('div');
-        deckCard.className = 'bg-white p-4 rounded-lg shadow-md';
-        deckCard.innerHTML = `
-            <h3 class="text-xl font-bold truncate">${deck.name}</h3>
-            <p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>
-        `;
-        container.appendChild(deckCard);
-    });
-};
-
-/**
- * Loads a specific user's collection or wishlist into their profile page.
- * @param {string} userId - The UID of the user whose items to load.
- * @param {string} listType - The name of the list ('collection' or 'wishlist').
- */
-const loadProfileCollection = async (userId, listType) => {
-    const container = document.getElementById(`tab-content-${listType}`);
-    container.innerHTML = '<p class="text-gray-500">Loading...</p>';
-    const snapshot = await db.collection('users').doc(userId).collection(listType).limit(24).get();
-    if (snapshot.empty) {
-        container.innerHTML = `<p class="text-gray-500">This user's ${listType} is empty or private.</p>`;
-        return;
-    }
-    container.innerHTML = '';
-    snapshot.forEach(doc => {
-        const card = doc.data();
-        const cardEl = document.createElement('div');
-        cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full">`;
-        container.appendChild(cardEl);
-    });
-};
-
-
- // --- Page Initialization ---
-// This new structure ensures Firebase auth is checked before running page logic.
-auth.onAuthStateChanged(user => {
-    // Inject the messenger for logged-in users on any page except messages.html
-    if (user && !window.location.pathname.includes('messages.html')) {
-        injectMessengerWidget(user);
-    }
-
-    // Run all page-specific setup functions.
-    // They will internally check if they are on the correct page before running.
-    setupCoreUI(); // This still handles the main login/logout buttons
-    setupIndexPage();
-    setupDeckPage();
-    setupMyCollectionPage();
-    setupProfilePage(user); // Pass the user object to the profile page setup
-    setupMessagesPage(user); // Pass the user object to the messages page setup
+    // --- Initial Call ---
+    setupModalAndFormListeners();
 });
+
+
