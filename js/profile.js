@@ -8,27 +8,23 @@
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
+    // If this element doesn't exist, we're not on the profile page, so do nothing.
     if (!profileContainer) return;
 
     const setupProfilePage = async () => {
         const params = new URLSearchParams(window.location.search);
         const username = params.get('user');
-        const userIdParam = params.get('uid'); // Check for the new UID parameter
+        const userIdParam = params.get('uid');
 
         let profileUserId, profileUserData;
         let userDoc;
 
         if (username) {
-            // Priority 1: Find user by handle
             const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
-            if (!userQuery.empty) {
-                userDoc = userQuery.docs[0];
-            }
+            if (!userQuery.empty) userDoc = userQuery.docs[0];
         } else if (userIdParam) {
-            // Priority 2: Find user by UID (the fallback)
             userDoc = await db.collection('users').doc(userIdParam).get();
         } else if (currentUser) {
-            // Priority 3: Show the currently logged-in user's profile
             userDoc = await db.collection('users').doc(currentUser.uid).get();
         }
 
@@ -48,7 +44,7 @@ document.addEventListener('authReady', (e) => {
         document.getElementById('profile-avatar').src = profileUserData.photoURL || 'https://placehold.co/128x128';
         document.getElementById('profile-banner').src = profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner';
 
-        // --- Show Action Buttons (Follow, Message, Edit) ---
+        // --- Show Action Buttons ---
         const actionButtonsContainer = document.getElementById('profile-action-buttons');
         if (currentUser && currentUser.uid !== profileUserId) {
             actionButtonsContainer.innerHTML = `
@@ -69,6 +65,7 @@ document.addEventListener('authReady', (e) => {
             });
         }
 
+        // --- Setup Edit Profile Form ---
         document.getElementById('edit-profile-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             if(!currentUser) return;
@@ -85,6 +82,7 @@ document.addEventListener('authReady', (e) => {
         });
         document.getElementById('close-edit-modal')?.addEventListener('click', () => closeModal(document.getElementById('edit-profile-modal')));
 
+        // --- Setup Profile Tabs ---
         const tabs = document.querySelectorAll('.profile-tab-button');
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -95,6 +93,7 @@ document.addEventListener('authReady', (e) => {
             });
         });
 
+        // **THE FIX IS HERE:** Call the functions to load tab content *after* the profile is set up.
         loadProfileFeed(profileUserId);
         loadProfileDecks(profileUserId);
         loadProfileCollection(profileUserId, 'collection');
@@ -167,5 +166,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    // Run the setup function for the page
     setupProfilePage();
 });
