@@ -1,55 +1,56 @@
 /**
- * HatakeSocial - Profile Page Script (v6 - Index Link Generator)
+ * HatakeSocial - Profile Page Script (v7 - Manual Index Link Generator)
  *
- * This script is designed to intentionally trigger a Firestore error
- * in the developer console. That error will contain a link that can be
- * clicked to automatically create the required database index.
+ * This script creates a button on the profile page. Clicking this button
+ * will manually trigger the Firestore query that requires an index.
+ * This guarantees the error link will be generated in the console.
  */
 document.addEventListener('authReady', (e) => {
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
 
-    const setupProfilePage = async () => {
+    // Display a button and instructions on the page.
+    profileContainer.innerHTML = `
+        <div class="text-center p-8 bg-white rounded-lg shadow-md">
+            <h1 class="text-2xl font-bold text-blue-600">Final Step: Create Database Index</h1>
+            <p class="mt-2">To finish setting up profile pages, we need to create a database index.</p>
+            <p class="mt-4 font-semibold">Please follow these steps exactly:</p>
+            <ol class="text-left inline-block mt-2 space-y-2">
+                <li>1. Open the Developer Console (press F12 on your keyboard).</li>
+                <li>2. Click the big blue button below.</li>
+                <li>3. A red error will appear in the console. Click the long <span class="font-mono bg-gray-200 px-1">https://console.firebase.google.com...</span> link inside that error.</li>
+                <li>4. A new Firebase tab will open. Click the "Create" button there.</li>
+                <li>5. Wait for the index status to become "Enabled".</li>
+                <li>6. Once enabled, let me know, and I will provide the final working profile.js file.</li>
+            </ol>
+            <button id="generate-index-link-btn" class="mt-6 px-6 py-3 bg-blue-600 text-white font-bold rounded-full text-lg hover:bg-blue-700">
+                2. Click Here to Generate Index Link
+            </button>
+        </div>
+    `;
+
+    const generateLinkBtn = document.getElementById('generate-index-link-btn');
+    generateLinkBtn.addEventListener('click', async () => {
         try {
             const params = new URLSearchParams(window.location.search);
             const username = params.get('user');
 
-            // This is the query that will fail and generate the link in the console.
-            // It will only run if there is a 'user' parameter in the URL.
-            if (username) {
-                console.log(`Attempting to query for user with handle: ${username}. This will fail if the index is missing, which is what we want.`);
-                await db.collection('users').where('handle', '==', username).limit(1).get();
-            } else {
-                 profileContainer.innerHTML = `<div class="text-center p-8">
-                    <h1 class="text-2xl font-bold">Ready to Generate Index</h1>
-                    <p class="mt-2">Please go to a user's profile page (e.g., by adding <span class="font-mono bg-gray-200 px-1">?user=hugo</span> to the URL) to generate the index link.</p>
-                </div>`;
+            if (!username) {
+                alert("Please go to a user's profile with a handle in the URL (e.g., ?user=hugo) before clicking this button.");
                 return;
             }
-            
-            // If the code reaches here, it means the index already exists.
-            profileContainer.innerHTML = `<div class="text-center p-8">
-                <h1 class="text-2xl font-bold text-green-600">Success!</h1>
-                <p class="mt-2">The database index seems to exist. Please replace this temporary script with the final version now.</p>
-            </div>`;
 
+            // This is the query that requires the index.
+            // Manually triggering it guarantees the error will appear.
+            alert("About to run the query. Look for a red error in the console (F12) after you click OK.");
+            await db.collection('users').where('handle', '==', username).limit(1).get();
+
+            // If we get here, the index already exists!
+            alert("Success! The index already exists. I will now send the final profile.js file.");
+            
         } catch (error) {
-            // This is the expected outcome if the index is missing.
-            console.error("THIS IS THE EXPECTED ERROR. CLICK THE LINK IN THIS ERROR MESSAGE TO CREATE THE INDEX:", error);
-            profileContainer.innerHTML = `<div class="text-center p-8">
-                <h1 class="text-2xl font-bold text-red-600">Action Required</h1>
-                <p class="mt-2">The database needs a one-time setup to show this page.</p>
-                <p class="mt-4 font-semibold">Please follow these steps:</p>
-                <ol class="text-left inline-block mt-2 space-y-1">
-                    <li>1. Open the Developer Console (press F12).</li>
-                    <li>2. Find the red error message that starts with "THIS IS THE EXPECTED ERROR".</li>
-                    <li>3. Click the long <span class="font-mono bg-gray-200 px-1">https://console.firebase.google.com...</span> link inside that error message.</li>
-                    <li>4. A new tab will open. Click the "Create" button there.</li>
-                    <li>5. Wait for the index to build (status becomes "Enabled"), then proceed to Step 2 below.</li>
-                </ol>
-            </div>`;
+            console.error("SUCCESS! THIS IS THE ERROR YOU NEED. CLICK THE LINK BELOW TO CREATE THE INDEX:", error);
+            alert("Success! The link has been generated in the developer console (F12). Please find the red error message and click the link inside it.");
         }
-    };
-    
-    setupProfilePage();
+    });
 });
