@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v3 - Stable)
+ * HatakeSocial - Core Authentication & UI Script (v4 - Stable)
  *
  * This script is included on EVERY page. It handles:
  * 1. Firebase Initialization.
@@ -67,11 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userRef = db.collection('users').doc(user.uid);
                 return userRef.get().then(doc => {
                     if (!doc.exists) {
+                        const handle = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
                         return userRef.set({
                             displayName: user.displayName, email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            handle: user.displayName.toLowerCase().replace(/\s/g, ''),
-                            bio: "New HatakeSocial user!", favoriteTcg: "Not set"
+                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set"
                         });
                     }
                 });
@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const country = document.getElementById('registerCountry')?.value || '';
             const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || '';
             const displayName = email.split('@')[0];
+            const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
@@ -101,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         displayName: displayName, email: email, photoURL: defaultPhotoURL,
                         city: city, country: country, favoriteTcg: favoriteTcg,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        handle: displayName.toLowerCase().replace(/\s/g, ''),
+                        handle: handle,
                         bio: "New HatakeSocial user!"
                     });
                 })
@@ -133,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userAvatar) userAvatar.classList.add('hidden');
         }
         
-        // ** THE FIX IS HERE **
         // Fire a custom event to notify other scripts that authentication is ready.
         const event = new CustomEvent('authReady', { detail: { user } });
         document.dispatchEvent(event);
