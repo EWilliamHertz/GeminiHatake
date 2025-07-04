@@ -3,52 +3,43 @@
  *
  * This script waits for the 'authReady' event from auth.js before running.
  * It handles all logic for displaying user profiles, including their feed,
- * decks, collection, and wishlist.
+ * decks, collection, and wishlist. It can find users by handle OR by UID.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
-    // If this element doesn't exist, we're not on the profile page, so do nothing.
     if (!profileContainer) return;
 
     const setupProfilePage = async () => {
         const params = new URLSearchParams(window.location.search);
-        let username = params.get('user');
-
-        // This allows for clean URLs like /username instead of /profile.html?user=username
-        // Note: This requires server-side configuration (like a .htaccess file or netlify.toml) to work on a live server.
-        if (!username && window.location.pathname !== '/' && !window.location.pathname.includes('profile.html')) {
-             const pathSegments = window.location.pathname.split('/').filter(Boolean);
-             if(pathSegments.length > 0) {
-                username = pathSegments[pathSegments.length - 1];
-             }
-        }
+        const username = params.get('user');
+        const userIdParam = params.get('uid'); // Check for the new UID parameter
 
         let profileUserId, profileUserData;
+        let userDoc;
 
         if (username) {
-            // If a username is in the URL, find that user in Firestore
+            // Priority 1: Find user by handle
             const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
             if (!userQuery.empty) {
-                const userDoc = userQuery.docs[0];
-                profileUserId = userDoc.id;
-                profileUserData = userDoc.data();
-            } else {
-                profileContainer.innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">User not found.</h1>';
-                return;
+                userDoc = userQuery.docs[0];
             }
+        } else if (userIdParam) {
+            // Priority 2: Find user by UID (the fallback)
+            userDoc = await db.collection('users').doc(userIdParam).get();
         } else if (currentUser) {
-            // If no username in URL, show the logged-in user's own profile
-            profileUserId = currentUser.uid;
-            const userDoc = await db.collection('users').doc(profileUserId).get();
-            profileUserData = userDoc.data();
-        } else {
-            // If no user is specified and nobody is logged in, prompt to log in.
-            alert("Please log in to see your profile or specify a user in the URL (e.g., profile.html?user=profilename).");
-            window.location.href = 'index.html';
-            return;
+            // Priority 3: Show the currently logged-in user's profile
+            userDoc = await db.collection('users').doc(currentUser.uid).get();
         }
 
+        if (userDoc && userDoc.exists) {
+            profileUserId = userDoc.id;
+            profileUserData = userDoc.data();
+        } else {
+            profileContainer.innerHTML = '<h1 class="text-center text-2xl font-bold mt-10">User not found.</h1>';
+            return;
+        }
+        
         // --- Populate Profile Header ---
         document.getElementById('profile-displayName').textContent = profileUserData.displayName;
         document.getElementById('profile-handle').textContent = `@${profileUserData.handle}`;
@@ -60,7 +51,6 @@ document.addEventListener('authReady', (e) => {
         // --- Show Action Buttons (Follow, Message, Edit) ---
         const actionButtonsContainer = document.getElementById('profile-action-buttons');
         if (currentUser && currentUser.uid !== profileUserId) {
-            // Viewing someone else's profile
             actionButtonsContainer.innerHTML = `
                 <button id="follow-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Follow</button>
                 <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
@@ -68,11 +58,9 @@ document.addEventListener('authReady', (e) => {
                 window.location.href = `/messages.html?with=${e.currentTarget.dataset.uid}`;
             });
         } else if (currentUser && currentUser.uid === profileUserId) {
-            // Viewing your own profile
             const editProfileBtn = document.getElementById('edit-profile-btn');
             editProfileBtn.classList.remove('hidden');
             editProfileBtn.addEventListener('click', () => {
-                // Populate the modal with existing data before opening
                 document.getElementById('edit-displayName').value = profileUserData.displayName;
                 document.getElementById('edit-handle').value = profileUserData.handle;
                 document.getElementById('edit-bio').value = profileUserData.bio;
@@ -81,12 +69,10 @@ document.addEventListener('authReady', (e) => {
             });
         }
 
-        // --- Setup Edit Profile Form ---
         document.getElementById('edit-profile-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             if(!currentUser) return;
             const newHandle = document.getElementById('edit-handle').value.toLowerCase();
-            // In a real app, you'd check if this handle is already taken
             const updatedData = {
                 displayName: document.getElementById('edit-displayName').value,
                 handle: newHandle,
@@ -95,11 +81,10 @@ document.addEventListener('authReady', (e) => {
             };
             await db.collection('users').doc(currentUser.uid).update(updatedData);
             closeModal(document.getElementById('edit-profile-modal'));
-            location.reload(); // Reload to see changes
+            location.reload();
         });
         document.getElementById('close-edit-modal')?.addEventListener('click', () => closeModal(document.getElementById('edit-profile-modal')));
 
-        // --- Setup Profile Tabs ---
         const tabs = document.querySelectorAll('.profile-tab-button');
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -110,7 +95,6 @@ document.addEventListener('authReady', (e) => {
             });
         });
 
-        // --- Load Initial Content for the First Tab ---
         loadProfileFeed(profileUserId);
         loadProfileDecks(profileUserId);
         loadProfileCollection(profileUserId, 'collection');
@@ -120,7 +104,7 @@ document.addEventListener('authReady', (e) => {
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
         if (!container) return;
-        container.innerHTML = '<p class="text-gray-500">Loading feed...</p>';
+        container.innerHTML = '<p>Loading feed...</p>';
         const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
         if(snapshot.empty) {
             container.innerHTML = '<p class="text-center text-gray-500">This user hasn\'t posted anything yet.</p>';
@@ -183,6 +167,5 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    // Run the setup function for the page
     setupProfilePage();
 });
