@@ -1,12 +1,11 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v2 - Stable)
+ * HatakeSocial - Core Authentication & UI Script (v3 - Stable)
  *
  * This script is included on EVERY page. It handles:
- * 1. Firebase Initialization and making auth/db globally available.
+ * 1. Firebase Initialization.
  * 2. All Login/Register Modal and Form logic.
  * 3. The main auth state listener that updates the header UI.
- * 4. Injecting the Messenger Widget for logged-in users.
- * 5. Firing a custom 'authReady' event that all other page-specific scripts listen for.
+ * 4. Firing a custom 'authReady' event that all other page-specific scripts listen for.
  * This event is the key to preventing page load errors.
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Firebase Initialization ---
-    // Check if Firebase has already been initialized
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
@@ -70,13 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return userRef.get().then(doc => {
                     if (!doc.exists) {
                         return userRef.set({
-                            displayName: user.displayName,
-                            email: user.email,
-                            photoURL: user.photoURL,
+                            displayName: user.displayName, email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             handle: user.displayName.toLowerCase().replace(/\s/g, ''),
-                            bio: "New HatakeSocial user!",
-                            favoriteTcg: "Not set"
+                            bio: "New HatakeSocial user!", favoriteTcg: "Not set"
                         });
                     }
                 });
@@ -103,12 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
                     cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
                     return db.collection('users').doc(cred.user.uid).set({
-                        displayName: displayName,
-                        email: email,
-                        photoURL: defaultPhotoURL,
-                        city: city,
-                        country: country,
-                        favoriteTcg: favoriteTcg,
+                        displayName: displayName, email: email, photoURL: defaultPhotoURL,
+                        city: city, country: country, favoriteTcg: favoriteTcg,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: displayName.toLowerCase().replace(/\s/g, ''),
                         bio: "New HatakeSocial user!"
@@ -136,9 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userDoc.exists) {
                 if (userAvatar) userAvatar.src = userDoc.data().photoURL || 'https://i.imgur.com/B06rBhI.png';
             }
-            if (!window.location.pathname.includes('messages.html')) {
-                injectMessengerWidget(user);
-            }
         } else {
             if (loginButton) loginButton.classList.remove('hidden');
             if (registerButton) registerButton.classList.remove('hidden');
@@ -147,7 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // ** THE FIX IS HERE **
         // Fire a custom event to notify other scripts that authentication is ready.
-        // This is the most important part of the new structure.
         const event = new CustomEvent('authReady', { detail: { user } });
         document.dispatchEvent(event);
 
@@ -155,46 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
-    
-    // --- Messenger Widget Logic ---
-    const injectMessengerWidget = (user) => {
-        if (document.getElementById('messenger-widget')) return;
-        const widgetHTML = `
-            <div id="messenger-widget" class="minimized">
-                <div id="messenger-widget-header"><h3 class="font-bold">Messages</h3><button id="messenger-toggle-btn"><i class="fas fa-chevron-up"></i></button></div>
-                <div id="messenger-widget-body" class="hidden">
-                    <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
-                    <a href="/messages.html" class="block text-center p-2 bg-gray-200 hover:bg-gray-300 text-sm font-semibold">View Full Conversation</a>
-                </div>
-            </div>`;
-        document.body.insertAdjacentHTML('beforeend', widgetHTML);
-        const widget = document.getElementById('messenger-widget');
-        const toggleBtn = document.getElementById('messenger-toggle-btn');
-        const body = document.getElementById('messenger-widget-body');
-        toggleBtn.addEventListener('click', () => {
-            widget.classList.toggle('minimized');
-            body.classList.toggle('hidden');
-            toggleBtn.innerHTML = widget.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
-        });
-        loadConversations(user.uid, document.getElementById('widget-conversations-list'));
-    };
-
-    const loadConversations = async (currentUserId, container) => {
-        const usersSnapshot = await db.collection('users').get();
-        if (!container) return;
-        container.innerHTML = '';
-        usersSnapshot.forEach(doc => {
-            if (doc.id === currentUserId) return;
-            const userData = doc.data();
-            const item = document.createElement('div');
-            item.className = 'conversation-item';
-            item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3"><span class="font-bold">${userData.displayName}</span>`;
-            item.addEventListener('click', () => {
-                 window.location.href = `/messages.html?with=${doc.id}`;
-            });
-            container.appendChild(item);
-        });
-    };
 
     // --- Initial Call ---
     setupModalAndFormListeners();
