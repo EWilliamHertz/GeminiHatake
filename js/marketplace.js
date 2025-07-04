@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Marketplace Page Script (v3 - Final & Stable)
+ * HatakeSocial - Marketplace Page Script (v4 - Final & Robust)
  *
  * This script waits for the 'authReady' event from auth.js before running.
- * It handles fetching and displaying all cards listed for sale, assuming the
- * required Firestore index has been created.
+ * It handles fetching and displaying all cards listed for sale, with robust
+ * error handling and support for items listed for trade without a price.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -11,12 +11,12 @@ document.addEventListener('authReady', (e) => {
     if (!marketplaceGrid) return;
 
     if (!user) {
-        marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Please log in to view the marketplace.</p>';
+        marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">Please log in to view the marketplace.</p>';
         return;
     }
     
     const findWishlistBtn = document.getElementById('find-wishlist-btn');
-    findWishlistBtn.classList.remove('hidden');
+    if(findWishlistBtn) findWishlistBtn.classList.remove('hidden');
 
     const loader = document.getElementById('marketplace-loader');
 
@@ -24,20 +24,20 @@ document.addEventListener('authReady', (e) => {
      * Fetches and displays cards listed for sale.
      */
     const loadMarketplaceCards = async () => {
-        loader.style.display = 'block';
+        if(loader) loader.style.display = 'block';
         // Clear previous results, but keep the loader element in the DOM
         while (marketplaceGrid.firstChild && marketplaceGrid.firstChild !== loader) {
             marketplaceGrid.removeChild(marketplaceGrid.firstChild);
         }
 
         try {
-            // This collectionGroup query now works because the index has been created.
+            // This collectionGroup query works because the index has been created.
             const snapshot = await db.collectionGroup('collection').where('forSale', '==', true).get();
 
-            loader.style.display = 'none'; // Hide loader after fetch
+            if(loader) loader.style.display = 'none'; // Hide loader after fetch
 
             if (snapshot.empty) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">No cards are currently listed for sale.</p>';
+                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards are currently listed for sale.</p>';
                 return;
             }
 
@@ -49,13 +49,18 @@ document.addEventListener('authReady', (e) => {
                 // We need to fetch the seller's info to get their handle
                 const sellerDoc = await db.collection('users').doc(sellerId).get();
                 const sellerName = sellerDoc.exists ? sellerDoc.data().handle : 'unknown';
+                
+                // **THE FIX IS HERE:** Safely check if salePrice exists before displaying it.
+                const priceDisplay = card.salePrice 
+                    ? `${card.salePrice.toFixed(2)} SEK` 
+                    : 'For Trade';
 
                 const cardEl = document.createElement('div');
                 cardEl.className = 'bg-white rounded-lg shadow-md p-2 flex flex-col';
                 cardEl.innerHTML = `
                     <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
                     <h4 class="font-bold text-sm truncate">${card.name}</h4>
-                    <p class="text-blue-600 font-semibold text-lg mt-1">${card.salePrice ? card.salePrice.toFixed(2) + ' SEK' : 'For Trade'}</p>
+                    <p class="text-blue-600 font-semibold text-lg mt-1">${priceDisplay}</p>
                     <a href="profile.html?user=${sellerName}" class="text-xs text-gray-500 hover:underline mt-auto pt-1">@${sellerName}</a>
                 `;
                 marketplaceGrid.appendChild(cardEl);
@@ -63,7 +68,8 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading marketplace cards:", error);
-            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500">An error occurred while loading the marketplace. Please try again later.</p>`;
+            if(loader) loader.style.display = 'none';
+            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500 p-8">An error occurred while loading the marketplace. Please try again later.</p>`;
         }
     };
 
