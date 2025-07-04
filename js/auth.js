@@ -1,18 +1,15 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v5 - Final)
+ * HatakeSocial - Core Authentication & UI Script (v6 - Path Fix)
  *
  * This script is included on EVERY page. It handles:
  * 1. Firebase Initialization.
  * 2. All Login/Register Modal and Form logic.
  * 3. The main auth state listener that updates the header UI.
  * 4. Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * This event is the key to preventing page load errors.
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Hide the body initially to prevent a "flash" of the wrong content
     document.body.style.opacity = '0';
 
-    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
@@ -22,22 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
-    // --- Firebase Initialization ---
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     
-    // Make auth and db globally available for other scripts
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-    // --- Global Helpers ---
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
-    // --- Core UI Listeners (Run Immediately) ---
     const setupModalAndFormListeners = () => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -114,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
     };
 
-    // --- Auth State Controller ---
     auth.onAuthStateChanged(async (user) => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -128,22 +120,61 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userDoc.exists) {
                 if (userAvatar) userAvatar.src = userDoc.data().photoURL || 'https://i.imgur.com/B06rBhI.png';
             }
+            if (!window.location.pathname.includes('messages.html')) {
+                injectMessengerWidget(user);
+            }
         } else {
             if (loginButton) loginButton.classList.remove('hidden');
             if (registerButton) registerButton.classList.remove('hidden');
             if (userAvatar) userAvatar.classList.add('hidden');
         }
         
-        // Fire a custom event to notify other scripts that authentication is ready.
         const event = new CustomEvent('authReady', { detail: { user } });
         document.dispatchEvent(event);
 
-        // Finally, fade in the body content to prevent UI flash
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
+    
+    const injectMessengerWidget = (user) => {
+        if (document.getElementById('messenger-widget')) return;
+        const widgetHTML = `
+            <div id="messenger-widget" class="minimized">
+                <div id="messenger-widget-header"><h3 class="font-bold">Messages</h3><button id="messenger-toggle-btn"><i class="fas fa-chevron-up"></i></button></div>
+                <div id="messenger-widget-body" class="hidden">
+                    <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
+                    <a href="messages.html" class="block text-center p-2 bg-gray-200 hover:bg-gray-300 text-sm font-semibold">View All Messages</a>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', widgetHTML);
+        const widget = document.getElementById('messenger-widget');
+        const toggleBtn = document.getElementById('messenger-toggle-btn');
+        const body = document.getElementById('messenger-widget-body');
+        toggleBtn.addEventListener('click', () => {
+            widget.classList.toggle('minimized');
+            body.classList.toggle('hidden');
+            toggleBtn.innerHTML = widget.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+        });
+        loadConversations(user.uid, document.getElementById('widget-conversations-list'));
+    };
 
-    // --- Initial Call ---
+    const loadConversations = async (currentUserId, container) => {
+        const usersSnapshot = await db.collection('users').get();
+        if (!container) return;
+        container.innerHTML = '';
+        usersSnapshot.forEach(doc => {
+            if (doc.id === currentUserId) return;
+            const userData = doc.data();
+            const item = document.createElement('div');
+            item.className = 'conversation-item';
+            item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3"><span class="font-bold">${userData.displayName}</span>`;
+            item.addEventListener('click', () => {
+                 // **THE FIX IS HERE:** Changed from /messages.html to messages.html
+                 window.location.href = `messages.html?with=${doc.id}`;
+            });
+            container.appendChild(item);
+        });
+    };
+
     setupModalAndFormListeners();
 });
-
