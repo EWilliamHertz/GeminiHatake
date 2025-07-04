@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v7 - Final Combined)
+ * HatakeSocial - Core Authentication & UI Script (v8 - Final Combined)
  *
  * This script is included on EVERY page. It handles:
  * 1. Firebase Initialization.
  * 2. All Login/Register Modal and Form logic (restored from your repository).
- * 3. The main auth state listener that updates the header UI.
+ * 3. The main auth state listener that correctly updates the header and sidebar UI.
  * 4. The messenger widget for logged-in users.
  * 5. Firing a custom 'authReady' event that all other page-specific scripts listen for.
  */
@@ -119,22 +119,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const userAvatar = document.getElementById('userAvatar');
+        const sidebarUserInfo = document.getElementById('sidebar-user-info');
         
         if (user) {
+            // User is signed in
             if (loginButton) loginButton.classList.add('hidden');
             if (registerButton) registerButton.classList.add('hidden');
             if (userAvatar) userAvatar.classList.remove('hidden');
+
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
-                if (userAvatar) userAvatar.src = userDoc.data().photoURL || 'https://i.imgur.com/B06rBhI.png';
+                const userData = userDoc.data();
+                const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                const name = userData.displayName || 'User';
+                // **THE FIX IS HERE**
+                const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
+
+                if (userAvatar) userAvatar.src = photo;
+                
+                // Correctly update the sidebar if it exists on the page
+                if (sidebarUserInfo) {
+                    sidebarUserInfo.classList.remove('hidden');
+                    document.getElementById('sidebar-user-avatar').src = photo;
+                    document.getElementById('sidebar-user-name').textContent = name;
+                    document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
+                }
             }
             if (!window.location.pathname.includes('messages.html')) {
                 injectMessengerWidget(user);
             }
         } else {
+            // User is signed out
             if (loginButton) loginButton.classList.remove('hidden');
             if (registerButton) registerButton.classList.remove('hidden');
             if (userAvatar) userAvatar.classList.add('hidden');
+            if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden');
         }
         
         const event = new CustomEvent('authReady', { detail: { user } });
@@ -178,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = 'conversation-item';
             item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3 object-cover"><span class="font-bold">${userData.displayName}</span>`;
             item.addEventListener('click', () => {
-                 // **THE FIX IS HERE:** Changed from /messages.html to messages.html
                  window.location.href = `messages.html?with=${doc.id}`;
             });
             container.appendChild(item);
