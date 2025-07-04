@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Profile Page Script (v8 - Final Combined & Stable)
+ * HatakeSocial - Profile Page Script (Final - Combined & Stable)
  *
  * This script waits for the 'authReady' event from auth.js before running.
- * It intelligently checks if the required Firestore index exists.
- * If not, it provides a link in the console to create it.
- * If the index exists, it loads the full profile page.
+ * It dynamically builds the entire profile page HTML before populating it,
+ * which prevents any "element not found" errors and fixes the loading issue.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
