@@ -2,7 +2,7 @@
  * HatakeSocial - Trades Page Script (v3 - Final & Stable)
  *
  * This script handles fetching and displaying a user's trades,
- * and now includes the full logic for proposing a new trade from scratch.
+ * and now includes the full, working logic for proposing a new trade from scratch.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -121,7 +121,9 @@ document.addEventListener('authReady', (e) => {
     // --- Propose Trade Modal Logic ---
     const openProposeTradeModal = async () => {
         tradeOffer = { proposerCards: [], receiverCards: [], receiver: null };
-        document.getElementById('trade-partner-search').value = '';
+        tradePartnerSearch.value = '';
+        myCollectionSearch.value = '';
+        theirCollectionSearch.value = '';
         document.getElementById('receiver-trade-section').classList.add('opacity-50', 'pointer-events-none');
         updateSelectionUI('proposer', []);
         updateSelectionUI('receiver', []);
@@ -137,7 +139,7 @@ document.addEventListener('authReady', (e) => {
     
     const selectTradePartner = async (partner) => {
         tradeOffer.receiver = partner;
-        tradePartnerSearch.value = partner.displayName;
+        tradePartnerSearch.value = `@${partner.handle}`;
         tradePartnerResults.innerHTML = '';
         tradePartnerResults.classList.add('hidden');
 
