@@ -10,8 +10,6 @@ document.addEventListener('authReady', (e) => {
     // If this element doesn't exist, we're not on the index page, so do nothing.
     if (!postsContainer) return;
 
-    console.log("index.js is now running safely!"); // For debugging
-
     const postContentInput = document.getElementById('postContent');
     const submitPostBtn = document.getElementById('submitPostBtn');
     const postStatusMessage = document.getElementById('postStatusMessage');
@@ -25,67 +23,78 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    /**
+     * **REWRITTEN FOR ROBUSTNESS**
+     * Fetches and displays all posts in the main feed.
+     */
     const renderPosts = async () => {
-        const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
-        postsContainer.innerHTML = '';
+        try {
+            const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
+            postsContainer.innerHTML = ''; // Clear the container before rendering
 
-        const userPromises = {};
-        postsSnapshot.docs.forEach(doc => {
-            const post = doc.data();
-            if (post.authorId && !userPromises[post.authorId]) {
-                userPromises[post.authorId] = db.collection('users').doc(post.authorId).get();
+            if (postsSnapshot.empty) {
+                postsContainer.innerHTML = '<p class="text-center text-gray-500">No posts yet. Be the first!</p>';
+                return;
             }
-        });
 
-        const userDocs = await Promise.all(Object.values(userPromises));
-        const usersData = {};
-        userDocs.forEach(userDoc => {
-            if (userDoc.exists) {
-                usersData[userDoc.id] = userDoc.data();
-            }
-        });
+            // Use a for...of loop to handle async operations correctly
+            for (const doc of postsSnapshot.docs) {
+                const post = doc.data();
+                let authorData = {};
 
-        postsSnapshot.forEach(doc => {
-            const post = doc.data();
-            const authorData = usersData[post.authorId];
-            
-            const profileLink = authorData?.handle 
-                ? `profile.html?user=${authorData.handle}` 
-                : `profile.html?uid=${post.authorId}`;
+                // Fetch author data for each post individually for resilience
+                if (post.authorId) {
+                    try {
+                        const userDoc = await db.collection('users').doc(post.authorId).get();
+                        if (userDoc.exists) {
+                            authorData = userDoc.data();
+                        }
+                    } catch (userError) {
+                        console.error(`Could not fetch user data for authorId ${post.authorId}`, userError);
+                    }
+                }
+                
+                const profileLink = authorData.handle 
+                    ? `profile.html?user=${authorData.handle}` 
+                    : `profile.html?uid=${post.authorId}`;
 
-            const authorName = post.author || 'Anonymous';
-            const authorPhoto = post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png';
+                const authorName = post.author || 'Anonymous';
+                const authorPhoto = post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png';
 
-            const postElement = document.createElement('div');
-            postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
-            postElement.dataset.id = doc.id;
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
+                postElement.dataset.id = doc.id;
 
-            let content = post.content || '';
-            content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
-            content = content.replace(/\[([^\]:]+)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
+                let content = post.content || '';
+                content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
+                content = content.replace(/\[([^\]:]+)\]/g, `<a href="#" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
 
-            postElement.innerHTML = `
-                <div class="flex items-center mb-4">
-                    <a href="${profileLink}">
-                        <img src="${authorPhoto}" alt="${authorName}" class="h-10 w-10 rounded-full mr-4 object-cover">
-                    </a>
-                    <div>
-                        <a href="${profileLink}" class="font-bold hover:underline">${authorName}</a>
-                        <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                postElement.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <a href="${profileLink}">
+                            <img src="${authorPhoto}" alt="${authorName}" class="h-10 w-10 rounded-full mr-4 object-cover">
+                        </a>
+                        <div>
+                            <a href="${profileLink}" class="font-bold hover:underline">${authorName}</a>
+                            <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
                     </div>
-                </div>
-                <p class="mb-4 whitespace-pre-wrap">${content}</p>
-                ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
-                <div class="flex justify-between items-center mt-4 text-gray-600">
-                    <button class="like-btn flex items-center hover:text-red-500"><i class="far fa-heart mr-1"></i> <span class="likes-count">${post.likes?.length || 0}</span></button>
-                    <button class="comment-btn flex items-center hover:text-blue-500"><i class="far fa-comment mr-1"></i> <span class="comments-count">${post.comments?.length || 0}</span></button>
-                </div>
-                <div class="comments-section hidden mt-4">
-                    <div class="comments-list"></div>
-                    <form class="comment-form flex mt-4"><input type="text" class="w-full border rounded-l-lg p-2" placeholder="Write a comment..."><button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg">Post</button></form>
-                </div>`;
-            postsContainer.appendChild(postElement);
-        });
+                    <p class="mb-4 whitespace-pre-wrap">${content}</p>
+                    ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
+                    <div class="flex justify-between items-center mt-4 text-gray-600">
+                        <button class="like-btn flex items-center hover:text-red-500"><i class="far fa-heart mr-1"></i> <span class="likes-count">${post.likes?.length || 0}</span></button>
+                        <button class="comment-btn flex items-center hover:text-blue-500"><i class="far fa-comment mr-1"></i> <span class="comments-count">${post.comments?.length || 0}</span></button>
+                    </div>
+                    <div class="comments-section hidden mt-4">
+                        <div class="comments-list"></div>
+                        <form class="comment-form flex mt-4"><input type="text" class="w-full border rounded-l-lg p-2" placeholder="Write a comment..."><button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg">Post</button></form>
+                    </div>`;
+                postsContainer.appendChild(postElement);
+            }
+        } catch (error) {
+            console.error("Error rendering posts:", error);
+            postsContainer.innerHTML = '<p class="text-center text-red-500">Could not load posts. Please check the developer console for errors.</p>';
+        }
     };
     
     if (user) {
@@ -98,6 +107,7 @@ document.addEventListener('authReady', (e) => {
         if (!user) { postStatusMessage.textContent = 'You must be logged in.'; return; }
         const content = postContentInput.value;
         if (!content.trim() && !selectedFile) { postStatusMessage.textContent = 'Please write something.'; return; }
+        submitPostBtn.disabled = true;
         postStatusMessage.textContent = 'Posting...';
         try {
             const userDoc = await db.collection('users').doc(user.uid).get();
@@ -119,7 +129,11 @@ document.addEventListener('authReady', (e) => {
             postStatusMessage.textContent = 'Posted!';
             setTimeout(() => postStatusMessage.textContent = '', 2000);
             renderPosts();
-        } catch (error) { postStatusMessage.textContent = `Error: ${error.message}`; }
+        } catch (error) { 
+            postStatusMessage.textContent = `Error: ${error.message}`; 
+        } finally {
+            submitPostBtn.disabled = false;
+        }
     });
 
     postsContainer.addEventListener('click', async (e) => {
