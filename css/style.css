@@ -7,6 +7,35 @@
 .profile-tab-button.active {
     @apply text-blue-600 border-blue-600;
 }
+/* Add these styles to the end of your existing css/style.css file */
+
+/* --- Message Bubbles with Headers --- */
+#messages-container .message-group {
+    @apply mb-4 flex flex-col;
+}
+#messages-container .message-group.sent {
+    @apply items-end;
+}
+#messages-container .message-group.received {
+    @apply items-start;
+}
+#messages-container .message-header {
+    @apply px-1 mb-1;
+}
+#messages-container .message-bubble {
+    @apply p-3 rounded-lg max-w-xs;
+}
+#messages-container .message-group.sent .message-bubble {
+    @apply bg-blue-600 text-white;
+}
+#messages-container .message-group.received .message-bubble {
+    @apply bg-gray-200 text-gray-800;
+}
+
+/* --- Conversation List Item --- */
+#conversations-list .conversation-item {
+    @apply flex items-center p-3 cursor-pointer hover:bg-gray-100 border-b border-gray-200;
+}
 
 /* --- Messenger Widget --- */
 #messenger-widget {
