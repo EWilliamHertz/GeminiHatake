@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Profile Page Script (v7 - Final & Stable)
+ * HatakeSocial - Profile Page Script (Final - Combined & Stable)
  *
  * This script waits for the 'authReady' event from auth.js before running.
- * It dynamically builds the profile page HTML before populating it,
- * preventing any "element not found" errors.
+ * It dynamically builds the entire profile page HTML before populating it,
+ * which prevents any "element not found" errors and fixes the loading issue.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -12,7 +12,7 @@ document.addEventListener('authReady', (e) => {
     if (!profileContainer) return;
 
     // Show a loading spinner immediately while we fetch data
-    profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>';
+    profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
 
     const setupProfilePage = async () => {
         try {
@@ -32,7 +32,7 @@ document.addEventListener('authReady', (e) => {
             }
 
             if (!userDoc || !userDoc.exists) {
-                throw new Error("User document could not be found.");
+                throw new Error("User document could not be found in the database.");
             }
             
             const profileUserId = userDoc.id;
@@ -95,7 +95,7 @@ document.addEventListener('authReady', (e) => {
                     <button id="follow-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Follow</button>
                     <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
                 document.getElementById('message-btn').addEventListener('click', (e) => {
-                    window.location.href = `/messages.html?with=${e.currentTarget.dataset.uid}`;
+                    window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
                 });
             } else if (currentUser && currentUser.uid === profileUserId) {
                 const editProfileBtn = document.getElementById('edit-profile-btn');
@@ -133,6 +133,7 @@ document.addEventListener('authReady', (e) => {
                 });
             });
 
+            // Load content for all tabs
             loadProfileFeed(profileUserId);
             loadProfileDecks(profileUserId);
             loadProfileCollection(profileUserId, 'collection');
@@ -161,7 +162,7 @@ document.addEventListener('authReady', (e) => {
                 postElement.className = 'bg-white p-4 rounded-lg shadow-md';
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
-                        <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4">
+                        <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover">
                         <div>
                             <p class="font-bold">${post.author}</p>
                             <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
