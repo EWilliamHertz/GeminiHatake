@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v4 - Stable)
+ * HatakeSocial - Core Authentication & UI Script (v5 - Final)
  *
  * This script is included on EVERY page. It handles:
  * 1. Firebase Initialization.
