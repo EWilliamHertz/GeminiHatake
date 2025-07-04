@@ -1,6 +1,14 @@
+/**
+ * HatakeSocial - Index Page (Feed) Script
+ *
+ * This script waits for the 'authReady' event from auth.js before running.
+ * It handles all logic for the main feed on index.html, including rendering,
+ * creating, and interacting with posts.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
+    // If this element doesn't exist, we're not on the index page, so do nothing.
     if (!postsContainer) return;
 
     const postContentInput = document.getElementById('postContent');
@@ -17,10 +25,33 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderPosts = async () => {
-        const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').get();
+        const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
         postsContainer.innerHTML = '';
+
+        // Create a list of promises to fetch user data
+        const userPromises = {};
+        postsSnapshot.docs.forEach(doc => {
+            const post = doc.data();
+            if (post.authorId && !userPromises[post.authorId]) {
+                userPromises[post.authorId] = db.collection('users').doc(post.authorId).get();
+            }
+        });
+
+        const userDocs = await Promise.all(Object.values(userPromises));
+        const usersData = {};
+        userDocs.forEach(userDoc => {
+            if (userDoc.exists) {
+                usersData[userDoc.id] = userDoc.data();
+            }
+        });
+
         postsSnapshot.forEach(doc => {
             const post = doc.data();
+            const authorData = usersData[post.authorId];
+            const authorHandle = authorData ? authorData.handle : '#';
+            const authorName = post.author || 'Anonymous';
+            const authorPhoto = post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png';
+
             const postElement = document.createElement('div');
             postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
             postElement.dataset.id = doc.id;
@@ -31,8 +62,13 @@ document.addEventListener('authReady', (e) => {
 
             postElement.innerHTML = `
                 <div class="flex items-center mb-4">
-                    <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="author" class="h-10 w-10 rounded-full mr-4">
-                    <div><p class="font-bold">${post.author || 'Anonymous'}</p><p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p></div>
+                    <a href="profile.html?user=${authorHandle}">
+                        <img src="${authorPhoto}" alt="${authorName}" class="h-10 w-10 rounded-full mr-4 object-cover">
+                    </a>
+                    <div>
+                        <a href="profile.html?user=${authorHandle}" class="font-bold hover:underline">${authorName}</a>
+                        <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                    </div>
                 </div>
                 <p class="mb-4 whitespace-pre-wrap">${content}</p>
                 ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
