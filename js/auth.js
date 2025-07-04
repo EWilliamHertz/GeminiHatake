@@ -1,15 +1,18 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v6 - Path Fix)
+ * HatakeSocial - Core Authentication & UI Script (v7 - Final Combined)
  *
  * This script is included on EVERY page. It handles:
  * 1. Firebase Initialization.
- * 2. All Login/Register Modal and Form logic.
+ * 2. All Login/Register Modal and Form logic (restored from your repository).
  * 3. The main auth state listener that updates the header UI.
- * 4. Firing a custom 'authReady' event that all other page-specific scripts listen for.
+ * 4. The messenger widget for logged-in users.
+ * 5. Firing a custom 'authReady' event that all other page-specific scripts listen for.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide the body initially to prevent a "flash" of the wrong content
     document.body.style.opacity = '0';
 
+    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
@@ -19,18 +22,22 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
+    // --- Firebase Initialization ---
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     
+    // Make auth and db globally available for other scripts
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+    // --- Global Helpers ---
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
+    // --- Core UI Listeners (Run Immediately) ---
     const setupModalAndFormListeners = () => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -107,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
     };
 
+    // --- Auth State Controller ---
     auth.onAuthStateChanged(async (user) => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -136,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.opacity = '1';
     });
     
+    // --- Messenger Widget Logic ---
     const injectMessengerWidget = (user) => {
         if (document.getElementById('messenger-widget')) return;
         const widgetHTML = `
@@ -167,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userData = doc.data();
             const item = document.createElement('div');
             item.className = 'conversation-item';
-            item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3"><span class="font-bold">${userData.displayName}</span>`;
+            item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3 object-cover"><span class="font-bold">${userData.displayName}</span>`;
             item.addEventListener('click', () => {
                  // **THE FIX IS HERE:** Changed from /messages.html to messages.html
                  window.location.href = `messages.html?with=${doc.id}`;
@@ -176,5 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // --- Initial Call ---
     setupModalAndFormListeners();
 });
