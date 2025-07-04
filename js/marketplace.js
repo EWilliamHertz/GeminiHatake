@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Marketplace Page Script (v3 - Final & Stable)
+ * HatakeSocial - Marketplace Page Script (Temporary Link Generator)
  *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles fetching and displaying all cards listed for sale, assuming the
- * required Firestore index has been created manually.
+ * This script is designed to intentionally trigger a Firestore error
+ * in the developer console. That error will contain a link that can be
+ * clicked to automatically create the required database index.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -14,56 +14,37 @@ document.addEventListener('authReady', (e) => {
         marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Please log in to view the marketplace.</p>';
         return;
     }
-    
-    const findWishlistBtn = document.getElementById('find-wishlist-btn');
-    findWishlistBtn.classList.remove('hidden');
 
-    /**
-     * Fetches and displays cards listed for sale.
-     */
     const loadMarketplaceCards = async () => {
-        const loader = document.getElementById('marketplace-loader');
-        loader.style.display = 'block';
-        marketplaceGrid.innerHTML = ''; // Clear previous results, but keep loader
-        marketplaceGrid.appendChild(loader);
-
         try {
-            // This collectionGroup query now works because the index has been created.
-            const snapshot = await db.collectionGroup('collection').where('forSale', '==', true).get();
+            // This is the query that will fail and generate the link in the console.
+            console.log("Attempting to run the query that requires an index...");
+            await db.collectionGroup('collection').where('forSale', '==', true).get();
 
-            loader.style.display = 'none'; // Hide loader after fetch
-
-            if (snapshot.empty) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">No cards are currently listed for sale.</p>';
-                return;
-            }
-
-            for (const doc of snapshot.docs) {
-                const card = doc.data();
-                // Get the user ID from the card's path in the database
-                const sellerId = doc.ref.parent.parent.id; 
-
-                // We need to fetch the seller's info to get their handle
-                const sellerDoc = await db.collection('users').doc(sellerId).get();
-                const sellerName = sellerDoc.exists ? sellerDoc.data().handle : 'unknown';
-
-                const cardEl = document.createElement('div');
-                cardEl.className = 'bg-white rounded-lg shadow-md p-2 flex flex-col';
-                cardEl.innerHTML = `
-                    <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
-                    <h4 class="font-bold text-sm truncate">${card.name}</h4>
-                    <p class="text-blue-600 font-semibold text-lg mt-1">${card.salePrice ? card.salePrice.toFixed(2) + ' SEK' : 'For Trade'}</p>
-                    <a href="profile.html?user=${sellerName}" class="text-xs text-gray-500 hover:underline mt-auto pt-1">@${sellerName}</a>
-                `;
-                marketplaceGrid.appendChild(cardEl);
-            }
+            // If the code reaches here, it means the index already exists.
+            marketplaceGrid.innerHTML = `<div class="col-span-full text-center p-8 bg-green-100 text-green-700 rounded-lg">
+                <h2 class="text-2xl font-bold">Success!</h2>
+                <p class="mt-2">The database index already exists. Please let me know, and I will provide the final working marketplace.js file.</p>
+            </div>`;
 
         } catch (error) {
-            console.error("Error loading marketplace cards:", error);
-            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500">An error occurred while loading the marketplace. Please try again later.</p>`;
+            // This is the expected outcome if the index is missing.
+            console.error("THIS IS THE EXPECTED ERROR. CLICK THE LINK IN THIS ERROR MESSAGE TO CREATE THE INDEX:", error);
+            marketplaceGrid.innerHTML = `
+                <div class="col-span-full text-center p-8 bg-red-100 text-red-700 rounded-lg">
+                    <h2 class="text-2xl font-bold">Action Required: Database Index Missing</h2>
+                    <p class="mt-2">To power the marketplace, a one-time database setup is needed.</p>
+                    <p class="mt-4 font-semibold">Please follow these steps:</p>
+                    <ol class="text-left inline-block mt-2 space-y-1">
+                        <li>1. Open the Developer Console (press F12).</li>
+                        <li>2. Find the red error message that starts with "THIS IS THE EXPECTED ERROR...".</li>
+                        <li>3. Click the long <span class="font-mono bg-gray-200 px-1">https://console.firebase.google.com...</span> link inside that error message.</li>
+                        <li>4. A new Firebase tab will open. Click the "Create" button there.</li>
+                        <li>5. Wait for the index to build (status becomes "Enabled"), then let me know.</li>
+                    </ol>
+                </div>`;
         }
     };
 
-    // --- Initial Load ---
     loadMarketplaceCards();
 });
