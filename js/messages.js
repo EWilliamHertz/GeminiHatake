@@ -1,165 +1,208 @@
 /**
- * HatakeSocial - Messages Page Script (v3 - Final & Stable)
+ * HatakeSocial - Core Authentication & UI Script (v8 - Final Combined)
  *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles all logic for the messages.html page, including searching for users,
- * opening chat conversations, and sending/receiving messages in real-time.
- * This version includes a fix for the undefined field value error.
+ * This script is included on EVERY page. It handles:
+ * 1. Firebase Initialization.
+ * 2. All Login/Register Modal and Form logic (restored from your repository).
+ * 3. The main auth state listener that correctly updates the header and sidebar UI.
+ * 4. The messenger widget for logged-in users.
+ * 5. Firing a custom 'authReady' event that all other page-specific scripts listen for.
  */
-document.addEventListener('authReady', (e) => {
-    const currentUser = e.detail.user;
-    const chatArea = document.getElementById('chat-area');
-    if (!chatArea) return;
+document.addEventListener('DOMContentLoaded', () => {
+    // Hide the body initially to prevent a "flash" of the wrong content
+    document.body.style.opacity = '0';
 
-    if (!currentUser) {
-        chatArea.innerHTML = '<p class="text-center p-8 text-gray-500">Please log in to view your messages.</p>';
-        return;
+    // --- Firebase Configuration ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+        authDomain: "hatakesocial-88b5e.firebaseapp.com",
+        projectId: "hatakesocial-88b5e",
+        storageBucket: "hatakesocial-88b5e.appspot.com",
+        messagingSenderId: "1091697032506",
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
+    };
+
+    // --- Firebase Initialization ---
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
     }
+    
+    // Make auth and db globally available for other scripts
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+    window.storage = firebase.storage();
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-    let currentChatListener = null;
-    let currentRemoteUser = null;
+    // --- Global Helpers ---
+    window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
+    window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
+    
+    // --- Core UI Listeners (Run Immediately) ---
+    const setupModalAndFormListeners = () => {
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const userAvatar = document.getElementById('userAvatar');
+        const userDropdown = document.getElementById('userDropdown');
+        const loginModal = document.getElementById('loginModal');
+        const registerModal = document.getElementById('registerModal');
+        const googleLoginButton = document.getElementById('googleLoginButton');
+        const googleRegisterButton = document.getElementById('googleRegisterButton');
 
-    const conversationsListEl = document.getElementById('conversations-list');
-    const userSearchInput = document.getElementById('user-search-input');
-    const userSearchResultsEl = document.getElementById('user-search-results');
-    const messageInput = document.getElementById('message-input');
-    const sendMessageBtn = document.getElementById('send-message-btn');
-    const chatWelcomeScreen = document.getElementById('chat-welcome-screen');
-    const chatView = document.getElementById('chat-view');
+        if (loginButton) loginButton.addEventListener('click', () => openModal(loginModal));
+        if (registerButton) registerButton.addEventListener('click', () => openModal(registerModal));
+        document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
 
-    const loadUserList = async () => {
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            auth.signInWithEmailAndPassword(email, password).then(() => closeModal(loginModal)).catch(err => alert(err.message));
+        });
+
+        const handleGoogleAuth = () => {
+             auth.signInWithPopup(googleProvider).then(result => {
+                const user = result.user;
+                const userRef = db.collection('users').doc(user.uid);
+                return userRef.get().then(doc => {
+                    if (!doc.exists) {
+                        const handle = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+                        return userRef.set({
+                            displayName: user.displayName, email: user.email, photoURL: user.photoURL,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set"
+                        });
+                    }
+                });
+            }).then(() => {
+                closeModal(loginModal);
+                closeModal(registerModal);
+            }).catch(err => alert(err.message));
+        };
+        
+        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
+        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
+
+        document.getElementById('registerForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const city = document.getElementById('registerCity')?.value || '';
+            const country = document.getElementById('registerCountry')?.value || '';
+            const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || '';
+            const displayName = email.split('@')[0];
+            const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(cred => {
+                    const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
+                    cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
+                    return db.collection('users').doc(cred.user.uid).set({
+                        displayName: displayName, email: email, photoURL: defaultPhotoURL,
+                        city: city, country: country, favoriteTcg: favoriteTcg,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        handle: handle,
+                        bio: "New HatakeSocial user!"
+                    });
+                })
+                .then(() => closeModal(registerModal))
+                .catch(err => alert(err.message));
+        });
+
+        if (logoutButton) logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
+        if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+    };
+
+    // --- Auth State Controller ---
+    auth.onAuthStateChanged(async (user) => {
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const userAvatar = document.getElementById('userAvatar');
+        const sidebarUserInfo = document.getElementById('sidebar-user-info');
+        
+        if (user) {
+            // User is signed in
+            if (loginButton) loginButton.classList.add('hidden');
+            if (registerButton) registerButton.classList.add('hidden');
+            if (userAvatar) userAvatar.classList.remove('hidden');
+
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                const name = userData.displayName || 'User';
+                // **THE FIX IS HERE**
+                const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
+
+                if (userAvatar) userAvatar.src = photo;
+                
+                // Correctly update the sidebar if it exists on the page
+                if (sidebarUserInfo) {
+                    sidebarUserInfo.classList.remove('hidden');
+                    document.getElementById('sidebar-user-avatar').src = photo;
+                    document.getElementById('sidebar-user-name').textContent = name;
+                    document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
+                }
+            }
+            if (!window.location.pathname.includes('messages.html')) {
+                injectMessengerWidget(user);
+            }
+        } else {
+            // User is signed out
+            if (loginButton) loginButton.classList.remove('hidden');
+            if (registerButton) registerButton.classList.remove('hidden');
+            if (userAvatar) userAvatar.classList.add('hidden');
+            if (sidebarUserInfo) sidebarUserInfo.classList.add('hidden');
+        }
+        
+        const event = new CustomEvent('authReady', { detail: { user } });
+        document.dispatchEvent(event);
+
+        document.body.style.transition = 'opacity 0.3s ease-in-out';
+        document.body.style.opacity = '1';
+    });
+    
+    // --- Messenger Widget Logic ---
+    const injectMessengerWidget = (user) => {
+        if (document.getElementById('messenger-widget')) return;
+        const widgetHTML = `
+            <div id="messenger-widget" class="minimized">
+                <div id="messenger-widget-header"><h3 class="font-bold">Messages</h3><button id="messenger-toggle-btn"><i class="fas fa-chevron-up"></i></button></div>
+                <div id="messenger-widget-body" class="hidden">
+                    <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
+                    <a href="messages.html" class="block text-center p-2 bg-gray-200 hover:bg-gray-300 text-sm font-semibold">View All Messages</a>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', widgetHTML);
+        const widget = document.getElementById('messenger-widget');
+        const toggleBtn = document.getElementById('messenger-toggle-btn');
+        const body = document.getElementById('messenger-widget-body');
+        toggleBtn.addEventListener('click', () => {
+            widget.classList.toggle('minimized');
+            body.classList.toggle('hidden');
+            toggleBtn.innerHTML = widget.classList.contains('minimized') ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+        });
+        loadConversations(user.uid, document.getElementById('widget-conversations-list'));
+    };
+
+    const loadConversations = async (currentUserId, container) => {
         const usersSnapshot = await db.collection('users').get();
-        if (!conversationsListEl) return;
-        conversationsListEl.innerHTML = '';
+        if (!container) return;
+        container.innerHTML = '';
         usersSnapshot.forEach(doc => {
-            if (doc.id === currentUser.uid) return;
+            if (doc.id === currentUserId) return;
             const userData = doc.data();
             const item = document.createElement('div');
             item.className = 'conversation-item';
             item.innerHTML = `<img src="${userData.photoURL || 'https://placehold.co/40x40'}" class="h-10 w-10 rounded-full mr-3 object-cover"><span class="font-bold">${userData.displayName}</span>`;
             item.addEventListener('click', () => {
-                 openChatForUser({ id: doc.id, ...userData });
+                 window.location.href = `messages.html?with=${doc.id}`;
             });
-            conversationsListEl.appendChild(item);
+            container.appendChild(item);
         });
     };
 
-    const openChatForUser = (remoteUser) => {
-        if (currentChatListener) currentChatListener();
-        currentRemoteUser = remoteUser;
-
-        chatWelcomeScreen.classList.add('hidden');
-        chatView.classList.remove('hidden');
-        chatView.classList.add('flex');
-
-        document.getElementById('chat-header-avatar').src = remoteUser.photoURL || 'https://placehold.co/40x40';
-        document.getElementById('chat-header-name').textContent = remoteUser.displayName;
-
-        const conversationId = [currentUser.uid, remoteUser.id].sort().join('_');
-        const conversationRef = db.collection('conversations').doc(conversationId);
-        const messagesContainer = document.getElementById('messages-container');
-
-        currentChatListener = conversationRef.onSnapshot(doc => {
-            messagesContainer.innerHTML = '';
-            if (doc.exists) {
-                const messages = doc.data().messages || [];
-                messages.sort((a,b) => a.timestamp.toMillis() - b.timestamp.toMillis()).forEach(msg => {
-                    const messageEl = document.createElement('div');
-                    const isSent = msg.senderId === currentUser.uid;
-                    messageEl.className = `message ${isSent ? 'sent' : 'received'}`;
-                    messageEl.innerHTML = `<div class="message-bubble">${msg.content}</div>`;
-                    messagesContainer.appendChild(messageEl);
-                });
-            }
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        });
-    };
-
-    const sendMessage = async () => {
-        const content = messageInput.value.trim();
-        if (!content || !currentRemoteUser) return;
-
-        const conversationId = [currentUser.uid, currentRemoteUser.id].sort().join('_');
-        const conversationRef = db.collection('conversations').doc(conversationId);
-
-        const newMessage = {
-            content: content,
-            senderId: currentUser.uid,
-            timestamp: new Date() 
-        };
-
-        // **THE FIX IS HERE:** Ensure no 'undefined' values are sent to Firestore.
-        // We use '|| null' to provide a safe fallback value that Firestore accepts.
-        const participantInfoData = {
-            [currentUser.uid]: { 
-                displayName: currentUser.displayName || 'Anonymous', 
-                photoURL: currentUser.photoURL || null 
-            },
-            [currentRemoteUser.id]: { 
-                displayName: currentRemoteUser.displayName || 'Anonymous', 
-                photoURL: currentRemoteUser.photoURL || null 
-            }
-        };
-
-        messageInput.value = '';
-
-        try {
-            await conversationRef.set({
-                participants: [currentUser.uid, currentRemoteUser.id],
-                participantInfo: participantInfoData,
-                lastMessage: content,
-                updatedAt: new Date(),
-                messages: firebase.firestore.FieldValue.arrayUnion(newMessage)
-            }, { merge: true });
-        } catch (error) {
-            console.error("Error sending message:", error);
-            alert("Could not send message. Please check the console for errors.");
-        }
-    };
-
-    sendMessageBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
-
-    userSearchInput.addEventListener('keyup', async (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        if (searchTerm.length < 2) {
-            userSearchResultsEl.innerHTML = '';
-            userSearchResultsEl.classList.add('hidden');
-            return;
-        }
-        userSearchResultsEl.classList.remove('hidden');
-        const usersRef = db.collection('users');
-        const query = usersRef.orderBy('displayName').startAt(searchTerm).endAt(searchTerm + '\uf8ff');
-        
-        const snapshot = await query.get();
-        userSearchResultsEl.innerHTML = '';
-        snapshot.forEach(doc => {
-            if (doc.id === currentUser.uid) return;
-            const userData = doc.data();
-            const resultItem = document.createElement('div');
-            resultItem.className = 'p-2 hover:bg-gray-100 cursor-pointer';
-            resultItem.textContent = userData.displayName;
-            resultItem.addEventListener('click', () => {
-                openChatForUser({ id: doc.id, ...userData });
-                userSearchInput.value = '';
-                userSearchResultsEl.innerHTML = '';
-                userSearchResultsEl.classList.add('hidden');
-            });
-            userSearchResultsEl.appendChild(resultItem);
-        });
-    });
-
-    loadUserList();
-
-    const params = new URLSearchParams(window.location.search);
-    const chatWithId = params.get('with');
-    if (chatWithId) {
-        db.collection('users').doc(chatWithId).get().then(doc => {
-            if(doc.exists) {
-                openChatForUser({id: doc.id, ...doc.data()});
-            }
-        });
-    }
+    // --- Initial Call ---
+    setupModalAndFormListeners();
 });
