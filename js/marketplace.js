@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Marketplace Page Script (v5 - With Trading)
+ * HatakeSocial - Marketplace Page Script (v7 - With Trading)
  *
  * This script handles fetching and displaying all cards listed for sale,
  * and now includes the logic for proposing a trade.
@@ -15,7 +15,6 @@ document.addEventListener('authReady', (e) => {
     }
     
     // --- Get DOM Elements ---
-    const findWishlistBtn = document.getElementById('find-wishlist-btn');
     const loader = document.getElementById('marketplace-loader');
     const tradeModal = document.getElementById('propose-trade-modal');
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
@@ -52,7 +51,6 @@ document.addEventListener('authReady', (e) => {
                 const card = doc.data();
                 const sellerId = doc.ref.parent.parent.id;
                 
-                // Don't show the user's own cards in the marketplace
                 if (sellerId === user.uid) continue;
 
                 const sellerDoc = await db.collection('users').doc(sellerId).get();
@@ -70,7 +68,7 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderMarketplace = (cards) => {
-        marketplaceGrid.innerHTML = ''; // Clear grid
+        marketplaceGrid.innerHTML = '';
         if (cards.length === 0) {
             marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards match your search.</p>';
             return;
@@ -98,7 +96,6 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         
-        // Reset trade state
         tradeOffer = {
             receiverCard: cardToTradeFor,
             proposerCards: [],
@@ -107,7 +104,6 @@ document.addEventListener('authReady', (e) => {
             notes: ''
         };
 
-        // Display the card being requested
         const receiverDisplay = document.getElementById('receiver-card-display');
         receiverDisplay.innerHTML = `
             <div class="flex items-center space-x-2">
@@ -119,7 +115,6 @@ document.addEventListener('authReady', (e) => {
             </div>
         `;
 
-        // Load my collection for offering
         const myCollectionList = document.getElementById('my-collection-list');
         myCollectionList.innerHTML = '<p>Loading your collection...</p>';
         const snapshot = await db.collection('users').doc(user.uid).collection('collection').get();
