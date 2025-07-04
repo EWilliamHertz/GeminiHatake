@@ -1,15 +1,16 @@
 /**
- * HatakeSocial - Core Authentication & UI Script
+ * HatakeSocial - Core Authentication & UI Script (v2 - Stable)
  *
  * This script is included on EVERY page. It handles:
- * 1. Firebase Initialization
- * 2. Login/Register Modals and Forms
- * 3. The main auth state listener (onAuthStateChanged)
- * 4. Injecting the Messenger Widget
- * 5. Firing a custom 'authReady' event that other scripts listen for.
+ * 1. Firebase Initialization and making auth/db globally available.
+ * 2. All Login/Register Modal and Form logic.
+ * 3. The main auth state listener that updates the header UI.
+ * 4. Injecting the Messenger Widget for logged-in users.
+ * 5. Firing a custom 'authReady' event that all other page-specific scripts listen for.
+ * This event is the key to preventing page load errors.
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Hide the body initially to prevent flash of incorrect content
+    // Hide the body initially to prevent a "flash" of the wrong content
     document.body.style.opacity = '0';
 
     // --- Firebase Configuration ---
@@ -23,7 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Firebase Initialization ---
-    firebase.initializeApp(firebaseConfig);
+    // Check if Firebase has already been initialized
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    
+    // Make auth and db globally available for other scripts
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
@@ -139,7 +145,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userAvatar) userAvatar.classList.add('hidden');
         }
         
-        // Fire a custom event to notify other scripts that authentication is ready
+        // ** THE FIX IS HERE **
+        // Fire a custom event to notify other scripts that authentication is ready.
+        // This is the most important part of the new structure.
         const event = new CustomEvent('authReady', { detail: { user } });
         document.dispatchEvent(event);
 
