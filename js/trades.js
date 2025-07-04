@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Trades Page Script (v2 - with Propose Trade)
+ * HatakeSocial - Trades Page Script (v3 - Final & Stable)
  *
  * This script handles fetching and displaying a user's trades,
  * and now includes the full logic for proposing a new trade from scratch.
@@ -10,7 +10,7 @@ document.addEventListener('authReady', (e) => {
     if (!incomingContainer) return;
 
     if (!user) {
-        incomingContainer.innerHTML = '<p class="text-center text-gray-500">Please log in to view your trades.</p>';
+        incomingContainer.innerHTML = '<p class="text-center text-gray-500 p-8">Please log in to view your trades.</p>';
         return;
     }
 
@@ -26,6 +26,8 @@ document.addEventListener('authReady', (e) => {
     const sendTradeOfferBtn = document.getElementById('send-trade-offer-btn');
     const tradePartnerSearch = document.getElementById('trade-partner-search');
     const tradePartnerResults = document.getElementById('trade-partner-results');
+    const myCollectionSearch = document.getElementById('my-collection-search');
+    const theirCollectionSearch = document.getElementById('their-collection-search');
     
     // --- State Variables ---
     let myCollectionForTrade = [];
@@ -92,7 +94,6 @@ document.addEventListener('authReady', (e) => {
                 </div>
                 <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusColor}">${trade.status}</span>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="border p-4 rounded-md">
                     <h4 class="font-bold mb-2">${isIncoming ? 'They Offer:' : 'You Receive:'}</h4>
@@ -103,9 +104,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="space-y-2">${yourItemsHtml}</div>
                 </div>
             </div>
-
             ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 rounded-md"><p class="text-sm italic"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
-
             ${isIncoming && trade.status === 'pending' ? `
                 <div class="mt-4 text-right space-x-2">
                     <button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Decline</button>
@@ -119,7 +118,7 @@ document.addEventListener('authReady', (e) => {
     const loadIncomingTrades = async () => { /* ... same as before ... */ };
     const loadOutgoingTrades = async () => { /* ... same as before ... */ };
 
-    // --- NEW: Propose Trade Modal Logic ---
+    // --- Propose Trade Modal Logic ---
     const openProposeTradeModal = async () => {
         tradeOffer = { proposerCards: [], receiverCards: [], receiver: null };
         document.getElementById('trade-partner-search').value = '';
@@ -128,7 +127,7 @@ document.addEventListener('authReady', (e) => {
         updateSelectionUI('receiver', []);
 
         const myCollectionList = document.getElementById('my-collection-list');
-        myCollectionList.innerHTML = '<p>Loading your collection...</p>';
+        myCollectionList.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading your collection...</p>';
         const snapshot = await db.collection('users').doc(user.uid).collection('collection').get();
         myCollectionForTrade = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderCollectionForTrade(myCollectionForTrade, 'proposer');
@@ -145,7 +144,7 @@ document.addEventListener('authReady', (e) => {
         document.getElementById('receiver-trade-section').classList.remove('opacity-50', 'pointer-events-none');
 
         const theirCollectionList = document.getElementById('their-collection-list');
-        theirCollectionList.innerHTML = '<p>Loading collection...</p>';
+        theirCollectionList.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading collection...</p>';
         const snapshot = await db.collection('users').doc(partner.id).collection('collection').get();
         theirCollectionForTrade = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderCollectionForTrade(theirCollectionForTrade, 'receiver');
@@ -154,6 +153,10 @@ document.addEventListener('authReady', (e) => {
     const renderCollectionForTrade = (cards, side) => {
         const container = document.getElementById(side === 'proposer' ? 'my-collection-list' : 'their-collection-list');
         container.innerHTML = '';
+        if (cards.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500 p-2 italic">No cards found.</p>';
+            return;
+        }
         cards.forEach(card => {
             const cardEl = document.createElement('div');
             cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 rounded cursor-pointer';
@@ -263,6 +266,18 @@ document.addEventListener('authReady', (e) => {
         });
     });
     
+    myCollectionSearch.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filtered = myCollectionForTrade.filter(c => c.name.toLowerCase().includes(searchTerm));
+        renderCollectionForTrade(filtered, 'proposer');
+    });
+
+    theirCollectionSearch.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filtered = theirCollectionForTrade.filter(c => c.name.toLowerCase().includes(searchTerm));
+        renderCollectionForTrade(filtered, 'receiver');
+    });
+
     document.getElementById('proposer-selected-cards').addEventListener('click', (e) => {
         const button = e.target.closest('.remove-trade-item-btn');
         if (button) removeCardFromTrade(button.dataset.cardId, button.dataset.side);
@@ -271,8 +286,6 @@ document.addEventListener('authReady', (e) => {
         const button = e.target.closest('.remove-trade-item-btn');
         if (button) removeCardFromTrade(button.dataset.cardId, button.dataset.side);
     });
-    
-    // ... other listeners ...
     
     // --- Initial Load ---
     loadIncomingTrades();
