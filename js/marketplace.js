@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Marketplace Page Script (v7 - With Trading)
+ * HatakeSocial - Marketplace Page Script (v8 - Full Trading)
  *
  * This script handles fetching and displaying all cards listed for sale,
- * and now includes the logic for proposing a trade.
+ * and includes the full logic for proposing a trade with value calculation.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -33,38 +33,7 @@ document.addEventListener('authReady', (e) => {
     // --- Main Functions ---
 
     const loadMarketplaceCards = async () => {
-        if(loader) loader.style.display = 'block';
-        marketplaceGrid.innerHTML = '';
-        marketplaceGrid.appendChild(loader);
-
-        try {
-            const snapshot = await db.collectionGroup('collection').where('forSale', '==', true).get();
-            if(loader) loader.style.display = 'none';
-
-            if (snapshot.empty) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards are currently listed for sale.</p>';
-                return;
-            }
-
-            allMarketplaceCards = []; // Reset the cache
-            for (const doc of snapshot.docs) {
-                const card = doc.data();
-                const sellerId = doc.ref.parent.parent.id;
-                
-                if (sellerId === user.uid) continue;
-
-                const sellerDoc = await db.collection('users').doc(sellerId).get();
-                const sellerData = sellerDoc.exists ? sellerDoc.data() : { handle: 'unknown', displayName: 'Unknown' };
-                
-                allMarketplaceCards.push({ id: doc.id, sellerId, sellerData, ...card });
-            }
-            renderMarketplace(allMarketplaceCards);
-
-        } catch (error) {
-            console.error("Error loading marketplace cards:", error);
-            if(loader) loader.style.display = 'none';
-            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500 p-8">An error occurred while loading the marketplace.</p>`;
-        }
+        // ... (Your existing loadMarketplaceCards function) ...
     };
 
     const renderMarketplace = (cards) => {
@@ -96,6 +65,7 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         
+        // Reset trade state
         tradeOffer = {
             receiverCard: cardToTradeFor,
             proposerCards: [],
@@ -104,6 +74,7 @@ document.addEventListener('authReady', (e) => {
             notes: ''
         };
 
+        // Display the card being requested
         const receiverDisplay = document.getElementById('receiver-card-display');
         receiverDisplay.innerHTML = `
             <div class="flex items-center space-x-2">
@@ -111,10 +82,12 @@ document.addEventListener('authReady', (e) => {
                 <div>
                     <p class="font-bold">${cardToTradeFor.name}</p>
                     <p class="text-sm text-gray-500">from @${cardToTradeFor.sellerData.handle}</p>
+                    <p class="text-sm font-semibold">Market Value: $${parseFloat(cardToTradeFor.priceUsd || 0).toFixed(2)}</p>
                 </div>
             </div>
         `;
 
+        // Load my ENTIRE collection for offering
         const myCollectionList = document.getElementById('my-collection-list');
         myCollectionList.innerHTML = '<p>Loading your collection...</p>';
         const snapshot = await db.collection('users').doc(user.uid).collection('collection').get();
@@ -122,6 +95,7 @@ document.addEventListener('authReady', (e) => {
         
         renderMyCollectionForTrade(myCollectionForTrade);
         updateProposerSelectionUI();
+        updateTradeValues();
         openModal(tradeModal);
     };
 
@@ -146,12 +120,14 @@ document.addEventListener('authReady', (e) => {
         if (card && !tradeOffer.proposerCards.some(c => c.id === cardId)) {
             tradeOffer.proposerCards.push(card);
             updateProposerSelectionUI();
+            updateTradeValues();
         }
     };
 
     const removeCardFromTrade = (cardId) => {
         tradeOffer.proposerCards = tradeOffer.proposerCards.filter(c => c.id !== cardId);
         updateProposerSelectionUI();
+        updateTradeValues();
     };
 
     const updateProposerSelectionUI = () => {
@@ -170,6 +146,22 @@ document.addEventListener('authReady', (e) => {
             `;
             container.appendChild(cardEl);
         });
+    };
+
+    const updateTradeValues = () => {
+        const proposerValueEl = document.getElementById('proposer-total-value');
+        const receiverValueEl = document.getElementById('receiver-total-value');
+
+        const proposerCardValue = tradeOffer.proposerCards.reduce((sum, card) => sum + parseFloat(card.priceUsd || 0), 0);
+        const proposerMoney = parseFloat(document.getElementById('proposer-money').value) || 0;
+        const proposerTotal = proposerCardValue + proposerMoney;
+
+        const receiverCardValue = parseFloat(tradeOffer.receiverCard.priceUsd || 0);
+        const receiverMoney = parseFloat(document.getElementById('receiver-money').value) || 0;
+        const receiverTotal = receiverCardValue + receiverMoney;
+
+        proposerValueEl.textContent = `Total Value: $${proposerTotal.toFixed(2)}`;
+        receiverValueEl.textContent = `Total Value: $${receiverTotal.toFixed(2)}`;
     };
 
     const sendTradeOffer = async () => {
@@ -222,6 +214,15 @@ document.addEventListener('authReady', (e) => {
             removeCardFromTrade(button.dataset.cardId);
         }
     });
+
+    document.getElementById('my-collection-search').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredCards = myCollectionForTrade.filter(card => card.name.toLowerCase().includes(searchTerm));
+        renderMyCollectionForTrade(filteredCards);
+    });
+
+    document.getElementById('proposer-money').addEventListener('input', updateTradeValues);
+    document.getElementById('receiver-money').addEventListener('input', updateTradeValues);
     
     // --- Initial Load ---
     loadMarketplaceCards();
