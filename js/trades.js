@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Trades Page Script (v6 - Indexing Error Handling)
+ * HatakeSocial - Trades Page Script (v6 - Indexing & Permissions Error Handling)
  *
  * This script handles all logic for the trades page.
  * This version adds robust error handling to inform the user if a
@@ -342,7 +342,7 @@ document.addEventListener('authReady', (e) => {
             });
         } catch (error) {
             console.error("User search error:", error);
-            tradePartnerResults.innerHTML = `<div class="p-2 text-red-500">Error: Could not perform search. A database index might be required. Please check the browser console (F12) for a link to create it.</div>`;
+            tradePartnerResults.innerHTML = `<div class="p-2 text-red-500">Error: Could not perform search. This is likely due to a missing database index or a permissions issue. Please check the browser console (F12) for a more detailed error message from Firebase.</div>`;
         }
     });
     
