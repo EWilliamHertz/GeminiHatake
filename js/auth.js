@@ -1,12 +1,11 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v12)
+ * HatakeSocial - Core Authentication & UI Script (v13 - Admin Link)
  *
  * This script is included on EVERY page. It handles:
- * 1. Firebase Initialization.
- * 2. All Login/Register Modal and Form logic.
- * 3. The main auth state listener that correctly updates the header UI.
- * 4. Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * 5. Global search bar functionality with refresh prevention.
+ * - All Login/Register Modal and Form logic.
+ * - The main auth state listener that correctly updates the header UI.
+ * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
+ * - NEW: Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -33,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
     const setupGlobalListeners = () => {
-        const headerSearchForm = document.querySelector('header form'); 
+        const headerSearchForm = document.querySelector('header form#header-search-form'); 
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -75,7 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         city: city, country: country, favoriteTcg: favoriteTcg,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
-                        bio: "New HatakeSocial user!"
+                        bio: "New HatakeSocial user!",
+                        isAdmin: false // Default role
                     });
                 })
                 .then(() => closeModal(registerModal))
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return userRef.set({
                             displayName: user.displayName, email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set"
+                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false
                         });
                     }
                 });
@@ -124,7 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const userAvatar = document.getElementById('userAvatar');
+        const userDropdown = document.getElementById('userDropdown');
         const sidebarUserInfo = document.getElementById('sidebar-user-info');
+        
+        // Clear any existing admin link
+        const existingAdminLink = document.getElementById('admin-link-container');
+        if (existingAdminLink) existingAdminLink.remove();
         
         if (user) {
             loginButton?.classList.add('hidden');
@@ -147,6 +152,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('sidebar-user-name').textContent = name;
                         document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
                     }
+
+                    // *** NEW: Check for admin status and add link ***
+                    if (userData.isAdmin === true && userDropdown) {
+                        const adminLinkContainer = document.createElement('div');
+                        adminLinkContainer.id = 'admin-link-container';
+                        adminLinkContainer.innerHTML = `
+                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                            <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <i class="fas fa-user-shield mr-2"></i>Admin
+                            </a>
+                        `;
+                        userDropdown.appendChild(adminLinkContainer);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
@@ -155,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginButton?.classList.remove('hidden');
             registerButton?.classList.remove('hidden');
             userAvatar?.classList.add('hidden');
-            document.getElementById('userDropdown')?.classList.add('hidden');
+            userDropdown?.classList.add('hidden');
             sidebarUserInfo?.classList.add('hidden');
         }
         
