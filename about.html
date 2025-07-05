@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+
+    <!-- Header Section -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                <span class="ml-3 text-3xl font-extrabold text-gray-800 dark:text-white">HatakeSocial</span>
+            </a>
+            <nav class="hidden md:block">
+                <ul class="flex space-x-6">
+                    <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                    <li><a href="groups.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
+                    <!-- Add other nav links here -->
+                </ul>
+            </nav>
+            <div class="relative flex items-center">
+                <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
+                <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 ml-2">Register</button>
+                <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-10 hidden">
+                    <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
+                    <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
+                    <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+            <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-4 text-center">About HatakeSocial</h1>
+            <p class="text-lg text-gray-600 dark:text-gray-300 text-center max-w-3xl mx-auto">
+                HatakeSocial was born from a lifelong passion for trading card games. We aim to be the ultimate destination for players and collectors, combining a vibrant social community with a powerful marketplace. Our mission is to connect enthusiasts from around the world in a single, dedicated platform.
+            </p>
+
+            <div class="border-t border-gray-200 dark:border-gray-700 my-12"></div>
+
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">Our Team</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Team Member Card -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
+                    <img class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/op0pjSl.jpeg" alt="Ernst-William Hertz">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Ernst-William Hertz</h3>
+                    <p class="text-blue-500 dark:text-blue-400 font-semibold">Founder</p>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2 text-sm">
+                        An active Magic: The Gathering player from 2007-2017, returning in 2023. The sole designer and visionary behind the HatakeSocial platform.
+                    </p>
+                </div>
+                <!-- Team Member Card -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
+                    <img class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/6klWTRC.jpeg" alt="Patricia Andersson">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Patricia Andersson</h3>
+                    <p class="text-blue-500 dark:text-blue-400 font-semibold">CEO</p>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2 text-sm">
+                        Mother of Ernst-William, Patricia studied business economics and works as a prison officer. She proudly raised two Magic-playing children.
+                    </p>
+                </div>
+                <!-- Team Member Card -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
+                    <img class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/1Oiiulk.jpeg" alt="Mark Lange Jensen">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Mark Lange Jensen</h3>
+                    <p class="text-blue-500 dark:text-blue-400 font-semibold">Co-founder</p>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2 text-sm">
+                        An avid gamer, dedicated beta tester, and a source of great moral support, Mark has been instrumental in shaping the user experience.
+                    </p>
+                </div>
+                <!-- Team Member Card -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
+                    <img class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/b5cE8AK.jpeg" alt="Virre Van Zarate Abreu">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Virre Van Zarate Abreu</h3>
+                    <p class="text-blue-500 dark:text-blue-400 font-semibold">Conventional Manager</p>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2 text-sm">
+                        A great entrepreneur with a keen business sense, Virre acts as our conventional manager, guiding our strategic growth and operations.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer will be added in the next step -->
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/darkmode.js"></script>
+</body>
+</html>
