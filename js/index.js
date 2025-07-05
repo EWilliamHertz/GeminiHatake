@@ -18,7 +18,8 @@ document.addEventListener('authReady', (e) => {
 
     const renderComments = (commentsListEl, comments) => {
         commentsListEl.innerHTML = !comments || comments.length === 0 ? '<p class="text-gray-500 text-sm">No comments yet.</p>' : '';
-        comments?.sort((a, b) => a.timestamp.seconds - b.timestamp.seconds).forEach(comment => {
+        // Sort by timestamp, ensuring it exists before trying to access properties
+        comments?.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0)).forEach(comment => {
             commentsListEl.innerHTML += `<div class="pt-2 border-t mt-2"><p><strong>${comment.author || 'Anonymous'}:</strong> ${comment.content}</p></div>`;
         });
     };
