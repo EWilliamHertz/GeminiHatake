@@ -11,58 +11,47 @@
 <body class="bg-gray-100">
 
    <!-- Header Section -->
- <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
-    <div class="container mx-auto px-4 flex justify-between items-center">
-        <!-- Logo and Site Name -->
-        <div class="flex items-center">
+    <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+        <!-- Standard Header will be loaded here via JS or server-side include -->
+        <div class="container mx-auto px-4 flex justify-between items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
                 <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
             </a>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="hidden md:flex flex-grow justify-center mx-4">
-            <div class="relative w-full max-w-md">
-                <input type="text" id="searchBar" placeholder="Search for decks, cards, users, cities, countries, or TCGs..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <div class="hidden md:flex flex-grow justify-center mx-4">
+                <form id="header-search-form" class="relative w-full max-w-md">
+                    <input type="text" id="searchBar" placeholder="Search for decks, cards, users..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </form>
             </div>
-        </div>
-
-        <!-- Main Navigation and User Menu -->
-        <div class="flex items-center space-x-6">
-            <nav class="hidden md:block">
-                <ul class="flex space-x-6">
-                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
-                    <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
-                    <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                    <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
-                    <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                    <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
-                    <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
-                    <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
-                    <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
-                </ul>
-            </nav>
-            <div class="relative flex items-center">
-                <!-- Login/Register Buttons (Visible when logged out) -->
-                <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
-                <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
-                
-                <!-- User Avatar & Dropdown (Visible when logged in) -->
-                <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
-                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
-                    <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
-                    <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
-                    <div class="border-t my-1 border-gray-200"></div>
-                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+            <div class="flex items-center space-x-6">
+                 <nav class="hidden md:block">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                        <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                        <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
+                        <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
+                        <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                        <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
+                        <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
+                        <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                    </ul>
+                </nav>
+                <div class="relative flex items-center">
+                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
+                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
+                    <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                    <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
+                        <div class="border-t my-1 border-gray-200"></div>
+                        <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</header>
-
-
+    </header>
 
     <!-- Main Content -->
     <main class="flex-grow container mx-auto px-4 py-8">
@@ -117,13 +106,23 @@
 
         <!-- Tab Content -->
         <div class="mt-8">
-            <!-- My Collection Tab -->
             <div id="content-collection" class="tab-content">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">My Collection</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-3xl font-bold text-gray-800">My Collection</h2>
+                    <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
+                </div>
+                <!-- NEW: Bulk Action Bar -->
+                <div id="bulk-action-bar" class="hidden bg-white p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40">
+                    <div>
+                        <span id="selected-count">0</span> cards selected
+                    </div>
+                    <div class="space-x-2">
+                         <button id="list-selected-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">List for Sale</button>
+                         <button id="delete-selected-btn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Delete</button>
+                    </div>
+                </div>
                 <div id="collection-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
             </div>
-
-            <!-- My Wishlist Tab -->
             <div id="content-wishlist" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-4">My Wishlist</h2>
                 <div id="wishlist-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
@@ -161,102 +160,128 @@
             </form>
         </div>
     </div>
-<!-- Add this modal to my_collection.html, right before the closing </main> tag -->
-<div id="manage-listing-modal" class="modal-overlay">
-    <div class="modal-content w-full max-w-md">
-        <button id="close-listing-modal" class="close-button">&times;</button>
-        <h2 class="text-2xl font-bold mb-4">Manage Listing</h2>
-        <div id="listing-card-preview" class="flex items-center space-x-4 mb-6">
-            <img id="listing-card-image" src="https://placehold.co/100x140" class="w-24 rounded-lg">
-            <div>
-                <h3 id="listing-card-name" class="text-lg font-bold">Card Name</h3>
-                <p id="listing-card-set" class="text-sm text-gray-500">Set Name</p>
+
+    <!-- Manage Listing Modal -->
+    <div id="manage-listing-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md">
+            <button id="close-listing-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Manage Listing</h2>
+            <div id="listing-card-preview" class="flex items-center space-x-4 mb-6">
+                <img id="listing-card-image" src="https://placehold.co/100x140" class="w-24 rounded-lg">
+                <div>
+                    <h3 id="listing-card-name" class="text-lg font-bold">Card Name</h3>
+                    <p id="listing-card-set" class="text-sm text-gray-500">Set Name</p>
+                </div>
+            </div>
+            <form id="manage-listing-form">
+                <input type="hidden" id="listing-card-id">
+                <div class="flex items-center justify-between bg-gray-100 p-3 rounded-lg">
+                    <label for="forSale" class="font-semibold text-gray-700">List this card for sale/trade?</label>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="forSale" id="forSale" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="forSale" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <div id="price-input-container" class="mt-4 hidden">
+                    <label for="salePrice" class="block text-sm font-medium text-gray-700">Sale Price (SEK)</label>
+                    <div class="relative mt-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">kr</span>
+                        </div>
+                        <input type="number" id="salePrice" step="0.01" class="pl-7 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="mt-8 text-right">
+                     <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Save Listing</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NEW: List for Sale Modal -->
+    <div id="list-for-sale-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md">
+            <button id="close-list-sale-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">List Selected Cards</h2>
+            <p class="mb-4">You have selected <strong id="list-sale-count">0</strong> cards. How would you like to price them?</p>
+            <div class="space-y-4">
+                <button id="list-at-market-price-btn" class="w-full bg-blue-600 text-white py-3 rounded-full hover:bg-blue-700 font-semibold">List at Market Price (USD)</button>
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="w-full border-t border-gray-300"></div></div>
+                    <div class="relative flex justify-center"><span class="px-2 bg-white text-sm text-gray-500">OR</span></div>
+                </div>
+                <form id="custom-price-form" class="flex items-center space-x-2">
+                    <input type="number" id="custom-price-input" placeholder="Custom Price (SEK)" class="w-full p-2 border rounded-md" step="0.01" required>
+                    <button type="submit" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Set Price</button>
+                </form>
             </div>
         </div>
-        <form id="manage-listing-form">
-            <input type="hidden" id="listing-card-id">
-            
-            <div class="flex items-center justify-between bg-gray-100 p-3 rounded-lg">
-                <label for="forSale" class="font-semibold text-gray-700">List this card for sale/trade?</label>
-                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" name="forSale" id="forSale" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                    <label for="forSale" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
-                </div>
-            </div>
+    </div>
 
-            <div id="price-input-container" class="mt-4 hidden">
-                <label for="salePrice" class="block text-sm font-medium text-gray-700">Sale Price (SEK)</label>
-                <div class="relative mt-1">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 sm:text-sm">kr</span>
-                    </div>
-                    <input type="number" id="salePrice" step="0.01" class="pl-7 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="0.00">
-                </div>
+  <!-- Login Modal -->
+<div id="loginModal" class="modal-overlay">
+    <div class="modal-content w-full max-w-md">
+        <button class="close-button" id="closeLoginModal">&times;</button>
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Login to HatakeSocial</h2>
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="loginEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
             </div>
-
-            <div class="mt-8 text-right">
-                 <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Save Listing</button>
+            <div>
+                <label for="loginPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
             </div>
+            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
+            <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-full shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
+            </button>
         </form>
     </div>
 </div>
 
-   </main>
- <!-- Login Modal -->
-   <div id="loginModal" class="modal-overlay">
-       <div class="modal-content w-full max-w-md">
-           <button class="close-button" id="closeLoginModal">&times;</button>
-           <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Login to HatakeSocial</h2>
-           <form id="loginForm" class="space-y-4">
-               <div>
-                   <label for="loginEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
-                   <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-               </div>
-               <div>
-                   <label for="loginPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
-                   <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-               </div>
-               <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700">Login</button>
-           </form>
-       </div>
-   </div>
+<!-- Register Modal -->
+<div id="registerModal" class="modal-overlay">
+    <div class="modal-content w-full max-w-md">
+        <button class="close-button" id="closeRegisterModal">&times;</button>
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Register for HatakeSocial</h2>
+        <form id="registerForm" class="space-y-4">
+            <div>
+                <label for="registerEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+            </div>
+            <div>
+                <label for="registerPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
+                <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password (min 6 characters)" required>
+            </div>
+             <div>
+                <label for="registerCity" class="block text-gray-700 text-sm font-bold mb-2">City:</label>
+                <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city">
+            </div>
+            <div>
+                <label for="registerCountry" class="block text-gray-700 text-sm font-bold mb-2">Country:</label>
+                <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country">
+            </div>
+            <div>
+                <label for="registerFavoriteTcg" class="block text-gray-700 text-sm font-bold mb-2">Favorite TCG:</label>
+                <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering">
+            </div>
+            <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
+            <button type="button" id="googleRegisterButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-full shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Register with Google
+            </button>
+        </form>
+    </div>
+</div>
 
 
-   <!-- Register Modal -->
-   <div id="registerModal" class="modal-overlay">
-       <div class="modal-content w-full max-w-md">
-           <button class="close-button" id="closeRegisterModal">&times;</button>
-           <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Register for HatakeSocial</h2>
-           <form id="registerForm" class="space-y-4">
-               <div>
-                   <label for="registerEmail" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
-                   <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-               </div>
-               <div>
-                   <label for="registerPassword" class="block text-gray-700 text-sm font-bold mb-2">Password:</label>
-                   <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password (min 6 characters)" required>
-               </div>
-               <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700">Register</button>
-           </form>
-       </div>
-   </div>
-
-
-    <!-- Firebase Libraries (use the compat libraries for v8 syntax) -->
+    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    
-    <!-- PapaParse for CSV (only needed on my_collection.html, but safe to include) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    
-    <!-- Your Custom Scripts -->
     <script src="js/auth.js"></script>
-    <script src="js/index.js"></script>
-    <script src="js/deck.js"></script>
     <script src="js/collection.js"></script>
-    <script src="js/profile.js"></script>
-    <script src="js/messages.js"></script>
 </body>
 </html>
