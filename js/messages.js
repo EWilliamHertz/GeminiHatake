@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Messages Page Script (v4 - Final & Stable)
+ * HatakeSocial - Messages Page Script (v5 - Group Chat Support)
  *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles all logic for the messages.html page, including:
- * - Sorting conversations by the most recent message.
- * - Displaying sender name and timestamp with each message.
+ * This script handles all logic for the messages.html page.
+ * - Adds tabbing between User and Group conversations.
+ * - Loads and displays both types of conversations.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -12,12 +11,12 @@ document.addEventListener('authReady', (e) => {
     if (!chatArea) return;
 
     if (!currentUser) {
-        chatArea.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-center p-8 text-gray-500">Please log in to view your messages.</p></div>';
+        chatArea.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-center p-8 text-gray-500 dark:text-gray-400">Please log in to view your messages.</p></div>';
         return;
     }
 
     let currentChatListener = null;
-    let currentRemoteUser = null;
+    let currentConversationId = null;
 
     const conversationsListEl = document.getElementById('conversations-list');
     const userSearchInput = document.getElementById('user-search-input');
@@ -26,62 +25,87 @@ document.addEventListener('authReady', (e) => {
     const sendMessageBtn = document.getElementById('send-message-btn');
     const chatWelcomeScreen = document.getElementById('chat-welcome-screen');
     const chatView = document.getElementById('chat-view');
+    const messageTabs = document.querySelectorAll('.message-tab-button');
 
-    /**
-     * **UPDATED**
-     * Loads all conversations for the current user, sorted by the most recent message.
-     */
+    let activeTab = 'users'; // 'users' or 'groups'
+
+    // --- Tab Switching Logic ---
+    messageTabs.forEach(button => {
+        button.addEventListener('click', () => {
+            messageTabs.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            activeTab = button.dataset.tab;
+            loadConversations();
+        });
+    });
+
     const loadConversations = async () => {
-        const conversationsRef = db.collection('conversations');
-        const query = conversationsRef.where('participants', 'array-contains', currentUser.uid).orderBy('updatedAt', 'desc');
+        conversationsListEl.innerHTML = '<p class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">Loading...</p>';
         
+        let query;
+        if (activeTab === 'users') {
+            query = db.collection('conversations')
+                      .where('members', 'array-contains', currentUser.uid)
+                      .where('isGroupChat', '==', false)
+                      .orderBy('updatedAt', 'desc');
+        } else { // groups
+            query = db.collection('conversations')
+                      .where('members', 'array-contains', currentUser.uid)
+                      .where('isGroupChat', '==', true)
+                      .orderBy('updatedAt', 'desc');
+        }
+
         query.onSnapshot(snapshot => {
-            if (!conversationsListEl) return;
             conversationsListEl.innerHTML = '';
             if (snapshot.empty) {
-                conversationsListEl.innerHTML = '<p class="p-4 text-center text-gray-500 text-sm">No conversations yet. Search for a user to start chatting.</p>';
+                conversationsListEl.innerHTML = `<p class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">No ${activeTab} conversations.</p>`;
+                return;
             }
             snapshot.forEach(doc => {
                 const conversation = doc.data();
-                const remoteUserId = conversation.participants.find(id => id !== currentUser.uid);
-                const remoteUserInfo = conversation.participantInfo[remoteUserId];
+                const convoId = doc.id;
+                let title = '';
+                let imageUrl = '';
 
+                if (conversation.isGroupChat) {
+                    title = conversation.groupName || 'Group Chat';
+                    imageUrl = conversation.groupImage || 'https://placehold.co/40x40/cccccc/969696?text=G';
+                } else {
+                    const remoteUserId = conversation.participants.find(id => id !== currentUser.uid);
+                    const remoteUserInfo = conversation.participantInfo[remoteUserId];
+                    title = remoteUserInfo?.displayName || 'Unknown User';
+                    imageUrl = remoteUserInfo?.photoURL || 'https://placehold.co/40x40?text=U';
+                }
+                
                 const item = document.createElement('div');
                 item.className = 'conversation-item';
                 item.innerHTML = `
-                    <img src="${remoteUserInfo.photoURL || 'https://placehold.co/40x40'}" class="h-12 w-12 rounded-full mr-3 object-cover">
+                    <img src="${imageUrl}" class="h-12 w-12 rounded-full mr-3 object-cover">
                     <div class="flex-grow overflow-hidden">
-                        <span class="font-bold">${remoteUserInfo.displayName}</span>
-                        <p class="text-sm text-gray-500 truncate">${conversation.lastMessage || 'No messages yet'}</p>
+                        <span class="font-bold text-gray-800 dark:text-white">${title}</span>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${conversation.lastMessage || 'No messages yet'}</p>
                     </div>
                 `;
-                item.addEventListener('click', () => {
-                     openChatForUser({ id: remoteUserId, ...remoteUserInfo });
-                });
+                item.addEventListener('click', () => openChat(convoId, title, imageUrl));
                 conversationsListEl.appendChild(item);
             });
         }, error => {
-            console.error("Error loading conversations:", error);
-            conversationsListEl.innerHTML = '<p class="p-4 text-center text-red-500 text-sm">Could not load conversations.</p>';
+            console.error(`Error loading ${activeTab} conversations:`, error);
+            conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load ${activeTab}.</p>`;
         });
     };
 
-    /**
-     * Opens a chat window with a specific user and listens for new messages.
-     * @param {object} remoteUser - The user object of the person to chat with.
-     */
-    const openChatForUser = (remoteUser) => {
+    const openChat = (conversationId, title, imageUrl) => {
         if (currentChatListener) currentChatListener();
-        currentRemoteUser = remoteUser;
+        currentConversationId = conversationId;
 
         chatWelcomeScreen.classList.add('hidden');
         chatView.classList.remove('hidden');
         chatView.classList.add('flex');
 
-        document.getElementById('chat-header-avatar').src = remoteUser.photoURL || 'https://placehold.co/40x40';
-        document.getElementById('chat-header-name').textContent = remoteUser.displayName;
+        document.getElementById('chat-header-avatar').src = imageUrl;
+        document.getElementById('chat-header-name').textContent = title;
 
-        const conversationId = [currentUser.uid, remoteUser.id].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
         const messagesContainer = document.getElementById('messages-container');
 
@@ -91,18 +115,16 @@ document.addEventListener('authReady', (e) => {
                 const conversation = doc.data();
                 const messages = conversation.messages || [];
                 
-                messages.sort((a,b) => a.timestamp.toMillis() - b.timestamp.toMillis()).forEach(msg => {
+                messages.forEach(msg => {
                     const messageEl = document.createElement('div');
                     const isSent = msg.senderId === currentUser.uid;
-                    const senderInfo = isSent ? conversation.participantInfo[currentUser.uid] : conversation.participantInfo[remoteUser.id];
+                    const senderInfo = conversation.participantInfo[msg.senderId];
                     
-                    // **THE FIX IS HERE**
-                    // Add sender name and timestamp above the message bubble.
                     messageEl.className = `message-group ${isSent ? 'sent' : 'received'}`;
                     messageEl.innerHTML = `
                         <div class="message-header">
-                            <span class="font-bold text-sm">${senderInfo.displayName}</span>
-                            <span class="text-xs text-gray-500 ml-2">${new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span class="font-bold text-sm text-gray-800 dark:text-white">${senderInfo?.displayName || '...'}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
                         <div class="message-bubble">${msg.content}</div>
                     `;
@@ -113,50 +135,33 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Sends a message to the currently active chat partner.
-     */
     const sendMessage = async () => {
         const content = messageInput.value.trim();
-        if (!content || !currentRemoteUser) return;
+        if (!content || !currentConversationId) return;
 
-        const conversationId = [currentUser.uid, currentRemoteUser.id].sort().join('_');
-        const conversationRef = db.collection('conversations').doc(conversationId);
+        const conversationRef = db.collection('conversations').doc(currentConversationId);
 
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
             timestamp: new Date() 
         };
-
-        const participantInfoData = {
-            [currentUser.uid]: { 
-                displayName: currentUser.displayName || 'Anonymous', 
-                photoURL: currentUser.photoURL || null 
-            },
-            [currentRemoteUser.id]: { 
-                displayName: currentRemoteUser.displayName || 'Anonymous', 
-                photoURL: currentRemoteUser.photoURL || null 
-            }
-        };
-
+        
         messageInput.value = '';
 
         try {
-            await conversationRef.set({
-                participants: [currentUser.uid, currentRemoteUser.id],
-                participantInfo: participantInfoData,
+            await conversationRef.update({
+                messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
                 lastMessage: content,
-                updatedAt: new Date(),
-                messages: firebase.firestore.FieldValue.arrayUnion(newMessage)
-            }, { merge: true });
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
         } catch (error) {
             console.error("Error sending message:", error);
-            alert("Could not send message. Please check the console for errors.");
+            alert("Could not send message.");
         }
     };
 
-    // --- Attach Event Listeners ---
+    // --- Event Listeners ---
     sendMessageBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -179,10 +184,23 @@ document.addEventListener('authReady', (e) => {
             if (doc.id === currentUser.uid) return;
             const userData = doc.data();
             const resultItem = document.createElement('div');
-            resultItem.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+            resultItem.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
             resultItem.textContent = userData.displayName;
-            resultItem.addEventListener('click', () => {
-                openChatForUser({ id: doc.id, ...userData });
+            resultItem.addEventListener('click', async () => {
+                // Create or find conversation
+                const conversationId = [currentUser.uid, doc.id].sort().join('_');
+                const conversationRef = db.collection('conversations').doc(conversationId);
+                await conversationRef.set({
+                    participants: [currentUser.uid, doc.id],
+                    participantInfo: {
+                        [currentUser.uid]: { displayName: currentUser.displayName, photoURL: currentUser.photoURL },
+                        [doc.id]: { displayName: userData.displayName, photoURL: userData.photoURL }
+                    },
+                    isGroupChat: false,
+                    updatedAt: new Date()
+                }, { merge: true });
+
+                openChat(conversationId, userData.displayName, userData.photoURL);
                 userSearchInput.value = '';
                 userSearchResultsEl.innerHTML = '';
                 userSearchResultsEl.classList.add('hidden');
@@ -193,14 +211,4 @@ document.addEventListener('authReady', (e) => {
 
     // --- Initial Load ---
     loadConversations();
-
-    const params = new URLSearchParams(window.location.search);
-    const chatWithId = params.get('with');
-    if (chatWithId) {
-        db.collection('users').doc(chatWithId).get().then(doc => {
-            if(doc.exists) {
-                openChatForUser({id: doc.id, ...doc.data()});
-            }
-        });
-    }
 });
