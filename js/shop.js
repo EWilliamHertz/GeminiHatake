@@ -1,200 +1,56 @@
-document.addEventListener('authReady', () => {
-    const products = [
-        {
-            id: 'matte-sleeves',
-            name: 'Matte sleeves',
-            price: 89,
-            availability: 'Pre-order Releasing 15 October',
-            sku: '0.01',
-            category: 'Sleeves',
-            unitsAvailable: 1000,
-            description: 'Hatake TCG Matte Sleeves offer premium protection with a sophisticated matte finish that reduces glare and enhances the handling experience. Each pack contains 100 high-quality black sleeves (66x91mm) designed to fit standard TCG cards perfectly.',
-            features: [
-                'Premium matte finish for reduced glare and improved shuffling',
-                'Acid-free and archival safe materials',
-                'Perfect clarity on the card face side',
-                'Consistent sizing for tournament play',
-                'Durable construction that resists splitting and peeling',
-                'Compatible with all standard TCG cards'
-            ],
-            specifications: {
-                Dimensions: '66x91mm',
-                Quantity: '100 sleeves per pack',
-                Color: 'Black backing with clear front',
-                Material: 'Acid-free polypropylene',
-                Finish: 'Matte'
-            },
-            images: ['IMG_9962.jpeg', 'IMG_9958.jpeg', 'IMG_9966.jpeg', 'IMG_9967.jpeg', 'IMG_9965.jpeg', 'IMG_9963.jpeg', 'IMG_9969.jpeg', 'IMG_9956.jpeg']
-        },
-        {
-            id: '480-slot-binder',
-            name: '480-Slot Binder',
-            price: 360,
-            availability: 'Pre-order Releasing 15 October',
-            sku: '0.02',
-            category: 'Binder',
-            unitsAvailable: 100,
-            description: 'The Hatake TCG 480-Slot Binder is the ultimate storage solution for serious collectors. This premium zippered binder features side-loading pockets to keep your valuable cards secure and protected while showcasing your collection in style.',
-            features: [
-                'Premium zippered closure for maximum security',
-                'Side-loading pockets to prevent cards from falling out',
-                '480 card capacity (60 double-sided pages with 4 cards per side)',
-                'Acid-free, PVC-free, and archival safe materials',
-                'Reinforced spine and corners for durability',
-                'Elegant Nordic-inspired design with embossed Hatake logo'
-            ],
-            specifications: {
-                Capacity: '480 standard-sized cards',
-                Material: 'Premium PU leather exterior, acid-free polypropylene pages',
-                Color: 'Black with blue interior',
-                Closure: 'Heavy-duty zipper',
-                'Page Configuration': '60 double-sided pages with 4 card slots per side'
-            },
-            images: ['IMG_9839.jpeg', 'IMG_9814.jpeg', 'IMG_9818.jpeg', 'IMG_9816.jpeg', 'IMG_9819.jpeg', 'IMG_9820.jpeg', 'IMG_9823.jpeg', 'IMG_9824.jpeg', 'IMG_9825.jpeg', 'IMG_9826.jpeg', 'IMG_9827.jpeg']
-        },
-        {
-            id: '25x-35pt-top-loaders',
-            name: '25x 35pt Top-Loaders',
-            price: 30,
-            availability: 'Pre-order 15 October',
-            sku: '0.031',
-            category: 'Top-Loaders',
-            unitsAvailable: 550,
-            description: 'Hatake TCG 35pt Top-Loaders provide superior protection for your most valuable standard-sized trading cards. Each pack contains 25 crystal-clear rigid sleeves designed to preserve your cards in pristine condition.',
-            features: [
-                'Crystal-clear PVC construction for maximum visibility',
-                '35pt thickness provides rigid protection against bending and damage',
-                'Acid-free and archival safe materials',
-                'Precision-cut edges to prevent card damage',
-                'Perfect for storing valuable singles and graded cards',
-                'Compatible with standard TCG cards in sleeves'
-            ],
-            specifications: {
-                Thickness: '35pt (standard)',
-                Quantity: '25 top-loaders per pack',
-                Material: 'Acid-free PVC',
-                Dimensions: 'Fits standard TCG cards (including those in sleeves)',
-                Finish: 'Crystal clear'
-            },
-            images: ['IMG_9971.jpeg', 'IMG_9970.jpeg', 'IMG_9972.jpeg', 'IMG_9973.jpeg', 'IMG_9974.jpeg', 'IMG_9975.jpeg', 'IMG_9976.jpeg', 'IMG_9978.jpeg']
-        },
-        {
-            id: '10x-130pt-top-loaders',
-            name: '10x 130pt Top-Loaders',
-            price: 35,
-            availability: 'Pre-order Releasing 15 October',
-            sku: '0.032',
-            category: 'Top-Loaders',
-            unitsAvailable: 200,
-            description: 'Hatake TCG 130pt Top-Loaders are designed for maximum protection of multiple cards or oversized collectibles. Each pack contains 10 extra-thick, crystal-clear rigid sleeves that provide superior protection for your most valuable items.',
-            features: [
-                'Extra-thick 130pt construction for maximum rigidity and protection',
-                'Crystal-clear PVC for perfect visibility of your collectibles',
-                'Acid-free and archival safe materials',
-                'Precision-cut edges to prevent damage',
-                'Perfect for storing multiple cards together or oversized collectibles',
-                'Ideal for high-value cards requiring additional protection'
-            ],
-            specifications: {
-                Thickness: '130pt (extra thick)',
-                Quantity: '10 top-loaders per pack',
-                Material: 'Acid-free PVC',
-                Dimensions: 'Fits multiple standard TCG cards or oversized collectibles',
-                Finish: 'Crystal clear'
-            },
-            images: ['IMG_9979.jpeg', 'IMG_9980.jpeg', 'IMG_9981.jpeg', 'IMG_9982.jpeg', 'IMG_9983.jpeg', 'IMG_9984.jpeg', 'IMG_9985.jpeg', 'IMG_9986.jpeg', 'IMG_9987.jpeg']
-        },
-        {
-            id: 'pu-deckbox',
-            name: 'PU DeckBox',
-            price: 300.00,
-            availability: 'Pre-order Releasing 15 October',
-            sku: '0.4',
-            category: 'Deckbox',
-            unitsAvailable: 100,
-            description: 'The Hatake TCG PU DeckBox combines elegant Nordic design with practical functionality. With a generous 160+ card capacity and secure magnetic closure, this premium deck box keeps your valuable cards protected in style.',
-            features: [
-                'Premium PU leather exterior with elegant stitching',
-                'Strong magnetic closure for secure transport',
-                'Soft interior lining to prevent card damage',
-                'Reinforced corners for durability',
-                'Separate compartments for main deck and sideboard',
-                'Embossed Hatake logo'
-            ],
-            specifications: {
-                Capacity: '160+ double-sleeved cards',
-                Material: 'High-quality PU leather exterior, microfiber interior',
-                Color: 'Black with blue interior',
-                Closure: 'Magnetic',
-                Dimensions: '168 x 115 x 94 mm'
-            },
-            images: ['IMG_9924.jpeg', 'IMG_9895.jpeg', 'IMG_9899.jpeg', 'IMG_9900.jpeg', 'IMG_9901.jpeg', 'IMG_9903.jpeg', 'IMG_9904.jpeg', 'IMG_9912.jpeg', 'IMG_9941.jpeg', 'IMG_9943.jpeg', 'IMG_9947.jpeg', 'IMG_9948.jpeg', 'IMG_9949.jpeg', 'IMG_9951.jpeg']
-        },
-        {
-            id: 'duffel-bag',
-            name: 'Duffel Bag',
-            price: 300.00,
-            availability: 'Pre-order Releasing 15 July',
-            sku: '0.5',
-            category: 'Bag',
-            unitsAvailable: 22,
-            description: 'The Hatake TCG Duffel Bag is the ultimate tournament companion, designed specifically for TCG players who demand both functionality and style. With dimensions of 47*28*55cm, this spacious bag provides ample room for all your gaming essentials.',
-            features: [
-                'Durable water-resistant exterior',
-                'Padded interior compartments for deck boxes and binders',
-                'Dedicated sleeve pocket to keep your cards protected',
-                'Adjustable shoulder strap with comfort padding',
-                'Side pockets for quick access to frequently used items',
-                'Premium YKK zippers for long-lasting performance'
-            ],
-            specifications: {
-                Dimensions: '47*28*55cm',
-                Material: 'High-quality polyester with water-resistant coating',
-                Color: 'Black with Nordic blue accents',
-                Capacity: 'Fits up to 4 binders, 8 deck boxes, playmats, and accessories’'
-            },
-            images: ['IMG_3159.jpeg']
-        },
-        {
-            id: 'petdragon-playmat',
-            name: 'PetDragon Playmat',
-            price: 120,
-            availability: 'In Stock',
-            description: 'A unique playmat designed by Discus, CEO from our partnered website selling high quality Commander decks. PetDragon and Hatake logo.',
-            features: [],
-            specifications: {
-                Dimensions: '14*24 inches',
-                Shipping: 'Shipped inside of a useable tube'
-            },
-            images: ['IMG_3989.jpeg']
-        }
-    ];
+document.addEventListener('authReady', (e) => {
+    // This function runs when the auth state is confirmed.
+    // The user object (or null if not logged in) is available in e.detail.user
+    const user = e.detail.user;
 
+    // --- DOM Elements ---
     const productGrid = document.getElementById('product-grid');
     const productModal = document.getElementById('product-detail-modal');
     const cartModal = document.getElementById('cart-modal');
+    const checkoutBtn = document.getElementById('checkout-btn');
+
+    // If we're not on the shop page, exit early.
+    if (!productGrid) return;
+
+    // --- Product Data ---
+    const products = [
+        { id: 'matte-sleeves', name: 'Matte Sleeves', price: 89, availability: 'Pre-order Releasing 15 October', sku: '0.01', category: 'Sleeves', unitsAvailable: 1000, description: 'Hatake TCG Matte Sleeves offer premium protection with a sophisticated matte finish that reduces glare and enhances the handling experience. Each pack contains 100 high-quality black sleeves (66x91mm) designed to fit standard TCG cards perfectly.', features: ['Premium matte finish for reduced glare and improved shuffling', 'Acid-free and archival safe materials', 'Perfect clarity on the card face side', 'Consistent sizing for tournament play', 'Durable construction that resists splitting and peeling', 'Compatible with all standard TCG cards'], specifications: { Dimensions: '66x91mm', Quantity: '100 sleeves per pack', Color: 'Black backing with clear front', Material: 'Acid-free polypropylene', Finish: 'Matte' }, images: ['IMG_9962.jpeg', 'IMG_9958.jpeg', 'IMG_9966.jpeg', 'IMG_9967.jpeg', 'IMG_9965.jpeg', 'IMG_9963.jpeg', 'IMG_9969.jpeg', 'IMG_9956.jpeg'] },
+        { id: '480-slot-binder', name: '480-Slot Binder', price: 360, availability: 'Pre-order Releasing 15 October', sku: '0.02', category: 'Binder', unitsAvailable: 100, description: 'The Hatake TCG 480-Slot Binder is the ultimate storage solution for serious collectors. This premium zippered binder features side-loading pockets to keep your valuable cards secure and protected while showcasing your collection in style.', features: ['Premium zippered closure for maximum security', 'Side-loading pockets to prevent cards from falling out', '480 card capacity (60 double-sided pages with 4 cards per side)', 'Acid-free, PVC-free, and archival safe materials', 'Reinforced spine and corners for durability', 'Elegant Nordic-inspired design with embossed Hatake logo'], specifications: { Capacity: '480 standard-sized cards', Material: 'Premium PU leather exterior, acid-free polypropylene pages', Color: 'Black with blue interior', Closure: 'Heavy-duty zipper', 'Page Configuration': '60 double-sided pages with 4 card slots per side' }, images: ['IMG_9839.jpeg', 'IMG_9814.jpeg', 'IMG_9818.jpeg', 'IMG_9816.jpeg', 'IMG_9819.jpeg', 'IMG_9820.jpeg', 'IMG_9823.jpeg', 'IMG_9824.jpeg', 'IMG_9825.jpeg', 'IMG_9826.jpeg', 'IMG_9827.jpeg'] },
+        { id: '25x-35pt-top-loaders', name: '25x 35pt Top-Loaders', price: 30, availability: 'Pre-order 15 October', sku: '0.031', category: 'Top-Loaders', unitsAvailable: 550, description: 'Hatake TCG 35pt Top-Loaders provide superior protection for your most valuable standard-sized trading cards. Each pack contains 25 crystal-clear rigid sleeves designed to preserve your cards in pristine condition.', features: ['Crystal-clear PVC construction for maximum visibility', '35pt thickness provides rigid protection against bending and damage', 'Acid-free and archival safe materials', 'Precision-cut edges to prevent card damage', 'Perfect for storing valuable singles and graded cards', 'Compatible with standard TCG cards in sleeves'], specifications: { Thickness: '35pt (standard)', Quantity: '25 top-loaders per pack', Material: 'Acid-free PVC', Dimensions: 'Fits standard TCG cards (including those in sleeves)', Finish: 'Crystal clear' }, images: ['IMG_9971.jpeg', 'IMG_9970.jpeg', 'IMG_9972.jpeg', 'IMG_9973.jpeg', 'IMG_9974.jpeg', 'IMG_9975.jpeg', 'IMG_9976.jpeg', 'IMG_9978.jpeg'] },
+        { id: '10x-130pt-top-loaders', name: '10x 130pt Top-Loaders', price: 35, availability: 'Pre-order Releasing 15 October', sku: '0.032', category: 'Top-Loaders', unitsAvailable: 200, description: 'Hatake TCG 130pt Top-Loaders are designed for maximum protection of multiple cards or oversized collectibles. Each pack contains 10 extra-thick, crystal-clear rigid sleeves that provide superior protection for your most valuable items.', features: ['Extra-thick 130pt construction for maximum rigidity and protection', 'Crystal-clear PVC for perfect visibility of your collectibles', 'Acid-free and archival safe materials', 'Precision-cut edges to prevent damage', 'Perfect for storing multiple cards together or oversized collectibles', 'Ideal for high-value cards requiring additional protection'], specifications: { Thickness: '130pt (extra thick)', Quantity: '10 top-loaders per pack', Material: 'Acid-free PVC', Dimensions: 'Fits multiple standard TCG cards or oversized collectibles', Finish: 'Crystal clear' }, images: ['IMG_9979.jpeg', 'IMG_9980.jpeg', 'IMG_9981.jpeg', 'IMG_9982.jpeg', 'IMG_9983.jpeg', 'IMG_9984.jpeg', 'IMG_9985.jpeg', 'IMG_9986.jpeg', 'IMG_9987.jpeg'] },
+        { id: 'pu-deckbox', name: 'PU DeckBox', price: 300.00, availability: 'Pre-order Releasing 15 October', sku: '0.4', category: 'Deckbox', unitsAvailable: 100, description: 'The Hatake TCG PU DeckBox combines elegant Nordic design with practical functionality. With a generous 160+ card capacity and secure magnetic closure, this premium deck box keeps your valuable cards protected in style.', features: ['Premium PU leather exterior with elegant stitching', 'Strong magnetic closure for secure transport', 'Soft interior lining to prevent card damage', 'Reinforced corners for durability', 'Separate compartments for main deck and sideboard', 'Embossed Hatake logo'], specifications: { Capacity: '160+ double-sleeved cards', Material: 'High-quality PU leather exterior, microfiber interior', Color: 'Black with blue interior', Closure: 'Magnetic', Dimensions: '168 x 115 x 94 mm' }, images: ['IMG_9924.jpeg', 'IMG_9895.jpeg', 'IMG_9899.jpeg', 'IMG_9900.jpeg', 'IMG_9901.jpeg', 'IMG_9903.jpeg', 'IMG_9904.jpeg', 'IMG_9912.jpeg', 'IMG_9941.jpeg', 'IMG_9943.jpeg', 'IMG_9947.jpeg', 'IMG_9948.jpeg', 'IMG_9949.jpeg', 'IMG_9951.jpeg'] },
+        { id: 'duffel-bag', name: 'Duffel Bag', price: 300.00, availability: 'Pre-order Releasing 15 July', sku: '0.5', category: 'Bag', unitsAvailable: 22, description: 'The Hatake TCG Duffel Bag is the ultimate tournament companion, designed specifically for TCG players who demand both functionality and style. With dimensions of 47*28*55cm, this spacious bag provides ample room for all your gaming essentials.', features: ['Durable water-resistant exterior', 'Padded interior compartments for deck boxes and binders', 'Dedicated sleeve pocket to keep your cards protected', 'Adjustable shoulder strap with comfort padding', 'Side pockets for quick access to frequently used items', 'Premium YKK zippers for long-lasting performance'], specifications: { Dimensions: '47*28*55cm', Material: 'High-quality polyester with water-resistant coating', Color: 'Black with Nordic blue accents', Capacity: 'Fits up to 4 binders, 8 deck boxes, playmats, and accessories’' }, images: ['IMG_3159.jpeg'] },
+        { id: 'petdragon-playmat', name: 'PetDragon Playmat', price: 120, availability: 'In Stock', description: 'A unique playmat designed by Discus, CEO from our partnered website selling high quality Commander decks. PetDragon and Hatake logo.', features: [], specifications: { Dimensions: '14*24 inches', Shipping: 'Shipped inside of a useable tube' }, images: ['IMG_3989.jpeg'] }
+    ];
+
+    // --- State ---
     let cart = [];
+    const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
+
+    // --- Functions ---
 
     function renderProducts() {
         productGrid.innerHTML = '';
         products.forEach(product => {
-            const productCard = `
+            // Corrected image path to use the `images` directory
+            const imagePath = `images/${product.images[0]}`;
+            const productCardHTML = `
                 <div class="product-card">
                     <div class="product-image-container">
-                         <img src="/images/${product.images[0]}" alt="${product.name}" class="product-image">
+                         <img src="${imagePath}" alt="${product.name}" class="product-image" onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/969696?text=Image+Not+Found';">
                     </div>
                     <div class="product-info">
                         <h3>${product.name}</h3>
                         <p class="price">${product.price.toFixed(2)} SEK</p>
                         <p class="availability">${product.availability}</p>
                         <div class="product-actions">
-                            <button class="add-to-cart-btn" data-id="${product.id}">Add to Cart</button>
+                            <button class="add-to-cart-btn" data-id="${product.id}"><i class="fas fa-cart-plus mr-2"></i>Add to Cart</button>
                             <button class="view-more-btn" data-id="${product.id}">View More</button>
                         </div>
                     </div>
                 </div>
             `;
-            productGrid.innerHTML += productCard;
+            productGrid.innerHTML += productCardHTML;
         });
     }
 
@@ -202,33 +58,30 @@ document.addEventListener('authReady', () => {
         const product = products.find(p => p.id === productId);
         const modalBody = document.getElementById('modal-body');
         
-        let thumbnails = '';
-        product.images.forEach(image => {
-            thumbnails += `<img src="/images/${image}" alt="${product.name}" class="thumbnail">`;
-        });
+        const thumbnailsHTML = product.images.map(image => 
+            `<img src="images/${image}" alt="${product.name}" class="thumbnail cursor-pointer">`
+        ).join('');
 
         modalBody.innerHTML = `
             <div class="product-image-gallery">
-                <img src="/images/${product.images[0]}" alt="${product.name}" id="modal-main-image">
-                <div class="thumbnail-strip">
-                    ${thumbnails}
+                <img src="images/${product.images[0]}" alt="${product.name}" id="modal-main-image" class="w-full h-auto object-contain rounded-lg mb-4">
+                <div class="thumbnail-strip flex flex-wrap gap-2 justify-center">
+                    ${thumbnailsHTML}
                 </div>
             </div>
             <div class="product-details-content">
-                <h2>${product.name}</h2>
-                <p class="modal-product-price">${product.price.toFixed(2)} SEK</p>
+                <h2 class="text-3xl font-bold">${product.name}</h2>
+                <p class="modal-product-price text-2xl font-extrabold text-blue-600 my-2">${product.price.toFixed(2)} SEK</p>
                 <p><strong>Availability:</strong> ${product.availability}</p>
-                 <p><strong>Units Available:</strong> ${product.unitsAvailable ? `Only ${product.unitsAvailable} left for preorder` : 'N/A'}</p>
-                <p>${product.description}</p>
-                <h4>Features</h4>
-                <ul>
-                    ${product.features.map(f => `<li>${f}</li>`).join('')}
-                </ul>
-                 <h4>Specifications</h4>
-                <ul>
-                    ${Object.entries(product.specifications).map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`).join('')}
-                </ul>
-                <button class="modal-add-to-cart-button" data-id="${product.id}">Add to Cart</button>
+                ${product.unitsAvailable ? `<p><strong>Units Available:</strong> Only ${product.unitsAvailable} left for preorder</p>` : ''}
+                <p class="mt-4">${product.description}</p>
+                ${product.features.length > 0 ? `
+                    <h4 class="font-bold mt-4">Features</h4>
+                    <ul class="list-disc list-inside">${product.features.map(f => `<li>${f}</li>`).join('')}</ul>
+                ` : ''}
+                <h4 class="font-bold mt-4">Specifications</h4>
+                <ul class="list-disc list-inside">${Object.entries(product.specifications).map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`).join('')}</ul>
+                <button class="modal-add-to-cart-button w-full mt-6 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700" data-id="${product.id}">Add to Cart</button>
             </div>
         `;
         openModal(productModal);
@@ -236,6 +89,8 @@ document.addEventListener('authReady', () => {
         const mainImage = document.getElementById('modal-main-image');
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.addEventListener('click', () => {
+                document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active', 'border-blue-500', 'border-2'));
+                thumb.classList.add('active', 'border-blue-500', 'border-2');
                 mainImage.src = thumb.src;
             });
         });
@@ -243,7 +98,19 @@ document.addEventListener('authReady', () => {
     
     function addToCart(productId) {
         const product = products.find(p => p.id === productId);
-        cart.push(product);
+        // Add a unique instance ID for cart removal purposes
+        const cartItem = { ...product, cartInstanceId: Date.now() + Math.random() };
+        cart.push(cartItem);
+        updateCart();
+    }
+
+    function removeFromCart(cartInstanceId) {
+        // Find the index of the first item with the matching instance ID
+        const itemIndex = cart.findIndex(item => item.cartInstanceId === cartInstanceId);
+        // If found, remove it
+        if (itemIndex > -1) {
+            cart.splice(itemIndex, 1);
+        }
         updateCart();
     }
     
@@ -253,48 +120,125 @@ document.addEventListener('authReady', () => {
         const cartTotalEl = document.getElementById('cart-total');
         
         cartCount.textContent = cart.length;
-        cartItemsContainer.innerHTML = '';
         
-        let total = 0;
-        cart.forEach(item => {
-            total += item.price;
-            const cartItem = `
-                <div class="cart-item">
-                    <img src="/images/${item.images[0]}" alt="${item.name}">
-                    <div class="cart-item-details">
-                        <h4>${item.name}</h4>
-                        <p>${item.price.toFixed(2)} SEK</p>
+        if (cart.length === 0) {
+            cartItemsContainer.innerHTML = '<p class="text-center text-gray-500">Your cart is empty.</p>';
+            checkoutBtn.disabled = true;
+        } else {
+            cartItemsContainer.innerHTML = '';
+            cart.forEach(item => {
+                const cartItemHTML = `
+                    <div class="cart-item flex items-center justify-between py-2 border-b">
+                        <img src="images/${item.images[0]}" alt="${item.name}" class="w-16 h-16 object-cover rounded-md mr-4">
+                        <div class="cart-item-details flex-grow">
+                            <h4 class="font-semibold">${item.name}</h4>
+                            <p class="text-sm text-gray-600">${item.price.toFixed(2)} SEK</p>
+                        </div>
+                        <div class="cart-item-actions">
+                            <button class="remove-item-btn text-red-500 hover:text-red-700" data-instance-id="${item.cartInstanceId}" title="Remove item">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="cart-item-actions">
-                        <button class="remove-item-btn" data-id="${item.id}"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `;
-            cartItemsContainer.innerHTML += cartItem;
-        });
+                `;
+                cartItemsContainer.innerHTML += cartItemHTML;
+            });
+            checkoutBtn.disabled = false;
+        }
         
+        const total = cart.reduce((sum, item) => sum + item.price, 0);
         cartTotalEl.textContent = total.toFixed(2);
     }
     
+    async function handleCheckout() {
+        if (!user) {
+            alert("Please log in or register to check out.");
+            openModal(document.getElementById('loginModal'));
+            return;
+        }
+
+        checkoutBtn.disabled = true;
+        checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Redirecting to payment...';
+
+        const groupedCart = cart.reduce((acc, item) => {
+            if (!acc[item.id]) {
+                acc[item.id] = { ...item, quantity: 0 };
+            }
+            acc[item.id].quantity += 1;
+            return acc;
+        }, {});
+
+        const line_items = Object.values(groupedCart).map(item => {
+            return {
+                price_data: {
+                    currency: 'sek',
+                    product_data: {
+                        name: item.name,
+                        // Use a full, absolute URL for Stripe images
+                        images: [`https://hatakesocial.com/images/${item.images[0]}`], 
+                    },
+                    unit_amount: item.price * 100, // Price in öre
+                },
+                quantity: item.quantity,
+            };
+        });
+
+        try {
+            const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js");
+            const functions = getFunctions(firebase.app());
+            const createStripeCheckout = httpsCallable(functions, 'createStripeCheckout');
+            
+            const result = await createStripeCheckout({ line_items });
+            const sessionId = result.data.id;
+
+            const { error } = await stripe.redirectToCheckout({ sessionId });
+            if (error) {
+                alert(error.message);
+            }
+        } catch (error) {
+            console.error("Error during checkout: ", error);
+            alert("Could not initiate checkout. Please see the console for details. You may need to deploy the Firebase Cloud Function.");
+        } finally {
+            checkoutBtn.disabled = false;
+            checkoutBtn.textContent = 'Checkout';
+        }
+    }
+
+    // --- Event Listeners ---
+
     productGrid.addEventListener('click', (e) => {
-        if (e.target.classList.contains('add-to-cart-btn')) {
-            addToCart(e.target.dataset.id);
-        } else if (e.target.classList.contains('view-more-btn')) {
-            showProductDetail(e.target.dataset.id);
+        const addBtn = e.target.closest('.add-to-cart-btn');
+        const viewBtn = e.target.closest('.view-more-btn');
+        if (addBtn) {
+            addToCart(addBtn.dataset.id);
+        } else if (viewBtn) {
+            showProductDetail(viewBtn.dataset.id);
+        }
+    });
+
+    document.getElementById('modal-body').addEventListener('click', (e) => {
+        const addBtn = e.target.closest('.modal-add-to-cart-button');
+        if (addBtn) {
+            addToCart(addBtn.dataset.id);
+            closeModal(productModal);
+            openModal(cartModal);
+        }
+    });
+
+    document.getElementById('cart-items-container').addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-item-btn');
+        if (removeBtn) {
+            const instanceId = parseFloat(removeBtn.dataset.instanceId);
+            removeFromCart(instanceId);
         }
     });
 
     document.getElementById('close-product-modal').addEventListener('click', () => closeModal(productModal));
     document.getElementById('cart-button').addEventListener('click', () => openModal(cartModal));
     document.getElementById('close-cart-modal').addEventListener('click', () => closeModal(cartModal));
+    checkoutBtn.addEventListener('click', handleCheckout);
 
-    document.body.addEventListener('click', (e) => {
-        if(e.target.classList.contains('modal-add-to-cart-button')) {
-             addToCart(e.target.dataset.id);
-             closeModal(productModal);
-             openModal(cartModal);
-        }
-    });
-
+    // --- Initial Load ---
     renderProducts();
+    updateCart();
 });
