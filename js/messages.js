@@ -15,6 +15,7 @@ document.addEventListener('authReady', (e) => {
         return;
     }
 
+    
     let currentChatListener = null;
     let currentConversationId = null;
 
