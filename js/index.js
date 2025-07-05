@@ -1,3 +1,9 @@
+/**
+ * HatakeSocial - Index Page (Feed) Script
+ *
+ * This script waits for the 'authReady' event from auth.js before running.
+ * It handles all logic for the main feed on index.html.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
@@ -14,7 +20,7 @@ document.addEventListener('authReady', (e) => {
 
     // --- Functions ---
     const renderComments = (commentsListEl, comments) => {
-        if (!comments || comments.length === 0) {
+        if (!Array.isArray(comments) || comments.length === 0) {
             commentsListEl.innerHTML = '<p class="text-gray-500 text-sm px-2">No comments yet.</p>';
             return;
         }
@@ -55,7 +61,7 @@ document.addEventListener('authReady', (e) => {
                 content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="marketplace.html?cardName=$1" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
 
                 // **THE FIX IS HERE**
-                // Check if post.likes is an array before calling .includes()
+                // Safely check if post.likes is an array before calling .includes()
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
 
                 postElement.innerHTML = `
@@ -169,7 +175,6 @@ document.addEventListener('authReady', (e) => {
             await db.runTransaction(async t => {
                 const doc = await t.get(postRef);
                 const data = doc.data();
-                // Ensure likes is an array before trying to modify it
                 const likes = Array.isArray(data.likes) ? data.likes : [];
                 const userIndex = likes.indexOf(user.uid);
                 if (userIndex === -1) {
