@@ -1,5 +1,3 @@
-// Note: The initial comment block that caused the syntax error has been removed.
-
 document.addEventListener('authReady', (e) => {
     const db = firebase.firestore();
     const params = new URLSearchParams(window.location.search);
@@ -10,7 +8,6 @@ document.addEventListener('authReady', (e) => {
     const searchBarPage = document.getElementById('search-bar-page');
     const searchFormPage = document.getElementById('search-form-page');
     
-    // New filter elements
     const filterForm = document.getElementById('filter-form');
     const filterUsersCheckbox = document.getElementById('filter-users');
     const filterDecksCheckbox = document.getElementById('filter-decks');
@@ -35,7 +32,6 @@ document.addEventListener('authReady', (e) => {
         });
     }
 
-    // New listener for the filter form
     if (filterForm) {
         filterForm.addEventListener('change', () => {
             runSearches(query);
@@ -43,8 +39,6 @@ document.addEventListener('authReady', (e) => {
     }
 
     // --- Search Functions ---
-
-    // This function decides which searches to run based on the filter checkboxes
     function runSearches(searchTerm) {
         if (!searchTerm) return;
 
@@ -57,11 +51,12 @@ document.addEventListener('authReady', (e) => {
         if (filterCardsCheckbox.checked) searchCards(searchTerm);
     }
 
-    // Search for users (this query is generally safe)
     async function searchUsers(searchTerm) {
         const container = document.getElementById('users-results');
         container.innerHTML = '<p class="text-gray-500">Searching for users...</p>';
         const usersRef = db.collection('users');
+        // This type of query requires an index in Firestore. 
+        // If it fails, Firebase will provide a link in the browser console to create it.
         const snapshot = await usersRef.orderBy('displayName').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
 
         if (snapshot.empty) {
@@ -85,15 +80,13 @@ document.addEventListener('authReady', (e) => {
         });
     }
 
-    // **REVISED & FIXED** Search for decks without permission errors
     async function searchDecks(searchTerm) {
         const container = document.getElementById('decks-results');
         container.innerHTML = '<p class="text-gray-500">Searching for decks...</p>';
-        
-        // This query is allowed because it queries a top-level collection group.
-        // Make sure you have Firestore rules that allow reading the 'decks' collection group.
         const decksRef = db.collectionGroup('decks');
         try {
+            // This query requires a composite index in Firestore. 
+            // The console error will provide a direct link to create it.
             const snapshot = await decksRef.where('name', '>=', searchTerm).where('name', '<=', searchTerm + '\uf8ff').get();
 
             if (snapshot.empty) {
@@ -115,19 +108,19 @@ document.addEventListener('authReady', (e) => {
             });
         } catch (error) {
             console.error("Deck search error: ", error);
-            container.innerHTML = `<p class="text-red-500">Could not search for decks. The required database index might be missing or security rules are blocking access.</p>
-            <p class="text-sm text-gray-600 mt-2">Please check your Firestore security rules to ensure you allow reads on the 'decks' collection group, e.g., <code>match '/users/{userId}/decks/{deckId}' { allow read: if true; }</code></p>`;
+            container.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                <p class="font-bold">Permission Error</p>
+                <p>Could not search decks. Please check the browser console (F12) for an error message. It may contain a link to create the required database index in Firebase.</p>
+            </div>`;
         }
     }
 
-    // **REVISED & FIXED** Search for cards without permission errors
     async function searchCards(searchTerm) {
         const container = document.getElementById('cards-results');
         container.innerHTML = '<p class="text-gray-500">Searching for cards...</p>';
-        
-        // This query is also allowed if the rules are set up correctly.
         const cardsRef = db.collectionGroup('collection');
         try {
+            // This query also requires a composite index.
             const snapshot = await cardsRef.where('name', '>=', searchTerm).where('name', '<=', searchTerm + '\uf8ff').get();
 
             if (snapshot.empty) {
@@ -139,11 +132,7 @@ document.addEventListener('authReady', (e) => {
             snapshot.forEach(doc => {
                 const card = doc.data();
                 if (!uniqueCards[card.name]) {
-                    uniqueCards[card.name] = {
-                        name: card.name,
-                        imageUrl: card.imageUrl,
-                        count: 0
-                    };
+                    uniqueCards[card.name] = { name: card.name, imageUrl: card.imageUrl, count: 0 };
                 }
                 if (card.forSale) {
                     uniqueCards[card.name].count++;
@@ -165,8 +154,10 @@ document.addEventListener('authReady', (e) => {
             });
         } catch (error) {
             console.error("Card search error: ", error);
-            container.innerHTML = `<p class="text-red-500">Could not search for cards. The required database index might be missing or security rules are blocking access.</p>
-            <p class="text-sm text-gray-600 mt-2">Please check your Firestore security rules to ensure you allow reads on the 'collection' collection group, e.g., <code>match '/users/{userId}/collection/{cardId}' { allow read: if true; }</code></p>`;
+             container.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                <p class="font-bold">Permission Error</p>
+                <p>Could not search cards. Please check the browser console (F12) for an error message. It may contain a link to create the required database index in Firebase.</p>
+            </div>`;
         }
     }
 
