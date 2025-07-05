@@ -1,11 +1,18 @@
+/**
+ * HatakeSocial - Profile Page Script (v3 - Trade History)
+ *
+ * This script handles all logic for the profile.html page.
+ * - NEW: Adds a "Trade History" tab.
+ * - NEW: Adds a visual indicator for cards that are for sale in the "Collection" tab.
+ */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
 
-    profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
-
     const setupProfilePage = async () => {
+        profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
+        
         try {
             const params = new URLSearchParams(window.location.search);
             let userDoc;
@@ -33,13 +40,9 @@ document.addEventListener('authReady', (e) => {
             const ratingCount = profileUserData.ratingCount || 0;
             let starsHTML = '';
             for (let i = 1; i <= 5; i++) {
-                if (i <= averageRating) {
-                    starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
-                } else if (i - 0.5 <= averageRating) {
-                    starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
-                } else {
-                    starsHTML += '<i class="far fa-star text-gray-300"></i>';
-                }
+                if (i <= averageRating) starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
+                else if (i - 0.5 <= averageRating) starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
+                else starsHTML += '<i class="far fa-star text-gray-300"></i>';
             }
             const reputationHTML = `
                 <div class="flex items-center space-x-2 text-sm text-gray-600 mt-1">
@@ -54,7 +57,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="relative">
                         <img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner'}" alt="Profile banner">
                         <div class="absolute top-4 right-4">
-                            <a href="settings.html" id="edit-profile-btn" class="hidden px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm">Edit Profile</a>
+                            ${currentUser && currentUser.uid === profileUserId ? `<a href="settings.html" class="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm">Edit Profile</a>` : ''}
                         </div>
                     </div>
                     <div class="p-6">
@@ -67,7 +70,9 @@ document.addEventListener('authReady', (e) => {
                                         <p id="profile-handle" class="text-gray-600">@${profileUserData.handle || 'no-handle'}</p>
                                         ${reputationHTML}
                                     </div>
-                                    <div id="profile-action-buttons" class="flex space-x-2"></div>
+                                    <div id="profile-action-buttons" class="flex space-x-2">
+                                        ${currentUser && currentUser.uid !== profileUserId ? `<button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>` : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -87,6 +92,7 @@ document.addEventListener('authReady', (e) => {
                             <button data-tab="decks" class="profile-tab-button">Decks</button>
                             <button data-tab="collection" class="profile-tab-button">Collection</button>
                             <button data-tab="wishlist" class="profile-tab-button">Wishlist</button>
+                            <button data-tab="trade-history" class="profile-tab-button">Trade History</button>
                             <button data-tab="feedback" class="profile-tab-button">Feedback</button>
                         </nav>
                     </div>
@@ -95,19 +101,16 @@ document.addEventListener('authReady', (e) => {
                         <div id="tab-content-decks" class="profile-tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
                         <div id="tab-content-collection" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
                         <div id="tab-content-wishlist" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
+                        <div id="tab-content-trade-history" class="profile-tab-content hidden space-y-4"></div>
                         <div id="tab-content-feedback" class="profile-tab-content hidden space-y-4"></div>
                     </div>
                 </div>
             `;
 
-            if (currentUser && currentUser.uid !== profileUserId) {
-                document.getElementById('profile-action-buttons').innerHTML = `<button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
-                document.getElementById('message-btn').addEventListener('click', (e) => {
-                    window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
-                });
-            } else if (currentUser && currentUser.uid === profileUserId) {
-                document.getElementById('edit-profile-btn').classList.remove('hidden');
-            }
+            // Add event listeners after the HTML is created
+            document.getElementById('message-btn')?.addEventListener('click', (e) => {
+                window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
+            });
 
             document.querySelectorAll('.profile-tab-button').forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -118,10 +121,12 @@ document.addEventListener('authReady', (e) => {
                 });
             });
 
+            // Load initial tab content
             loadProfileFeed(profileUserId);
             loadProfileDecks(profileUserId);
             loadProfileCollection(profileUserId, 'collection');
             loadProfileCollection(profileUserId, 'wishlist');
+            loadProfileTradeHistory(profileUserId);
             loadProfileFeedback(profileUserId);
 
         } catch (error) {
@@ -132,7 +137,6 @@ document.addEventListener('authReady', (e) => {
     
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
-        if (!container) return;
         container.innerHTML = '<p class="text-gray-500">Loading feed...</p>';
         const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
         if(snapshot.empty) {
@@ -161,7 +165,6 @@ document.addEventListener('authReady', (e) => {
 
     const loadProfileDecks = async (userId) => {
         const container = document.getElementById('tab-content-decks');
-        if (!container) return;
         container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
         const snapshot = await db.collection('users').doc(userId).collection('decks').orderBy('createdAt', 'desc').get();
         if (snapshot.empty) {
@@ -171,8 +174,9 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = '';
         snapshot.forEach(doc => {
             const deck = doc.data();
-            const deckCard = document.createElement('div');
-            deckCard.className = 'bg-white p-4 rounded-lg shadow-md';
+            const deckCard = document.createElement('a');
+            deckCard.href = `deck.html?deckId=${doc.id}`;
+            deckCard.className = 'bg-white p-4 rounded-lg shadow-md block hover:shadow-lg';
             deckCard.innerHTML = `<h3 class="text-xl font-bold truncate">${deck.name}</h3><p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>`;
             container.appendChild(deckCard);
         });
@@ -180,9 +184,8 @@ document.addEventListener('authReady', (e) => {
     
     const loadProfileCollection = async (userId, listType) => {
         const container = document.getElementById(`tab-content-${listType}`);
-        if (!container) return;
         container.innerHTML = '<p class="text-gray-500">Loading...</p>';
-        const snapshot = await db.collection('users').doc(userId).collection(listType).limit(24).get();
+        const snapshot = await db.collection('users').doc(userId).collection(listType).limit(32).get();
         if (snapshot.empty) {
             container.innerHTML = `<p class="text-center text-gray-500">This user's ${listType} is empty or private.</p>`;
             return;
@@ -190,10 +193,64 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = '';
         snapshot.forEach(doc => {
             const card = doc.data();
-            const cardEl = document.createElement('div');
-            cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full">`;
+            const cardEl = document.createElement('a');
+            cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
+            cardEl.className = 'block relative';
+            // NEW: Add a green border if the card is for sale
+            const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
+            cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">`;
             container.appendChild(cardEl);
         });
+    };
+
+    // --- NEW: Function to load trade history ---
+    const loadProfileTradeHistory = async (userId) => {
+        const container = document.getElementById('tab-content-trade-history');
+        container.innerHTML = '<p class="text-gray-500">Loading trade history...</p>';
+
+        try {
+            const snapshot = await db.collection('trades')
+                .where('participants', 'array-contains', userId)
+                .orderBy('createdAt', 'desc')
+                .limit(20)
+                .get();
+
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500">This user has no trade history.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const trade = doc.data();
+                const isProposer = trade.proposerId === userId;
+                const otherPartyName = isProposer ? trade.receiverName : trade.proposerName;
+                const otherPartyId = isProposer ? trade.receiverId : trade.proposerId;
+
+                const statusClasses = {
+                    pending: 'bg-yellow-100 text-yellow-800',
+                    accepted: 'bg-blue-100 text-blue-800',
+                    completed: 'bg-green-100 text-green-800',
+                    rejected: 'bg-red-100 text-red-800',
+                };
+                const statusClass = statusClasses[trade.status] || 'bg-gray-100';
+
+                const tradeCard = `
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="font-semibold">Trade with <a href="profile.html?uid=${otherPartyId}" class="text-blue-600 hover:underline">${otherPartyName}</a></p>
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass}">${trade.status}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 text-left">${new Date(trade.createdAt.toDate()).toLocaleDateString()}</p>
+                    </div>
+                `;
+                container.innerHTML += tradeCard;
+            });
+
+        } catch (error) {
+            console.error("Error loading trade history:", error);
+            container.innerHTML = `<p class="text-center text-red-500">Could not load trade history. The required database index may be building.</p>`;
+        }
     };
 
     const loadProfileFeedback = async (userId) => {
@@ -228,5 +285,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    // --- Initial Load ---
     setupProfilePage();
 });
