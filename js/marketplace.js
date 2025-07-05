@@ -211,6 +211,7 @@ document.addEventListener('authReady', (e) => {
         sendTradeOfferBtn.disabled = true;
         sendTradeOfferBtn.textContent = 'Sending...';
 
+        
         const tradeData = {
             proposerId: user.uid,
             proposerName: user.displayName,
