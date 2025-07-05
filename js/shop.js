@@ -294,7 +294,6 @@ document.addEventListener('authReady', () => {
              closeModal(productModal);
              openModal(cartModal);
         }
-        
     });
 
     renderProducts();
