@@ -12,7 +12,6 @@
 
    <!-- Header Section -->
     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
-        <!-- Standard Header will be loaded here via JS or server-side include -->
         <div class="container mx-auto px-4 flex justify-between items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -67,7 +66,6 @@
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-2xl font-bold mb-4">Add to Your Collection</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Add Single Card Form -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Search for a Card</h3>
                     <div id="search-card-form" class="space-y-3">
@@ -75,7 +73,6 @@
                         <button type="button" id="search-card-btn" class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700">Search</button>
                     </div>
                 </div>
-                <!-- CSV Upload -->
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Import from ManaBox (.csv)</h3>
                     <p class="text-sm text-gray-600 mb-3">Export your collection from ManaBox and upload it here.</p>
@@ -111,10 +108,12 @@
                     <h2 class="text-3xl font-bold text-gray-800">My Collection</h2>
                     <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
                 </div>
-                <!-- NEW: Bulk Action Bar -->
-                <div id="bulk-action-bar" class="hidden bg-white p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40">
-                    <div>
-                        <span id="selected-count">0</span> cards selected
+                <!-- Bulk Action Bar -->
+                <div id="bulk-action-bar" class="hidden bg-white p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500">
+                        <label for="select-all-checkbox" class="font-medium">Select All</label>
+                        <span id="selected-count" class="text-gray-600">0 cards selected</span>
                     </div>
                     <div class="space-x-2">
                          <button id="list-selected-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">List for Sale</button>
@@ -198,14 +197,17 @@
         </div>
     </div>
 
-    <!-- NEW: List for Sale Modal -->
+    <!-- List for Sale Modal -->
     <div id="list-for-sale-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md">
             <button id="close-list-sale-modal" class="close-button">&times;</button>
             <h2 class="text-2xl font-bold mb-4">List Selected Cards</h2>
             <p class="mb-4">You have selected <strong id="list-sale-count">0</strong> cards. How would you like to price them?</p>
             <div class="space-y-4">
-                <button id="list-at-market-price-btn" class="w-full bg-blue-600 text-white py-3 rounded-full hover:bg-blue-700 font-semibold">List at Market Price (USD)</button>
+                 <form id="percentage-price-form" class="flex items-center space-x-2">
+                    <input type="number" id="percentage-price-input" placeholder="% of Market Price" class="w-full p-2 border rounded-md" min="1" max="500" required>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Set %</button>
+                </form>
                 <div class="relative">
                     <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="w-full border-t border-gray-300"></div></div>
                     <div class="relative flex justify-center"><span class="px-2 bg-white text-sm text-gray-500">OR</span></div>
@@ -218,7 +220,7 @@
         </div>
     </div>
 
-  <!-- Login Modal -->
+ <!-- Login Modal -->
 <div id="loginModal" class="modal-overlay">
     <div class="modal-content w-full max-w-md">
         <button class="close-button" id="closeLoginModal">&times;</button>
@@ -273,7 +275,6 @@
         </form>
     </div>
 </div>
-
 
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
