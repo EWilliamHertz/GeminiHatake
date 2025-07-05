@@ -1,19 +1,15 @@
 /**
- * HatakeSocial - Deck Page Script
+ * HatakeSocial - Deck Page Script (v2 - Delete Deck)
  *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles all logic specific to the deck.html page.
+ * This script handles all logic specific to the deck.html page.
+ * - Adds the ability for a user to delete their own decks.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
-    // If this element doesn't exist, we're not on the deck page, so do nothing.
     if (!deckBuilderForm) return;
 
-    console.log("Deck.js is now running safely!"); // For debugging
-
     let deckToShare = null;
-
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     const deckFilters = document.getElementById('deck-filters');
@@ -238,16 +234,28 @@ document.addEventListener('authReady', (e) => {
             const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white p-4 rounded-lg shadow-md';
+            
             deckCard.innerHTML = `
-                <div class="cursor-pointer hover:opacity-80">
+                <div class="cursor-pointer hover:opacity-80" data-deck-id="${doc.id}">
                     <h3 class="text-xl font-bold">${deck.name}</h3>
                     <p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>
                     <p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>
                 </div>
-                <button class="edit-deck-btn mt-2 text-sm text-gray-500 hover:text-black">Edit</button>`;
+                <div class="mt-2 flex space-x-2">
+                    <button class="edit-deck-btn text-sm text-gray-500 hover:text-black" data-deck-id="${doc.id}">Edit</button>
+                    <button class="delete-deck-btn text-sm text-red-500 hover:text-red-700" data-deck-id="${doc.id}">Delete</button>
+                </div>
+            `;
             
             deckCard.querySelector('.cursor-pointer').addEventListener('click', () => viewDeck(deck, doc.id));
             deckCard.querySelector('.edit-deck-btn').addEventListener('click', () => editDeck(deck, doc.id));
+            deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
+                if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
+                    await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
+                    alert('Deck deleted successfully.');
+                    loadMyDecks(); // Refresh the list
+                }
+            });
             myDecksList.appendChild(deckCard);
         });
     };
@@ -304,5 +312,9 @@ document.addEventListener('authReady', (e) => {
                     viewDeck(doc.data(), doc.id);
                 }
             });
+    }
+
+    if (user) {
+        loadMyDecks();
     }
 });
