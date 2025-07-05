@@ -68,7 +68,11 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading marketplace:", error);
-            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-red-500 p-8">Could not load marketplace cards.</p>';
+            // **IMPROVED ERROR MESSAGE**
+            marketplaceGrid.innerHTML = `<div class="col-span-full bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                <p class="font-bold">Error Loading Marketplace</p>
+                <p>Could not load marketplace cards due to a permissions issue. Please ensure your Firestore Security Rules have been updated with the latest version provided.</p>
+            </div>`;
         } finally {
             loader.style.display = 'none';
         }
@@ -84,7 +88,6 @@ document.addEventListener('authReady', (e) => {
         cards.forEach(card => {
             const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `${card.salePrice.toFixed(2)} SEK` : 'For Trade';
             const cardEl = document.createElement('div');
-            // This is the updated HTML that wraps the entire card in a link to card-view.html
             cardEl.innerHTML = `
                 <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block bg-white rounded-lg shadow-md p-2 flex flex-col transition hover:shadow-xl hover:-translate-y-1 h-full">
                     <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
@@ -232,22 +235,12 @@ document.addEventListener('authReady', (e) => {
             sendTradeOfferBtn.textContent = 'Send Trade Offer';
         }
     };
-
-    // The 'propose-trade-btn' was removed from the marketplace grid,
-    // so this listener is no longer needed. If you add a similar button
-    // elsewhere (like on card-view.html), you would use this logic.
-    // marketplaceGrid.addEventListener('click', (e) => {
-    //     const button = e.target.closest('.propose-trade-btn');
-    //     if (button) {
-    //         openTradeModal(button.dataset.cardId);
-    //     }
-    // });
-
+    
     closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
     sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
     document.getElementById('proposer-selected-cards')?.addEventListener('click', (e) => {
         const button = e.target.closest('.remove-trade-item-btn');
-        if (button) removeCardFromTrade(button.dataset.cardId);
+        if (button) removeCardFromTrade(button.dataset.id);
     });
     document.getElementById('my-collection-search')?.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
