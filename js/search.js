@@ -55,8 +55,6 @@ document.addEventListener('authReady', (e) => {
         const container = document.getElementById('users-results');
         container.innerHTML = '<p class="text-gray-500">Searching for users...</p>';
         const usersRef = db.collection('users');
-        // This type of query requires an index in Firestore. 
-        // If it fails, Firebase will provide a link in the browser console to create it.
         const snapshot = await usersRef.orderBy('displayName').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
 
         if (snapshot.empty) {
@@ -85,8 +83,6 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = '<p class="text-gray-500">Searching for decks...</p>';
         const decksRef = db.collectionGroup('decks');
         try {
-            // This query requires a composite index in Firestore. 
-            // The console error will provide a direct link to create it.
             const snapshot = await decksRef.where('name', '>=', searchTerm).where('name', '<=', searchTerm + '\uf8ff').get();
 
             if (snapshot.empty) {
@@ -110,7 +106,7 @@ document.addEventListener('authReady', (e) => {
             console.error("Deck search error: ", error);
             container.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
                 <p class="font-bold">Permission Error</p>
-                <p>Could not search decks. Please check the browser console (F12) for an error message. It may contain a link to create the required database index in Firebase.</p>
+                <p>Could not search decks. You may need to create a database index in Firebase. Check the console for a link.</p>
             </div>`;
         }
     }
@@ -120,7 +116,6 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = '<p class="text-gray-500">Searching for cards...</p>';
         const cardsRef = db.collectionGroup('collection');
         try {
-            // This query also requires a composite index.
             const snapshot = await cardsRef.where('name', '>=', searchTerm).where('name', '<=', searchTerm + '\uf8ff').get();
 
             if (snapshot.empty) {
@@ -141,12 +136,13 @@ document.addEventListener('authReady', (e) => {
 
             container.innerHTML = '';
             Object.values(uniqueCards).forEach(card => {
+                // Updated link to point to card-view.html
                 const cardHTML = `
-                    <a href="marketplace.html?cardName=${encodeURIComponent(card.name)}" class="block bg-white rounded-lg shadow-md p-2 transition hover:shadow-xl hover:-translate-y-1">
+                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block bg-white rounded-lg shadow-md p-2 transition hover:shadow-xl hover:-translate-y-1">
                         <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
                         <div class="p-2 text-center">
                              <p class="font-semibold text-sm">${card.name}</p>
-                             ${card.count > 0 ? `<p class="text-xs text-blue-600">${card.count} listing(s) available</p>` : '<p class="text-xs text-gray-500">View in Marketplace</p>'}
+                             ${card.count > 0 ? `<p class="text-xs text-blue-600">${card.count} listing(s) available</p>` : '<p class="text-xs text-gray-500">View Listings</p>'}
                         </div>
                     </a>
                 `;
@@ -154,9 +150,9 @@ document.addEventListener('authReady', (e) => {
             });
         } catch (error) {
             console.error("Card search error: ", error);
-             container.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+            container.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
                 <p class="font-bold">Permission Error</p>
-                <p>Could not search cards. Please check the browser console (F12) for an error message. It may contain a link to create the required database index in Firebase.</p>
+                <p>Could not search cards. You may need to create a database index in Firebase. Check the console for a link.</p>
             </div>`;
         }
     }
