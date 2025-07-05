@@ -1,5 +1,4 @@
-/**
- * HatakeSocial - Trades Page Script (v7 - Final Fixes)
+* HatakeSocial - Trades Page Script (v8 - Final Fixes)
  *
  * This script handles all logic for the trades page.
  * - Fixes user search permissions error by providing better console feedback.
@@ -442,7 +441,6 @@ document.addEventListener('authReady', (e) => {
                 const oldRatingCount = userDoc.data().ratingCount || 0;
                 const newRatingCount = oldRatingCount + 1;
                 const newRatingTotal = oldRatingTotal + rating;
-                // **THE FIX IS HERE** Corrected the average rating calculation.
                 const newAverageRating = newRatingTotal / newRatingCount;
                 transaction.update(userRef, {
                     ratingCount: newRatingCount,
