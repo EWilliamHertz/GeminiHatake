@@ -1,23 +1,24 @@
 /**
- * HatakeSocial - Trades Page Script (v4 - Reputation System Merged)
+ * HatakeSocial - Trades Page Script (v5 - Fully Merged)
  *
  * This script handles all logic for the trades page, including:
  * - Proposing a new trade from scratch.
- * - Displaying incoming, outgoing, and historical trades.
+ * - Displaying incoming, outgoing, and historical trades correctly.
  * - Handling trade actions (accept, decline, complete).
- * - The new reputation system for leaving feedback after a trade.
+ * - The reputation system for leaving feedback after a trade.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
-    const incomingContainer = document.getElementById('tab-content-incoming');
-    if (!incomingContainer) return;
+    const tradesPageContainer = document.querySelector('main.container');
+    if (!tradesPageContainer || !document.getElementById('tab-content-incoming')) return;
 
     if (!user) {
-        incomingContainer.innerHTML = '<p class="text-center text-gray-500 p-8">Please log in to view your trades.</p>';
+        tradesPageContainer.innerHTML = '<p class="text-center text-gray-500 p-8">Please log in to view your trades.</p>';
         return;
     }
 
     // --- DOM Elements ---
+    const incomingContainer = document.getElementById('tab-content-incoming');
     const outgoingContainer = document.getElementById('tab-content-outgoing');
     const historyContainer = document.getElementById('tab-content-history');
     const tabs = document.querySelectorAll('.trade-tab-button');
@@ -55,24 +56,50 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- Trade Display Functions ---
-    const renderTradeItems = (cards = [], money = 0) => {
-        let itemsHtml = cards.map(card => `
-            <div class="flex items-center space-x-2">
-                <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 object-cover rounded-sm">
-                <span class="text-sm">${card.name}</span>
-            </div>
-        `).join('');
+    // --- Main Loading Function (FIXED) ---
+    const loadAllTrades = () => {
+        const tradesRef = db.collection('trades').where('participants', 'array-contains', user.uid).orderBy('createdAt', 'desc');
 
-        if (money > 0) {
-            itemsHtml += `
-                <div class="flex items-center space-x-2 mt-2 pt-2 border-t">
-                    <i class="fas fa-money-bill-wave text-green-500"></i>
-                    <span class="text-sm font-semibold">${money.toFixed(2)} SEK</span>
-                </div>
-            `;
-        }
-        return itemsHtml || '<p class="text-sm text-gray-500 italic">No items</p>';
+        tradesRef.onSnapshot(snapshot => {
+            incomingContainer.innerHTML = '';
+            outgoingContainer.innerHTML = '';
+            historyContainer.innerHTML = '';
+
+            if (snapshot.empty) {
+                incomingContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No incoming offers.</p>';
+                outgoingContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No outgoing offers.</p>';
+                historyContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No trade history.</p>';
+                return;
+            }
+
+            let hasIncoming = false, hasOutgoing = false, hasHistory = false;
+
+            snapshot.forEach(doc => {
+                const trade = doc.data();
+                const tradeCard = createTradeCard(trade, doc.id);
+
+                if (trade.status === 'pending' && trade.receiverId === user.uid) {
+                    incomingContainer.appendChild(tradeCard);
+                    hasIncoming = true;
+                } else if (trade.status === 'pending' && trade.proposerId === user.uid) {
+                    outgoingContainer.appendChild(tradeCard);
+                    hasOutgoing = true;
+                } else if (trade.status !== 'pending') {
+                    historyContainer.appendChild(tradeCard);
+                    hasHistory = true;
+                }
+            });
+
+            if (!hasIncoming) incomingContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No incoming offers.</p>';
+            if (!hasOutgoing) outgoingContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No outgoing offers.</p>';
+            if (!hasHistory) historyContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No trade history.</p>';
+
+        }, err => {
+            console.error("Error loading trades:", err);
+            incomingContainer.innerHTML = `<p class="text-red-500 p-4">Error loading trades: ${err.message}</p>`;
+            outgoingContainer.innerHTML = `<p class="text-red-500 p-4">Error loading trades: ${err.message}</p>`;
+            historyContainer.innerHTML = `<p class="text-red-500 p-4">Error loading trades: ${err.message}</p>`;
+        });
     };
 
     const createTradeCard = (trade, tradeId) => {
@@ -98,7 +125,7 @@ document.addEventListener('authReady', (e) => {
                 <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Accept</button>
             `;
         } else if (trade.status === 'accepted') {
-            actionButtons = `<button data-id="${tradeId}" class="complete-trade-btn px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Mark as Complete</button>`;
+             actionButtons = `<button data-id="${tradeId}" class="complete-trade-btn px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Mark as Complete</button>`;
         } else if (trade.status === 'completed') {
             const userHasLeftFeedback = (isIncoming && trade.receiverLeftFeedback) || (!isIncoming && trade.proposerLeftFeedback);
             if (!userHasLeftFeedback) {
@@ -134,21 +161,23 @@ document.addEventListener('authReady', (e) => {
         return tradeCard;
     };
 
-    const loadTrades = (container, query) => {
-        container.innerHTML = '<p class="text-center p-4">Loading trades...</p>';
-        query.onSnapshot(snapshot => {
-            if (snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 p-4">No trades here.</p>';
-                return;
-            }
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                container.appendChild(createTradeCard(doc.data(), doc.id));
-            });
-        }, err => {
-            console.error("Error loading trades:", err);
-            container.innerHTML = '<p class="text-red-500 p-4">Error loading trades.</p>';
-        });
+    const renderTradeItems = (cards = [], money = 0) => {
+        let itemsHtml = cards.map(card => `
+            <div class="flex items-center space-x-2">
+                <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 object-cover rounded-sm">
+                <span class="text-sm">${card.name}</span>
+            </div>
+        `).join('');
+
+        if (money > 0) {
+            itemsHtml += `
+                <div class="flex items-center space-x-2 mt-2 pt-2 border-t">
+                    <i class="fas fa-money-bill-wave text-green-500"></i>
+                    <span class="text-sm font-semibold">${money.toFixed(2)} SEK</span>
+                </div>
+            `;
+        }
+        return itemsHtml || '<p class="text-sm text-gray-500 italic">No items</p>';
     };
 
     // --- Propose Trade Modal Logic ---
@@ -255,7 +284,7 @@ document.addEventListener('authReady', (e) => {
             proposerName: user.displayName,
             receiverId: tradeOffer.receiver.id,
             receiverName: tradeOffer.receiver.displayName,
-            participants: [user.uid, tradeOffer.receiver.id], // For easier querying later
+            participants: [user.uid, tradeOffer.receiver.id],
             proposerCards: tradeOffer.proposerCards.map(c => ({ name: c.name, imageUrl: c.imageUrl, value: c.priceUsd })),
             receiverCards: tradeOffer.receiverCards.map(c => ({ name: c.name, imageUrl: c.imageUrl, value: c.priceUsd })),
             proposerMoney: parseFloat(document.getElementById('proposer-money').value) || 0,
@@ -279,7 +308,7 @@ document.addEventListener('authReady', (e) => {
             sendTradeOfferBtn.textContent = 'Send Trade Offer';
         }
     };
-
+    
     // --- Event Listeners ---
     if (proposeNewTradeBtn) proposeNewTradeBtn.addEventListener('click', openProposeTradeModal);
     if (closeTradeModalBtn) closeTradeModalBtn.addEventListener('click', () => closeModal(tradeModal));
@@ -333,45 +362,34 @@ document.addEventListener('authReady', (e) => {
         if (button) removeCardFromTrade(button.dataset.cardId, button.dataset.side);
     });
 
-    // --- Main Action Listener for Trade Cards ---
     document.body.addEventListener('click', async (e) => {
         const button = e.target.closest('button');
         if (!button) return;
-
         const tradeId = button.dataset.id;
         if (!tradeId) return;
-
-        // Handle Accept/Decline
         if (button.classList.contains('trade-action-btn')) {
-            const action = button.dataset.action; // 'accepted' or 'rejected'
+            const action = button.dataset.action;
             if (confirm(`Are you sure you want to ${action} this trade?`)) {
                 await db.collection('trades').doc(tradeId).update({ status: action });
             }
         }
-
-        // Handle Complete Trade
         if (button.classList.contains('complete-trade-btn')) {
             if (confirm("Are you sure you want to mark this trade as complete? This action cannot be undone.")) {
                 await db.collection('trades').doc(tradeId).update({ status: 'completed' });
             }
         }
-        
-        // Handle Leave Feedback
         if (button.classList.contains('leave-feedback-btn')) {
             const tradeDoc = await db.collection('trades').doc(tradeId).get();
             const trade = tradeDoc.data();
             const otherUserId = trade.proposerId === user.uid ? trade.receiverId : trade.proposerId;
             const otherUserName = trade.proposerId === user.uid ? trade.receiverName : trade.proposerName;
-
             document.getElementById('feedback-trade-id').value = tradeId;
             document.getElementById('feedback-for-user-id').value = otherUserId;
             document.getElementById('feedback-for-user-name').textContent = otherUserName;
-            
             openModal(feedbackModal);
         }
     });
     
-    // --- Feedback Modal Logic ---
     if (feedbackModal) {
         const stars = document.querySelectorAll('.star-icon');
         stars.forEach(star => {
@@ -387,21 +405,17 @@ document.addEventListener('authReady', (e) => {
                 document.getElementById('rating-value').value = star.dataset.value;
             });
         });
-
         document.getElementById('close-feedback-modal')?.addEventListener('click', () => closeModal(feedbackModal));
-
         document.getElementById('feedback-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const tradeId = document.getElementById('feedback-trade-id').value;
             const forUserId = document.getElementById('feedback-for-user-id').value;
             const rating = parseInt(document.getElementById('rating-value').value, 10);
             const comment = document.getElementById('feedback-comment').value;
-
             if (rating === 0) {
                 alert("Please select a star rating.");
                 return;
             }
-
             const feedbackData = {
                 forUserId: forUserId,
                 fromUserId: user.uid,
@@ -411,38 +425,30 @@ document.addEventListener('authReady', (e) => {
                 comment: comment,
                 createdAt: new Date()
             };
-
             await db.collection('feedback').add(feedbackData);
-            
             const userRef = db.collection('users').doc(forUserId);
             await db.runTransaction(async (transaction) => {
                 const userDoc = await transaction.get(userRef);
                 const oldRatingTotal = userDoc.data().ratingTotal || 0;
                 const oldRatingCount = userDoc.data().ratingCount || 0;
-                
                 const newRatingCount = oldRatingCount + 1;
                 const newRatingTotal = oldRatingTotal + rating;
-                const newAverageRating = newRatingCount / newRatingTotal; // This was a bug, fixed now.
-
+                const newAverageRating = newRatingTotal / newRatingCount;
                 transaction.update(userRef, {
                     ratingCount: newRatingCount,
                     ratingTotal: newRatingTotal,
                     averageRating: newAverageRating
                 });
             });
-
             const tradeRef = db.collection('trades').doc(tradeId);
             const tradeDoc = await tradeRef.get();
             const fieldToUpdate = tradeDoc.data().proposerId === user.uid ? 'proposerLeftFeedback' : 'receiverLeftFeedback';
             await tradeRef.update({ [fieldToUpdate]: true });
-
             alert("Feedback submitted!");
             closeModal(feedbackModal);
         });
     }
 
     // --- Initial Load ---
-    loadTrades(incomingContainer, db.collection('trades').where('receiverId', '==', user.uid));
-    loadTrades(outgoingContainer, db.collection('trades').where('proposerId', '==', user.uid));
-    loadTrades(historyContainer, db.collection('trades').where('participants', 'array-contains', user.uid).where('status', 'in', ['completed', 'rejected']));
+    loadAllTrades();
 });
