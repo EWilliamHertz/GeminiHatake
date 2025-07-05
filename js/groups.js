@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Groups Page Script
+ * HatakeSocial - Groups Page Script (v2 - Group Feeds)
  *
  * This script handles all logic for the groups.html page.
- * It allows users to create, discover, join, and view groups.
+ * - NEW: Adds functionality to create and view posts within a specific group.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -49,19 +49,18 @@ document.addEventListener('authReady', (e) => {
                 isPublic: isPublic,
                 creatorId: user.uid,
                 creatorName: user.displayName,
-                members: [user.uid], // Creator is the first member
+                members: [user.uid],
                 memberInfo: {
                     [user.uid]: {
                         displayName: user.displayName,
                         photoURL: user.photoURL
                     }
                 },
-                moderators: [user.uid], // Creator is the first moderator
+                moderators: [user.uid],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 memberCount: 1
             };
 
-            // This will create the 'groups' collection if it doesn't exist
             await db.collection('groups').add(groupData);
 
             alert("Group created successfully!");
@@ -81,21 +80,15 @@ document.addEventListener('authReady', (e) => {
 
     // --- Main Functions ---
 
-    /**
-     * Renders a single group card.
-     * @param {object} groupData - The data for the group.
-     * @param {string} groupId - The ID of the group document.
-     * @returns {HTMLElement} - The created group card element.
-     */
     const createGroupCard = (groupData, groupId) => {
         const card = document.createElement('div');
-        card.className = 'bg-white p-4 rounded-lg shadow-md flex flex-col';
+        card.className = 'bg-white p-4 rounded-lg shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow';
         card.innerHTML = `
             <div class="flex-grow">
                 <h3 class="font-bold text-xl mb-2">${groupData.name}</h3>
                 <p class="text-gray-600 text-sm mb-4">${groupData.description.substring(0, 100)}...</p>
             </div>
-            <div class="text-sm text-gray-500 flex justify-between items-center">
+            <div class="text-sm text-gray-500 flex justify-between items-center mt-auto">
                 <span><i class="fas fa-users mr-2"></i>${groupData.memberCount || groupData.members.length} members</span>
                 <span>${groupData.isPublic ? '<i class="fas fa-globe-americas mr-1"></i> Public' : '<i class="fas fa-lock mr-1"></i> Private'}</span>
             </div>
@@ -104,9 +97,6 @@ document.addEventListener('authReady', (e) => {
         return card;
     };
 
-    /**
-     * Loads and displays groups the current user is a member of.
-     */
     const loadMyGroups = async () => {
         if (!user) {
             myGroupsList.innerHTML = '<p class="text-gray-500 text-sm">Log in to see your groups.</p>';
@@ -126,38 +116,76 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Loads and displays public groups that the user can discover.
-     */
     const loadDiscoverGroups = async () => {
         discoverGroupsList.innerHTML = '<p class="text-gray-500">Loading...</p>';
-        const snapshot = await db.collection('groups').where('isPublic', '==', true).orderBy('createdAt', 'desc').limit(10).get();
+        try {
+            const snapshot = await db.collection('groups').where('isPublic', '==', true).orderBy('createdAt', 'desc').limit(10).get();
 
-        if (snapshot.empty) {
-            discoverGroupsList.innerHTML = '<p class="text-gray-500 text-sm">No public groups to show right now.</p>';
-            return;
+            if (snapshot.empty) {
+                discoverGroupsList.innerHTML = '<p class="text-gray-500 text-sm">No public groups to show right now.</p>';
+                return;
+            }
+
+            discoverGroupsList.innerHTML = '';
+            snapshot.forEach(doc => {
+                discoverGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
+            });
+        } catch (error) {
+            console.error(error);
+            discoverGroupsList.innerHTML = `<p class="text-red-500 text-sm">Error loading groups. The necessary database index might still be building. Please wait a few minutes and refresh.</p>`;
         }
+    };
+    
+    // --- NEW: Function to load the feed for a specific group ---
+    const loadGroupFeed = async (groupId) => {
+        const feedContainer = document.getElementById('group-feed-container');
+        feedContainer.innerHTML = '<p class="text-center text-gray-500">Loading feed...</p>';
 
-        discoverGroupsList.innerHTML = '';
-        snapshot.forEach(doc => {
-            discoverGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
-        });
+        try {
+            const postsSnapshot = await db.collection('posts')
+                .where('groupId', '==', groupId)
+                .orderBy('timestamp', 'desc')
+                .limit(20)
+                .get();
+
+            if (postsSnapshot.empty) {
+                feedContainer.innerHTML = '<p class="text-center text-gray-500">No posts in this group yet. Be the first!</p>';
+                return;
+            }
+
+            feedContainer.innerHTML = '';
+            postsSnapshot.forEach(doc => {
+                const post = doc.data();
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-white p-4 rounded-lg shadow-md';
+                postElement.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                        <div>
+                            <a href="profile.html?uid=${post.authorId}" class="font-bold hover:underline">${post.author}</a>
+                            <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <p class="mb-4 whitespace-pre-wrap">${post.content}</p>
+                `;
+                feedContainer.appendChild(postElement);
+            });
+        } catch (error) {
+            console.error("Error loading group feed:", error);
+            feedContainer.innerHTML = `<p class="text-center text-red-500">Error loading feed. The required database index might be building. Please wait a few minutes and refresh.</p>`;
+        }
     };
 
-    /**
-     * Switches to the detailed view for a single group.
-     * @param {string} groupId - The ID of the group to view.
-     */
     const viewGroup = async (groupId) => {
         groupsPage.classList.add('hidden');
         groupDetailView.classList.remove('hidden');
-        groupDetailView.innerHTML = '<p class="text-gray-500">Loading group...</p>';
+        groupDetailView.innerHTML = '<p class="text-gray-500 p-4">Loading group...</p>';
 
         const groupRef = db.collection('groups').doc(groupId);
         const groupDoc = await groupRef.get();
 
         if (!groupDoc.exists) {
-            groupDetailView.innerHTML = '<p class="text-red-500">Group not found.</p>';
+            groupDetailView.innerHTML = '<p class="text-red-500 p-4">Group not found.</p>';
             return;
         }
 
@@ -192,31 +220,30 @@ document.addEventListener('authReady', (e) => {
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-2 space-y-6">
                     <!-- Group Post Creation -->
-                    <div class="bg-white p-4 rounded-lg shadow-md">
+                    ${isMember ? `
+                    <div id="create-group-post-container" class="bg-white p-4 rounded-lg shadow-md">
                         <h3 class="font-bold mb-2">Create a post in this group</h3>
                         <textarea id="groupPostContent" class="w-full p-2 border rounded-md" rows="3" placeholder="Share something with the group..."></textarea>
                         <div class="text-right mt-2">
                             <button id="submitGroupPostBtn" class="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold">Post</button>
                         </div>
-                    </div>
+                    </div>` : ''}
                     <!-- Group Feed -->
-                    <div id="group-feed-container" class="space-y-6">
-                        <p class="text-center text-gray-500">Group feed coming soon!</p>
-                    </div>
+                    <div id="group-feed-container" class="space-y-6"></div>
                 </div>
                 <div class="md:col-span-1 space-y-6">
                     <!-- Member List -->
                     <div class="bg-white p-4 rounded-lg shadow-md">
                         <h3 class="font-bold mb-2">Members</h3>
-                        <div id="group-member-list" class="space-y-2">
-                            <!-- Members will be loaded here -->
-                        </div>
+                        <div id="group-member-list" class="space-y-2"></div>
                     </div>
                 </div>
             </div>
         `;
+        
+        // --- NEW: Load the feed for this specific group ---
+        loadGroupFeed(groupId);
 
-        // Load members
         const memberListEl = document.getElementById('group-member-list');
         memberListEl.innerHTML = '';
         for (const memberId in groupData.memberInfo) {
@@ -231,14 +258,16 @@ document.addEventListener('authReady', (e) => {
             memberListEl.appendChild(memberEl);
         }
 
-        // Add event listeners for the new buttons
         document.getElementById('back-to-groups-list').addEventListener('click', () => {
             groupDetailView.classList.add('hidden');
             groupsPage.classList.remove('hidden');
+            loadMyGroups();
+            loadDiscoverGroups();
         });
 
         const joinBtn = document.getElementById('join-group-action-btn');
         const leaveBtn = document.getElementById('leave-group-action-btn');
+        const submitPostBtn = document.getElementById('submitGroupPostBtn');
 
         joinBtn?.addEventListener('click', async () => {
              await groupRef.update({
@@ -250,7 +279,7 @@ document.addEventListener('authReady', (e) => {
                 }
             });
             alert(`Joined ${groupData.name}!`);
-            viewGroup(groupId); // Refresh view
+            viewGroup(groupId);
         });
 
         leaveBtn?.addEventListener('click', async () => {
@@ -263,11 +292,42 @@ document.addEventListener('authReady', (e) => {
                 alert(`You have left ${groupData.name}.`);
                 groupDetailView.classList.add('hidden');
                 groupsPage.classList.remove('hidden');
-                loadMyGroups(); // Refresh list
+                loadMyGroups();
+            }
+        });
+
+        // --- NEW: Event listener for submitting a post to the group feed ---
+        submitPostBtn?.addEventListener('click', async () => {
+            const content = document.getElementById('groupPostContent').value.trim();
+            if (!content) {
+                alert("Please write something to post.");
+                return;
+            }
+
+            submitPostBtn.disabled = true;
+            try {
+                const postData = {
+                    author: user.displayName,
+                    authorId: user.uid,
+                    authorPhotoURL: user.photoURL,
+                    content: content,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: [],
+                    comments: [],
+                    groupId: groupId, // Link the post to this group
+                    groupName: groupData.name
+                };
+                await db.collection('posts').add(postData);
+                document.getElementById('groupPostContent').value = '';
+                loadGroupFeed(groupId); // Refresh the feed
+            } catch (error) {
+                console.error("Error creating group post:", error);
+                alert("Failed to create post.");
+            } finally {
+                submitPostBtn.disabled = false;
             }
         });
     };
-
 
     // --- Initial Load ---
     loadMyGroups();
