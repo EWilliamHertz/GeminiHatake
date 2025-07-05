@@ -1,4 +1,5 @@
-* HatakeSocial - Trades Page Script (v8 - Final Fixes)
+/**
+ * HatakeSocial - Trades Page Script (v8 - Final Fixes)
  *
  * This script handles all logic for the trades page.
  * - Fixes user search permissions error by providing better console feedback.
