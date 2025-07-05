@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - Trades Page Script (v5 - Fully Merged)
+ * HatakeSocial - Trades Page Script (v6 - Indexing Error Handling)
  *
- * This script handles all logic for the trades page, including:
- * - Proposing a new trade from scratch.
- * - Displaying incoming, outgoing, and historical trades correctly.
- * - Handling trade actions (accept, decline, complete).
- * - The reputation system for leaving feedback after a trade.
+ * This script handles all logic for the trades page.
+ * This version adds robust error handling to inform the user if a
+ * required Firebase index is missing, which is the likely cause of the
+ * search and loading issues.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -23,8 +22,6 @@ document.addEventListener('authReady', (e) => {
     const historyContainer = document.getElementById('tab-content-history');
     const tabs = document.querySelectorAll('.trade-tab-button');
     const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
-    
-    // Propose Trade Modal Elements
     const tradeModal = document.getElementById('propose-trade-modal');
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
     const sendTradeOfferBtn = document.getElementById('send-trade-offer-btn');
@@ -32,8 +29,6 @@ document.addEventListener('authReady', (e) => {
     const tradePartnerResults = document.getElementById('trade-partner-results');
     const myCollectionSearch = document.getElementById('my-collection-search');
     const theirCollectionSearch = document.getElementById('their-collection-search');
-    
-    // Feedback Modal Elements
     const feedbackModal = document.getElementById('feedback-modal');
 
     // --- State Variables ---
@@ -56,7 +51,7 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- Main Loading Function (FIXED) ---
+    // --- Main Loading Function ---
     const loadAllTrades = () => {
         const tradesRef = db.collection('trades').where('participants', 'array-contains', user.uid).orderBy('createdAt', 'desc');
 
@@ -96,9 +91,13 @@ document.addEventListener('authReady', (e) => {
 
         }, err => {
             console.error("Error loading trades:", err);
-            incomingContainer.innerHTML = `<p class="text-red-500 p-4">Error loading trades: ${err.message}</p>`;
-            outgoingContainer.innerHTML = `<p class="text-red-500 p-4">Error loading trades: ${err.message}</p>`;
-            historyContainer.innerHTML = `<p class="text-red-500 p-4">Error loading trades: ${err.message}</p>`;
+            const errorMessage = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                <p class="font-bold">Error Loading Trades</p>
+                <p>This is likely due to a missing database index. Please open the browser console (F12) and look for an error message from Firebase. It should contain a link to create the required index.</p>
+            </div>`;
+            incomingContainer.innerHTML = errorMessage;
+            outgoingContainer.innerHTML = '';
+            historyContainer.innerHTML = '';
         });
     };
 
@@ -324,21 +323,27 @@ document.addEventListener('authReady', (e) => {
         tradePartnerResults.classList.remove('hidden');
         const usersRef = db.collection('users');
         const query = usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff');
-        const snapshot = await query.get();
-        tradePartnerResults.innerHTML = '';
-        if (snapshot.empty) {
-            tradePartnerResults.innerHTML = '<div class="p-2 text-gray-500">No users found.</div>';
-            return;
+        
+        try {
+            const snapshot = await query.get();
+            tradePartnerResults.innerHTML = '';
+            if (snapshot.empty) {
+                tradePartnerResults.innerHTML = '<div class="p-2 text-gray-500">No users found.</div>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                if (doc.id === user.uid) return;
+                const userData = doc.data();
+                const resultItem = document.createElement('div');
+                resultItem.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+                resultItem.textContent = `@${userData.handle} (${userData.displayName})`;
+                resultItem.addEventListener('click', () => selectTradePartner({ id: doc.id, ...userData }));
+                tradePartnerResults.appendChild(resultItem);
+            });
+        } catch (error) {
+            console.error("User search error:", error);
+            tradePartnerResults.innerHTML = `<div class="p-2 text-red-500">Error: Could not perform search. A database index might be required. Please check the browser console (F12) for a link to create it.</div>`;
         }
-        snapshot.forEach(doc => {
-            if (doc.id === user.uid) return;
-            const userData = doc.data();
-            const resultItem = document.createElement('div');
-            resultItem.className = 'p-2 hover:bg-gray-100 cursor-pointer';
-            resultItem.textContent = `@${userData.handle} (${userData.displayName})`;
-            resultItem.addEventListener('click', () => selectTradePartner({ id: doc.id, ...userData }));
-            tradePartnerResults.appendChild(resultItem);
-        });
     });
     
     myCollectionSearch?.addEventListener('input', (e) => {
