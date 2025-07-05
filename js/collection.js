@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v2 - Robust CSV Import)
+ * HatakeSocial - My Collection Page Script (v3 - Advanced Bulk Edit)
  *
  * This script is based on the original from your repository and merges in fixes for:
  * - A more robust CSV import that handles different column names.
  * - Better user feedback during the import process.
- * - The bulk edit and list-for-sale functionality.
+ * - The bulk edit and list-for-sale functionality with "Select All" and percentage pricing.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -14,6 +14,7 @@ document.addEventListener('authReady', (e) => {
     // --- State ---
     let bulkEditMode = false;
     let selectedCards = new Set();
+    let currentCollectionIds = []; // To store IDs of all cards currently displayed
     let cardSearchResults = [];
 
     // --- DOM Elements ---
@@ -31,6 +32,7 @@ document.addEventListener('authReady', (e) => {
     const bulkEditBtn = document.getElementById('bulk-edit-btn');
     const bulkActionBar = document.getElementById('bulk-action-bar');
     const selectedCountEl = document.getElementById('selected-count');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const listSelectedBtn = document.getElementById('list-selected-btn');
     const deleteSelectedBtn = document.getElementById('delete-selected-btn');
     const listForSaleModal = document.getElementById('list-for-sale-modal');
@@ -146,9 +148,8 @@ document.addEventListener('authReady', (e) => {
                     return;
                 }
 
-                // **THE FIX IS HERE**: Check for different possible column names
                 const header = Object.keys(rows[0]);
-                console.log("Detected CSV Headers:", header); // Helps with debugging
+                console.log("Detected CSV Headers:", header);
                 
                 const nameKey = header.find(h => h.toLowerCase().includes('name'));
                 const quantityKey = header.find(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('count'));
@@ -217,6 +218,7 @@ document.addEventListener('authReady', (e) => {
     const toggleBulkEditMode = () => {
         bulkEditMode = !bulkEditMode;
         selectedCards.clear();
+        selectAllCheckbox.checked = false;
         if (bulkEditMode) {
             bulkEditBtn.textContent = 'Cancel Bulk Edit';
             bulkEditBtn.classList.add('bg-red-600', 'hover:bg-red-700');
@@ -231,7 +233,7 @@ document.addEventListener('authReady', (e) => {
     };
 
     const updateSelectedCount = () => {
-        selectedCountEl.textContent = selectedCards.size;
+        selectedCountEl.textContent = `${selectedCards.size} cards selected`;
     };
 
     const handleCardSelection = (cardId) => {
@@ -243,6 +245,17 @@ document.addEventListener('authReady', (e) => {
         updateSelectedCount();
         const cardEl = document.querySelector(`div[data-id="${cardId}"]`);
         cardEl?.querySelector('.bulk-checkbox-overlay')?.classList.toggle('hidden', !selectedCards.has(cardId));
+        selectAllCheckbox.checked = selectedCards.size === currentCollectionIds.length && currentCollectionIds.length > 0;
+    };
+    
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            currentCollectionIds.forEach(id => selectedCards.add(id));
+        } else {
+            selectedCards.clear();
+        }
+        updateSelectedCount();
+        loadCardList('collection');
     };
 
     // --- Main Display Function ---
@@ -255,14 +268,19 @@ document.addEventListener('authReady', (e) => {
         if (snapshot.empty) { container.innerHTML = `<p class="text-center p-4">Your ${listType} is empty.</p>`; return; }
        
         container.innerHTML = '';
+        currentCollectionIds = []; 
         snapshot.forEach(doc => {
+            if (listType === 'collection') {
+                currentCollectionIds.push(doc.id);
+            }
             const card = doc.data();
             const cardEl = document.createElement('div');
             cardEl.className = 'relative group cursor-pointer';
             cardEl.dataset.id = doc.id;
 
             const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
-            const checkboxOverlay = bulkEditMode && listType === 'collection' ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${selectedCards.has(doc.id) ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
+            const isSelected = selectedCards.has(doc.id);
+            const checkboxOverlay = bulkEditMode && listType === 'collection' ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
             cardEl.innerHTML = `
                 <img src="${card.imageUrl}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">
@@ -279,6 +297,7 @@ document.addEventListener('authReady', (e) => {
 
     // --- Event Listeners ---
     bulkEditBtn.addEventListener('click', toggleBulkEditMode);
+    selectAllCheckbox.addEventListener('change', handleSelectAll);
     
     collectionListContainer.addEventListener('click', (e) => {
         const cardElement = e.target.closest('.group');
@@ -314,16 +333,17 @@ document.addEventListener('authReady', (e) => {
 
     document.getElementById('close-list-sale-modal')?.addEventListener('click', () => closeModal(listForSaleModal));
 
-    const listCards = async (priceOption) => {
+    const listCards = async (priceOption, percentage = 100) => {
         const batch = db.batch();
         const collectionRef = db.collection('users').doc(user.uid).collection('collection');
         
         for (const cardId of selectedCards) {
             const docRef = collectionRef.doc(cardId);
             let newPrice = 0;
-            if (priceOption === 'market') {
+            if (priceOption === 'percentage') {
                 const cardDoc = await docRef.get();
-                newPrice = parseFloat(cardDoc.data().priceUsd || 0);
+                const marketPrice = parseFloat(cardDoc.data().priceUsd || 0);
+                newPrice = marketPrice * (percentage / 100);
             } else {
                 newPrice = parseFloat(priceOption);
             }
@@ -332,15 +352,24 @@ document.addEventListener('authReady', (e) => {
 
         await batch.commit();
         alert(`${selectedCards.size} cards listed for sale!`);
-        closeModal(listForSaleModal);
+        closeModal(document.getElementById('list-for-sale-modal'));
         toggleBulkEditMode();
     };
 
-    document.getElementById('list-at-market-price-btn')?.addEventListener('click', () => listCards('market'));
+    document.getElementById('percentage-price-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const percentage = document.getElementById('percentage-price-input').value;
+        if (percentage && percentage > 0) {
+            listCards('percentage', percentage);
+        } else {
+            alert("Please enter a valid percentage.");
+        }
+    });
+
     document.getElementById('custom-price-form')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const price = document.getElementById('custom-price-input').value;
-        if (price && price > 0) {
+        if (price && price >= 0) {
             listCards(price);
         } else {
             alert("Please enter a valid price.");
