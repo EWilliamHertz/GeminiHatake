@@ -1,57 +1,60 @@
-/**
- * HatakeSocial - Profile Page Script (Final - Combined & Stable)
- *
- * This script waits for the 'authReady' event from auth.js before running.
- * It dynamically builds the entire profile page HTML before populating it,
- * which prevents any "element not found" errors and fixes the loading issue.
- */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
-    // If this element doesn't exist, we're not on the profile page, so do nothing.
     if (!profileContainer) return;
 
-    // Show a loading spinner immediately while we fetch data
     profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
 
     const setupProfilePage = async () => {
         try {
             const params = new URLSearchParams(window.location.search);
+            let userDoc;
             const username = params.get('user');
             const userIdParam = params.get('uid');
 
-            let userDoc;
-
-            // This is the query that requires the special index.
-            // We run it first to check if the index exists.
             if (username) {
                 const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
-                if (!userQuery.empty) {
-                    userDoc = userQuery.docs[0];
-                }
+                if (!userQuery.empty) userDoc = userQuery.docs[0];
             } else if (userIdParam) {
                 userDoc = await db.collection('users').doc(userIdParam).get();
             } else if (currentUser) {
                 userDoc = await db.collection('users').doc(currentUser.uid).get();
             }
 
-            // If we still don't have a user document, something is wrong.
             if (!userDoc || !userDoc.exists) {
-                throw new Error("User document could not be found. If you are trying to view a profile by its handle, the required database index might be missing.");
+                throw new Error("User not found.");
             }
             
             const profileUserId = userDoc.id;
             const profileUserData = userDoc.data();
 
-            // --- If we get here, the index exists and the user was found. Load the page. ---
+            // Reputation Display
+            const averageRating = profileUserData.averageRating || 0;
+            const ratingCount = profileUserData.ratingCount || 0;
+            let starsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= averageRating) {
+                    starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
+                } else if (i - 0.5 <= averageRating) {
+                    starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
+                } else {
+                    starsHTML += '<i class="far fa-star text-gray-300"></i>';
+                }
+            }
+            const reputationHTML = `
+                <div class="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                    <span class="flex">${starsHTML}</span>
+                    <span class="font-semibold">${averageRating.toFixed(1)}</span>
+                    <span>(${ratingCount} ratings)</span>
+                </div>
+            `;
 
-            // Populate Profile Header
             profileContainer.innerHTML = `
                 <div class="bg-white rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
                         <img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner'}" alt="Profile banner">
                         <div class="absolute top-4 right-4">
-                            <button id="edit-profile-btn" class="hidden px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm">Edit Profile</button>
+                            <a href="settings.html" id="edit-profile-btn" class="hidden px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm">Edit Profile</a>
                         </div>
                     </div>
                     <div class="p-6">
@@ -62,6 +65,7 @@ document.addEventListener('authReady', (e) => {
                                      <div>
                                         <h1 id="profile-displayName" class="text-3xl font-bold text-gray-800">${profileUserData.displayName || 'No Name'}</h1>
                                         <p id="profile-handle" class="text-gray-600">@${profileUserData.handle || 'no-handle'}</p>
+                                        ${reputationHTML}
                                     </div>
                                     <div id="profile-action-buttons" class="flex space-x-2"></div>
                                 </div>
@@ -83,6 +87,7 @@ document.addEventListener('authReady', (e) => {
                             <button data-tab="decks" class="profile-tab-button">Decks</button>
                             <button data-tab="collection" class="profile-tab-button">Collection</button>
                             <button data-tab="wishlist" class="profile-tab-button">Wishlist</button>
+                            <button data-tab="feedback" class="profile-tab-button">Feedback</button>
                         </nav>
                     </div>
                     <div class="mt-6">
@@ -90,49 +95,23 @@ document.addEventListener('authReady', (e) => {
                         <div id="tab-content-decks" class="profile-tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
                         <div id="tab-content-collection" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
                         <div id="tab-content-wishlist" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
+                        <div id="tab-content-feedback" class="profile-tab-content hidden space-y-4"></div>
                     </div>
                 </div>
             `;
 
-            // Now that the HTML exists, attach listeners and load data
-            const actionButtonsContainer = document.getElementById('profile-action-buttons');
             if (currentUser && currentUser.uid !== profileUserId) {
-                actionButtonsContainer.innerHTML = `
-                    <button id="follow-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Follow</button>
-                    <button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
+                document.getElementById('profile-action-buttons').innerHTML = `<button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
                 document.getElementById('message-btn').addEventListener('click', (e) => {
                     window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
                 });
             } else if (currentUser && currentUser.uid === profileUserId) {
-                const editProfileBtn = document.getElementById('edit-profile-btn');
-                editProfileBtn.classList.remove('hidden');
-                editProfileBtn.addEventListener('click', () => {
-                    document.getElementById('edit-displayName').value = profileUserData.displayName;
-                    document.getElementById('edit-handle').value = profileUserData.handle;
-                    document.getElementById('edit-bio').value = profileUserData.bio;
-                    document.getElementById('edit-fav-tcg').value = profileUserData.favoriteTcg;
-                    openModal(document.getElementById('edit-profile-modal'));
-                });
+                document.getElementById('edit-profile-btn').classList.remove('hidden');
             }
 
-            document.getElementById('edit-profile-form')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if(!currentUser) return;
-                const newHandle = document.getElementById('edit-handle').value.toLowerCase();
-                const updatedData = {
-                    displayName: document.getElementById('edit-displayName').value, handle: newHandle,
-                    bio: document.getElementById('edit-bio').value, favoriteTcg: document.getElementById('edit-fav-tcg').value,
-                };
-                await db.collection('users').doc(currentUser.uid).update(updatedData);
-                closeModal(document.getElementById('edit-profile-modal'));
-                location.reload();
-            });
-            document.getElementById('close-edit-modal')?.addEventListener('click', () => closeModal(document.getElementById('edit-profile-modal')));
-
-            const tabs = document.querySelectorAll('.profile-tab-button');
-            tabs.forEach(tab => {
+            document.querySelectorAll('.profile-tab-button').forEach(tab => {
                 tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
                     document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
@@ -143,23 +122,11 @@ document.addEventListener('authReady', (e) => {
             loadProfileDecks(profileUserId);
             loadProfileCollection(profileUserId, 'collection');
             loadProfileCollection(profileUserId, 'wishlist');
+            loadProfileFeedback(profileUserId);
 
         } catch (error) {
-            // This block will run if the index is missing.
-            console.error("THIS IS THE EXPECTED ERROR IF THE INDEX IS MISSING. CLICK THE LINK IN THIS ERROR MESSAGE TO CREATE THE INDEX:", error);
-            profileContainer.innerHTML = `<div class="text-center p-8 bg-white rounded-lg shadow-md">
-                <h1 class="text-2xl font-bold text-red-600">Action Required: Database Index Missing</h1>
-                <p class="mt-2">The database needs a one-time setup to display profiles by username.</p>
-                <p class="mt-4 font-semibold">Please follow these steps:</p>
-                <ol class="text-left inline-block mt-2 space-y-1">
-                    <li>1. Open the Developer Console (press F12).</li>
-                    <li>2. Find the red error message that starts with "THIS IS THE EXPECTED ERROR...".</li>
-                    <li>3. Click the long <span class="font-mono bg-gray-200 px-1">https://console.firebase.google.com...</span> link inside that error message.</li>
-                    <li>4. A new browser tab will open to Firebase with the index details pre-filled.</li>
-                    <li>5. Click the "Create" button.</li>
-                    <li>6. Wait for the index status to become "Enabled", then refresh this page.</li>
-                </ol>
-            </div>`;
+            console.error("Error loading profile:", error);
+            profileContainer.innerHTML = `<div class="text-center p-8 bg-white rounded-lg shadow-md"><h1 class="text-2xl font-bold text-red-600">Error</h1><p class="mt-2">${error.message}</p></div>`;
         }
     };
     
@@ -229,6 +196,37 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    // Run the setup function for the page
+    const loadProfileFeedback = async (userId) => {
+        const container = document.getElementById('tab-content-feedback');
+        container.innerHTML = '<p class="text-gray-500">Loading feedback...</p>';
+        const feedbackSnapshot = await db.collection('feedback').where('forUserId', '==', userId).orderBy('createdAt', 'desc').get();
+
+        if (feedbackSnapshot.empty) {
+            container.innerHTML = '<p class="text-center text-gray-500">This user has not received any feedback yet.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        feedbackSnapshot.forEach(doc => {
+            const feedback = doc.data();
+            let starsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                starsHTML += `<i class="fas fa-star ${i <= feedback.rating ? 'text-yellow-400' : 'text-gray-300'}"></i>`;
+            }
+
+            const feedbackCard = `
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-semibold">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p>
+                        <div class="flex items-center space-x-1">${starsHTML}</div>
+                    </div>
+                    <p class="text-gray-700 italic">"${feedback.comment || 'No comment left.'}"</p>
+                    <p class="text-xs text-gray-400 text-right mt-2">${new Date(feedback.createdAt.toDate()).toLocaleDateString()}</p>
+                </div>
+            `;
+            container.innerHTML += feedbackCard;
+        });
+    };
+
     setupProfilePage();
 });
