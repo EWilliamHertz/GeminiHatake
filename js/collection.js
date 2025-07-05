@@ -1,3 +1,11 @@
+/**
+ * HatakeSocial - My Collection Page Script (v2 - Robust CSV Import)
+ *
+ * This script is based on the original from your repository and merges in fixes for:
+ * - A more robust CSV import that handles different column names.
+ * - Better user feedback during the import process.
+ * - The bulk edit and list-for-sale functionality.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const collectionPage = document.getElementById('content-collection');
@@ -133,14 +141,34 @@ document.addEventListener('authReady', (e) => {
             skipEmptyLines: true,
             complete: async (results) => {
                 const rows = results.data;
+                if (!rows || rows.length === 0) {
+                    csvStatus.textContent = "CSV file is empty or could not be read.";
+                    return;
+                }
+
+                // **THE FIX IS HERE**: Check for different possible column names
+                const header = Object.keys(rows[0]);
+                console.log("Detected CSV Headers:", header); // Helps with debugging
+                
+                const nameKey = header.find(h => h.toLowerCase().includes('name'));
+                const quantityKey = header.find(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('count'));
+                const foilKey = header.find(h => h.toLowerCase().includes('foil'));
+                const conditionKey = header.find(h => h.toLowerCase().includes('condition'));
+
+                if (!nameKey) {
+                    csvStatus.textContent = 'Error: Could not find a "Name" or "Card Name" column in your CSV.';
+                    return;
+                }
+
                 csvStatus.textContent = `Found ${rows.length} cards. Fetching data from Scryfall... This may take a moment.`;
                 
                 let processedCount = 0;
+                let errorCount = 0;
                 const batch = db.batch();
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
 
                 for (const row of rows) {
-                    const cardName = row['Card Name'];
+                    const cardName = row[nameKey];
                     if (!cardName) continue;
 
                     try {
@@ -152,9 +180,10 @@ document.addEventListener('authReady', (e) => {
                             name: cardData.name, tcg: "Magic: The Gathering", scryfallId: cardData.id,
                             set: cardData.set, setName: cardData.set_name, imageUrl: cardData.image_uris?.normal || '',
                             priceUsd: cardData.prices?.usd || '0.00', priceUsdFoil: cardData.prices?.usd_foil || '0.00',
-                            quantity: parseInt(row.Count, 10) || 1,
-                            isFoil: (row.Foil && row.Foil.toLowerCase() === 'foil'),
-                            condition: row.Condition || 'Near Mint', addedAt: new Date(), forSale: false
+                            quantity: quantityKey ? (parseInt(row[quantityKey], 10) || 1) : 1,
+                            isFoil: foilKey ? (row[foilKey] && row[foilKey].toLowerCase() === 'foil') : false,
+                            condition: conditionKey ? (row[conditionKey] || 'Near Mint') : 'Near Mint',
+                            addedAt: new Date(), forSale: false
                         };
                         
                         const docRef = collectionRef.doc();
@@ -163,14 +192,15 @@ document.addEventListener('authReady', (e) => {
 
                     } catch (error) {
                         console.warn(`Could not find card "${cardName}". Skipping.`, error);
+                        errorCount++;
                     }
                     
-                    csvStatus.textContent = `Processing... ${processedCount} / ${rows.length} cards.`;
+                    csvStatus.textContent = `Processing... ${processedCount + errorCount} / ${rows.length} cards.`;
                 }
 
                 try {
                     await batch.commit();
-                    csvStatus.textContent = `Import complete! ${processedCount} cards added. Refreshing...`;
+                    csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''} Refreshing...`;
                     setTimeout(() => {
                         loadCardList('collection');
                         csvStatus.textContent = '';
@@ -235,7 +265,7 @@ document.addEventListener('authReady', (e) => {
             const checkboxOverlay = bulkEditMode && listType === 'collection' ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${selectedCards.has(doc.id) ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
             cardEl.innerHTML = `
-                <img src="${card.imageUrl}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">
+                <img src="${card.imageUrl}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">
                 ${checkboxOverlay}
                 <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <button class="edit-card-btn text-white text-xs" data-list="${listType}"><i class="fas fa-edit"></i></button>
@@ -264,11 +294,10 @@ document.addEventListener('authReady', (e) => {
             }
             else if (e.target.closest('.manage-listing-btn')) openManageListingModal(cardId, 'collection');
             else {
-                // Default click action when not in bulk mode: Go to card view
                 const cardImg = cardElement.querySelector('img');
                 if (cardImg) {
-                    const cardName = cardImg.alt; // Assuming alt text is the card name
-                    // window.location.href = `card-view.html?name=${encodeURIComponent(cardName)}`;
+                    const cardName = cardImg.alt;
+                    window.location.href = `card-view.html?name=${encodeURIComponent(cardName)}`;
                 }
             }
         }
