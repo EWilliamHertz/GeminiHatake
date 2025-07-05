@@ -13,12 +13,6 @@ document.addEventListener('authReady', (e) => {
     let selectedFile = null;
 
     // --- Functions ---
-
-    /**
-     * Renders a list of comments inside a comment section.
-     * @param {HTMLElement} commentsListEl The <ul> or <div> to render comments into.
-     * @param {Array} comments The array of comment objects from Firestore.
-     */
     const renderComments = (commentsListEl, comments) => {
         if (!comments || comments.length === 0) {
             commentsListEl.innerHTML = '<p class="text-gray-500 text-sm px-2">No comments yet.</p>';
@@ -26,7 +20,6 @@ document.addEventListener('authReady', (e) => {
         }
         
         commentsListEl.innerHTML = '';
-        // Sort comments by timestamp before displaying
         comments.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0)).forEach(comment => {
             const commentHTML = `
                 <div class="pt-2 border-t mt-2 flex items-start space-x-2">
@@ -40,9 +33,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Fetches all posts from Firestore and renders them to the page.
-     */
     const renderPosts = async () => {
         postsContainer.innerHTML = '<p class="text-center text-gray-500 p-4">Loading posts...</p>';
         try {
@@ -52,7 +42,7 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
 
-            postsContainer.innerHTML = ''; // Clear loading message
+            postsContainer.innerHTML = '';
 
             for (const doc of postsSnapshot.docs) {
                 const post = doc.data();
@@ -61,11 +51,12 @@ document.addEventListener('authReady', (e) => {
                 postElement.dataset.id = doc.id;
 
                 let content = post.content || '';
-                // Use a more robust regex to prevent mis-tagging
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
                 content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="marketplace.html?cardName=$1" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
 
-                const isLiked = user ? post.likes?.includes(user.uid) : false;
+                // **THE FIX IS HERE**
+                // Check if post.likes is an array before calling .includes()
+                const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
 
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
@@ -80,11 +71,11 @@ document.addEventListener('authReady', (e) => {
                     <div class="flex justify-between items-center mt-4 text-gray-600">
                         <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i> 
-                            <span class="likes-count">${post.likes?.length || 0}</span>
+                            <span class="likes-count">${Array.isArray(post.likes) ? post.likes.length : 0}</span>
                         </button>
                         <button class="comment-btn flex items-center hover:text-blue-500">
                             <i class="far fa-comment mr-1"></i> 
-                            <span class="comments-count">${post.comments?.length || 0}</span>
+                            <span class="comments-count">${Array.isArray(post.comments) ? post.comments.length : 0}</span>
                         </button>
                     </div>
                     <div class="comments-section hidden mt-4">
@@ -102,25 +93,19 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- Event Listeners ---
-
     if (user) {
-        // Only enable posting if the user is logged in
-        submitPostBtn.addEventListener('click', async () => {
+        submitPostBtn?.addEventListener('click', async () => {
             const content = postContentInput.value;
             if (!content.trim() && !selectedFile) {
                 postStatusMessage.textContent = 'Please write something or select a file.';
                 return;
             }
-
             submitPostBtn.disabled = true;
             postStatusMessage.textContent = 'Posting...';
-
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists) throw new Error("User profile not found.");
                 const userData = userDoc.data();
-                
                 let mediaUrl = null, mediaType = null;
                 if (selectedFile) {
                     const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
@@ -129,7 +114,6 @@ document.addEventListener('authReady', (e) => {
                     mediaUrl = await fileRef.getDownloadURL();
                     mediaType = selectedFile.type;
                 }
-
                 await db.collection('posts').add({
                     author: userData.displayName || 'Anonymous',
                     authorId: user.uid,
@@ -141,13 +125,12 @@ document.addEventListener('authReady', (e) => {
                     mediaUrl: mediaUrl,
                     mediaType: mediaType
                 });
-
                 postContentInput.value = '';
                 postImageUpload.value = '';
                 selectedFile = null;
                 postStatusMessage.textContent = 'Posted successfully!';
                 setTimeout(() => postStatusMessage.textContent = '', 3000);
-                renderPosts(); // Refresh the feed
+                renderPosts();
             } catch (error) { 
                 console.error("Error creating post:", error);
                 postStatusMessage.textContent = `Error: ${error.message}`; 
@@ -155,7 +138,6 @@ document.addEventListener('authReady', (e) => {
                 submitPostBtn.disabled = false;
             }
         });
-
         uploadImageBtn?.addEventListener('click', () => postImageUpload.click());
         uploadVideoBtn?.addEventListener('click', () => postImageUpload.click());
         postImageUpload?.addEventListener('change', e => {
@@ -171,13 +153,10 @@ document.addEventListener('authReady', (e) => {
             alert("Please log in to interact with posts.");
             return;
         }
-
         const postElement = e.target.closest('.post-container');
         if (!postElement) return;
         const postId = postElement.dataset.id;
         const postRef = db.collection('posts').doc(postId);
-
-        // Toggle comment section
         if (e.target.closest('.comment-btn')) {
             const commentsSection = postElement.querySelector('.comments-section');
             const wasHidden = commentsSection.classList.toggle('hidden');
@@ -186,14 +165,13 @@ document.addEventListener('authReady', (e) => {
                 renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
             }
         }
-
-        // Handle likes
         if (e.target.closest('.like-btn')) {
             await db.runTransaction(async t => {
                 const doc = await t.get(postRef);
-                const likes = doc.data().likes || [];
+                const data = doc.data();
+                // Ensure likes is an array before trying to modify it
+                const likes = Array.isArray(data.likes) ? data.likes : [];
                 const userIndex = likes.indexOf(user.uid);
-                
                 if (userIndex === -1) {
                     likes.push(user.uid);
                 } else {
@@ -201,7 +179,7 @@ document.addEventListener('authReady', (e) => {
                 }
                 t.update(postRef, { likes });
             });
-            renderPosts(); // Simple way to refresh the like count and icon state
+            renderPosts();
         }
     });
 
@@ -209,28 +187,22 @@ document.addEventListener('authReady', (e) => {
         e.preventDefault();
         if (e.target.classList.contains('comment-form')) {
             if (!user) return;
-            
             const input = e.target.querySelector('input');
             const content = input.value.trim();
             if (!content) return;
-
             const postElement = e.target.closest('.post-container');
             const postId = postElement.dataset.id;
             const postRef = db.collection('posts').doc(postId);
-            
             const userDoc = await db.collection('users').doc(user.uid).get();
             const userData = userDoc.data();
-
             const newComment = { 
                 author: userData.displayName || 'Anonymous', 
                 authorId: user.uid, 
                 authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
                 content: content, 
-                timestamp: new Date() // Use client-side timestamp for arrayUnion
+                timestamp: new Date()
             };
-
             await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
-            
             input.value = '';
             const updatedPostDoc = await postRef.get();
             renderComments(postElement.querySelector('.comments-list'), updatedPostDoc.data().comments);
@@ -238,6 +210,5 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // --- Initial Load ---
     renderPosts();
 });
