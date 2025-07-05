@@ -10,40 +10,57 @@
 </head>
 <body class="bg-gray-100">
 
-    <!-- Header -->
+    <!-- Header Section -->
     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
         <div class="container mx-auto px-4 flex justify-between items-center">
-            <a href="index.html" class="flex items-center">
-                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
-                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
-            </a>
-             <nav class="hidden md:block">
-                <ul class="flex space-x-6">
-                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
-                    <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
-                    <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                    <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
-                    <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                    <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
-                    <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
-                    <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
-                    <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
-                </ul>
-            </nav>
+            <!-- Logo and Site Name -->
             <div class="flex items-center">
-                <button id="cart-button" class="relative mr-4">
-                    <i class="fas fa-shopping-cart text-2xl text-gray-600"></i>
-                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
-                </button>
-                <div class="relative flex items-center">
-                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
-                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
-                    <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
-                    <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
-                        <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
-                        <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
-                        <div class="border-t my-1 border-gray-200"></div>
-                        <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                <a href="index.html" class="flex items-center">
+                    <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                    <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+                </a>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex flex-grow justify-center mx-4">
+                <div class="relative w-full max-w-md">
+                    <form id="header-search-form">
+                        <input type="text" id="searchBar" placeholder="Search for decks, cards, users..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Main Navigation and User Menu -->
+            <div class="flex items-center space-x-6">
+                <nav class="hidden md:block">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                        <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                        <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
+                        <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
+                        <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                        <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
+                        <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
+                        <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                    </ul>
+                </nav>
+                <div class="flex items-center">
+                    <button id="cart-button" class="relative mr-4" aria-label="Open Shopping Cart">
+                        <i class="fas fa-shopping-cart text-2xl text-gray-600"></i>
+                        <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                    </button>
+                    <div class="relative flex items-center">
+                        <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
+                        <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
+                        <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                        <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                            <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                            <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
+                            <div class="border-t my-1 border-gray-200"></div>
+                            <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -56,6 +73,7 @@
             <!-- Products will be loaded here by js/shop.js -->
             <div class="text-center p-10 col-span-full">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+                <p class="mt-2 text-gray-600">Loading Products...</p>
             </div>
         </div>
     </main>
@@ -90,6 +108,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+
+    <!-- Stripe JS -->
+    <script src="https://js.stripe.com/v3/"></script>
 
     <!-- Your Custom Scripts -->
     <script src="js/auth.js"></script>
