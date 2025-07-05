@@ -1,12 +1,9 @@
 /**
- * HatakeSocial - Trades Page Script (v8 - Final Fixes)
+ * HatakeSocial - Trades Page Script (v8 - Feedback Fix)
  *
  * This script handles all logic for the trades page.
- * - Fixes user search permissions error by providing better console feedback.
- * - Fixes the feedback submission logic.
- * - Ensures all original functionality is preserved.
+ * - Fixes the bug where the feedback submission would fail due to a miscalculation.
  */
-
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const tradesPageContainer = document.querySelector('main.container');
