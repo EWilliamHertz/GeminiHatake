@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v2 - Likes Feature)
+ * HatakeSocial - Index Page (Feed) Script (v3 - Image Upload Fix)
  *
  * This script handles all logic for the main feed on index.html.
- * - Fixes permissions issue for liking/commenting on posts.
+ * - Fixes the bug where image uploads would cause the post button to get stuck.
  * - Adds the ability to see who has liked a post.
  */
 document.addEventListener('authReady', (e) => {
@@ -97,7 +97,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- NEW: Function to show who liked a post ---
     const showLikesModal = async (postId) => {
         likesListEl.innerHTML = '<p class="text-center text-gray-500">Loading...</p>';
         openModal(likesModal);
@@ -114,7 +113,7 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
 
-            likesListEl.innerHTML = ''; // Clear loading
+            likesListEl.innerHTML = '';
             for (const userId of likerIds) {
                 const userDoc = await db.collection('users').doc(userId).get();
                 if (userDoc.exists) {
@@ -152,19 +151,25 @@ document.addEventListener('authReady', (e) => {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists) throw new Error("User profile not found.");
                 const userData = userDoc.data();
-                let mediaUrl = null, mediaType = null;
+                
+                let mediaUrl = null;
+                let mediaType = null;
+                
+                // **THE FIX IS HERE**: Properly await the upload task
                 if (selectedFile) {
                     const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
                     const fileRef = storage.ref(filePath);
-                    await fileRef.put(selectedFile);
-                    mediaUrl = await fileRef.getDownloadURL();
+                    const uploadTask = await fileRef.put(selectedFile); // await the upload
+                    mediaUrl = await uploadTask.ref.getDownloadURL(); // then get the URL
                     mediaType = selectedFile.type;
                 }
+
                 await db.collection('posts').add({
                     author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
                     content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType
                 });
+
                 postContentInput.value = '';
                 postImageUpload.value = '';
                 selectedFile = null;
