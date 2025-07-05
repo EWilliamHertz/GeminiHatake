@@ -115,8 +115,26 @@ document.addEventListener('authReady', (e) => {
         return tradeCard;
     };
 
-    const loadIncomingTrades = async () => { /* ... same as before ... */ };
-    const loadOutgoingTrades = async () => { /* ... same as before ... */ };
+    const loadTrades = async (container, query) => {
+        container.innerHTML = '<p>Loading trades...</p>';
+        query.onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500 p-4">No trades here.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const trade = doc.data();
+                const tradeId = doc.id;
+                const isIncoming = trade.receiverId === user.uid;
+                const tradeCard = createTradeCard(trade, tradeId, isIncoming);
+                container.appendChild(tradeCard);
+            });
+        }, err => {
+            console.error(err);
+            container.innerHTML = '<p class="text-red-500">Error loading trades.</p>';
+        });
+    }
 
     // --- Propose Trade Modal Logic ---
     const openProposeTradeModal = async () => {
@@ -290,6 +308,12 @@ document.addEventListener('authReady', (e) => {
     });
     
     // --- Initial Load ---
-    loadIncomingTrades();
-    loadOutgoingTrades();
+    const incomingQuery = db.collection('trades').where('receiverId', '==', user.uid).where('status', '==', 'pending');
+    loadTrades(incomingContainer, incomingQuery);
+    
+    const outgoingQuery = db.collection('trades').where('proposerId', '==', user.uid).where('status', '==', 'pending');
+    loadTrades(outgoingContainer, outgoingQuery);
+
+    const historyQuery = db.collection('trades').where('participants', 'array-contains', user.uid);
+    loadTrades(historyContainer, historyQuery);
 });
