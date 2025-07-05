@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100">
+
+    <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+            </a>
+             <nav class="hidden md:block">
+                <ul class="flex space-x-6">
+                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                    <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                    <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
+                    <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                    <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
+                    <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                    <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
+                    <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
+                    <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                </ul>
+            </nav>
+            <div class="flex items-center">
+                <button id="cart-button" class="relative mr-4">
+                    <i class="fas fa-shopping-cart text-2xl text-gray-600"></i>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                </button>
+                <div class="relative flex items-center">
+                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
+                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
+                    <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                    <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
+                        <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
+                        <div class="border-t my-1 border-gray-200"></div>
+                        <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-8">Our Products</h1>
+        <div id="product-grid" class="product-grid">
+            </div>
+    </main>
+
+    <div id="product-detail-modal" class="modal-overlay product-detail-modal">
+        <div class="modal-content">
+            <button id="close-product-modal" class="close-button">&times;</button>
+            <div id="modal-body" class="modal-body">
+                </div>
+        </div>
+    </div>
+    
+    <div id="cart-modal" class="modal-overlay">
+        <div class="modal-content">
+             <button id="close-cart-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Your Cart</h2>
+            <div id="cart-items-container"></div>
+            <div class="text-right mt-4 font-bold text-xl">
+                Total: <span id="cart-total">0.00</span> SEK
+            </div>
+            <button id="checkout-btn" class="w-full mt-4 bg-green-600 text-white font-bold py-2 rounded-full">Checkout</button>
+        </div>
+    </div>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/shop.js"></script>
+</body>
+</html>
