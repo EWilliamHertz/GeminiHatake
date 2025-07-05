@@ -188,19 +188,20 @@
             </div>
         </div>
     </footer>
-    <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000] hidden minimized">
+
+<div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000] hidden">
     <!-- Widget Header -->
     <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-        <div id="widget-chat-header" class="flex items-center">
+        <div id="widget-chat-header" class="flex items-center overflow-hidden">
             <button id="widget-back-btn" class="mr-2 hidden"><i class="fas fa-arrow-left"></i></button>
-            <span id="widget-chat-header-name" class="font-bold">Messages</span>
+            <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
         </div>
-        <i class="fas fa-chevron-up"></i>
+        <i id="widget-toggle-icon" class="fas fa-chevron-up"></i>
     </div>
     <!-- Widget Body -->
     <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
         <!-- Conversation List View -->
-        <div class="flex flex-col h-full">
+        <div id="widget-conversation-view" class="flex flex-col h-full">
             <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
                 <!-- Conversation list items will be loaded here -->
             </div>
@@ -212,8 +213,8 @@
             </div>
             <div class="p-2 border-t border-gray-200 dark:border-gray-700">
                 <div class="flex items-center">
-                    <input type="text" id="widget-message-input" placeholder="Type..." class="w-full bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2 focus:outline-none">
-                    <button id="widget-send-btn" class="ml-2 text-blue-600"><i class="fas fa-paper-plane text-xl"></i></button>
+                    <input type="text" id="widget-message-input" placeholder="Type..." class="w-full bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2 focus:outline-none text-gray-800 dark:text-gray-200">
+                    <button id="widget-send-btn" class="ml-2 text-blue-600 dark:text-blue-400"><i class="fas fa-paper-plane text-xl"></i></button>
                 </div>
             </div>
         </div>
