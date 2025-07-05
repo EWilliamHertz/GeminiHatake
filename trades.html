@@ -24,7 +24,7 @@
         <!-- Search Bar -->
         <div class="hidden md:flex flex-grow justify-center mx-4">
             <div class="relative w-full max-w-md">
-                <input type="text" id="searchBar" placeholder="Search for decks, cards, users, cities, countries, or TCGs..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchBar" placeholder="Search for decks, cards, users..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
             </div>
         </div>
@@ -45,11 +45,8 @@
                 </ul>
             </nav>
             <div class="relative flex items-center">
-                <!-- Login/Register Buttons (Visible when logged out) -->
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
-                
-                <!-- User Avatar & Dropdown (Visible when logged in) -->
                 <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
                 <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
                     <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
@@ -66,7 +63,6 @@
     <main class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
             <h1 class="text-4xl font-extrabold text-gray-800">My Trades</h1>
-            <!-- ** NEW ** Propose a New Trade Button -->
             <button id="propose-new-trade-btn" class="hidden px-6 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700">
                 <i class="fas fa-plus mr-2"></i>Propose a New Trade
             </button>
@@ -89,7 +85,7 @@
         </div>
     </main>
 
-    <!-- ** NEW ** Propose Trade Modal -->
+    <!-- Propose Trade Modal -->
     <div id="propose-trade-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-5xl">
             <button id="close-trade-modal" class="close-button">&times;</button>
@@ -150,42 +146,43 @@
             </div>
         </div>
     </div>
+    
+    <!-- NEW: Feedback Modal -->
     <div id="feedback-modal" class="modal-overlay">
-    <div class="modal-content w-full max-w-md">
-        <button id="close-feedback-modal" class="close-button">&times;</button>
-        <h2 class="text-2xl font-bold mb-4">Leave Feedback</h2>
-        <form id="feedback-form">
-            <input type="hidden" id="feedback-trade-id">
-            <input type="hidden" id="feedback-for-user-id">
-            <p class="mb-4">How was your trade with <strong id="feedback-for-user-name"></strong>?</p>
-            
-            <!-- Star Rating -->
-            <div class="flex items-center justify-center space-x-2 mb-4 text-3xl text-gray-300" id="star-rating">
-                <i class="fas fa-star star-icon cursor-pointer" data-value="1"></i>
-                <i class="fas fa-star star-icon cursor-pointer" data-value="2"></i>
-                <i class="fas fa-star star-icon cursor-pointer" data-value="3"></i>
-                <i class="fas fa-star star-icon cursor-pointer" data-value="4"></i>
-                <i class="fas fa-star star-icon cursor-pointer" data-value="5"></i>
-            </div>
-            <input type="hidden" id="rating-value" value="0">
+        <div class="modal-content w-full max-w-md">
+            <button id="close-feedback-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Leave Feedback</h2>
+            <form id="feedback-form">
+                <input type="hidden" id="feedback-trade-id">
+                <input type="hidden" id="feedback-for-user-id">
+                <p class="mb-4">How was your trade with <strong id="feedback-for-user-name"></strong>?</p>
+                
+                <div class="flex items-center justify-center space-x-2 mb-4 text-3xl text-gray-300" id="star-rating">
+                    <i class="fas fa-star star-icon cursor-pointer" data-value="1"></i>
+                    <i class="fas fa-star star-icon cursor-pointer" data-value="2"></i>
+                    <i class="fas fa-star star-icon cursor-pointer" data-value="3"></i>
+                    <i class="fas fa-star star-icon cursor-pointer" data-value="4"></i>
+                    <i class="fas fa-star star-icon cursor-pointer" data-value="5"></i>
+                </div>
+                <input type="hidden" id="rating-value" value="0">
 
-            <!-- Comment -->
-            <div>
-                <label for="feedback-comment" class="block text-sm font-medium text-gray-700">Comment (optional)</label>
-                <textarea id="feedback-comment" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
-            </div>
+                <div>
+                    <label for="feedback-comment" class="block text-sm font-medium text-gray-700">Comment (optional)</label>
+                    <textarea id="feedback-comment" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
 
-            <div class="mt-6 text-right">
-                <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Submit Feedback</button>
-            </div>
-        </form>
+                <div class="mt-6 text-right">
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Submit Feedback</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+
     <!-- Firebase and custom scripts -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/trades.js"></script>
 </body>
