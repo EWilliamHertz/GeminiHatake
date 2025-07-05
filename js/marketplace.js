@@ -255,6 +255,7 @@ document.addEventListener('authReady', (e) => {
             removeCardFromTrade(button.dataset.cardId);
         }
     });
+    
 
     document.getElementById('my-collection-search').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
