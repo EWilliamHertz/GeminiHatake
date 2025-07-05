@@ -1,12 +1,12 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v10 - Global Search)
+ * HatakeSocial - Core Authentication & UI Script (v11 - Search Refresh Fix)
  *
  * This script is included on EVERY page. It handles:
  * 1. Firebase Initialization (using v9 compat libraries).
  * 2. All Login/Register Modal and Form logic.
  * 3. The main auth state listener that correctly updates the header and sidebar UI.
  * 4. Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * 5. Global search bar functionality.
+ * 5. Global search bar functionality with refresh prevention.
  */
 document.addEventListener('DOMContentLoaded', () => {
     // Hide the body initially to prevent a "flash" of the wrong content
@@ -27,10 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
         firebase.initializeApp(firebaseConfig);
     }
     
-    // Use the compat libraries to get the v8-style APIs and make them globally available
-    window.auth = firebase.auth(); // Correct v8 compat syntax
-    window.db = firebase.firestore(); // Correct v8 compat syntax
-    window.storage = firebase.storage(); // Correct v8 compat syntax
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+    window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
     // --- Global Helpers ---
@@ -39,6 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Core UI Listeners (Run Immediately) ---
     const setupGlobalListeners = () => {
+        // NOTE: We need to target the FORM that wraps the search bar to prevent submission.
+        // I will assume the form has an ID of 'header-search-form' in the HTML.
+        // If it doesn't, you'll need to add it: `<form id="header-search-form">...</form>`
+        const headerSearchForm = document.querySelector('header form'); 
+
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -48,17 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const registerModal = document.getElementById('registerModal');
         const googleLoginButton = document.getElementById('googleLoginButton');
         const googleRegisterButton = document.getElementById('googleRegisterButton');
-        
-        // ** NEW: Global Search Bar Element **
-        const searchBar = document.getElementById('searchBar');
 
-        // Modal toggles
         if (loginButton) loginButton.addEventListener('click', () => openModal(loginModal));
         if (registerButton) registerButton.addEventListener('click', () => openModal(registerModal));
         document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
         document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
 
-        // Email/Password Auth
         document.getElementById('loginForm')?.addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -92,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch(err => alert(err.message));
         });
 
-        // Google Auth
         const handleGoogleAuth = () => {
              auth.signInWithPopup(googleProvider).then(result => {
                 const user = result.user;
@@ -116,18 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
-        // User Menu
         if (logoutButton) logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
         if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
 
-        // ** NEW: Global Search Bar Event Listener **
-        if (searchBar) {
-            searchBar.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const query = searchBar.value.trim();
-                    if (query) {
-                        window.location.href = `search.html?query=${encodeURIComponent(query)}`;
-                    }
+        // **FIX**: Use a 'submit' listener on the form to prevent page refresh
+        if (headerSearchForm) {
+            headerSearchForm.addEventListener('submit', (e) => {
+                e.preventDefault(); // This is the crucial line that stops the refresh
+                const searchBar = document.getElementById('searchBar');
+                const query = searchBar.value.trim();
+                if (query) {
+                    window.location.href = `search.html?query=${encodeURIComponent(query)}`;
                 }
             });
         }
