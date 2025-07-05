@@ -1,16 +1,12 @@
 document.addEventListener('authReady', (e) => {
-    // This function runs when the auth state is confirmed.
-    // The user object (or null if not logged in) is available in e.detail.user
     const user = e.detail.user;
+    const productGrid = document.getElementById('product-grid');
+    if (!productGrid) return; // Exit if not on the shop page
 
     // --- DOM Elements ---
-    const productGrid = document.getElementById('product-grid');
     const productModal = document.getElementById('product-detail-modal');
     const cartModal = document.getElementById('cart-modal');
     const checkoutBtn = document.getElementById('checkout-btn');
-
-    // If we're not on the shop page, exit early.
-    if (!productGrid) return;
 
     // --- Product Data ---
     const products = [
@@ -32,7 +28,6 @@ document.addEventListener('authReady', (e) => {
     function renderProducts() {
         productGrid.innerHTML = '';
         products.forEach(product => {
-            // Corrected image path to use the `images` directory
             const imagePath = `images/${product.images[0]}`;
             const productCardHTML = `
                 <div class="product-card">
@@ -98,16 +93,13 @@ document.addEventListener('authReady', (e) => {
     
     function addToCart(productId) {
         const product = products.find(p => p.id === productId);
-        // Add a unique instance ID for cart removal purposes
         const cartItem = { ...product, cartInstanceId: Date.now() + Math.random() };
         cart.push(cartItem);
         updateCart();
     }
 
     function removeFromCart(cartInstanceId) {
-        // Find the index of the first item with the matching instance ID
         const itemIndex = cart.findIndex(item => item.cartInstanceId === cartInstanceId);
-        // If found, remove it
         if (itemIndex > -1) {
             cart.splice(itemIndex, 1);
         }
@@ -174,19 +166,17 @@ document.addEventListener('authReady', (e) => {
                     currency: 'sek',
                     product_data: {
                         name: item.name,
-                        // Use a full, absolute URL for Stripe images
-                        images: [`https://hatakesocial.com/images/${item.images[0]}`], 
+                        images: [`https://hatakesocial.com/images/${item.images[0]}`],
                     },
-                    unit_amount: item.price * 100, // Price in öre
+                    unit_amount: item.price * 100,
                 },
                 quantity: item.quantity,
             };
         });
 
         try {
-            const { getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js");
-            const functions = getFunctions(firebase.app());
-            const createStripeCheckout = httpsCallable(functions, 'createStripeCheckout');
+            const functions = firebase.functions();
+            const createStripeCheckout = functions.httpsCallable('createStripeCheckout');
             
             const result = await createStripeCheckout({ line_items });
             const sessionId = result.data.id;
