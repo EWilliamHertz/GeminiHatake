@@ -84,22 +84,22 @@ document.addEventListener('authReady', (e) => {
         cards.forEach(card => {
             const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `${card.salePrice.toFixed(2)} SEK` : 'For Trade';
             const cardEl = document.createElement('div');
-            cardEl.className = 'bg-white rounded-lg shadow-md p-2 flex flex-col transition hover:shadow-xl hover:-translate-y-1';
+            // This is the updated HTML that wraps the entire card in a link to card-view.html
             cardEl.innerHTML = `
-                <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
-                <div class="flex-grow flex flex-col p-2">
-                    <h4 class="font-bold text-sm truncate flex-grow">${card.name}</h4>
-                    <p class="text-blue-600 font-semibold text-lg mt-1">${priceDisplay}</p>
-                    <a href="profile.html?user=${card.sellerData.handle}" class="text-xs text-gray-500 hover:underline">@${card.sellerData.handle}</a>
-                </div>
-                <button data-card-id="${card.id}" class="propose-trade-btn mt-2 w-full bg-green-500 text-white text-sm font-bold py-2 rounded-full hover:bg-green-600">
-                    Propose Trade
-                </button>
+                <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block bg-white rounded-lg shadow-md p-2 flex flex-col transition hover:shadow-xl hover:-translate-y-1 h-full">
+                    <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
+                    <div class="flex-grow flex flex-col p-2">
+                        <h4 class="font-bold text-sm truncate flex-grow">${card.name}</h4>
+                        <p class="text-blue-600 font-semibold text-lg mt-1">${priceDisplay}</p>
+                        <p class="text-xs text-gray-500 hover:underline">from @${card.sellerData.handle}</p>
+                    </div>
+                </a>
             `;
             marketplaceGrid.appendChild(cardEl);
         });
     };
 
+    // All original trade modal functions remain unchanged
     const openTradeModal = async (cardId) => {
         const cardToTradeFor = allMarketplaceCards.find(c => c.id === cardId);
         if (!cardToTradeFor) {
@@ -190,25 +190,20 @@ document.addEventListener('authReady', (e) => {
     const updateTradeValues = () => {
         const proposerValueEl = document.getElementById('proposer-total-value');
         const receiverValueEl = document.getElementById('receiver-total-value');
-
         const proposerCardValue = tradeOffer.proposerCards.reduce((sum, card) => sum + parseFloat(card.priceUsd || 0), 0);
         const proposerMoney = parseFloat(document.getElementById('proposer-money').value) || 0;
         const proposerTotal = proposerCardValue + proposerMoney;
-
         const receiverCardValue = parseFloat(tradeOffer.receiverCard.priceUsd || 0);
         const receiverMoney = parseFloat(document.getElementById('receiver-money').value) || 0;
         const receiverTotal = receiverCardValue + receiverMoney;
-
         proposerValueEl.textContent = `Total Value: $${proposerTotal.toFixed(2)}`;
         receiverValueEl.textContent = `Total Value: $${receiverTotal.toFixed(2)}`;
     };
 
     const sendTradeOffer = async () => {
         if (!tradeOffer.receiverCard) return;
-
         sendTradeOfferBtn.disabled = true;
         sendTradeOfferBtn.textContent = 'Sending...';
-
         const tradeData = {
             proposerId: user.uid,
             proposerName: user.displayName,
@@ -225,7 +220,6 @@ document.addEventListener('authReady', (e) => {
             proposerLeftFeedback: false,
             receiverLeftFeedback: false
         };
-
         try {
             await db.collection('trades').add(tradeData);
             alert("Trade offer sent successfully!");
@@ -239,29 +233,27 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    marketplaceGrid.addEventListener('click', (e) => {
-        const button = e.target.closest('.propose-trade-btn');
-        if (button) {
-            openTradeModal(button.dataset.cardId);
-        }
-    });
+    // The 'propose-trade-btn' was removed from the marketplace grid,
+    // so this listener is no longer needed. If you add a similar button
+    // elsewhere (like on card-view.html), you would use this logic.
+    // marketplaceGrid.addEventListener('click', (e) => {
+    //     const button = e.target.closest('.propose-trade-btn');
+    //     if (button) {
+    //         openTradeModal(button.dataset.cardId);
+    //     }
+    // });
 
     closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
     sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
-
     document.getElementById('proposer-selected-cards')?.addEventListener('click', (e) => {
         const button = e.target.closest('.remove-trade-item-btn');
-        if (button) {
-            removeCardFromTrade(button.dataset.cardId);
-        }
+        if (button) removeCardFromTrade(button.dataset.cardId);
     });
-
     document.getElementById('my-collection-search')?.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredCards = myCollectionForTrade.filter(card => card.name.toLowerCase().includes(searchTerm));
         renderMyCollectionForTrade(filteredCards);
     });
-
     document.getElementById('proposer-money')?.addEventListener('input', updateTradeValues);
     document.getElementById('receiver-money')?.addEventListener('input', updateTradeValues);
     
