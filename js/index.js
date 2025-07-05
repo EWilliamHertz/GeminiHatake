@@ -1,48 +1,37 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v3 - Image Upload Fix)
+ * HatakeSocial - Index Page (Feed) Script (v4 - Admin & Login Fix)
  *
  * This script handles all logic for the main feed on index.html.
- * - Fixes the bug where image uploads would cause the post button to get stuck.
- * - Adds the ability to see who has liked a post.
+ * - Fixes the "Please log in" bug by correctly waiting for auth state.
+ * - Adds the ability for users to delete their own posts.
+ * - Adds the ability for admins to delete any post.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
     if (!postsContainer) return;
 
-    // --- DOM Elements ---
-    const postContentInput = document.getElementById('postContent');
-    const submitPostBtn = document.getElementById('submitPostBtn');
-    const postStatusMessage = document.getElementById('postStatusMessage');
-    const postImageUpload = document.getElementById('postImageUpload');
-    const uploadImageBtn = document.getElementById('uploadImageBtn');
-    const uploadVideoBtn = document.getElementById('uploadVideoBtn');
-    const likesModal = document.getElementById('likesModal');
-    const closeLikesModalBtn = document.getElementById('closeLikesModal');
-    const likesListEl = document.getElementById('likesList');
-    let selectedFile = null;
+    // --- State ---
+    let currentUserIsAdmin = false;
 
     // --- Functions ---
-    const renderComments = (commentsListEl, comments) => {
-        if (!Array.isArray(comments) || comments.length === 0) {
-            commentsListEl.innerHTML = '<p class="text-gray-500 text-sm px-2">No comments yet.</p>';
+
+    const checkAdminStatus = async () => {
+        if (!user) {
+            currentUserIsAdmin = false;
             return;
         }
-        commentsListEl.innerHTML = '';
-        comments.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0)).forEach(comment => {
-            const commentHTML = `
-                <div class="pt-2 border-t mt-2 flex items-start space-x-2">
-                    <img src="${comment.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-8 w-8 rounded-full object-cover">
-                    <div class="flex-1 bg-gray-100 rounded-lg p-2">
-                        <a href="profile.html?uid=${comment.authorId}" class="font-bold text-sm hover:underline">${comment.author || 'Anonymous'}</a>
-                        <p class="text-sm">${comment.content}</p>
-                    </div>
-                </div>`;
-            commentsListEl.innerHTML += commentHTML;
-        });
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists && userDoc.data().isAdmin === true) {
+            currentUserIsAdmin = true;
+        } else {
+            currentUserIsAdmin = false;
+        }
     };
 
     const renderPosts = async () => {
+        await checkAdminStatus();
+
         postsContainer.innerHTML = '<p class="text-center text-gray-500 p-4">Loading posts...</p>';
         try {
             const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
@@ -59,16 +48,27 @@ document.addEventListener('authReady', (e) => {
                 let content = post.content || '';
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
                 content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
+                
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
 
+                const canDelete = user && (post.authorId === user.uid || currentUserIsAdmin);
+                const deleteButtonHTML = canDelete ? `
+                    <button class="delete-post-btn text-gray-400 hover:text-red-500" title="Delete Post">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : '';
+
                 postElement.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
-                        <div>
-                            <a href="profile.html?uid=${post.authorId}" class="font-bold hover:underline">${post.author}</a>
-                            <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center mb-4">
+                            <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                            <div>
+                                <a href="profile.html?uid=${post.authorId}" class="font-bold hover:underline">${post.author}</a>
+                                <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                            </div>
                         </div>
+                        ${deleteButtonHTML}
                     </div>
                     <p class="mb-4 whitespace-pre-wrap">${content}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
@@ -98,8 +98,9 @@ document.addEventListener('authReady', (e) => {
     };
     
     const showLikesModal = async (postId) => {
+        const likesListEl = document.getElementById('likesList');
         likesListEl.innerHTML = '<p class="text-center text-gray-500">Loading...</p>';
-        openModal(likesModal);
+        openModal(document.getElementById('likesModal'));
 
         try {
             const postDoc = await db.collection('posts').doc(postId).get();
@@ -137,126 +138,145 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Event Listeners ---
-    if (user) {
-        submitPostBtn?.addEventListener('click', async () => {
-            const content = postContentInput.value;
-            if (!content.trim() && !selectedFile) {
-                postStatusMessage.textContent = 'Please write something or select a file.';
+    const setupEventListeners = () => {
+        const postContentInput = document.getElementById('postContent');
+        const submitPostBtn = document.getElementById('submitPostBtn');
+        const postStatusMessage = document.getElementById('postStatusMessage');
+        const postImageUpload = document.getElementById('postImageUpload');
+        const uploadImageBtn = document.getElementById('uploadImageBtn');
+        const uploadVideoBtn = document.getElementById('uploadVideoBtn');
+        let selectedFile = null;
+
+        if (user) {
+            submitPostBtn?.addEventListener('click', async () => {
+                const content = postContentInput.value;
+                if (!content.trim() && !selectedFile) {
+                    postStatusMessage.textContent = 'Please write something or select a file.';
+                    return;
+                }
+                submitPostBtn.disabled = true;
+                postStatusMessage.textContent = 'Posting...';
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (!userDoc.exists) throw new Error("User profile not found.");
+                    const userData = userDoc.data();
+                    let mediaUrl = null, mediaType = null;
+                    if (selectedFile) {
+                        const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
+                        const fileRef = storage.ref(filePath);
+                        const uploadTask = await fileRef.put(selectedFile);
+                        mediaUrl = await uploadTask.ref.getDownloadURL();
+                        mediaType = selectedFile.type;
+                    }
+                    await db.collection('posts').add({
+                        author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                        content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType
+                    });
+                    postContentInput.value = '';
+                    postImageUpload.value = '';
+                    selectedFile = null;
+                    postStatusMessage.textContent = 'Posted successfully!';
+                    setTimeout(() => postStatusMessage.textContent = '', 3000);
+                    renderPosts();
+                } catch (error) { 
+                    console.error("Error creating post:", error);
+                    postStatusMessage.textContent = `Error: ${error.message}`; 
+                } finally {
+                    submitPostBtn.disabled = false;
+                }
+            });
+            uploadImageBtn?.addEventListener('click', () => postImageUpload.click());
+            uploadVideoBtn?.addEventListener('click', () => postImageUpload.click());
+            postImageUpload?.addEventListener('change', e => {
+                selectedFile = e.target.files[0];
+                if (selectedFile) {
+                    postStatusMessage.textContent = `Selected: ${selectedFile.name}`;
+                }
+            });
+        }
+
+        postsContainer.addEventListener('click', async (e) => {
+            if (!user) {
+                if (e.target.closest('.like-btn') || e.target.closest('.comment-btn')) {
+                    alert("Please log in to interact with posts.");
+                }
                 return;
             }
-            submitPostBtn.disabled = true;
-            postStatusMessage.textContent = 'Posting...';
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists) throw new Error("User profile not found.");
-                const userData = userDoc.data();
-                
-                let mediaUrl = null;
-                let mediaType = null;
-                
-                // **THE FIX IS HERE**: Properly await the upload task
-                if (selectedFile) {
-                    const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
-                    const fileRef = storage.ref(filePath);
-                    const uploadTask = await fileRef.put(selectedFile); // await the upload
-                    mediaUrl = await uploadTask.ref.getDownloadURL(); // then get the URL
-                    mediaType = selectedFile.type;
-                }
 
-                await db.collection('posts').add({
-                    author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-                    content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType
-                });
-
-                postContentInput.value = '';
-                postImageUpload.value = '';
-                selectedFile = null;
-                postStatusMessage.textContent = 'Posted successfully!';
-                setTimeout(() => postStatusMessage.textContent = '', 3000);
-                renderPosts();
-            } catch (error) { 
-                console.error("Error creating post:", error);
-                postStatusMessage.textContent = `Error: ${error.message}`; 
-            } finally {
-                submitPostBtn.disabled = false;
-            }
-        });
-        uploadImageBtn?.addEventListener('click', () => postImageUpload.click());
-        uploadVideoBtn?.addEventListener('click', () => postImageUpload.click());
-        postImageUpload?.addEventListener('change', e => {
-            selectedFile = e.target.files[0];
-            if (selectedFile) {
-                postStatusMessage.textContent = `Selected: ${selectedFile.name}`;
-            }
-        });
-    }
-
-    postsContainer.addEventListener('click', async (e) => {
-        if (!user) {
-            alert("Please log in to interact with posts.");
-            return;
-        }
-        const postElement = e.target.closest('.post-container');
-        if (!postElement) return;
-        const postId = postElement.dataset.id;
-        const postRef = db.collection('posts').doc(postId);
-
-        if (e.target.closest('.comment-btn')) {
-            const commentsSection = postElement.querySelector('.comments-section');
-            const wasHidden = commentsSection.classList.toggle('hidden');
-            if (!wasHidden) {
-                const postDoc = await postRef.get();
-                renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
-            }
-        } else if (e.target.closest('.like-btn')) {
-            await db.runTransaction(async t => {
-                const doc = await t.get(postRef);
-                const data = doc.data();
-                const likes = Array.isArray(data.likes) ? data.likes : [];
-                const userIndex = likes.indexOf(user.uid);
-                if (userIndex === -1) {
-                    likes.push(user.uid);
-                } else {
-                    likes.splice(userIndex, 1);
-                }
-                t.update(postRef, { likes });
-            });
-            renderPosts();
-        } else if (e.target.closest('.likes-count-display')) {
-            showLikesModal(postId);
-        }
-    });
-
-    postsContainer.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (e.target.classList.contains('comment-form')) {
-            if (!user) return;
-            const input = e.target.querySelector('input');
-            const content = input.value.trim();
-            if (!content) return;
             const postElement = e.target.closest('.post-container');
+            if (!postElement) return;
             const postId = postElement.dataset.id;
             const postRef = db.collection('posts').doc(postId);
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            const userData = userDoc.data();
-            const newComment = { 
-                author: userData.displayName || 'Anonymous', 
-                authorId: user.uid, 
-                authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-                content: content, 
-                timestamp: new Date()
-            };
-            await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
-            input.value = '';
-            const updatedPostDoc = await postRef.get();
-            renderComments(postElement.querySelector('.comments-list'), updatedPostDoc.data().comments);
-            postElement.querySelector('.comments-count').textContent = updatedPostDoc.data().comments.length;
-        }
-    });
 
-    closeLikesModalBtn?.addEventListener('click', () => closeModal(likesModal));
+            if (e.target.closest('.delete-post-btn')) {
+                if (confirm('Are you sure you want to delete this post?')) {
+                    try {
+                        await postRef.delete();
+                        alert('Post deleted.');
+                        renderPosts();
+                    } catch (error) {
+                        console.error("Error deleting post: ", error);
+                        alert("Could not delete post.");
+                    }
+                }
+            } else if (e.target.closest('.like-btn')) {
+                await db.runTransaction(async t => {
+                    const doc = await t.get(postRef);
+                    const data = doc.data();
+                    const likes = Array.isArray(data.likes) ? data.likes : [];
+                    const userIndex = likes.indexOf(user.uid);
+                    if (userIndex === -1) {
+                        likes.push(user.uid);
+                    } else {
+                        likes.splice(userIndex, 1);
+                    }
+                    t.update(postRef, { likes });
+                });
+                renderPosts();
+            } else if (e.target.closest('.comment-btn')) {
+                const commentsSection = postElement.querySelector('.comments-section');
+                const wasHidden = commentsSection.classList.toggle('hidden');
+                if (!wasHidden) {
+                    const postDoc = await postRef.get();
+                    renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
+                }
+            } else if (e.target.closest('.likes-count-display')) {
+                showLikesModal(postId);
+            }
+        });
 
+        postsContainer.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (e.target.classList.contains('comment-form')) {
+                if (!user) return;
+                const input = e.target.querySelector('input');
+                const content = input.value.trim();
+                if (!content) return;
+                const postElement = e.target.closest('.post-container');
+                const postId = postElement.dataset.id;
+                const postRef = db.collection('posts').doc(postId);
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                const userData = userDoc.data();
+                const newComment = { 
+                    author: userData.displayName || 'Anonymous', 
+                    authorId: user.uid, 
+                    authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                    content: content, 
+                    timestamp: new Date()
+                };
+                await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
+                input.value = '';
+                const updatedPostDoc = await postRef.get();
+                renderComments(postElement.querySelector('.comments-list'), updatedPostDoc.data().comments);
+                postElement.querySelector('.comments-count').textContent = updatedPostDoc.data().comments.length;
+            }
+        });
+
+        document.getElementById('closeLikesModal')?.addEventListener('click', () => closeModal(document.getElementById('likesModal')));
+    };
+
+    // --- Initial Load ---
     renderPosts();
+    setupEventListeners();
 });
