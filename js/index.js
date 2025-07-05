@@ -1,22 +1,33 @@
+/**
+ * HatakeSocial - Index Page (Feed) Script (v2 - Likes Feature)
+ *
+ * This script handles all logic for the main feed on index.html.
+ * - Fixes permissions issue for liking/commenting on posts.
+ * - Adds the ability to see who has liked a post.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
     if (!postsContainer) return;
 
+    // --- DOM Elements ---
     const postContentInput = document.getElementById('postContent');
     const submitPostBtn = document.getElementById('submitPostBtn');
     const postStatusMessage = document.getElementById('postStatusMessage');
     const postImageUpload = document.getElementById('postImageUpload');
     const uploadImageBtn = document.getElementById('uploadImageBtn');
     const uploadVideoBtn = document.getElementById('uploadVideoBtn');
+    const likesModal = document.getElementById('likesModal');
+    const closeLikesModalBtn = document.getElementById('closeLikesModal');
+    const likesListEl = document.getElementById('likesList');
     let selectedFile = null;
 
+    // --- Functions ---
     const renderComments = (commentsListEl, comments) => {
         if (!Array.isArray(comments) || comments.length === 0) {
             commentsListEl.innerHTML = '<p class="text-gray-500 text-sm px-2">No comments yet.</p>';
             return;
         }
-        
         commentsListEl.innerHTML = '';
         comments.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0)).forEach(comment => {
             const commentHTML = `
@@ -39,21 +50,17 @@ document.addEventListener('authReady', (e) => {
                 postsContainer.innerHTML = '<p class="text-center text-gray-500 p-8">No posts yet. Be the first to share something!</p>';
                 return;
             }
-
             postsContainer.innerHTML = '';
-
             for (const doc of postsSnapshot.docs) {
                 const post = doc.data();
                 const postElement = document.createElement('div');
                 postElement.className = 'bg-white p-4 rounded-lg shadow-md post-container';
                 postElement.dataset.id = doc.id;
-
                 let content = post.content || '';
-                // Updated link to point to card-view.html
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
                 content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
-
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
+                const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
 
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
@@ -68,7 +75,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="flex justify-between items-center mt-4 text-gray-600">
                         <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i> 
-                            <span class="likes-count">${Array.isArray(post.likes) ? post.likes.length : 0}</span>
+                            <span class="likes-count-display cursor-pointer hover:underline">${likesCount}</span>
                         </button>
                         <button class="comment-btn flex items-center hover:text-blue-500">
                             <i class="far fa-comment mr-1"></i> 
@@ -90,6 +97,48 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
+    // --- NEW: Function to show who liked a post ---
+    const showLikesModal = async (postId) => {
+        likesListEl.innerHTML = '<p class="text-center text-gray-500">Loading...</p>';
+        openModal(likesModal);
+
+        try {
+            const postDoc = await db.collection('posts').doc(postId).get();
+            if (!postDoc.exists) {
+                likesListEl.innerHTML = '<p class="text-center text-red-500">Post not found.</p>';
+                return;
+            }
+            const likerIds = postDoc.data().likes;
+            if (!likerIds || likerIds.length === 0) {
+                likesListEl.innerHTML = '<p class="text-center text-gray-500">No likes yet.</p>';
+                return;
+            }
+
+            likesListEl.innerHTML = ''; // Clear loading
+            for (const userId of likerIds) {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const userEl = document.createElement('a');
+                    userEl.href = `profile.html?uid=${userId}`;
+                    userEl.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-md';
+                    userEl.innerHTML = `
+                        <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover">
+                        <div>
+                            <p class="font-semibold text-gray-800">${userData.displayName}</p>
+                            <p class="text-sm text-gray-500">@${userData.handle}</p>
+                        </div>
+                    `;
+                    likesListEl.appendChild(userEl);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching likes:", error);
+            likesListEl.innerHTML = '<p class="text-center text-red-500">Could not load likes.</p>';
+        }
+    };
+
+    // --- Event Listeners ---
     if (user) {
         submitPostBtn?.addEventListener('click', async () => {
             const content = postContentInput.value;
@@ -112,15 +161,9 @@ document.addEventListener('authReady', (e) => {
                     mediaType = selectedFile.type;
                 }
                 await db.collection('posts').add({
-                    author: userData.displayName || 'Anonymous',
-                    authorId: user.uid,
-                    authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-                    content: content,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    likes: [],
-                    comments: [],
-                    mediaUrl: mediaUrl,
-                    mediaType: mediaType
+                    author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                    content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType
                 });
                 postContentInput.value = '';
                 postImageUpload.value = '';
@@ -154,6 +197,7 @@ document.addEventListener('authReady', (e) => {
         if (!postElement) return;
         const postId = postElement.dataset.id;
         const postRef = db.collection('posts').doc(postId);
+
         if (e.target.closest('.comment-btn')) {
             const commentsSection = postElement.querySelector('.comments-section');
             const wasHidden = commentsSection.classList.toggle('hidden');
@@ -161,8 +205,7 @@ document.addEventListener('authReady', (e) => {
                 const postDoc = await postRef.get();
                 renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
             }
-        }
-        if (e.target.closest('.like-btn')) {
+        } else if (e.target.closest('.like-btn')) {
             await db.runTransaction(async t => {
                 const doc = await t.get(postRef);
                 const data = doc.data();
@@ -176,6 +219,8 @@ document.addEventListener('authReady', (e) => {
                 t.update(postRef, { likes });
             });
             renderPosts();
+        } else if (e.target.closest('.likes-count-display')) {
+            showLikesModal(postId);
         }
     });
 
@@ -205,6 +250,8 @@ document.addEventListener('authReady', (e) => {
             postElement.querySelector('.comments-count').textContent = updatedPostDoc.data().comments.length;
         }
     });
+
+    closeLikesModalBtn?.addEventListener('click', () => closeModal(likesModal));
 
     renderPosts();
 });
