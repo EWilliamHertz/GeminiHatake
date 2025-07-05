@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Messenger Widget Script
+ * HatakeSocial - Messenger Widget Script (v2 - Query Fixed)
  *
  * This script handles all logic for the site-wide messenger widget.
- * It's loaded on every page via the auth.js script.
+ * - Corrects the Firestore query to use the 'participants' field.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -50,7 +50,7 @@ document.addEventListener('authReady', (e) => {
     // Load all conversations (users and groups)
     const loadConversations = () => {
         const conversationsRef = db.collection('conversations')
-            .where('members', 'array-contains', user.uid)
+            .where('participants', 'array-contains', user.uid)
             .orderBy('updatedAt', 'desc');
 
         conversationsRef.onSnapshot(snapshot => {
