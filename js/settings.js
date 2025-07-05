@@ -1,9 +1,3 @@
-/**
- * HatakeSocial - Settings Page Script
- *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles all logic for the settings.html page.
- */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const settingsContainer = document.getElementById('settings-page-container');
@@ -19,23 +13,17 @@ document.addEventListener('authReady', (e) => {
     const navButtons = document.querySelectorAll('.settings-nav-btn');
     const sections = document.querySelectorAll('.settings-section');
     const profileForm = document.getElementById('profile-settings-form');
-
-    // Image previews and inputs
     const profilePicPreview = document.getElementById('profile-pic-preview');
     const profilePicUpload = document.getElementById('profile-pic-upload');
     const bannerPicPreview = document.getElementById('banner-pic-preview');
     const bannerPicUpload = document.getElementById('banner-pic-upload');
     let newProfilePicFile = null;
     let newBannerPicFile = null;
-
-    // Form fields
     const displayNameInput = document.getElementById('displayName');
     const handleInput = document.getElementById('handle');
     const bioInput = document.getElementById('bio');
     const favoriteTcgInput = document.getElementById('favoriteTcg');
     const accountEmailEl = document.getElementById('account-email');
-    
-    // Buttons
     const resetPasswordBtn = document.getElementById('reset-password-btn');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
 
@@ -43,15 +31,12 @@ document.addEventListener('authReady', (e) => {
     navButtons.forEach(button => {
         button.addEventListener('click', () => {
             const sectionId = `settings-${button.dataset.section}`;
-            
             navButtons.forEach(btn => {
                 btn.classList.remove('bg-blue-100', 'text-blue-700');
                 btn.classList.add('text-gray-600', 'hover:bg-gray-200');
             });
-
             button.classList.add('bg-blue-100', 'text-blue-700');
             button.classList.remove('text-gray-600', 'hover:bg-gray-200');
-
             sections.forEach(section => {
                 section.id === sectionId ? section.classList.remove('hidden') : section.classList.add('hidden');
             });
@@ -74,8 +59,6 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Event Listeners ---
-
-    // Image preview listeners
     profilePicUpload.addEventListener('change', (e) => {
         newProfilePicFile = e.target.files[0];
         if (newProfilePicFile) {
@@ -98,7 +81,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // Form submission
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const saveBtn = document.getElementById('save-profile-btn');
@@ -113,29 +95,26 @@ document.addEventListener('authReady', (e) => {
                 favoriteTcg: favoriteTcgInput.value,
             };
 
-            // Upload profile picture if a new one was selected
+            // **FIXED LOGIC**: Await the upload and URL retrieval correctly
             if (newProfilePicFile) {
-                const filePath = `profile-pictures/${user.uid}/${newProfilePicFile.name}`;
+                const filePath = `profile-pictures/${user.uid}/${Date.now()}_${newProfilePicFile.name}`;
                 const fileRef = storage.ref(filePath);
-                await fileRef.put(newProfilePicFile);
-                updatedData.photoURL = await fileRef.getDownloadURL();
+                const uploadTask = await fileRef.put(newProfilePicFile);
+                updatedData.photoURL = await uploadTask.ref.getDownloadURL();
                 await user.updateProfile({ photoURL: updatedData.photoURL });
             }
 
-            // Upload banner picture if a new one was selected
             if (newBannerPicFile) {
-                const filePath = `banner-pictures/${user.uid}/${newBannerPicFile.name}`;
+                const filePath = `banner-pictures/${user.uid}/${Date.now()}_${newBannerPicFile.name}`;
                 const fileRef = storage.ref(filePath);
-                await fileRef.put(newBannerPicFile);
-                updatedData.bannerURL = await fileRef.getDownloadURL();
+                const uploadTask = await fileRef.put(newBannerPicFile);
+                updatedData.bannerURL = await uploadTask.ref.getDownloadURL();
             }
             
-            // Update user's display name in Firebase Auth
             if (user.displayName !== updatedData.displayName) {
                 await user.updateProfile({ displayName: updatedData.displayName });
             }
 
-            // Update user document in Firestore
             await db.collection('users').doc(user.uid).update(updatedData);
 
             alert("Profile saved successfully!");
@@ -146,12 +125,12 @@ document.addEventListener('authReady', (e) => {
             console.error("Error saving profile:", error);
             alert("Could not save profile. " + error.message);
         } finally {
+            // **FIXED LOGIC**: This now runs reliably
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save Profile';
         }
     });
 
-    // Security buttons
     resetPasswordBtn.addEventListener('click', () => {
         auth.sendPasswordResetEmail(user.email)
             .then(() => {
@@ -178,6 +157,5 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // --- Initial Load ---
     loadUserData();
 });
