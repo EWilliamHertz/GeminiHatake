@@ -1,20 +1,17 @@
-/**
- * HatakeSocial - Marketplace Page Script (v8 - Full Trading)
- *
- * This script handles fetching and displaying all cards listed for sale,
- * and includes the full logic for proposing a trade with value calculation.
- */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const marketplaceGrid = document.getElementById('marketplace-grid');
     if (!marketplaceGrid) return;
+
+    // ** NEW: Read search query from URL **
+    const urlParams = new URLSearchParams(window.location.search);
+    const cardNameToFilter = urlParams.get('cardName');
 
     if (!user) {
         marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">Please log in to view the marketplace.</p>';
         return;
     }
     
-    // --- Get DOM Elements ---
     const loader = document.getElementById('marketplace-loader');
     const tradeModal = document.getElementById('propose-trade-modal');
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
@@ -30,29 +27,76 @@ document.addEventListener('authReady', (e) => {
         notes: ''
     };
 
-    // --- Main Functions ---
-
     const loadMarketplaceCards = async () => {
-        // ... (Your existing loadMarketplaceCards function) ...
+        loader.style.display = 'block';
+        marketplaceGrid.innerHTML = '';
+
+        try {
+            const forSaleSnapshot = await db.collectionGroup('collection').where('forSale', '==', true).get();
+            
+            if (forSaleSnapshot.empty) {
+                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">The marketplace is empty.</p>';
+                loader.style.display = 'none';
+                return;
+            }
+
+            const sellerIds = [...new Set(forSaleSnapshot.docs.map(doc => doc.ref.parent.parent.id))];
+            const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
+            const sellerDocs = await Promise.all(sellerPromises);
+            const sellers = {};
+            sellerDocs.forEach(doc => {
+                if(doc.exists) sellers[doc.id] = doc.data();
+            });
+
+            allMarketplaceCards = forSaleSnapshot.docs.map(doc => {
+                const sellerId = doc.ref.parent.parent.id;
+                return {
+                    id: doc.id,
+                    sellerId: sellerId,
+                    sellerData: sellers[sellerId] || { handle: 'unknown', displayName: 'Unknown Seller' },
+                    ...doc.data()
+                };
+            });
+
+            // ** NEW: Filter cards if a name is provided in the URL **
+            let cardsToRender = allMarketplaceCards;
+            if (cardNameToFilter) {
+                const pageTitle = document.querySelector('h1');
+                if(pageTitle) pageTitle.innerHTML = `Marketplace: <span class="text-blue-600">${cardNameToFilter}</span>`;
+                cardsToRender = allMarketplaceCards.filter(card => card.name.toLowerCase() === cardNameToFilter.toLowerCase());
+            }
+
+            renderMarketplace(cardsToRender);
+
+        } catch (error) {
+            console.error("Error loading marketplace:", error);
+            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-red-500 p-8">Could not load marketplace cards.</p>';
+        } finally {
+            loader.style.display = 'none';
+        }
     };
 
     const renderMarketplace = (cards) => {
         marketplaceGrid.innerHTML = '';
         if (cards.length === 0) {
-            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards match your search.</p>';
+            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards found for this search.</p>';
             return;
         }
 
         cards.forEach(card => {
             const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `${card.salePrice.toFixed(2)} SEK` : 'For Trade';
             const cardEl = document.createElement('div');
-            cardEl.className = 'bg-white rounded-lg shadow-md p-2 flex flex-col';
+            cardEl.className = 'bg-white rounded-lg shadow-md p-2 flex flex-col transition hover:shadow-xl hover:-translate-y-1';
             cardEl.innerHTML = `
                 <img src="${card.imageUrl}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover">
-                <h4 class="font-bold text-sm truncate">${card.name}</h4>
-                <p class="text-blue-600 font-semibold text-lg mt-1">${priceDisplay}</p>
-                <a href="profile.html?user=${card.sellerData.handle}" class="text-xs text-gray-500 hover:underline">@${card.sellerData.handle}</a>
-                <button data-card-id="${card.id}" class="propose-trade-btn mt-2 w-full bg-green-500 text-white text-sm font-bold py-1 rounded-full hover:bg-green-600">Propose Trade</button>
+                <div class="flex-grow flex flex-col p-2">
+                    <h4 class="font-bold text-sm truncate flex-grow">${card.name}</h4>
+                    <p class="text-blue-600 font-semibold text-lg mt-1">${priceDisplay}</p>
+                    <a href="profile.html?user=${card.sellerData.handle}" class="text-xs text-gray-500 hover:underline">@${card.sellerData.handle}</a>
+                </div>
+                <button data-card-id="${card.id}" class="propose-trade-btn mt-2 w-full bg-green-500 text-white text-sm font-bold py-2 rounded-full hover:bg-green-600">
+                    Propose Trade
+                </button>
             `;
             marketplaceGrid.appendChild(cardEl);
         });
@@ -65,7 +109,6 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         
-        // Reset trade state
         tradeOffer = {
             receiverCard: cardToTradeFor,
             proposerCards: [],
@@ -74,7 +117,6 @@ document.addEventListener('authReady', (e) => {
             notes: ''
         };
 
-        // Display the card being requested
         const receiverDisplay = document.getElementById('receiver-card-display');
         receiverDisplay.innerHTML = `
             <div class="flex items-center space-x-2">
@@ -87,7 +129,6 @@ document.addEventListener('authReady', (e) => {
             </div>
         `;
 
-        // Load my ENTIRE collection for offering
         const myCollectionList = document.getElementById('my-collection-list');
         myCollectionList.innerHTML = '<p>Loading your collection...</p>';
         const snapshot = await db.collection('users').doc(user.uid).collection('collection').get();
@@ -197,7 +238,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Event Listeners ---
     marketplaceGrid.addEventListener('click', (e) => {
         const button = e.target.closest('.propose-trade-btn');
         if (button) {
@@ -224,6 +264,8 @@ document.addEventListener('authReady', (e) => {
     document.getElementById('proposer-money').addEventListener('input', updateTradeValues);
     document.getElementById('receiver-money').addEventListener('input', updateTradeValues);
     
-    // --- Initial Load ---
     loadMarketplaceCards();
 });
+
+
+/*
