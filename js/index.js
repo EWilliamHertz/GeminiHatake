@@ -10,6 +10,7 @@ document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
     if (!postsContainer) return;
+    
 
     // --- State ---
     let currentUserIsAdmin = false;
