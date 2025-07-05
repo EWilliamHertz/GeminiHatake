@@ -1,16 +1,14 @@
 /**
- * HatakeSocial - Groups Page Script (v4 - Fully Merged)
+ * HatakeSocial - Groups Page Script (v5 - Final Fix)
  *
- * This script handles all logic for the groups.html page.
- * - Merges the complete viewGroup and loadGroupFeed logic with the corrected
- * 'participants' field name for full functionality.
+ * - Corrects the group creation to consistently use the 'participants' field.
+ * - Ensures joining/leaving a group also updates the corresponding conversation document.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const groupsPage = document.getElementById('groups-main-view');
-    if (!groupsPage) return; // Exit if not on the groups page
+    if (!groupsPage) return;
 
-    // --- DOM Elements ---
     const createGroupBtn = document.getElementById('create-group-btn');
     const createGroupModal = document.getElementById('create-group-modal');
     const closeGroupModalBtn = document.getElementById('close-group-modal');
@@ -19,12 +17,10 @@ document.addEventListener('authReady', (e) => {
     const discoverGroupsList = document.getElementById('discover-groups-list');
     const groupDetailView = document.getElementById('group-detail-view');
 
-    // --- Show Create Button if Logged In ---
     if (user) {
         createGroupBtn.classList.remove('hidden');
     }
 
-    // --- Event Listeners ---
     createGroupBtn.addEventListener('click', () => openModal(createGroupModal));
     closeGroupModalBtn.addEventListener('click', () => closeModal(createGroupModal));
 
@@ -50,7 +46,7 @@ document.addEventListener('authReady', (e) => {
                 isPublic: isPublic,
                 creatorId: user.uid,
                 creatorName: user.displayName,
-                participants: [user.uid], // Use 'participants' for consistency
+                participants: [user.uid],
                 participantInfo: {
                     [user.uid]: {
                         displayName: user.displayName,
@@ -59,12 +55,11 @@ document.addEventListener('authReady', (e) => {
                 },
                 moderators: [user.uid],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                participantCount: 1 // Use 'participantCount' for consistency
+                participantCount: 1
             };
 
             const groupDocRef = await db.collection('groups').add(groupData);
             
-            // Also create a conversation for this group
             await db.collection('conversations').doc(groupDocRef.id).set({
                 isGroupChat: true,
                 groupName: groupName,
@@ -78,7 +73,6 @@ document.addEventListener('authReady', (e) => {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastMessage: 'Group created!'
             });
-
 
             alert("Group created successfully!");
             closeModal(createGroupModal);
@@ -94,8 +88,6 @@ document.addEventListener('authReady', (e) => {
             submitButton.textContent = 'Create Group';
         }
     });
-
-    // --- Main Functions ---
 
     const createGroupCard = (groupData, groupId) => {
         const card = document.createElement('div');
@@ -236,7 +228,6 @@ document.addEventListener('authReady', (e) => {
 
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-2 space-y-6">
-                    <!-- Group Post Creation -->
                     ${isMember ? `
                     <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
                         <h3 class="font-bold text-gray-800 dark:text-white mb-2">Create a post in this group</h3>
@@ -245,11 +236,9 @@ document.addEventListener('authReady', (e) => {
                             <button id="submitGroupPostBtn" class="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold">Post</button>
                         </div>
                     </div>` : ''}
-                    <!-- Group Feed -->
                     <div id="group-feed-container" class="space-y-6"></div>
                 </div>
                 <div class="md:col-span-1 space-y-6">
-                    <!-- Member List -->
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
                         <h3 class="font-bold text-gray-800 dark:text-white mb-2">Members</h3>
                         <div id="group-member-list" class="space-y-2"></div>
@@ -355,7 +344,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    // --- Initial Load ---
     loadMyGroups();
     loadDiscoverGroups();
 });
