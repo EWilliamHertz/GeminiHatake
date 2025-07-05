@@ -1,7 +1,7 @@
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const container = document.getElementById('card-view-container');
-    if (!container) return; // Exit if not on the card-view page
+    if (!container) return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const cardName = urlParams.get('name');
@@ -15,22 +15,24 @@ document.addEventListener('authReady', (e) => {
     const cardDetailsEl = document.getElementById('card-details');
     const listingsContainer = document.getElementById('listings-table-container');
     const chartCtx = document.getElementById('price-chart').getContext('2d');
+    
+    // NEW: Filter and Sort elements
+    const filterConditionEl = document.getElementById('filter-condition');
+    const filterFoilEl = document.getElementById('filter-foil');
+    const sortByEl = document.getElementById('sort-by');
+
+    let allListings = []; // Store all listings globally to avoid re-fetching
 
     const loadCardData = async () => {
         try {
-            // 1. Fetch card data from Scryfall
             const scryfallResponse = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
             if (!scryfallResponse.ok) throw new Error('Card not found on Scryfall.');
             const cardData = await scryfallResponse.json();
 
-            // Update the page title
             document.title = `${cardData.name} - HatakeSocial`;
-
-            // Display card image
             cardImageEl.src = cardData.image_uris?.large || 'https://placehold.co/370x516?text=No+Image';
             cardImageEl.alt = cardData.name;
 
-            // Display card details
             cardDetailsEl.innerHTML = `
                 <h1 class="text-2xl font-bold">${cardData.name}</h1>
                 <p class="text-lg text-gray-600">${cardData.mana_cost || ''}</p>
@@ -40,7 +42,6 @@ document.addEventListener('authReady', (e) => {
                 <p class="text-sm text-gray-500 mt-4">Set: ${cardData.set_name} (#${cardData.collector_number})</p>
             `;
 
-            // 2. Fetch listings from your Firestore database
             listingsContainer.innerHTML = '<p class="p-4 text-center">Loading listings...</p>';
             const listingsQuery = db.collectionGroup('collection')
                 .where('name', '==', cardData.name)
@@ -50,12 +51,10 @@ document.addEventListener('authReady', (e) => {
             
             if (listingsSnapshot.empty) {
                 listingsContainer.innerHTML = '<p class="p-4 text-center text-gray-500">No one is currently selling this card.</p>';
-                // Also handle the price chart
                 renderPriceChart(null);
                 return;
             }
 
-            // Get all seller info in one batch
             const sellerIds = [...new Set(listingsSnapshot.docs.map(doc => doc.ref.parent.parent.id))];
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
@@ -64,7 +63,7 @@ document.addEventListener('authReady', (e) => {
                 if(doc.exists) sellers[doc.id] = doc.data();
             });
 
-            const listings = listingsSnapshot.docs.map(doc => {
+            allListings = listingsSnapshot.docs.map(doc => {
                 const sellerId = doc.ref.parent.parent.id;
                 return {
                     id: doc.id,
@@ -73,7 +72,7 @@ document.addEventListener('authReady', (e) => {
                 };
             });
             
-            renderListingsTable(listings);
+            applyFiltersAndSort(); // Initial render
             renderPriceChart(cardData);
 
         } catch (error) {
@@ -82,7 +81,42 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    // NEW: Function to apply current filters and sorting
+    const applyFiltersAndSort = () => {
+        let filteredListings = [...allListings];
+
+        // Apply condition filter
+        const condition = filterConditionEl.value;
+        if (condition !== 'all') {
+            filteredListings = filteredListings.filter(l => l.condition === condition);
+        }
+
+        // Apply foil filter
+        const foil = filterFoilEl.value;
+        if (foil !== 'all') {
+            const isFoil = foil === 'true';
+            filteredListings = filteredListings.filter(l => l.isFoil === isFoil);
+        }
+
+        // Apply sorting
+        const sortBy = sortByEl.value;
+        if (sortBy === 'price-asc') {
+            filteredListings.sort((a, b) => a.salePrice - b.salePrice);
+        } else if (sortBy === 'price-desc') {
+            filteredListings.sort((a, b) => b.salePrice - a.salePrice);
+        } else if (sortBy === 'rating-desc') {
+            filteredListings.sort((a, b) => (b.seller.averageRating || 0) - (a.seller.averageRating || 0));
+        }
+
+        renderListingsTable(filteredListings);
+    };
+
     const renderListingsTable = (listings) => {
+        if (listings.length === 0) {
+            listingsContainer.innerHTML = '<p class="p-4 text-center text-gray-500">No listings match the current filters.</p>';
+            return;
+        }
+
         let tableHTML = `
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -97,7 +131,7 @@ document.addEventListener('authReady', (e) => {
                     <tbody class="bg-white divide-y divide-gray-200">
         `;
         
-        listings.sort((a, b) => a.salePrice - b.salePrice).forEach(listing => {
+        listings.forEach(listing => {
             const rating = listing.seller.averageRating ? listing.seller.averageRating.toFixed(1) : 'N/A';
             tableHTML += `
                 <tr>
@@ -107,7 +141,7 @@ document.addEventListener('authReady', (e) => {
                                 <img class="h-10 w-10 rounded-full object-cover" src="${listing.seller.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="">
                             </div>
                             <div class="ml-4">
-                                <div class="text-sm font-medium text-gray-900">${listing.seller.displayName}</div>
+                                <a href="profile.html?user=${listing.seller.handle}" class="text-sm font-medium text-gray-900 hover:underline">${listing.seller.displayName}</a>
                                 <div class="text-sm text-gray-500">Rating: ${rating} ★</div>
                             </div>
                         </div>
@@ -126,8 +160,6 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderPriceChart = (cardData) => {
-        // In a real app, you would fetch historical price data.
-        // For now, we'll simulate it based on the current Scryfall price.
         const price = parseFloat(cardData?.prices?.usd || 0);
         const labels = ['-60d', '-30d', '-7d', 'Today'];
         const prices = [
@@ -135,7 +167,7 @@ document.addEventListener('authReady', (e) => {
             price * (1 + (Math.random() - 0.5) * 0.1),
             price * (1 + (Math.random() - 0.5) * 0.05),
             price
-        ].map(p => p.toFixed(2));
+        ].map(p => p > 0 ? p.toFixed(2) : 0);
 
         new Chart(chartCtx, {
             type: 'line',
@@ -150,15 +182,14 @@ document.addEventListener('authReady', (e) => {
                     tension: 0.1
                 }]
             },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: false
-                    }
-                }
-            }
+            options: { scales: { y: { beginAtZero: false } } }
         });
     };
+
+    // NEW: Event listeners for the controls
+    filterConditionEl.addEventListener('change', applyFiltersAndSort);
+    filterFoilEl.addEventListener('change', applyFiltersAndSort);
+    sortByEl.addEventListener('change', applyFiltersAndSort);
 
     loadCardData();
 });
