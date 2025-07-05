@@ -1,15 +1,8 @@
-/**
- * HatakeSocial - Index Page (Feed) Script
- *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles all logic for the main feed on index.html.
- */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
-    if (!postsContainer) return; // Exit if not on the index page
+    if (!postsContainer) return;
 
-    // --- DOM Elements ---
     const postContentInput = document.getElementById('postContent');
     const submitPostBtn = document.getElementById('submitPostBtn');
     const postStatusMessage = document.getElementById('postStatusMessage');
@@ -18,7 +11,6 @@ document.addEventListener('authReady', (e) => {
     const uploadVideoBtn = document.getElementById('uploadVideoBtn');
     let selectedFile = null;
 
-    // --- Functions ---
     const renderComments = (commentsListEl, comments) => {
         if (!Array.isArray(comments) || comments.length === 0) {
             commentsListEl.innerHTML = '<p class="text-gray-500 text-sm px-2">No comments yet.</p>';
@@ -57,11 +49,10 @@ document.addEventListener('authReady', (e) => {
                 postElement.dataset.id = doc.id;
 
                 let content = post.content || '';
+                // Updated link to point to card-view.html
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 hover:underline">[Deck: $2]</a>`);
-                content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="marketplace.html?cardName=$1" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
+                content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 card-link" data-card-name="$1">$1</a>`);
 
-                // **THE FIX IS HERE**
-                // Safely check if post.likes is an array before calling .includes()
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
 
                 postElement.innerHTML = `
