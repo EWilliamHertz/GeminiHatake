@@ -1,18 +1,16 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v11 - Search Refresh Fix)
+ * HatakeSocial - Core Authentication & UI Script (v12)
  *
  * This script is included on EVERY page. It handles:
- * 1. Firebase Initialization (using v9 compat libraries).
+ * 1. Firebase Initialization.
  * 2. All Login/Register Modal and Form logic.
- * 3. The main auth state listener that correctly updates the header and sidebar UI.
+ * 3. The main auth state listener that correctly updates the header UI.
  * 4. Firing a custom 'authReady' event that all other page-specific scripts listen for.
  * 5. Global search bar functionality with refresh prevention.
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Hide the body initially to prevent a "flash" of the wrong content
     document.body.style.opacity = '0';
 
-    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
@@ -22,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
-    // --- Firebase Initialization (v9 Compat) ---
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
@@ -32,17 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-    // --- Global Helpers ---
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
-    // --- Core UI Listeners (Run Immediately) ---
     const setupGlobalListeners = () => {
-        // NOTE: We need to target the FORM that wraps the search bar to prevent submission.
-        // I will assume the form has an ID of 'header-search-form' in the HTML.
-        // If it doesn't, you'll need to add it: `<form id="header-search-form">...</form>`
         const headerSearchForm = document.querySelector('header form'); 
-
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -117,10 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (logoutButton) logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
         if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
 
-        // **FIX**: Use a 'submit' listener on the form to prevent page refresh
         if (headerSearchForm) {
             headerSearchForm.addEventListener('submit', (e) => {
-                e.preventDefault(); // This is the crucial line that stops the refresh
+                e.preventDefault(); 
                 const searchBar = document.getElementById('searchBar');
                 const query = searchBar.value.trim();
                 if (query) {
@@ -130,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Auth State Controller ---
     auth.onAuthStateChanged(async (user) => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -177,6 +166,5 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.opacity = '1';
     });
     
-    // --- Initial Call ---
     setupGlobalListeners();
 });
