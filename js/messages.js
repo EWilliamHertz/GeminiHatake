@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Messages Page Script (v5 - Group Chat Support)
+ * HatakeSocial - Messages Page Script (v6 - Query Fixed)
  *
  * This script handles all logic for the messages.html page.
- * - Adds tabbing between User and Group conversations.
- * - Loads and displays both types of conversations.
+ * - Corrects the Firestore query to use the 'participants' field instead of 'members'.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -45,12 +44,12 @@ document.addEventListener('authReady', (e) => {
         let query;
         if (activeTab === 'users') {
             query = db.collection('conversations')
-                      .where('members', 'array-contains', currentUser.uid)
+                      .where('participants', 'array-contains', currentUser.uid)
                       .where('isGroupChat', '==', false)
                       .orderBy('updatedAt', 'desc');
         } else { // groups
             query = db.collection('conversations')
-                      .where('members', 'array-contains', currentUser.uid)
+                      .where('participants', 'array-contains', currentUser.uid)
                       .where('isGroupChat', '==', true)
                       .orderBy('updatedAt', 'desc');
         }
@@ -91,7 +90,7 @@ document.addEventListener('authReady', (e) => {
             });
         }, error => {
             console.error(`Error loading ${activeTab} conversations:`, error);
-            conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load ${activeTab}.</p>`;
+            conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load ${activeTab}. Check Firestore indexes.</p>`;
         });
     };
 
