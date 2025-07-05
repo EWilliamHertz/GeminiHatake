@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Messages Page Script (v6 - Query Fixed)
+ * HatakeSocial - Messages Page Script (v7 - Final Fix)
  *
  * This script handles all logic for the messages.html page.
- * - Corrects the Firestore query to use the 'participants' field instead of 'members'.
+ * - Corrects the Firestore query to consistently use the 'participants' field.
+ * - Ensures both user and group chats load correctly.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -26,9 +27,8 @@ document.addEventListener('authReady', (e) => {
     const chatView = document.getElementById('chat-view');
     const messageTabs = document.querySelectorAll('.message-tab-button');
 
-    let activeTab = 'users'; // 'users' or 'groups'
+    let activeTab = 'users';
 
-    // --- Tab Switching Logic ---
     messageTabs.forEach(button => {
         button.addEventListener('click', () => {
             messageTabs.forEach(btn => btn.classList.remove('active'));
@@ -38,21 +38,14 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    const loadConversations = async () => {
+    const loadConversations = () => {
         conversationsListEl.innerHTML = '<p class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">Loading...</p>';
         
-        let query;
-        if (activeTab === 'users') {
-            query = db.collection('conversations')
+        const isGroup = activeTab === 'groups';
+        let query = db.collection('conversations')
                       .where('participants', 'array-contains', currentUser.uid)
-                      .where('isGroupChat', '==', false)
+                      .where('isGroupChat', '==', isGroup)
                       .orderBy('updatedAt', 'desc');
-        } else { // groups
-            query = db.collection('conversations')
-                      .where('participants', 'array-contains', currentUser.uid)
-                      .where('isGroupChat', '==', true)
-                      .orderBy('updatedAt', 'desc');
-        }
 
         query.onSnapshot(snapshot => {
             conversationsListEl.innerHTML = '';
@@ -139,7 +132,6 @@ document.addEventListener('authReady', (e) => {
         if (!content || !currentConversationId) return;
 
         const conversationRef = db.collection('conversations').doc(currentConversationId);
-
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
@@ -147,7 +139,6 @@ document.addEventListener('authReady', (e) => {
         };
         
         messageInput.value = '';
-
         try {
             await conversationRef.update({
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
@@ -160,7 +151,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Event Listeners ---
     sendMessageBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -186,7 +176,6 @@ document.addEventListener('authReady', (e) => {
             resultItem.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
             resultItem.textContent = userData.displayName;
             resultItem.addEventListener('click', async () => {
-                // Create or find conversation
                 const conversationId = [currentUser.uid, doc.id].sort().join('_');
                 const conversationRef = db.collection('conversations').doc(conversationId);
                 await conversationRef.set({
@@ -208,6 +197,5 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- Initial Load ---
     loadConversations();
 });
