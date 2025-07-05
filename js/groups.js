@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Groups Page Script (v2 - Group Feeds)
+ * HatakeSocial - Groups Page Script (v4 - Fully Merged)
  *
  * This script handles all logic for the groups.html page.
- * - NEW: Adds functionality to create and view posts within a specific group.
+ * - Merges the complete viewGroup and loadGroupFeed logic with the corrected
+ * 'participants' field name for full functionality.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -49,8 +50,8 @@ document.addEventListener('authReady', (e) => {
                 isPublic: isPublic,
                 creatorId: user.uid,
                 creatorName: user.displayName,
-                members: [user.uid],
-                memberInfo: {
+                participants: [user.uid], // Use 'participants' for consistency
+                participantInfo: {
                     [user.uid]: {
                         displayName: user.displayName,
                         photoURL: user.photoURL
@@ -58,10 +59,26 @@ document.addEventListener('authReady', (e) => {
                 },
                 moderators: [user.uid],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                memberCount: 1
+                participantCount: 1 // Use 'participantCount' for consistency
             };
 
-            await db.collection('groups').add(groupData);
+            const groupDocRef = await db.collection('groups').add(groupData);
+            
+            // Also create a conversation for this group
+            await db.collection('conversations').doc(groupDocRef.id).set({
+                isGroupChat: true,
+                groupName: groupName,
+                participants: [user.uid],
+                participantInfo: {
+                    [user.uid]: {
+                        displayName: user.displayName,
+                        photoURL: user.photoURL
+                    }
+                },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: 'Group created!'
+            });
+
 
             alert("Group created successfully!");
             closeModal(createGroupModal);
@@ -82,14 +99,14 @@ document.addEventListener('authReady', (e) => {
 
     const createGroupCard = (groupData, groupId) => {
         const card = document.createElement('div');
-        card.className = 'bg-white p-4 rounded-lg shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow';
+        card.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow';
         card.innerHTML = `
             <div class="flex-grow">
-                <h3 class="font-bold text-xl mb-2">${groupData.name}</h3>
-                <p class="text-gray-600 text-sm mb-4">${groupData.description.substring(0, 100)}...</p>
+                <h3 class="font-bold text-xl mb-2 text-gray-800 dark:text-white">${groupData.name}</h3>
+                <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">${groupData.description.substring(0, 100)}...</p>
             </div>
-            <div class="text-sm text-gray-500 flex justify-between items-center mt-auto">
-                <span><i class="fas fa-users mr-2"></i>${groupData.memberCount || groupData.members.length} members</span>
+            <div class="text-sm text-gray-500 dark:text-gray-400 flex justify-between items-center mt-auto">
+                <span><i class="fas fa-users mr-2"></i>${groupData.participantCount || groupData.participants.length} members</span>
                 <span>${groupData.isPublic ? '<i class="fas fa-globe-americas mr-1"></i> Public' : '<i class="fas fa-lock mr-1"></i> Private'}</span>
             </div>
         `;
@@ -99,14 +116,14 @@ document.addEventListener('authReady', (e) => {
 
     const loadMyGroups = async () => {
         if (!user) {
-            myGroupsList.innerHTML = '<p class="text-gray-500 text-sm">Log in to see your groups.</p>';
+            myGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">Log in to see your groups.</p>';
             return;
         }
-        myGroupsList.innerHTML = '<p class="text-gray-500">Loading...</p>';
-        const snapshot = await db.collection('groups').where('members', 'array-contains', user.uid).get();
+        myGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading...</p>';
+        const snapshot = await db.collection('groups').where('participants', 'array-contains', user.uid).get();
 
         if (snapshot.empty) {
-            myGroupsList.innerHTML = '<p class="text-gray-500 text-sm">You haven\'t joined any groups yet.</p>';
+            myGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">You haven\'t joined any groups yet.</p>';
             return;
         }
 
@@ -117,12 +134,12 @@ document.addEventListener('authReady', (e) => {
     };
 
     const loadDiscoverGroups = async () => {
-        discoverGroupsList.innerHTML = '<p class="text-gray-500">Loading...</p>';
+        discoverGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading...</p>';
         try {
             const snapshot = await db.collection('groups').where('isPublic', '==', true).orderBy('createdAt', 'desc').limit(10).get();
 
             if (snapshot.empty) {
-                discoverGroupsList.innerHTML = '<p class="text-gray-500 text-sm">No public groups to show right now.</p>';
+                discoverGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">No public groups to show right now.</p>';
                 return;
             }
 
@@ -136,10 +153,10 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- NEW: Function to load the feed for a specific group ---
     const loadGroupFeed = async (groupId) => {
         const feedContainer = document.getElementById('group-feed-container');
-        feedContainer.innerHTML = '<p class="text-center text-gray-500">Loading feed...</p>';
+        if (!feedContainer) return;
+        feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Loading feed...</p>';
 
         try {
             const postsSnapshot = await db.collection('posts')
@@ -149,7 +166,7 @@ document.addEventListener('authReady', (e) => {
                 .get();
 
             if (postsSnapshot.empty) {
-                feedContainer.innerHTML = '<p class="text-center text-gray-500">No posts in this group yet. Be the first!</p>';
+                feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No posts in this group yet. Be the first!</p>';
                 return;
             }
 
@@ -157,16 +174,16 @@ document.addEventListener('authReady', (e) => {
             postsSnapshot.forEach(doc => {
                 const post = doc.data();
                 const postElement = document.createElement('div');
-                postElement.className = 'bg-white p-4 rounded-lg shadow-md';
+                postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
                 postElement.innerHTML = `
                     <div class="flex items-center mb-4">
                         <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
                         <div>
-                            <a href="profile.html?uid=${post.authorId}" class="font-bold hover:underline">${post.author}</a>
-                            <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                            <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${post.author}</a>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                         </div>
                     </div>
-                    <p class="mb-4 whitespace-pre-wrap">${post.content}</p>
+                    <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${post.content}</p>
                 `;
                 feedContainer.appendChild(postElement);
             });
@@ -179,7 +196,7 @@ document.addEventListener('authReady', (e) => {
     const viewGroup = async (groupId) => {
         groupsPage.classList.add('hidden');
         groupDetailView.classList.remove('hidden');
-        groupDetailView.innerHTML = '<p class="text-gray-500 p-4">Loading group...</p>';
+        groupDetailView.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading group...</p>';
 
         const groupRef = db.collection('groups').doc(groupId);
         const groupDoc = await groupRef.get();
@@ -190,7 +207,7 @@ document.addEventListener('authReady', (e) => {
         }
 
         const groupData = groupDoc.data();
-        const isMember = user ? groupData.members.includes(user.uid) : false;
+        const isMember = user ? groupData.participants.includes(user.uid) : false;
         const isAdmin = user ? groupData.moderators.includes(user.uid) : false;
 
         let joinButtonHTML = '';
@@ -201,19 +218,19 @@ document.addEventListener('authReady', (e) => {
         }
 
         groupDetailView.innerHTML = `
-            <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                 <div class="p-6">
-                    <button id="back-to-groups-list" class="text-blue-600 hover:underline mb-4"><i class="fas fa-arrow-left mr-2"></i>Back to All Groups</button>
+                    <button id="back-to-groups-list" class="text-blue-600 dark:text-blue-400 hover:underline mb-4"><i class="fas fa-arrow-left mr-2"></i>Back to All Groups</button>
                     <div class="flex justify-between items-start">
                         <div>
-                            <h1 class="text-3xl font-bold text-gray-800">${groupData.name}</h1>
-                            <p class="text-gray-500">${groupData.isPublic ? 'Public Group' : 'Private Group'} • ${groupData.memberCount || groupData.members.length} members</p>
+                            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">${groupData.name}</h1>
+                            <p class="text-gray-500 dark:text-gray-400">${groupData.isPublic ? 'Public Group' : 'Private Group'} • ${groupData.participantCount || groupData.participants.length} members</p>
                         </div>
                         <div class="flex-shrink-0">
                             ${joinButtonHTML}
                         </div>
                     </div>
-                    <p class="mt-4 text-gray-700">${groupData.description}</p>
+                    <p class="mt-4 text-gray-700 dark:text-gray-300">${groupData.description}</p>
                 </div>
             </div>
 
@@ -221,9 +238,9 @@ document.addEventListener('authReady', (e) => {
                 <div class="md:col-span-2 space-y-6">
                     <!-- Group Post Creation -->
                     ${isMember ? `
-                    <div id="create-group-post-container" class="bg-white p-4 rounded-lg shadow-md">
-                        <h3 class="font-bold mb-2">Create a post in this group</h3>
-                        <textarea id="groupPostContent" class="w-full p-2 border rounded-md" rows="3" placeholder="Share something with the group..."></textarea>
+                    <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-2">Create a post in this group</h3>
+                        <textarea id="groupPostContent" class="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600" rows="3" placeholder="Share something with the group..."></textarea>
                         <div class="text-right mt-2">
                             <button id="submitGroupPostBtn" class="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold">Post</button>
                         </div>
@@ -233,27 +250,26 @@ document.addEventListener('authReady', (e) => {
                 </div>
                 <div class="md:col-span-1 space-y-6">
                     <!-- Member List -->
-                    <div class="bg-white p-4 rounded-lg shadow-md">
-                        <h3 class="font-bold mb-2">Members</h3>
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                        <h3 class="font-bold text-gray-800 dark:text-white mb-2">Members</h3>
                         <div id="group-member-list" class="space-y-2"></div>
                     </div>
                 </div>
             </div>
         `;
         
-        // --- NEW: Load the feed for this specific group ---
         loadGroupFeed(groupId);
 
         const memberListEl = document.getElementById('group-member-list');
         memberListEl.innerHTML = '';
-        for (const memberId in groupData.memberInfo) {
-            const member = groupData.memberInfo[memberId];
+        for (const memberId in groupData.participantInfo) {
+            const member = groupData.participantInfo[memberId];
             const memberEl = document.createElement('a');
             memberEl.href = `profile.html?uid=${memberId}`;
-            memberEl.className = 'flex items-center space-x-2 p-1 hover:bg-gray-100 rounded';
+            memberEl.className = 'flex items-center space-x-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded';
             memberEl.innerHTML = `
                 <img src="${member.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-8 h-8 rounded-full object-cover">
-                <span class="text-sm font-medium">${member.displayName}</span>
+                <span class="text-sm font-medium text-gray-800 dark:text-white">${member.displayName}</span>
             `;
             memberListEl.appendChild(memberEl);
         }
@@ -271,9 +287,16 @@ document.addEventListener('authReady', (e) => {
 
         joinBtn?.addEventListener('click', async () => {
              await groupRef.update({
-                members: firebase.firestore.FieldValue.arrayUnion(user.uid),
-                memberCount: firebase.firestore.FieldValue.increment(1),
-                [`memberInfo.${user.uid}`]: {
+                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                participantCount: firebase.firestore.FieldValue.increment(1),
+                [`participantInfo.${user.uid}`]: {
+                    displayName: user.displayName,
+                    photoURL: user.photoURL
+                }
+            });
+            await db.collection('conversations').doc(groupId).update({
+                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                [`participantInfo.${user.uid}`]: {
                     displayName: user.displayName,
                     photoURL: user.photoURL
                 }
@@ -285,9 +308,13 @@ document.addEventListener('authReady', (e) => {
         leaveBtn?.addEventListener('click', async () => {
             if (confirm(`Are you sure you want to leave ${groupData.name}?`)) {
                 await groupRef.update({
-                    members: firebase.firestore.FieldValue.arrayRemove(user.uid),
-                    memberCount: firebase.firestore.FieldValue.increment(-1),
-                    [`memberInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
+                    participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
+                    participantCount: firebase.firestore.FieldValue.increment(-1),
+                    [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
+                });
+                await db.collection('conversations').doc(groupId).update({
+                    participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
+                    [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
                 });
                 alert(`You have left ${groupData.name}.`);
                 groupDetailView.classList.add('hidden');
@@ -296,7 +323,6 @@ document.addEventListener('authReady', (e) => {
             }
         });
 
-        // --- NEW: Event listener for submitting a post to the group feed ---
         submitPostBtn?.addEventListener('click', async () => {
             const content = document.getElementById('groupPostContent').value.trim();
             if (!content) {
@@ -314,12 +340,12 @@ document.addEventListener('authReady', (e) => {
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     likes: [],
                     comments: [],
-                    groupId: groupId, // Link the post to this group
+                    groupId: groupId,
                     groupName: groupData.name
                 };
                 await db.collection('posts').add(postData);
                 document.getElementById('groupPostContent').value = '';
-                loadGroupFeed(groupId); // Refresh the feed
+                loadGroupFeed(groupId);
             } catch (error) {
                 console.error("Error creating group post:", error);
                 alert("Failed to create post.");
