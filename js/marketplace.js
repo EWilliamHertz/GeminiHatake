@@ -3,7 +3,6 @@ document.addEventListener('authReady', (e) => {
     const marketplaceGrid = document.getElementById('marketplace-grid');
     if (!marketplaceGrid) return;
 
-    // ** NEW: Read search query from URL **
     const urlParams = new URLSearchParams(window.location.search);
     const cardNameToFilter = urlParams.get('cardName');
 
@@ -58,7 +57,6 @@ document.addEventListener('authReady', (e) => {
                 };
             });
 
-            // ** NEW: Filter cards if a name is provided in the URL **
             let cardsToRender = allMarketplaceCards;
             if (cardNameToFilter) {
                 const pageTitle = document.querySelector('h1');
@@ -211,19 +209,21 @@ document.addEventListener('authReady', (e) => {
         sendTradeOfferBtn.disabled = true;
         sendTradeOfferBtn.textContent = 'Sending...';
 
-        
         const tradeData = {
             proposerId: user.uid,
             proposerName: user.displayName,
             receiverId: tradeOffer.receiverCard.sellerId,
             receiverName: tradeOffer.receiverCard.sellerData.displayName,
+            participants: [user.uid, tradeOffer.receiverCard.sellerId],
             proposerCards: tradeOffer.proposerCards.map(c => ({ name: c.name, imageUrl: c.imageUrl, value: c.priceUsd })),
             receiverCards: [{ name: tradeOffer.receiverCard.name, imageUrl: tradeOffer.receiverCard.imageUrl, value: tradeOffer.receiverCard.priceUsd }],
             proposerMoney: parseFloat(document.getElementById('proposer-money').value) || 0,
             receiverMoney: parseFloat(document.getElementById('receiver-money').value) || 0,
             notes: document.getElementById('trade-notes').value,
             status: 'pending',
-            createdAt: new Date()
+            createdAt: new Date(),
+            proposerLeftFeedback: false,
+            receiverLeftFeedback: false
         };
 
         try {
@@ -246,28 +246,24 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    closeTradeModalBtn.addEventListener('click', () => closeModal(tradeModal));
-    sendTradeOfferBtn.addEventListener('click', sendTradeOffer);
+    closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
+    sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
 
-    document.getElementById('proposer-selected-cards').addEventListener('click', (e) => {
+    document.getElementById('proposer-selected-cards')?.addEventListener('click', (e) => {
         const button = e.target.closest('.remove-trade-item-btn');
         if (button) {
             removeCardFromTrade(button.dataset.cardId);
         }
     });
-    
 
-    document.getElementById('my-collection-search').addEventListener('input', (e) => {
+    document.getElementById('my-collection-search')?.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredCards = myCollectionForTrade.filter(card => card.name.toLowerCase().includes(searchTerm));
         renderMyCollectionForTrade(filteredCards);
     });
 
-    document.getElementById('proposer-money').addEventListener('input', updateTradeValues);
-    document.getElementById('receiver-money').addEventListener('input', updateTradeValues);
+    document.getElementById('proposer-money')?.addEventListener('input', updateTradeValues);
+    document.getElementById('receiver-money')?.addEventListener('input', updateTradeValues);
     
     loadMarketplaceCards();
 });
-
-
-/*
