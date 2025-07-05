@@ -253,7 +253,7 @@ document.addEventListener('authReady', (e) => {
                 if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
                     await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
                     alert('Deck deleted successfully.');
-                    loadMyDecks(); // Refresh the list
+                    loadMyDecks();
                 }
             });
             myDecksList.appendChild(deckCard);
