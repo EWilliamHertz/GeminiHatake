@@ -6,6 +6,7 @@
  * - Fixes the feedback submission logic.
  * - Ensures all original functionality is preserved.
  */
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const tradesPageContainer = document.querySelector('main.container');
