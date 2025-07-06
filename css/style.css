@@ -889,3 +889,33 @@ body {
 #cart-items-container .cart-item-actions button.remove-item-btn:hover {
     color: #dc2626; /* red-700 */
 }
+/* --- NEW: Messenger Widget Redesign --- */
+#messenger-widget-container.minimized #messenger-widget {
+    display: none;
+}
+#messenger-widget-container.minimized #messenger-open-btn {
+    display: flex;
+}
+#messenger-open-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    cursor: pointer;
+    background-color: #2563eb; /* blue-600 */
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 9999px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease-in-out;
+}
+#messenger-open-btn:hover {
+    transform: scale(1.1);
+}
+#messenger-open-btn .fa-comments {
+    font-size: 24px;
+}
