@@ -1,13 +1,18 @@
 /**
- * HatakeSocial - Admin Dashboard Script
+ * HatakeSocial - Admin Dashboard Script (v2 - Report Management)
  *
  * This script handles all logic for the admin.html page.
- * It verifies admin status and provides tools to manage users.
+ * - Verifies admin status.
+ * - Provides tools to manage users.
+ * - NEW: Fetches and displays reported posts from the 'reports' collection.
+ * - NEW: Allows admins to dismiss reports or delete the offending post.
  */
-window.HatakeSocial.onAuthReady((user) => {    const user = e.detail.user;
+document.addEventListener('authReady', async (e) => {
+    const user = e.detail.user;
     const adminContainer = document.getElementById('admin-dashboard-container');
     const accessDeniedContainer = document.getElementById('admin-access-denied');
     const userTableBody = document.getElementById('user-management-table');
+    const reportTableBody = document.getElementById('report-management-table'); // NEW
 
     if (!user) {
         accessDeniedContainer.classList.remove('hidden');
@@ -66,6 +71,45 @@ window.HatakeSocial.onAuthReady((user) => {    const user = e.detail.user;
         });
     };
 
+    // --- NEW: Function to load and display reports ---
+    const loadReports = async () => {
+        reportTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading reports...</td></tr>';
+        const reportsSnapshot = await db.collection('reports').where('status', '==', 'pending').orderBy('timestamp', 'desc').get();
+        
+        if (reportsSnapshot.empty) {
+            reportTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500 dark:text-gray-400">No pending reports. Great job!</td></tr>';
+            return;
+        }
+
+        reportTableBody.innerHTML = '';
+        for (const doc of reportsSnapshot.docs) {
+            const report = doc.data();
+            const reportId = doc.id;
+
+            // Fetch related data
+            const reporterDoc = await db.collection('users').doc(report.reportedBy).get();
+            const postDoc = await db.collection('posts').doc(report.postId).get();
+
+            const reporterName = reporterDoc.exists ? reporterDoc.data().displayName : 'Unknown User';
+            const postContent = postDoc.exists ? postDoc.data().content.substring(0, 100) + '...' : '[Post Deleted]';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">${reporterName}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">${report.reason}</p>
+                    <p class="text-sm text-gray-500">${report.details || 'No details provided.'}</p>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${postContent}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <button data-report-id="${reportId}" class="dismiss-report-btn text-green-600 hover:text-green-900">Dismiss</button>
+                    ${postDoc.exists ? `<button data-report-id="${reportId}" data-post-id="${report.postId}" class="delete-post-btn text-red-600 hover:text-red-900">Delete Post</button>` : ''}
+                </td>
+            `;
+            reportTableBody.appendChild(row);
+        }
+    };
+
     // --- Event Listeners ---
     userTableBody.addEventListener('click', async (e) => {
         if (e.target.classList.contains('toggle-admin-btn')) {
@@ -94,6 +138,37 @@ window.HatakeSocial.onAuthReady((user) => {    const user = e.detail.user;
         }
     });
 
+    // --- NEW: Event listener for report actions ---
+    reportTableBody.addEventListener('click', async (e) => {
+        const dismissBtn = e.target.closest('.dismiss-report-btn');
+        const deleteBtn = e.target.closest('.delete-post-btn');
+
+        if (dismissBtn) {
+            const reportId = dismissBtn.dataset.reportId;
+            if (confirm("Are you sure you want to dismiss this report?")) {
+                await db.collection('reports').doc(reportId).update({ status: 'dismissed' });
+                loadReports();
+            }
+        }
+
+        if (deleteBtn) {
+            const reportId = deleteBtn.dataset.reportId;
+            const postId = deleteBtn.dataset.postId;
+            if (confirm("Are you sure you want to DELETE the post and dismiss the report? This cannot be undone.")) {
+                const postRef = db.collection('posts').doc(postId);
+                const reportRef = db.collection('reports').doc(reportId);
+                
+                const batch = db.batch();
+                batch.delete(postRef);
+                batch.update(reportRef, { status: 'resolved_deleted' });
+                
+                await batch.commit();
+                loadReports();
+            }
+        }
+    });
+
     // --- Initial Load ---
     loadUsers();
+    loadReports(); // NEW
 });
