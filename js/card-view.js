@@ -1,4 +1,4 @@
-document.addEventListener('authReady', (e) => {
+window.HatakeSocial.onAuthReady((user) => {
     const user = e.detail.user;
     const container = document.getElementById('card-view-container');
     if (!container) return; // Exit if not on the card-view page
