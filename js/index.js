@@ -1,10 +1,8 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v6 - Deck Sharing)
+ * HatakeSocial - Index Page (Feed) Script (v7 - Real-time Card Suggestions)
  *
  * This script handles all logic for the main feed on index.html.
- * - Includes the missing renderComments function to fix the comments feature.
- * - Adds admin delete functionality.
- * - Adds support for rendering shared decks.
+ * - NEW: Adds real-time card name suggestions when a user types `[Card...`
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -21,7 +19,6 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         
-        // Sort comments by timestamp before rendering
         comments.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
 
         comments.forEach(comment => {
@@ -162,14 +159,65 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    // --- NEW: Card Suggestion Logic ---
+    const handleCardSuggestions = async (textarea, suggestionsContainer) => {
+        const text = textarea.value;
+        const cursorPos = textarea.selectionStart;
+        const openBracketIndex = text.lastIndexOf('[', cursorPos - 1);
+        const closeBracketIndex = text.indexOf(']', openBracketIndex);
+
+        if (openBracketIndex !== -1 && (closeBracketIndex === -1 || cursorPos <= closeBracketIndex)) {
+            const query = text.substring(openBracketIndex + 1, cursorPos);
+            if (query.length > 2) {
+                try {
+                    const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
+                    const result = await response.json();
+                    
+                    suggestionsContainer.innerHTML = '';
+                    if (result.data && result.data.length > 0) {
+                        suggestionsContainer.classList.remove('hidden');
+                        result.data.slice(0, 7).forEach(cardName => {
+                            const suggestionEl = document.createElement('div');
+                            suggestionEl.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200';
+                            suggestionEl.textContent = cardName;
+                            suggestionEl.addEventListener('click', () => {
+                                const newText = text.substring(0, openBracketIndex) + `[${cardName}]` + text.substring(cursorPos);
+                                textarea.value = newText;
+                                suggestionsContainer.classList.add('hidden');
+                                textarea.focus();
+                            });
+                            suggestionsContainer.appendChild(suggestionEl);
+                        });
+                    } else {
+                        suggestionsContainer.classList.add('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error fetching card suggestions:", error);
+                    suggestionsContainer.classList.add('hidden');
+                }
+            } else {
+                suggestionsContainer.classList.add('hidden');
+            }
+        } else {
+            suggestionsContainer.classList.add('hidden');
+        }
+    };
+
+
     const setupEventListeners = () => {
         const postContentInput = document.getElementById('postContent');
+        const cardSuggestionsContainer = document.getElementById('card-suggestions');
         const submitPostBtn = document.getElementById('submitPostBtn');
         const postStatusMessage = document.getElementById('postStatusMessage');
         const postImageUpload = document.getElementById('postImageUpload');
         const uploadImageBtn = document.getElementById('uploadImageBtn');
         const uploadVideoBtn = document.getElementById('uploadVideoBtn');
         let selectedFile = null;
+
+        // NEW: Add listener for card suggestions
+        postContentInput?.addEventListener('input', () => handleCardSuggestions(postContentInput, cardSuggestionsContainer));
+        postContentInput?.addEventListener('blur', () => setTimeout(() => cardSuggestionsContainer.classList.add('hidden'), 200));
+
 
         if (user) {
             submitPostBtn?.addEventListener('click', async () => {
