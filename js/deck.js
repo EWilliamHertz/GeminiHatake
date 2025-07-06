@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Deck Page Script (v5 - Fully Merged)
+ * HatakeSocial - Deck Page Script (v7 - Fully Merged)
  *
- * This version merges the original deck builder functionality from the repository
- * with the new features for an interactive collection list and automatic deck statistics.
+ * This script is a complete merge of the original deck builder functionality
+ * with the new features for interactive collection integration, deck statistics,
+ * and legality validation.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -33,7 +34,7 @@ document.addEventListener('authReady', (e) => {
     const collectionListContainer = document.getElementById('deck-builder-collection-list');
     
     const formats = {
-        "Magic: The Gathering": ["Standard", "Modern", "Legacy", "Vintage", "Commander", "Pauper", "Oldschool"],
+        "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
         "Pokémon": ["Standard", "Expanded"],
         "Flesh and Blood": ["Classic Constructed", "Blitz"],
         "Yu-Gi-Oh!": ["Advanced", "Traditional"]
@@ -172,6 +173,16 @@ document.addEventListener('authReady', (e) => {
 
         deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
 
+        const validationResult = validateDeck(deckData.cards, deckData.format, deckData.tcg);
+        if (!validationResult.isValid) {
+            const errorString = validationResult.errors.join('\n');
+            if (!confirm(`This deck is not legal for the ${deckData.format} format:\n\n${errorString}\n\nDo you want to save it anyway?`)) {
+                buildDeckBtn.disabled = false;
+                buildDeckBtn.textContent = 'Build & Price Deck';
+                return;
+            }
+        }
+
         const editingId = editingDeckIdInput.value;
         try {
             if (editingId) {
@@ -191,45 +202,78 @@ document.addEventListener('authReady', (e) => {
         }
     });
     
-    const applyFilters = () => {
-        const activeTcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
-        const activeFormat = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
-        const activeList = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
-
-        if (activeList === 'my') {
-            loadMyDecks(activeTcg, activeFormat);
-        } else {
-            loadCommunityDecks(activeTcg, activeFormat);
+    const validateDeck = (cards, format, tcg) => {
+        if (tcg !== "Magic: The Gathering") {
+            return { isValid: true, errors: [] };
         }
+
+        let errors = [];
+        let mainDeckCount = 0;
+        
+        cards.forEach(card => {
+            mainDeckCount += card.quantity;
+            if (card.legalities && card.legalities[format.toLowerCase()] !== 'legal') {
+                 errors.push(`- ${card.name} is not legal in ${format}.`);
+            }
+        });
+
+        switch (format) {
+            case 'Standard':
+            case 'Modern':
+            case 'Legacy':
+            case 'Vintage':
+            case 'Pauper':
+                if (mainDeckCount < 60) errors.push('- Main deck must have at least 60 cards.');
+                cards.forEach(card => {
+                    if (card.quantity > 4 && !card.type_line.includes('Basic Land')) {
+                        errors.push(`- Too many copies of ${card.name} (max 4).`);
+                    }
+                });
+                break;
+            case 'Commander':
+                if (mainDeckCount !== 100) errors.push('- Commander decks must have exactly 100 cards.');
+                cards.forEach(card => {
+                    if (card.quantity > 1 && !card.type_line.includes('Basic Land')) {
+                        errors.push(`- Too many copies of ${card.name} (max 1 for Commander).`);
+                    }
+                });
+                if (cards.length > 0) {
+                     if (!cards[0].type_line.includes('Legendary Creature')) {
+                         errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
+                     }
+                } else {
+                    errors.push('- Deck must contain a Commander.');
+                }
+                break;
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
     };
 
-    tcgFilterButtons.addEventListener('click', (e) => {
-        if (e.target.classList.contains('tcg-filter-btn')) {
-            tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
-            e.target.classList.add('filter-btn-active');
-            
-            const selectedTcg = e.target.dataset.tcg;
-            formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
-            if (selectedTcg !== 'all' && formats[selectedTcg]) {
-                formats[selectedTcg].forEach(format => {
-                    formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
-                });
-                formatFilterContainer.classList.remove('hidden');
-            } else {
-                formatFilterContainer.classList.add('hidden');
-            }
-            applyFilters();
+    const displayLegality = (deck) => {
+        const legalityContainer = document.getElementById('deck-legality-section');
+        const result = validateDeck(deck.cards, deck.format, deck.tcg);
+        
+        if (result.isValid) {
+            legalityContainer.innerHTML = `
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
+                    <p class="font-bold"><i class="fas fa-check-circle mr-2"></i>Deck is legal for ${deck.format} format.</p>
+                </div>
+            `;
+        } else {
+            let errorHTML = result.errors.map(err => `<li>${err}</li>`).join('');
+            legalityContainer.innerHTML = `
+                 <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+                    <p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>This deck is not legal for ${deck.format}.</p>
+                    <ul class="list-disc list-inside mt-2">${errorHTML}</ul>
+                </div>
+            `;
         }
-    });
-
-    formatFilterButtons.addEventListener('click', (e) => {
-        if (e.target.classList.contains('format-filter-btn')) {
-            formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
-            e.target.classList.add('filter-btn-active');
-            applyFilters();
-        }
-    });
-
+    };
+    
     const viewDeck = (deck, deckId) => {
         document.getElementById('tab-deck-view').classList.remove('hidden');
         switchTab('tab-deck-view');
@@ -286,6 +330,7 @@ document.addEventListener('authReady', (e) => {
         });
 
         calculateAndDisplayDeckStats(deck);
+        displayLegality(deck);
     };
 
     const calculateAndDisplayDeckStats = (deck) => {
