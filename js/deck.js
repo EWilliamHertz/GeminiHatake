@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Deck Page Script (v2 - Delete and Share to Feed)
+ * HatakeSocial - Deck Page Script (v3 - Collection Integration)
  *
- * This script handles all logic specific to the deck.html page.
- * - Adds the ability for a user to delete their own decks.
- * - Adds a "Share to Feed" button and functionality.
+ * This version integrates the user's collection into the deck builder tab,
+ * allowing them to visually search and add cards to their decklist.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -11,6 +10,7 @@ document.addEventListener('authReady', (e) => {
     if (!deckBuilderForm) return;
 
     let deckToShare = null;
+    let fullCollection = []; // Store the user's full collection for filtering
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     const deckFilters = document.getElementById('deck-filters');
@@ -27,6 +27,8 @@ document.addEventListener('authReady', (e) => {
     const deckBioInput = document.getElementById('deck-bio-input');
     const decklistInput = document.getElementById('decklist-input');
     const shareDeckBtn = document.getElementById('share-deck-to-feed-btn');
+    const collectionSearchInput = document.getElementById('deck-builder-collection-search');
+    const collectionListContainer = document.getElementById('deck-builder-collection-list');
     
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Legacy", "Vintage", "Commander", "Pauper", "Oldschool"],
@@ -46,6 +48,9 @@ document.addEventListener('authReady', (e) => {
         const targetContentId = tabId.replace('tab-', 'content-');
         tabContents.forEach(content => content.id === targetContentId ? content.classList.remove('hidden') : content.classList.add('hidden'));
         
+        if (tabId === 'tab-builder' && user) {
+            loadCollectionForDeckBuilder();
+        }
         if (tabId === 'tab-my-decks' || tabId === 'tab-community-decks') {
             deckFilters.classList.remove('hidden');
         } else {
@@ -61,6 +66,58 @@ document.addEventListener('authReady', (e) => {
             if (tab.id === 'tab-community-decks') loadCommunityDecks();
         });
     });
+
+    // --- NEW: Collection Integration for Deck Builder ---
+    const loadCollectionForDeckBuilder = async () => {
+        if (!user) {
+            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
+            return;
+        }
+        collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading collection...</p>';
+        const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
+        if (snapshot.empty) {
+            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Your collection is empty.</p>';
+            return;
+        }
+        fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderCollectionInBuilder(fullCollection);
+    };
+
+    const renderCollectionInBuilder = (cards) => {
+        collectionListContainer.innerHTML = '';
+        if (cards.length === 0) {
+            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">No matching cards found.</p>';
+            return;
+        }
+        cards.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 rounded-md cursor-pointer';
+            cardEl.innerHTML = `
+                <div class="flex-grow truncate">
+                    <p class="text-sm font-medium text-gray-800">${card.name}</p>
+                    <p class="text-xs text-gray-500">${card.setName}</p>
+                </div>
+                <div class="text-right flex-shrink-0 ml-2">
+                    <p class="text-sm font-bold">${card.quantity}</p>
+                </div>
+            `;
+            cardEl.addEventListener('click', () => addCardToDecklist(card.name));
+            collectionListContainer.appendChild(cardEl);
+        });
+    };
+    
+    const addCardToDecklist = (cardName) => {
+        decklistInput.value += `1 ${cardName}\n`;
+        decklistInput.scrollTop = decklistInput.scrollHeight;
+    };
+    
+    collectionSearchInput.addEventListener('input', () => {
+        const searchTerm = collectionSearchInput.value.toLowerCase();
+        const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
+        renderCollectionInBuilder(filteredCards);
+    });
+    // --- End of New Section ---
+
 
     deckTcgSelect.addEventListener('change', () => {
         const selectedTcg = deckTcgSelect.value;
@@ -346,5 +403,6 @@ document.addEventListener('authReady', (e) => {
 
     if (user) {
         loadMyDecks();
+        loadCollectionForDeckBuilder(); // Initial load for the deck builder view
     }
 });
