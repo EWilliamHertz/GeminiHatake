@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Deck Page Script (v3 - Collection Integration)
+ * HatakeSocial - Deck Page Script (v5 - Fully Merged)
  *
- * This version integrates the user's collection into the deck builder tab,
- * allowing them to visually search and add cards to their decklist.
+ * This version merges the original deck builder functionality from the repository
+ * with the new features for an interactive collection list and automatic deck statistics.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -10,7 +10,9 @@ document.addEventListener('authReady', (e) => {
     if (!deckBuilderForm) return;
 
     let deckToShare = null;
-    let fullCollection = []; // Store the user's full collection for filtering
+    let fullCollection = [];
+    let manaCurveChart = null;
+
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     const deckFilters = document.getElementById('deck-filters');
@@ -67,7 +69,6 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- NEW: Collection Integration for Deck Builder ---
     const loadCollectionForDeckBuilder = async () => {
         if (!user) {
             collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
@@ -91,14 +92,14 @@ document.addEventListener('authReady', (e) => {
         }
         cards.forEach(card => {
             const cardEl = document.createElement('div');
-            cardEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 rounded-md cursor-pointer';
+            cardEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer';
             cardEl.innerHTML = `
                 <div class="flex-grow truncate">
-                    <p class="text-sm font-medium text-gray-800">${card.name}</p>
-                    <p class="text-xs text-gray-500">${card.setName}</p>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">${card.name}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
                 </div>
                 <div class="text-right flex-shrink-0 ml-2">
-                    <p class="text-sm font-bold">${card.quantity}</p>
+                    <p class="text-sm font-bold dark:text-gray-300">${card.quantity}</p>
                 </div>
             `;
             cardEl.addEventListener('click', () => addCardToDecklist(card.name));
@@ -107,8 +108,19 @@ document.addEventListener('authReady', (e) => {
     };
     
     const addCardToDecklist = (cardName) => {
-        decklistInput.value += `1 ${cardName}\n`;
+        const currentList = decklistInput.value;
+        const regex = new RegExp(`^(\\d+)\\s+${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'im');
+        const match = currentList.match(regex);
+
+        if (match) {
+            const count = parseInt(match[1], 10);
+            const newList = currentList.replace(regex, `${count + 1} ${cardName}`);
+            decklistInput.value = newList;
+        } else {
+            decklistInput.value += `1 ${cardName}\n`;
+        }
         decklistInput.scrollTop = decklistInput.scrollHeight;
+        decklistInput.focus();
     };
     
     collectionSearchInput.addEventListener('input', () => {
@@ -116,8 +128,6 @@ document.addEventListener('authReady', (e) => {
         const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
         renderCollectionInBuilder(filteredCards);
     });
-    // --- End of New Section ---
-
 
     deckTcgSelect.addEventListener('change', () => {
         const selectedTcg = deckTcgSelect.value;
@@ -266,13 +276,63 @@ document.addEventListener('authReady', (e) => {
         order.forEach(category => {
             if (categorizedCards[category]) {
                 const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
-                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2">${category} (${cardCount})</h3>`;
+                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2 dark:text-white">${category} (${cardCount})</h3>`;
                 categorizedCards[category].forEach(card => {
-                    categoryHTML += `<p>${card.quantity} <a href="#" class="card-link text-blue-600 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
+                    categoryHTML += `<p class="dark:text-gray-300">${card.quantity} <a href="#" class="card-link text-blue-600 dark:text-blue-400 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
                 });
                 categoryHTML += `</div>`;
                 listEl.innerHTML += categoryHTML;
             }
+        });
+
+        calculateAndDisplayDeckStats(deck);
+    };
+
+    const calculateAndDisplayDeckStats = (deck) => {
+        const manaCurve = {};
+        const cardTypes = {};
+        let totalCards = 0;
+
+        deck.cards.forEach(card => {
+            totalCards += card.quantity;
+            if (deck.tcg === "Magic: The Gathering" && card.cmc !== undefined) {
+                const cmc = Math.floor(card.cmc);
+                if (cmc >= 7) {
+                    manaCurve['7+'] = (manaCurve['7+'] || 0) + card.quantity;
+                } else {
+                    manaCurve[cmc] = (manaCurve[cmc] || 0) + card.quantity;
+                }
+            }
+            const type = card.type_line.split(' — ')[0].split(' // ')[0];
+            cardTypes[type] = (cardTypes[type] || 0) + card.quantity;
+        });
+
+        const manaCurveEl = document.getElementById('mana-curve-chart');
+        if (manaCurveChart) {
+            manaCurveChart.destroy();
+        }
+        manaCurveChart = new Chart(manaCurveEl, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(manaCurve).sort((a,b) => parseInt(a) - parseInt(b)),
+                datasets: [{
+                    label: '# of Cards',
+                    data: Object.values(manaCurve),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        const cardTypesEl = document.getElementById('card-types-stats');
+        cardTypesEl.innerHTML = '';
+        Object.entries(cardTypes).sort(([,a],[,b]) => b-a).forEach(([type, count]) => {
+            cardTypesEl.innerHTML += `<div class="flex justify-between text-sm dark:text-gray-300"><span>${type}</span><span class="font-semibold">${count}</span></div>`;
         });
     };
 
@@ -291,16 +351,16 @@ document.addEventListener('authReady', (e) => {
             const deck = doc.data();
             const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
             const deckCard = document.createElement('div');
-            deckCard.className = 'bg-white p-4 rounded-lg shadow-md';
+            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
             
             deckCard.innerHTML = `
                 <div class="cursor-pointer hover:opacity-80" data-deck-id="${doc.id}">
-                    <h3 class="text-xl font-bold">${deck.name}</h3>
-                    <p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>
+                    <h3 class="text-xl font-bold dark:text-white">${deck.name}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
                     <p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>
                 </div>
                 <div class="mt-2 flex space-x-2">
-                    <button class="edit-deck-btn text-sm text-gray-500 hover:text-black" data-deck-id="${doc.id}">Edit</button>
+                    <button class="edit-deck-btn text-sm text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white" data-deck-id="${doc.id}">Edit</button>
                     <button class="delete-deck-btn text-sm text-red-500 hover:text-red-700" data-deck-id="${doc.id}">Delete</button>
                 </div>
             `;
@@ -333,8 +393,8 @@ document.addEventListener('authReady', (e) => {
                 const deck = doc.data();
                 const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
                 const deckCard = document.createElement('div');
-                deckCard.className = 'bg-white p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-                deckCard.innerHTML = `<h3 class="text-xl font-bold">${deck.name}</h3><p class="text-sm text-gray-500">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
+                deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
+                deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deck.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
                 deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
                 communityDecksList.appendChild(deckCard);
             });
@@ -403,6 +463,6 @@ document.addEventListener('authReady', (e) => {
 
     if (user) {
         loadMyDecks();
-        loadCollectionForDeckBuilder(); // Initial load for the deck builder view
+        loadCollectionForDeckBuilder();
     }
 });
