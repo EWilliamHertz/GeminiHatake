@@ -200,6 +200,34 @@
         </div>
     </div>
 
+    <!-- NEW: Report Post Modal -->
+    <div id="reportPostModal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
+            <button class="close-button" id="closeReportModal">&times;</button>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Report Post</h2>
+            <form id="reportPostForm">
+                <input type="hidden" id="report-post-id">
+                <div class="mb-4">
+                    <label for="report-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason for reporting:</label>
+                    <select id="report-reason" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-200" required>
+                        <option value="spam">Spam or Misleading</option>
+                        <option value="harassment">Harassment or Hate Speech</option>
+                        <option value="inappropriate">Inappropriate Content</option>
+                        <option value="scam">Scam or Fraud</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="report-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional Details (optional):</label>
+                    <textarea id="report-details" rows="3" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-200"></textarea>
+                </div>
+                <div class="text-right">
+                    <button type="submit" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div class="container mx-auto py-8 px-4">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
