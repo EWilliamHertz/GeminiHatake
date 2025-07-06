@@ -6,10 +6,12 @@
     <title>Events - HatakeSocial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gray-100">
 
+    
      <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
     <div class="container mx-auto px-4 flex justify-between items-center">
         <div class="flex items-center">
@@ -61,13 +63,25 @@
     <main class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
             <h1 class="text-4xl font-extrabold text-gray-800">Upcoming Events</h1>
-            <button id="create-event-btn" class="hidden px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                <i class="fas fa-plus mr-2"></i>Create Event
-            </button>
+            <div class="flex items-center space-x-4">
+                <div id="view-toggle" class="flex items-center bg-gray-200 rounded-full p-1">
+                    <button id="list-view-btn" class="px-4 py-1 text-sm font-semibold rounded-full bg-white shadow">List</button>
+                    <button id="calendar-view-btn" class="px-4 py-1 text-sm font-semibold rounded-full">Calendar</button>
+                </div>
+                <button id="create-event-btn" class="hidden px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Create Event
+                </button>
+            </div>
         </div>
 
-        <div id="events-list" class="space-y-6">
-            <div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>
+        <div id="events-list-view" class="space-y-6">
+            <div id="events-list" class="space-y-6">
+                <div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>
+            </div>
+        </div>
+        
+        <div id="calendar-view" class="hidden bg-white p-4 rounded-lg shadow-md">
+            <div id="calendar"></div>
         </div>
     </main>
 
@@ -127,6 +141,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/events.js"></script>
     <div id="loginModal" class="modal-overlay">
