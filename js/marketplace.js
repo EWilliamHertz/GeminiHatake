@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Marketplace Page Script (v10 - Full Filtering)
+ * HatakeSocial - Marketplace Page Script (v11 - Live Marketplace)
  *
- * This version implements the complete search and filtering functionality
- * from the marketplace search form.
- * - NEW: Queries now filter by card name, language, condition, and seller country.
- * - FIX: Consolidates search logic into a single, powerful function.
+ * This version activates the marketplace by fetching and displaying all cards
+ * that users have marked for sale. It also includes the full filtering and
+ * sorting functionality.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -12,25 +11,21 @@ document.addEventListener('authReady', (e) => {
     if (!marketplaceGrid) return;
 
     if (!user) {
-        marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">Please log in to view the marketplace.</p>';
+        marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">Please log in to view the marketplace.</p>';
         return;
     }
     
-    // --- DOM Elements ---
     const loader = document.getElementById('marketplace-loader');
     const searchForm = document.getElementById('marketplace-search-form');
     const sortByEl = document.getElementById('sort-by');
     
-    // --- State ---
     let allCardsData = [];
 
-    // --- Search & Display Logic ---
     const loadMarketplaceCards = async () => {
         loader.style.display = 'block';
         marketplaceGrid.innerHTML = '';
 
         try {
-            // --- NEW: Read all filter values from the form ---
             const cardName = document.getElementById('search-card-name').value.trim();
             const language = document.getElementById('filter-language').value;
             const condition = document.getElementById('filter-condition').value;
@@ -38,26 +33,20 @@ document.addEventListener('authReady', (e) => {
 
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
-            // --- NEW: Dynamically build the query based on filters ---
             if (cardName) {
-                // Using a range for partial string matching
                 query = query.where('name', '>=', cardName).where('name', '<=', cardName + '\uf8ff');
             }
             if (language !== 'any') {
-                // Note: This requires a composite index in Firestore: (forSale, language)
                 query = query.where('language', '==', language);
             }
             if (condition !== 'any') {
-                 // Note: This requires a composite index in Firestore: (forSale, condition)
                 query = query.where('condition', '==', condition);
             }
 
-            // Client-side filtering will be needed for seller country, as we can't query on a sub-collection's parent field directly.
-            
             const snapshot = await query.limit(200).get();
             
             if (snapshot.empty) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards match your search criteria.</p>';
+                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards match your search criteria.</p>';
                 loader.style.display = 'none';
                 return;
             }
@@ -81,7 +70,6 @@ document.addEventListener('authReady', (e) => {
                 };
             });
             
-            // --- NEW: Apply client-side filter for country ---
             if (country) {
                 allCardsData = allCardsData.filter(card => 
                     card.sellerData && card.sellerData.country && card.sellerData.country.toLowerCase().includes(country.toLowerCase())
@@ -109,7 +97,7 @@ document.addEventListener('authReady', (e) => {
             sortedCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity));
         } else if (sortBy === 'price-desc') {
             sortedCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
-        } else { // 'date-desc' is the default
+        } else {
             sortedCards.sort((a, b) => b.addedAt - a.addedAt);
         }
 
@@ -118,14 +106,14 @@ document.addEventListener('authReady', (e) => {
 
     const renderMarketplace = (cards) => {
         if(cards.length === 0) {
-            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards match your search criteria.</p>';
+            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards match your search criteria.</p>';
             return;
         }
 
         marketplaceGrid.innerHTML = '';
         cards.forEach(card => {
             const sellerHandle = card.sellerData?.handle || 'unknown'; 
-            const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `$${card.salePrice.toFixed(2)} USD` : 'For Trade';
+            const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `${card.salePrice.toFixed(2)} SEK` : 'For Trade';
             
             const cardEl = document.createElement('div');
             cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
@@ -145,7 +133,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
     
-    // --- Event Listeners ---
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         loadMarketplaceCards();
@@ -153,9 +140,5 @@ document.addEventListener('authReady', (e) => {
     
     sortByEl.addEventListener('change', sortAndRender);
 
-    // --- Initial Load ---
     loadMarketplaceCards();
 });
-```
-
-I have updated the `marketplace.js` file to fully support the search and filtering capabilities defined in your UI. Now, when a user fills out the search form and clicks "Search," the results will be filtered by card name, language, condition, and the seller's country, making the marketplace a much more effective tool for finding specific car
