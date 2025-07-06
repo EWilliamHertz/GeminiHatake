@@ -5,7 +5,9 @@
  * - NEW: Adds complete functionality for admins to invite users to groups.
  * - FIX: Ensures joining/leaving a group also updates the corresponding conversation document.
  * - FIX: Added robust checks and error logging to the inviteUserToGroup function to prevent failures.
- */window.HatakeSocial.onAuthReady((user) => {    const user = user;
+ */
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
     const groupsPage = document.getElementById('groups-main-view');
     if (!groupsPage) return;
 

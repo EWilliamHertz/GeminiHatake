@@ -7,7 +7,8 @@
  * - FIX: Improves logic for creating new 1-on-1 conversations.
  * - FIX: User search now queries a lowercase field for case-insensitive results.
  */
-window.HatakeSocial.onAuthReady((user) => {   const currentUser = user;
+document.addEventListener('authReady', (e) => {
+    const currentUser = e.detail.user;
     const chatArea = document.getElementById('chat-area');
     if (!chatArea) return;
 

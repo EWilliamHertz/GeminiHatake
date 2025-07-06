@@ -5,7 +5,9 @@
  * The code logic is correct and will work once the Security Rules and
  * Database Indexes from the accompanying instructions are in place.
  * I have added comments to clarify dependencies.
- */window.HatakeSocial.onAuthReady((user) => {    const currentUser = user;
+ */
+document.addEventListener('authReady', (e) => {
+    const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
 

@@ -4,8 +4,8 @@
  * This script handles all logic specific to the deck.html page.
  * - Adds the ability for a user to delete their own decks.
  */
-window.HatakeSocial.onAuthReady((user) => {
-    const user = user;
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
     if (!deckBuilderForm) return;
 

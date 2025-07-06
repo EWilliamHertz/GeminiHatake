@@ -3,8 +3,9 @@
  *
  * This is the full version of the events script, with a fix
  * to properly display the delete button for event creators.
- window.HatakeSocial.onAuthReady((user) => {
-    const user = user;
+ */
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
     const eventsListContainer = document.getElementById('events-list');
     if (!eventsListContainer) return;
 

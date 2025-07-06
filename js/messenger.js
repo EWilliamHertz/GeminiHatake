@@ -4,7 +4,9 @@
  * This script handles all logic for the site-wide messenger widget.
  * - NEW: Implements the redesigned UI with a circular open button.
  * - FIX: Works with the updated, correct security rules.
- */window.HatakeSocial.onAuthReady((user) => {    const user = user;
+ */
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
     const messengerContainer = document.getElementById('messenger-widget-container');
     if (!messengerContainer) return;
     

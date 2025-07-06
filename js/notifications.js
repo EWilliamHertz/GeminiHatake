@@ -1,7 +1,8 @@
 /**
  * HatakeSocial - Real-Time Notification System
- window.HatakeSocial.onAuthReady((user) => {
-    const user = user;
+ */
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
     const notificationContainer = document.getElementById('notification-container');
     if (!notificationContainer || !user) return;
 
