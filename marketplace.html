@@ -19,8 +19,7 @@
     
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
 
-   <!-- Header Section -->
-    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+   <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -62,13 +61,11 @@
         </div>
     </header>
 
-   <!-- Main Marketplace Content -->
-    <main class="container mx-auto px-4 py-8 flex-grow">
+   <main class="container mx-auto px-4 py-8 flex-grow">
         <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
             <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Marketplace</h1>
         </div>
 
-        <!-- Advanced Search Form -->
         <div id="search-form-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
             <form id="marketplace-search-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -110,7 +107,6 @@
             </form>
         </div>
 
-        <!-- Sorting and Results -->
         <div class="flex justify-end mb-4">
             <select id="sort-by" class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="date-desc">Sort by: Newest</option>
@@ -119,7 +115,6 @@
             </select>
         </div>
 
-        <!-- Marketplace Grid -->
         <div id="marketplace-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div id="marketplace-loader" class="col-span-full text-center p-10">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
@@ -127,8 +122,7 @@
         </div>
     </main>
 
-   <!-- Modals -->
-    <div id="loginModal" class="modal-overlay">
+   <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
@@ -166,11 +160,11 @@
                     <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
                 </div>
                 <div>
-                    <label for="registerCountry" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Country:</label>
+                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
                     <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
                 </div>
                 <div>
-                    <label for="registerFavoriteTcg" class="block text-sm font-medium text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
+                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
                     <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
                 </div>
                 <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
@@ -178,7 +172,6 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div class="container mx-auto py-8 px-4">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -239,7 +232,6 @@
 </div>
 
 
-    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
@@ -250,5 +242,3 @@
     <script src="js/messenger.js"></script>
 </body>
 </html>
-
-
