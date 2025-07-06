@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v8 - Community Reporting)
+ * HatakeSocial - Index Page (Feed) Script (v9 - Tabbed Feeds & Merged Logic)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Adds a "Report" button to posts.
- * - NEW: Implements a modal for users to submit reports on posts.
- * - NEW: Saves reports to a 'reports' collection in Firestore for moderation.
+ * - Implements a tabbed interface to switch between "For You" (public), "Friends", and "Groups" feeds.
+ * - Contains all logic for post creation, liking, commenting, reporting, and deleting.
+ * - Contains logic for real-time card name suggestions in the post editor.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -12,6 +12,7 @@ document.addEventListener('authReady', (e) => {
     if (!postsContainer) return;
 
     let currentUserIsAdmin = false;
+    let activeFeedType = 'for-you'; // Default feed
 
     // --- Helper function to render comments ---
     const renderComments = (container, comments) => {
@@ -51,22 +52,84 @@ document.addEventListener('authReady', (e) => {
         currentUserIsAdmin = userDoc.exists && userDoc.data().isAdmin === true;
     };
 
-    const renderPosts = async () => {
-        await checkAdminStatus();
+    // --- Feed Fetching Logic ---
+    const fetchForYouFeed = async () => {
+        const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
+        return postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    };
 
+    const fetchFriendsFeed = async () => {
+        if (!user) {
+            postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Please log in to see your friends feed.</p>';
+            return [];
+        }
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        const friendIds = userDoc.data()?.friends || [];
+        if (friendIds.length === 0) {
+            postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Add some friends to see their posts here!</p>';
+            return [];
+        }
+        const postsSnapshot = await db.collection('posts').where('authorId', 'in', friendIds).orderBy('timestamp', 'desc').limit(50).get();
+        return postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    };
+
+    const fetchGroupsFeed = async () => {
+        if (!user) {
+            postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Please log in to see your groups feed.</p>';
+            return [];
+        }
+        const groupsSnapshot = await db.collection('groups').where('participants', 'array-contains', user.uid).get();
+        const groupIds = groupsSnapshot.docs.map(doc => doc.id);
+
+        if (groupIds.length === 0) {
+            postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Join some groups to see their posts here!</p>';
+            return [];
+        }
+
+        let groupPosts = [];
+        for (const groupId of groupIds) {
+            const postsSnapshot = await db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc').limit(10).get();
+            postsSnapshot.forEach(doc => {
+                groupPosts.push({ id: doc.id, ...doc.data() });
+            });
+        }
+
+        groupPosts.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+        return groupPosts;
+    };
+
+    const renderPosts = async (feedType) => {
+        await checkAdminStatus();
         postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Loading posts...</p>';
+        
+        let posts = [];
         try {
-            const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
-            if (postsSnapshot.empty) {
-                postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">No posts yet. Be the first to share something!</p>';
+            switch (feedType) {
+                case 'friends':
+                    posts = await fetchFriendsFeed();
+                    break;
+                case 'groups':
+                    posts = await fetchGroupsFeed();
+                    break;
+                case 'for-you':
+                default:
+                    posts = await fetchForYouFeed();
+                    break;
+            }
+
+            if (posts.length === 0 && feedType === 'for-you') {
+                 postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">No posts yet. Be the first to share something!</p>';
+                 return;
+            } else if (posts.length === 0) {
+                // The specific messages for empty friends/groups feeds are handled in their fetch functions.
                 return;
             }
+
             postsContainer.innerHTML = '';
-            for (const doc of postsSnapshot.docs) {
-                const post = doc.data();
+            posts.forEach(post => {
                 const postElement = document.createElement('div');
                 postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md post-container';
-                postElement.dataset.id = doc.id;
+                postElement.dataset.id = post.id;
                 
                 let content = post.content || '';
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`);
@@ -76,18 +139,8 @@ document.addEventListener('authReady', (e) => {
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
                 const canDelete = user && (post.authorId === user.uid || currentUserIsAdmin);
 
-                const deleteButtonHTML = canDelete ? `
-                    <button class="delete-post-btn text-gray-400 hover:text-red-500" title="Delete Post">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                ` : '';
-
-                // NEW: Add report button if the user is logged in and not the author
-                const reportButtonHTML = (user && !canDelete) ? `
-                     <button class="report-post-btn text-gray-400 hover:text-yellow-500 ml-2" title="Report Post">
-                        <i class="fas fa-flag"></i>
-                    </button>
-                ` : '';
+                const deleteButtonHTML = canDelete ? `<button class="delete-post-btn text-gray-400 hover:text-red-500" title="Delete Post"><i class="fas fa-trash"></i></button>` : '';
+                const reportButtonHTML = (user && !canDelete) ? `<button class="report-post-btn text-gray-400 hover:text-yellow-500 ml-2" title="Report Post"><i class="fas fa-flag"></i></button>` : '';
 
                 postElement.innerHTML = `
                     <div class="flex justify-between items-start">
@@ -98,15 +151,12 @@ document.addEventListener('authReady', (e) => {
                                 <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                             </div>
                         </div>
-                        <div class="flex">
-                           ${deleteButtonHTML}
-                           ${reportButtonHTML}
-                        </div>
+                        <div class="flex">${deleteButtonHTML}${reportButtonHTML}</div>
                     </div>
                     <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${content}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
                     <div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400">
-                        <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
+                        <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}" data-post-id="${post.id}">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i> 
                             <span class="likes-count-display cursor-pointer hover:underline">${likesCount}</span>
                         </button>
@@ -123,13 +173,13 @@ document.addEventListener('authReady', (e) => {
                         </form>
                     </div>`;
                 postsContainer.appendChild(postElement);
-            }
+            });
         } catch (error) {
             console.error("Error loading posts:", error);
             postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts. ${error.message}</p>`;
         }
     };
-    
+
     const showLikesModal = async (postId) => {
         const likesListEl = document.getElementById('likesList');
         likesListEl.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Loading...</p>';
@@ -214,8 +264,8 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-
     const setupEventListeners = () => {
+        const feedTabs = document.getElementById('feed-tabs');
         const postContentInput = document.getElementById('postContent');
         const cardSuggestionsContainer = document.getElementById('card-suggestions');
         const submitPostBtn = document.getElementById('submitPostBtn');
@@ -224,6 +274,16 @@ document.addEventListener('authReady', (e) => {
         const uploadImageBtn = document.getElementById('uploadImageBtn');
         const uploadVideoBtn = document.getElementById('uploadVideoBtn');
         let selectedFile = null;
+
+        feedTabs.addEventListener('click', (e) => {
+            const button = e.target.closest('.feed-tab-button');
+            if (button) {
+                document.querySelectorAll('.feed-tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                activeFeedType = button.dataset.feedType;
+                renderPosts(activeFeedType);
+            }
+        });
 
         postContentInput?.addEventListener('input', () => handleCardSuggestions(postContentInput, cardSuggestionsContainer));
         postContentInput?.addEventListener('blur', () => setTimeout(() => cardSuggestionsContainer.classList.add('hidden'), 200));
@@ -259,7 +319,7 @@ document.addEventListener('authReady', (e) => {
                     selectedFile = null;
                     postStatusMessage.textContent = 'Posted successfully!';
                     setTimeout(() => postStatusMessage.textContent = '', 3000);
-                    renderPosts();
+                    renderPosts(activeFeedType);
                 } catch (error) { 
                     console.error("Error creating post:", error);
                     postStatusMessage.textContent = `Error: ${error.message}`; 
@@ -294,7 +354,7 @@ document.addEventListener('authReady', (e) => {
                 if (confirm('Are you sure you want to delete this post?')) {
                     try {
                         await postRef.delete();
-                        renderPosts();
+                        renderPosts(activeFeedType);
                     } catch (error) {
                         console.error("Error deleting post: ", error);
                         alert("Could not delete post.");
@@ -310,7 +370,7 @@ document.addEventListener('authReady', (e) => {
                     else likes.splice(userIndex, 1);
                     t.update(postRef, { likes });
                 });
-                renderPosts();
+                renderPosts(activeFeedType);
             } else if (e.target.closest('.comment-btn')) {
                 const commentsSection = postElement.querySelector('.comments-section');
                 const wasHidden = commentsSection.classList.toggle('hidden');
@@ -356,7 +416,6 @@ document.addEventListener('authReady', (e) => {
 
         document.getElementById('closeLikesModal')?.addEventListener('click', () => closeModal(document.getElementById('likesModal')));
 
-        // NEW: Report Modal Listeners
         const reportPostModal = document.getElementById('reportPostModal');
         document.getElementById('closeReportModal')?.addEventListener('click', () => closeModal(reportPostModal));
         document.getElementById('reportPostForm')?.addEventListener('submit', async (e) => {
@@ -381,7 +440,7 @@ document.addEventListener('authReady', (e) => {
                     reason: reason,
                     details: details,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'pending' // for moderator review
+                    status: 'pending'
                 });
                 alert('Thank you for your report. Our moderators will review it shortly.');
                 closeModal(reportPostModal);
@@ -397,6 +456,6 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Initial Load ---
-    renderPosts();
+    renderPosts(activeFeedType);
     setupEventListeners();
 });
