@@ -7,14 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
-    <script>
-        // Apply theme from localStorage on initial load to prevent FOUC
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
 </head>
     
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
@@ -37,10 +29,9 @@
                         <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
                         <li><a href="groups.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
                         <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
-                        <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
                         <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
                         <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                        <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                        <li><a href="marketplace.html" class="text-blue-600 dark:text-blue-400 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
                         <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
                         <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
                         <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
@@ -121,8 +112,9 @@
             </div>
         </div>
     </main>
+login, register, footer and messenger widget
 
-   <div id="loginModal" class="modal-overlay">
+ <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
@@ -172,7 +164,7 @@
         </div>
     </div>
 
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
         <div class="container mx-auto py-8 px-4">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
                 <div>
@@ -213,7 +205,6 @@
         </div>
     </footer>
 
-   
 <div id="messenger-widget-container" class="minimized">
     <div id="messenger-open-btn">
         <i class="fas fa-comments"></i>
@@ -230,15 +221,11 @@
         </div>
     </div>
 </div>
-
-
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/marketplace.js"></script>
     <script src="js/darkmode.js"></script>
-    <script src="js/messenger.js"></script>
 </body>
 </html>
