@@ -1,16 +1,26 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v14 - Lowercase Name Fix)
+ * HatakeSocial - Core Authentication & UI Script (v15 - Race Condition & Search Fix)
  *
  * This script is included on EVERY page. It handles:
  * - All Login/Register Modal and Form logic.
  * - The main auth state listener that correctly updates the header UI.
- * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * - Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
+ * - FIX: Implements a global registry (window.HatakeSocial) to prevent race conditions,
+ * ensuring page-specific scripts run only after authentication is ready.
  * - FIX: Adds a 'displayName_lower' field on user creation to enable case-insensitive searching.
-
+ * - Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
+ */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
+    // --- Global App Namespace ---
+    window.HatakeSocial = {
+        pageInit: null, // This will hold the function for the specific page
+        onAuthReady: function(initFunction) {
+            this.pageInit = initFunction;
+        }
+    };
+
+    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
@@ -20,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
+    // --- Firebase Initialization ---
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
@@ -29,9 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+    // --- Global Helpers ---
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
 
+    // --- Core UI Listeners (Run Immediately) ---
     const setupGlobalListeners = () => {
         const headerSearchForm = document.querySelector('header form#header-search-form');
         const loginButton = document.getElementById('loginButton');
@@ -132,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- Auth State Controller ---
     auth.onAuthStateChanged(async (user) => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -187,12 +201,21 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebarUserInfo?.classList.add('hidden');
         }
 
-        const event = new CustomEvent('authReady', { detail: { user } });
-        document.dispatchEvent(event);
+        // **THE FIX**: Check if a page has registered an initialization function, and run it.
+        if (window.HatakeSocial.pageInit && typeof window.HatakeSocial.pageInit === 'function') {
+            try {
+                // Pass the user object to the page's init function
+                window.HatakeSocial.pageInit(user);
+            } catch (error) {
+                console.error("Error running page-specific script:", error);
+            }
+        }
 
+        // Finally, make the body visible to prevent UI flash
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
 
+    // --- Initial Call ---
     setupGlobalListeners();
 });
