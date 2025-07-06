@@ -11,10 +11,8 @@
 <body class="bg-gray-100">
     
 
-  <!-- Header Section -->
- <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+  <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
     <div class="container mx-auto px-4 flex justify-between items-center">
-        <!-- Logo and Site Name -->
         <div class="flex items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -22,7 +20,6 @@
             </a>
         </div>
 
-        <!-- Search Bar -->
         <div class="hidden md:flex flex-grow justify-center mx-4">
             <div class="relative w-full max-w-md">
                 <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -30,7 +27,6 @@
             </div>
         </div>
 
-        <!-- Main Navigation and User Menu -->
         <div class="flex items-center space-x-6">
             <nav class="hidden md:block">
                 <ul class="flex space-x-6">
@@ -47,17 +43,6 @@
                 </ul>
             </nav>
             <div class="relative flex items-center">
-                <div id="notification-container" class="relative">
-    <button id="notification-bell-btn" class="text-gray-600 hover:text-blue-600 text-xl relative">
-        <i class="fas fa-bell"></i>
-        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
-    </button>
-    <div id="notification-dropdown" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-md shadow-lg border z-20 hidden">
-        <div class="p-3 font-bold text-lg border-b">Notifications</div>
-        <div id="notification-list" class="max-h-96 overflow-y-auto">
-            </div>
-    </div>
-</div>
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
                 <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
@@ -72,8 +57,7 @@
     </div>
 </header>
 
-    <!-- Login Modal -->
-<div id="loginModal" class="modal-overlay">
+    <div id="loginModal" class="modal-overlay">
     <div class="modal-content w-full max-w-md">
         <button class="close-button" id="closeLoginModal">&times;</button>
         <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Login to HatakeSocial</h2>
@@ -94,7 +78,6 @@
     </div>
 </div>
 
-<!-- Register Modal -->
 <div id="registerModal" class="modal-overlay">
     <div class="modal-content w-full max-w-md">
         <button class="close-button" id="closeRegisterModal">&times;</button>
@@ -128,7 +111,6 @@
     </div>
 </div>
 
-    <!-- Main Trades Content -->
     <main class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
             <h1 class="text-4xl font-extrabold text-gray-800">My Trades</h1>
@@ -137,7 +119,6 @@
             </button>
         </div>
 
-        <!-- Tab Navigation -->
         <div class="mb-6 border-b border-gray-200">
             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                 <button data-tab="incoming" class="trade-tab-button active">Incoming Offers</button>
@@ -146,7 +127,6 @@
             </nav>
         </div>
 
-        <!-- Tab Content -->
         <div>
             <div id="tab-content-incoming" class="trade-tab-content space-y-6"></div>
             <div id="tab-content-outgoing" class="trade-tab-content hidden space-y-6"></div>
@@ -154,7 +134,6 @@
         </div>
     </main>
 
-    <!-- Propose Trade Modal -->
     <div id="propose-trade-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-5xl">
             <button id="close-trade-modal" class="close-button">&times;</button>
@@ -167,7 +146,6 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Left Side: Their Items -->
                 <div id="receiver-trade-section" class="flex flex-col opacity-50 pointer-events-none">
                     <h3 class="font-bold text-lg mb-2">They Offer:</h3>
                     <div class="bg-gray-100 p-4 rounded-lg flex-grow flex flex-col">
@@ -186,7 +164,6 @@
                     </div>
                 </div>
 
-                <!-- Right Side: Your Offer -->
                 <div id="proposer-trade-section" class="flex flex-col">
                     <h3 class="font-bold text-lg mb-2">You Offer:</h3>
                     <div class="bg-gray-100 p-4 rounded-lg flex-grow flex flex-col">
@@ -216,7 +193,6 @@
         </div>
     </div>
     
-    <!-- UPGRADED: Feedback Modal -->
     <div id="feedback-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md">
             <button id="close-feedback-modal" class="close-button">&times;</button>
@@ -307,14 +283,12 @@
 
 
 
-    <!-- Firebase and custom scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/notifications.js"></script>
-    <script src="js/trades.js"></script
+    <script src="js/trades.js"></script>
     <script src="js/messenger.js"></script>
 </body>
 </html>
