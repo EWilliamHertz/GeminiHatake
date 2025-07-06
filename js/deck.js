@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Deck Page Script (v2 - Delete Deck)
+ * HatakeSocial - Deck Page Script (v2 - Delete and Share to Feed)
  *
  * This script handles all logic specific to the deck.html page.
  * - Adds the ability for a user to delete their own decks.
+ * - Adds a "Share to Feed" button and functionality.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -301,6 +302,35 @@ document.addEventListener('authReady', (e) => {
 
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
     };
+
+    shareDeckBtn.addEventListener('click', async () => {
+        if (!user || !deckToShare) {
+            alert("Please log in and select a deck to share.");
+            return;
+        }
+
+        const postContent = `Check out my deck: [deck:${deckToShare.id}:${deckToShare.name}]\n\n${deckToShare.bio || ''}`;
+        
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            const userData = userDoc.data();
+            
+            await db.collection('posts').add({
+                author: userData.displayName || 'Anonymous',
+                authorId: user.uid,
+                authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                content: postContent,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                likes: [],
+                comments: []
+            });
+            alert('Deck shared to feed successfully!');
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error("Error sharing deck:", error);
+            alert("Could not share deck. " + error.message);
+        }
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     const deckId = urlParams.get('deckId');
