@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v9 - Merged and Final)
+ * HatakeSocial - Marketplace Page Script (v10 - Full Filtering)
  *
- * This version merges the new sorting functionality with the original, more extensive
- * script that includes the trade proposal modal.
- * - FIX: Restores all trade modal functionality.
- * - NEW: Adds sorting by date and price.
- * - FIX: Price display correctly shows USD.
- * - FIX: Uses optional chaining to prevent 'undefined' error on seller handles.
+ * This version implements the complete search and filtering functionality
+ * from the marketplace search form.
+ * - NEW: Queries now filter by card name, language, condition, and seller country.
+ * - FIX: Consolidates search logic into a single, powerful function.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -22,18 +20,9 @@ document.addEventListener('authReady', (e) => {
     const loader = document.getElementById('marketplace-loader');
     const searchForm = document.getElementById('marketplace-search-form');
     const sortByEl = document.getElementById('sort-by');
-    const tradeModal = document.getElementById('propose-trade-modal'); // Assuming a trade modal exists in trades.html or is globally available
     
     // --- State ---
     let allCardsData = [];
-    let myCollectionForTrade = [];
-    let tradeOffer = {
-        receiverCard: null,
-        proposerCards: [],
-        proposerMoney: 0,
-        receiverMoney: 0,
-        notes: ''
-    };
 
     // --- Search & Display Logic ---
     const loadMarketplaceCards = async () => {
@@ -41,17 +30,31 @@ document.addEventListener('authReady', (e) => {
         marketplaceGrid.innerHTML = '';
 
         try {
+            // --- NEW: Read all filter values from the form ---
+            const cardName = document.getElementById('search-card-name').value.trim();
+            const language = document.getElementById('filter-language').value;
+            const condition = document.getElementById('filter-condition').value;
+            const country = document.getElementById('filter-location').value.trim();
+
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
-            const cardName = document.getElementById('search-card-name').value.trim();
-            // Note: Firestore doesn't support inequality filters on different fields,
-            // so we can't sort by price/date directly in the query if we filter by name text.
-            // We will fetch and then sort locally.
+            // --- NEW: Dynamically build the query based on filters ---
             if (cardName) {
+                // Using a range for partial string matching
                 query = query.where('name', '>=', cardName).where('name', '<=', cardName + '\uf8ff');
             }
+            if (language !== 'any') {
+                // Note: This requires a composite index in Firestore: (forSale, language)
+                query = query.where('language', '==', language);
+            }
+            if (condition !== 'any') {
+                 // Note: This requires a composite index in Firestore: (forSale, condition)
+                query = query.where('condition', '==', condition);
+            }
+
+            // Client-side filtering will be needed for seller country, as we can't query on a sub-collection's parent field directly.
             
-            const snapshot = await query.limit(100).get(); // Increased limit for better local sorting
+            const snapshot = await query.limit(200).get();
             
             if (snapshot.empty) {
                 marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards match your search criteria.</p>';
@@ -74,16 +77,25 @@ document.addEventListener('authReady', (e) => {
                     sellerId: sellerId,
                     sellerData: sellers[sellerId],
                     ...doc.data(),
-                    // Ensure addedAt is a comparable value
                     addedAt: doc.data().addedAt?.toDate ? doc.data().addedAt.toDate() : new Date(0) 
                 };
             });
+            
+            // --- NEW: Apply client-side filter for country ---
+            if (country) {
+                allCardsData = allCardsData.filter(card => 
+                    card.sellerData && card.sellerData.country && card.sellerData.country.toLowerCase().includes(country.toLowerCase())
+                );
+            }
 
             sortAndRender();
 
         } catch (error) {
             console.error("Error loading marketplace:", error);
-            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500 p-8">Error loading cards: ${error.message}</p>`;
+            marketplaceGrid.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md col-span-full" role="alert">
+                <p class="font-bold">Database Error</p>
+                <p>Could not perform search. This may be due to a missing Firebase index. Please check the developer console (F12) for an error message with a link to create the required index.</p>
+             </div>`;
         } finally {
             loader.style.display = 'none';
         }
@@ -105,6 +117,11 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderMarketplace = (cards) => {
+        if(cards.length === 0) {
+            marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 p-8">No cards match your search criteria.</p>';
+            return;
+        }
+
         marketplaceGrid.innerHTML = '';
         cards.forEach(card => {
             const sellerHandle = card.sellerData?.handle || 'unknown'; 
@@ -122,22 +139,12 @@ document.addEventListener('authReady', (e) => {
                         <p class="text-xs text-gray-500 dark:text-gray-400 group-hover:underline">from @${sellerHandle}</p>
                     </div>
                 </a>
-                <button class="propose-trade-btn mt-2 w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-full hover:bg-green-700" data-card-id="${card.id}">Propose Trade</button>
+                <a href="trades.html?propose_to_card=${card.id}" class="propose-trade-btn mt-2 w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-full hover:bg-green-700">Propose Trade</a>
             `;
             marketplaceGrid.appendChild(cardEl);
         });
     };
     
-    // --- ALL TRADE MODAL FUNCTIONALITY RESTORED ---
-    
-    const openTradeModal = async (cardId) => {
-        alert("The 'Propose Trade' functionality is handled by trades.html and trades.js. Clicking this would typically open a modal defined there.");
-        // In a real single-page app or with shared components, you would call the modal opening function here.
-        // For this multi-page setup, we'll keep the logic separate.
-        // If you want to link to the trade page, we can change this to:
-        // window.location.href = `trades.html?propose_to_card=${cardId}`;
-    };
-
     // --- Event Listeners ---
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -145,15 +152,10 @@ document.addEventListener('authReady', (e) => {
     });
     
     sortByEl.addEventListener('change', sortAndRender);
-    
-    marketplaceGrid.addEventListener('click', (e) => {
-        const tradeButton = e.target.closest('.propose-trade-btn');
-        if (tradeButton) {
-            const cardId = tradeButton.dataset.cardId;
-            openTradeModal(cardId);
-        }
-    });
 
     // --- Initial Load ---
     loadMarketplaceCards();
 });
+```
+
+I have updated the `marketplace.js` file to fully support the search and filtering capabilities defined in your UI. Now, when a user fills out the search form and clicks "Search," the results will be filtered by card name, language, condition, and the seller's country, making the marketplace a much more effective tool for finding specific car
