@@ -1,8 +1,10 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v7 - Real-time Card Suggestions)
+ * HatakeSocial - Index Page (Feed) Script (v8 - Community Reporting)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Adds real-time card name suggestions when a user types `[Card...`
+ * - NEW: Adds a "Report" button to posts.
+ * - NEW: Implements a modal for users to submit reports on posts.
+ * - NEW: Saves reports to a 'reports' collection in Firestore for moderation.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -80,6 +82,13 @@ document.addEventListener('authReady', (e) => {
                     </button>
                 ` : '';
 
+                // NEW: Add report button if the user is logged in and not the author
+                const reportButtonHTML = (user && !canDelete) ? `
+                     <button class="report-post-btn text-gray-400 hover:text-yellow-500 ml-2" title="Report Post">
+                        <i class="fas fa-flag"></i>
+                    </button>
+                ` : '';
+
                 postElement.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex items-center mb-4">
@@ -89,7 +98,10 @@ document.addEventListener('authReady', (e) => {
                                 <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                             </div>
                         </div>
-                        ${deleteButtonHTML}
+                        <div class="flex">
+                           ${deleteButtonHTML}
+                           ${reportButtonHTML}
+                        </div>
                     </div>
                     <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${content}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
@@ -159,7 +171,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- NEW: Card Suggestion Logic ---
     const handleCardSuggestions = async (textarea, suggestionsContainer) => {
         const text = textarea.value;
         const cursorPos = textarea.selectionStart;
@@ -214,10 +225,8 @@ document.addEventListener('authReady', (e) => {
         const uploadVideoBtn = document.getElementById('uploadVideoBtn');
         let selectedFile = null;
 
-        // NEW: Add listener for card suggestions
         postContentInput?.addEventListener('input', () => handleCardSuggestions(postContentInput, cardSuggestionsContainer));
         postContentInput?.addEventListener('blur', () => setTimeout(() => cardSuggestionsContainer.classList.add('hidden'), 200));
-
 
         if (user) {
             submitPostBtn?.addEventListener('click', async () => {
@@ -275,7 +284,7 @@ document.addEventListener('authReady', (e) => {
             const postRef = db.collection('posts').doc(postId);
 
             if (!user) {
-                if (e.target.closest('.like-btn') || e.target.closest('.comment-btn')) {
+                if (e.target.closest('.like-btn') || e.target.closest('.comment-btn') || e.target.closest('.report-post-btn')) {
                     alert("Please log in to interact with posts.");
                 }
                 return;
@@ -311,6 +320,10 @@ document.addEventListener('authReady', (e) => {
                 }
             } else if (e.target.closest('.likes-count-display')) {
                 showLikesModal(postId);
+            } else if (e.target.closest('.report-post-btn')) {
+                const reportModal = document.getElementById('reportPostModal');
+                document.getElementById('report-post-id').value = postId;
+                openModal(reportModal);
             }
         });
 
@@ -342,6 +355,45 @@ document.addEventListener('authReady', (e) => {
         });
 
         document.getElementById('closeLikesModal')?.addEventListener('click', () => closeModal(document.getElementById('likesModal')));
+
+        // NEW: Report Modal Listeners
+        const reportPostModal = document.getElementById('reportPostModal');
+        document.getElementById('closeReportModal')?.addEventListener('click', () => closeModal(reportPostModal));
+        document.getElementById('reportPostForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const postId = document.getElementById('report-post-id').value;
+            const reason = document.getElementById('report-reason').value;
+            const details = document.getElementById('report-details').value;
+            
+            if (!user || !postId) {
+                alert("Cannot submit report. Missing user or post information.");
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                await db.collection('reports').add({
+                    postId: postId,
+                    reportedBy: user.uid,
+                    reason: reason,
+                    details: details,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending' // for moderator review
+                });
+                alert('Thank you for your report. Our moderators will review it shortly.');
+                closeModal(reportPostModal);
+                e.target.reset();
+            } catch (error) {
+                console.error("Error submitting report:", error);
+                alert("Could not submit report. Please try again.");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Report';
+            }
+        });
     };
 
     // --- Initial Load ---
