@@ -1,17 +1,69 @@
 /**
- * HatakeSocial - Profile Page Script (v5 - Merged with Friends System)
+ * HatakeSocial - Profile Page Script (v6 - Merged Friends & Badges)
  *
  * This script handles all logic for the user profile page.
- * It now includes the integrated friends system, which:
- * - Adds a "Friends" tab to the profile.
- * - Displays a user's friends list and incoming friend requests.
- * - Allows users to accept or reject friend requests.
- * - Shows an "Add Friend" button on other users' profiles.
+ * It now includes the integrated friends system and the new achievement badges system.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
+
+    // --- NEW: Badge Definitions ---
+    const badgeDefinitions = {
+        pioneer: {
+            name: 'Pioneer',
+            description: 'One of the first 100 users to join HatakeSocial!',
+            icon: 'fa-rocket',
+            color: 'text-purple-500',
+            async check(userData, userId) {
+                // This is a simplified check. A real implementation would need to query
+                // the first 100 users by createdAt timestamp.
+                const pioneerDate = new Date('2025-07-01');
+                return userData.createdAt.toDate() < pioneerDate;
+            }
+        },
+        collector: {
+            name: 'Collector',
+            description: 'Has over 100 cards in their collection.',
+            icon: 'fa-box-open',
+            color: 'text-blue-500',
+            async check(userData, userId) {
+                const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get();
+                return snapshot.size > 100;
+            }
+        },
+        deckmaster: {
+            name: 'Deck Master',
+            description: 'Has created at least 5 decks.',
+            icon: 'fa-layer-group',
+            color: 'text-green-500',
+            async check(userData, userId) {
+                const snapshot = await db.collection('users').doc(userId).collection('decks').limit(5).get();
+                return snapshot.size >= 5;
+            }
+        },
+        socialite: {
+            name: 'Socialite',
+            description: 'Has more than 10 friends.',
+            icon: 'fa-users',
+            color: 'text-pink-500',
+            async check(userData, userId) {
+                return userData.friends && userData.friends.length > 10;
+            }
+        },
+        trusted_trader: {
+            name: 'Trusted Trader',
+            description: 'Completed 10 trades with positive feedback.',
+            icon: 'fa-handshake',
+            color: 'text-yellow-500',
+            async check(userData, userId) {
+                 // This is a placeholder check. A real implementation would query
+                 // the trades and feedback collections.
+                 return (userData.ratingCount || 0) >= 10 && (userData.averageRating || 0) >= 4.5;
+            }
+        }
+    };
 
     // This function sets up the entire profile page, including the new friends functionality
     const setupProfilePage = async () => {
@@ -42,27 +94,14 @@ document.addEventListener('authReady', (e) => {
 
             // --- Friend Status Logic ---
             let friendStatus = 'none';
-            let existingRequestId = null;
             if (currentUser && !isOwnProfile) {
-                // Check if they are already friends
                 if (profileUserData.friends && profileUserData.friends.includes(currentUser.uid)) {
                     friendStatus = 'friends';
                 } else {
-                    // Check for a pending request
-                    const requestQuery1 = await db.collection('friendRequests')
-                        .where('senderId', '==', currentUser.uid)
-                        .where('receiverId', '==', profileUserId)
-                        .get();
-                    const requestQuery2 = await db.collection('friendRequests')
-                        .where('senderId', '==', profileUserId)
-                        .where('receiverId', '==', currentUser.uid)
-                        .get();
-
-                    if (!requestQuery1.empty) {
-                        friendStatus = 'request_sent';
-                    } else if (!requestQuery2.empty) {
-                        friendStatus = 'request_received';
-                    }
+                    const requestQuery1 = await db.collection('friendRequests').where('senderId', '==', currentUser.uid).where('receiverId', '==', profileUserId).get();
+                    const requestQuery2 = await db.collection('friendRequests').where('senderId', '==', profileUserId).where('receiverId', '==', currentUser.uid).get();
+                    if (!requestQuery1.empty) friendStatus = 'request_sent';
+                    else if (!requestQuery2.empty) friendStatus = 'request_received';
                 }
             }
 
@@ -70,18 +109,10 @@ document.addEventListener('authReady', (e) => {
             if (!isOwnProfile && currentUser) {
                 actionButtonHTML += `<button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
                 switch (friendStatus) {
-                    case 'none':
-                        actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>`;
-                        break;
-                    case 'request_sent':
-                        actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-gray-400 text-white rounded-full text-sm" disabled>Request Sent</button>`;
-                        break;
-                    case 'friends':
-                        actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm" disabled><i class="fas fa-check mr-2"></i>Friends</button>`;
-                        break;
-                    case 'request_received':
-                         actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm">Respond to Request</button>`;
-                        break;
+                    case 'none': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>`; break;
+                    case 'request_sent': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-gray-400 text-white rounded-full text-sm" disabled>Request Sent</button>`; break;
+                    case 'friends': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm" disabled><i class="fas fa-check mr-2"></i>Friends</button>`; break;
+                    case 'request_received': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm">Respond to Request</button>`; break;
                 }
             }
 
@@ -95,13 +126,7 @@ document.addEventListener('authReady', (e) => {
                 else if (i - 0.5 <= averageRating) starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
                 else starsHTML += '<i class="far fa-star text-gray-300"></i>';
             }
-            const reputationHTML = `
-                <div class="flex items-center space-x-2 text-sm text-gray-600 mt-1">
-                    <span class="flex">${starsHTML}</span>
-                    <span class="font-semibold">${averageRating.toFixed(1)}</span>
-                    <span>(${ratingCount} ratings)</span>
-                </div>
-            `;
+            const reputationHTML = `<div class="flex items-center space-x-2 text-sm text-gray-600 mt-1"> <span class="flex">${starsHTML}</span> <span class="font-semibold">${averageRating.toFixed(1)}</span> <span>(${ratingCount} ratings)</span> </div>`;
 
             // --- Main Profile HTML Structure ---
             profileContainer.innerHTML = `
@@ -133,6 +158,13 @@ document.addEventListener('authReady', (e) => {
                             <div class="mt-2 text-sm text-gray-600">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
+                            <!-- NEW: Badge Container -->
+                            <div id="profile-badges-container" class="mt-4">
+                                <h3 class="font-bold text-lg mb-2">Achievements</h3>
+                                <div id="badges-list" class="flex flex-wrap gap-4">
+                                    <!-- Badges will be loaded here -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -162,51 +194,29 @@ document.addEventListener('authReady', (e) => {
             `;
 
             // --- Event Listeners for Action Buttons ---
-            document.getElementById('message-btn')?.addEventListener('click', (e) => {
-                window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
-            });
-            
+            document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
             const addFriendBtn = document.getElementById('add-friend-btn');
             if(addFriendBtn) {
                 addFriendBtn.addEventListener('click', async () => {
                     if (friendStatus === 'none') {
                         addFriendBtn.disabled = true;
                         addFriendBtn.textContent = 'Sending...';
-                        await db.collection('friendRequests').add({
-                            senderId: currentUser.uid,
-                            receiverId: profileUserId,
-                            status: 'pending',
-                            createdAt: new Date()
-                        });
+                        await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: profileUserId, status: 'pending', createdAt: new Date() });
                         addFriendBtn.textContent = 'Request Sent';
-                    } else if (friendStatus === 'request_received') {
-                        // If they click "Respond", take them to their own friends tab
-                        window.location.href = '/profile.html#friends';
-                    }
+                    } else if (friendStatus === 'request_received') { window.location.href = '/profile.html#friends'; }
                 });
             }
 
-
-            // Tab switching logic
             document.querySelectorAll('.profile-tab-button').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
-                    const tabContent = document.getElementById(`tab-content-${tab.dataset.tab}`);
-                    tabContent.classList.remove('hidden');
-                    
-                    // Load content for the clicked tab
-                    switch(tab.dataset.tab) {
-                        case 'friends':
-                            loadProfileFriends(profileUserId);
-                            break;
-                        // Add other cases if you want to reload content on every click
-                    }
+                    document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
+                    if(tab.dataset.tab === 'friends') loadProfileFriends(profileUserId);
                 });
             });
 
-            // If URL has a hash, switch to that tab
             if(window.location.hash) {
                 const targetTab = document.querySelector(`.profile-tab-button[data-tab="${window.location.hash.substring(1)}"]`);
                 if(targetTab) targetTab.click();
@@ -219,11 +229,14 @@ document.addEventListener('authReady', (e) => {
             loadProfileCollection(profileUserId, 'wishlist');
             loadProfileTradeHistory(profileUserId);
             loadProfileFeedback(profileUserId);
-            // Load friends tab by default if it's the target, otherwise it loads on click
-            if (window.location.hash === '#friends') {
-                loadProfileFriends(profileUserId);
+            if (window.location.hash === '#friends') loadProfileFriends(profileUserId);
+            
+            // --- NEW: Badge Evaluation and Display ---
+            if (isOwnProfile) {
+                // Only check for new badges if the user is viewing their own profile
+                await evaluateAndAwardBadges(profileUserId, profileUserData);
             }
-
+            await loadAndDisplayBadges(profileUserId);
 
         } catch (error) {
             console.error("Error loading profile:", error);
@@ -231,6 +244,52 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
+    // --- NEW: Badge Logic Functions ---
+    const evaluateAndAwardBadges = async (userId, userData) => {
+        const userBadgesRef = db.collection('users').doc(userId).collection('badges');
+        const existingBadgesSnapshot = await userBadgesRef.get();
+        const existingBadgeIds = existingBadgesSnapshot.docs.map(doc => doc.id);
+
+        for (const badgeId in badgeDefinitions) {
+            if (!existingBadgeIds.includes(badgeId)) {
+                const definition = badgeDefinitions[badgeId];
+                const hasBadge = await definition.check(userData, userId);
+                if (hasBadge) {
+                    await userBadgesRef.doc(badgeId).set({
+                        awardedAt: new Date(),
+                        name: definition.name,
+                        description: definition.description,
+                        icon: definition.icon,
+                        color: definition.color
+                    });
+                }
+            }
+        }
+    };
+
+    const loadAndDisplayBadges = async (userId) => {
+        const badgesListContainer = document.getElementById('badges-list');
+        badgesListContainer.innerHTML = ''; // Clear previous badges
+        const snapshot = await db.collection('users').doc(userId).collection('badges').get();
+
+        if (snapshot.empty) {
+            badgesListContainer.innerHTML = '<p class="text-sm text-gray-500">No achievements yet.</p>';
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const badge = doc.data();
+            const badgeEl = document.createElement('div');
+            badgeEl.className = 'badge-item';
+            badgeEl.title = badge.description; // Tooltip on hover
+            badgeEl.innerHTML = `
+                <i class="fas ${badge.icon} ${badge.color} badge-icon"></i>
+                <span class="badge-name">${badge.name}</span>
+            `;
+            badgesListContainer.appendChild(badgeEl);
+        });
+    };
+
     // --- Functions to load tab content ---
 
     const loadProfileFeed = async (userId) => {
@@ -366,7 +425,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- NEW: Function to load friends tab ---
+    // --- Function to load friends tab ---
     const loadProfileFriends = async (userId) => {
         const container = document.getElementById('tab-content-friends');
         if (!container) return;
@@ -448,7 +507,6 @@ document.addEventListener('authReady', (e) => {
     
     // --- Event listener for friend request buttons ---
     document.body.addEventListener('click', async (event) => {
-        const profileUserId = new URLSearchParams(window.location.search).get('uid');
         const acceptButton = event.target.closest('.accept-friend-btn');
         const rejectButton = event.target.closest('.reject-friend-btn');
 
