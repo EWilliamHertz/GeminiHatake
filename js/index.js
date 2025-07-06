@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v5 - Comments Fixed)
+ * HatakeSocial - Index Page (Feed) Script (v6 - Deck Sharing)
  *
  * This script handles all logic for the main feed on index.html.
  * - Includes the missing renderComments function to fix the comments feature.
  * - Adds admin delete functionality.
+ * - Adds support for rendering shared decks.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
