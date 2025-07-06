@@ -933,3 +933,35 @@ body {
 #messenger-open-btn .fa-comments {
     font-size: 24px;
 }
+
+/* --- Feed Tabs --- */
+.feed-tab-button {
+    @apply py-4 px-1 text-center border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-500;
+}
+.feed-tab-button.active {
+    @apply text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400;
+}
+
+
+/* --- Profile Page Tabs --- */
+.profile-tab-button {
+    @apply whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300;
+}
+.profile-tab-button.active {
+    @apply text-blue-600 border-blue-600;
+}
+
+/* --- Badge Styles --- */
+.badge-item {
+    @apply flex flex-col items-center justify-center text-center p-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-24 h-24 transition-transform duration-200 hover:scale-105;
+    position: relative;
+    cursor: help; /* Indicates more info on hover */
+}
+
+.badge-icon {
+    @apply text-3xl mb-1;
+}
+
+.badge-name {
+    @apply text-xs font-semibold text-gray-700 dark:text-gray-200;
+}
