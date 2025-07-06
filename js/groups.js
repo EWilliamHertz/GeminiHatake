@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Groups Page Script (v7 - Invite Fix & Logging)
+ * HatakeSocial - Groups Page Script (v8 - Group Feed)
  *
- * - FIX: Corrects the Firestore query for discovering public groups, which requires an index.
- * - NEW: Adds complete functionality for admins to invite users to groups.
- * - FIX: Ensures joining/leaving a group also updates the corresponding conversation document.
- * - FIX: Added robust checks and error logging to the inviteUserToGroup function to prevent failures.
+ * - NEW: Adds a dedicated post feed to each group's detail page.
+ * - NEW: Members can now create posts that are only visible within the group.
+ * - FIX: The group detail view is now a fully interactive space.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -138,7 +137,6 @@ document.addEventListener('authReady', (e) => {
     const loadDiscoverGroups = async () => {
         discoverGroupsList.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
         try {
-            // FIX: This query requires the index: groups(isPublic ASC, createdAt DESC)
             const snapshot = await db.collection('groups')
                 .where('isPublic', '==', true)
                 .orderBy('createdAt', 'desc')
@@ -167,10 +165,42 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
+    // --- NEW: Function to load the group-specific feed ---
     const loadGroupFeed = async (groupId) => {
         const feedContainer = document.getElementById('group-feed-container');
         if (!feedContainer) return;
-        feedContainer.innerHTML = '';
+        feedContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
+
+        const postsRef = db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc');
+        
+        postsRef.onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No posts in this group yet. Be the first!</p>';
+                return;
+            }
+            feedContainer.innerHTML = '';
+            snapshot.forEach(doc => {
+                const post = doc.data();
+                const postEl = document.createElement('div');
+                postEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+                postEl.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <a href="profile.html?uid=${post.authorId}">
+                            <img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover">
+                        </a>
+                        <div>
+                            <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${post.author}</a>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${post.content}</p>
+                `;
+                feedContainer.appendChild(postEl);
+            });
+        }, error => {
+            console.error(`Error loading group feed for ${groupId}:`, error);
+            feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group posts.</p>';
+        });
     };
 
     const viewGroup = async (groupId) => {
@@ -202,6 +232,17 @@ document.addEventListener('authReady', (e) => {
             }
         }
 
+        // --- NEW: Create Post Form HTML (only for members) ---
+        const createPostHTML = `
+            <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Create a Post</h3>
+                <textarea id="group-post-content" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y text-gray-900 dark:text-gray-200" rows="3" placeholder="Share something with the group..."></textarea>
+                <div class="text-right mt-2">
+                    <button id="submit-group-post-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Post</button>
+                </div>
+            </div>
+        `;
+
         groupDetailView.innerHTML = `
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                 <div class="p-6">
@@ -220,7 +261,7 @@ document.addEventListener('authReady', (e) => {
             </div>
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-2 space-y-6">
-                    ${isMember ? `<div id="create-group-post-container"></div>` : '<p class="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">Join the group to post.</p>'}
+                    ${isMember ? createPostHTML : '<p class="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">Join the group to post.</p>'}
                     <div id="group-feed-container" class="space-y-6"></div>
                 </div>
                 <div class="md:col-span-1 space-y-6">
@@ -266,6 +307,32 @@ document.addEventListener('authReady', (e) => {
             document.getElementById('invite-group-id').value = groupId;
             openModal(inviteMemberModal);
         });
+
+        // --- NEW: Event listener for submitting a group post ---
+        document.getElementById('submit-group-post-btn')?.addEventListener('click', async () => {
+            const contentEl = document.getElementById('group-post-content');
+            const content = contentEl.value.trim();
+            if (!content) {
+                alert("Please write something to post.");
+                return;
+            }
+
+            const postData = {
+                content: content,
+                authorId: user.uid,
+                author: user.displayName,
+                authorPhotoURL: user.photoURL,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('groups').doc(groupId).collection('posts').add(postData);
+                contentEl.value = ''; // Clear the textarea
+            } catch (error) {
+                console.error("Error creating group post:", error);
+                alert("Could not create post. Please try again.");
+            }
+        });
     }
 
     const handleAction = async (action, groupId, groupName) => {
@@ -304,7 +371,7 @@ document.addEventListener('authReady', (e) => {
         viewGroup(groupId);
     };
     
-    // --- NEW: Invite User Logic ---
+    // --- Invite User Logic ---
     inviteUserSearchInput.addEventListener('keyup', async (e) => {
         const searchTerm = e.target.value.toLowerCase().trim();
         if (searchTerm.length < 2) {
@@ -343,7 +410,6 @@ document.addEventListener('authReady', (e) => {
         const groupId = document.getElementById('invite-group-id').value;
         if (!groupId) return;
 
-        // Ensure we have the necessary data before proceeding
         const displayName = userDataToInvite.displayName || 'User';
         const photoURL = userDataToInvite.photoURL || null;
 
@@ -352,7 +418,6 @@ document.addEventListener('authReady', (e) => {
                 const groupRef = db.collection('groups').doc(groupId);
                 const convoRef = db.collection('conversations').doc(groupId);
 
-                // Use a batch to ensure both updates succeed or fail together
                 const batch = db.batch();
 
                 const groupUpdateData = {
@@ -372,7 +437,7 @@ document.addEventListener('authReady', (e) => {
 
                 alert(`${displayName} has been added to the group.`);
                 closeModal(inviteMemberModal);
-                viewGroup(groupId); // Refresh the group view
+                viewGroup(groupId);
             } catch (error) {
                 console.error("Error inviting user:", error);
                 alert(`Failed to invite user. Error: ${error.message}`);
