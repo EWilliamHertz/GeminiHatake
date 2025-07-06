@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Events Page Script
+ * HatakeSocial - Events Page Script (v3 - Complete with Delete Fix)
  *
- * This script waits for the 'authReady' event from auth.js before running.
- * It handles creating, displaying, and attending events.
+ * This is the full version of the events script, with a fix
+ * to properly display the delete button for event creators.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -14,7 +14,6 @@ document.addEventListener('authReady', (e) => {
     const closeEventModalBtn = document.getElementById('close-event-modal');
     const createEventForm = document.getElementById('create-event-form');
 
-    // Show the "Create Event" button if the user is logged in
     if (user) {
         createEventBtn.classList.remove('hidden');
     }
@@ -22,9 +21,6 @@ document.addEventListener('authReady', (e) => {
     createEventBtn.addEventListener('click', () => openModal(createEventModal));
     closeEventModalBtn.addEventListener('click', () => closeModal(createEventModal));
 
-    /**
-     * Handles the submission of the new event form.
-     */
     createEventForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!user) {
@@ -40,7 +36,6 @@ document.addEventListener('authReady', (e) => {
         submitButton.textContent = 'Submitting...';
 
         try {
-            // Upload image to Firebase Storage if one was selected
             if (eventImageFile) {
                 const imagePath = `events/${Date.now()}_${eventImageFile.name}`;
                 const imageRef = storage.ref(imagePath);
@@ -48,7 +43,6 @@ document.addEventListener('authReady', (e) => {
                 imageUrl = await imageRef.getDownloadURL();
             }
 
-            // Create event data object
             const eventData = {
                 name: document.getElementById('eventName').value,
                 date: new Date(document.getElementById('eventDate').value),
@@ -63,13 +57,12 @@ document.addEventListener('authReady', (e) => {
                 attendees: []
             };
 
-            // Save the new event to Firestore
             await db.collection('events').add(eventData);
 
             alert("Event created successfully!");
             closeModal(createEventModal);
             createEventForm.reset();
-            loadEvents(); // Refresh the events list
+            loadEvents();
 
         } catch (error) {
             console.error("Error creating event:", error);
@@ -80,9 +73,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    /**
-     * Loads all events from Firestore and displays them on the page.
-     */
     const loadEvents = async () => {
         eventsListContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>';
         
@@ -100,11 +90,15 @@ document.addEventListener('authReady', (e) => {
             eventCard.className = 'bg-white p-6 rounded-lg shadow-md flex flex-col md:flex-row gap-6';
 
             const isAttending = user ? event.attendees.includes(user.uid) : false;
+            const isCreator = user && event.creatorId === user.uid; // Check if current user is the creator
 
             eventCard.innerHTML = `
                 <img src="${event.imageUrl || 'https://placehold.co/400x250/cccccc/969696?text=Event'}" alt="${event.name}" class="w-full md:w-1/3 h-48 object-cover rounded-md">
                 <div class="flex-grow">
-                    <p class="text-sm font-semibold text-blue-600">${new Date(event.date.seconds * 1000).toDateString()}</p>
+                     <div class="flex justify-between items-start">
+                        <p class="text-sm font-semibold text-blue-600">${new Date(event.date.seconds * 1000).toDateString()}</p>
+                        ${isCreator ? `<button data-id="${eventId}" class="delete-event-btn text-gray-400 hover:text-red-500 text-xs" title="Delete Event"><i class="fas fa-trash fa-lg"></i></button>` : ''}
+                    </div>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">${event.name}</h3>
                     <p class="text-gray-500 mt-1"><i class="fas fa-map-marker-alt mr-2"></i>${event.city}, ${event.country}</p>
                     <p class="text-gray-700 mt-4">${event.description}</p>
@@ -126,79 +120,56 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Handles the logic for attending or unattending an event.
-     */
     eventsListContainer.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('attend-btn')) {
+        const attendBtn = e.target.closest('.attend-btn');
+        const deleteBtn = e.target.closest('.delete-event-btn');
+
+        if (attendBtn) {
             if (!user) {
                 alert("Please log in to attend events.");
                 return;
             }
-            const eventId = e.target.dataset.id;
+            const eventId = attendBtn.dataset.id;
             const eventRef = db.collection('events').doc(eventId);
-
             await db.runTransaction(async (transaction) => {
                 const eventDoc = await transaction.get(eventRef);
-                if (!eventDoc.exists) {
-                    throw "Event does not exist!";
-                }
-
+                if (!eventDoc.exists) throw "Event does not exist!";
                 const attendees = eventDoc.data().attendees || [];
                 if (attendees.includes(user.uid)) {
-                    // User is already attending, so remove them
-                    transaction.update(eventRef, {
-                        attendees: firebase.firestore.FieldValue.arrayRemove(user.uid)
-                    });
+                    transaction.update(eventRef, { attendees: firebase.firestore.FieldValue.arrayRemove(user.uid) });
                 } else {
-                    // User is not attending, so add them
-                    transaction.update(eventRef, {
-                        attendees: firebase.firestore.FieldValue.arrayUnion(user.uid)
-                    });
+                    transaction.update(eventRef, { attendees: firebase.firestore.FieldValue.arrayUnion(user.uid) });
                 }
             });
-            loadEvents(); // Refresh list to show updated count and button state
+            loadEvents();
+        }
+
+        if (deleteBtn) {
+            if (!user) return;
+            const eventId = deleteBtn.dataset.id;
+            if (confirm("Are you sure you want to delete this event? This cannot be undone.")) {
+                try {
+                    await db.collection('events').doc(eventId).delete();
+                    alert("Event deleted.");
+                    loadEvents();
+                } catch (error) {
+                    console.error("Error deleting event:", error);
+                    alert("Could not delete event. Check security rules in Firebase.");
+                }
+            }
         }
     });
 
-    /**
-     * A one-time function to add the initial events to the database if it's empty.
-     */
     const seedInitialEvents = async () => {
         const eventsRef = db.collection('events');
         const snapshot = await eventsRef.limit(1).get();
 
-        if (snapshot.empty) {
+        if (snapshot.empty && user) {
             console.log("No events found, seeding initial data...");
             const initialEvents = [
-                {
-                    name: 'Need to be Geek Convention',
-                    date: new Date('2025-09-27'),
-                    city: 'Skara',
-                    country: 'Sweden',
-                    description: 'This geek culture event features everything from Pokémon and Star Wars to Warhammer and DnD. Stop by to see our premium TCG accessories, meet our team, and connect with fellow enthusiasts. Free entry!',
-                    link: 'https://needtobegeek.se',
-                    imageUrl: '',
-                    creatorId: 'williama',
-                    creatorName: 'Williama',
-                    createdAt: new Date(),
-                    attendees: []
-                },
-                {
-                    name: 'SweCard Expo',
-                    date: new Date('2025-10-11'),
-                    city: 'Svedala',
-                    country: 'Sweden',
-                    description: 'Join us at SweCard in Svedala, just 20 minutes from Malmö. We’ll be showcasing our full range of TCG accessories alongside international exhibitors like LetsCollect Cards from Denmark.',
-                    link: 'http://swecard.org/',
-                    imageUrl: '',
-                    creatorId: 'williama',
-                    creatorName: 'Williama',
-                    createdAt: new Date(),
-                    attendees: []
-                }
+                { name: 'Need to be Geek Convention', date: new Date('2025-09-27'), city: 'Skara', country: 'Sweden', description: 'This geek culture event features everything from Pokémon and Star Wars to Warhammer and DnD.', link: 'https://needtobegeek.se', imageUrl: '', creatorId: user.uid, creatorName: user.displayName, createdAt: new Date(), attendees: [] },
+                { name: 'SweCard Expo', date: new Date('2025-10-11'), city: 'Svedala', country: 'Sweden', description: 'Join us at SweCard in Svedala, just 20 minutes from Malmö.', link: 'http://swecard.org/', imageUrl: '', creatorId: user.uid, creatorName: user.displayName, createdAt: new Date(), attendees: [] }
             ];
-
             const batch = db.batch();
             initialEvents.forEach(event => {
                 const docRef = eventsRef.doc();
@@ -209,8 +180,5 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Initial Load ---
-    seedInitialEvents().then(() => {
-        loadEvents();
-    });
+    seedInitialEvents().then(loadEvents);
 });
