@@ -4,9 +4,8 @@
  * This script is responsible for the shop page functionality.
  * FIX: Corrected image extensions in the product data to match actual filenames (.jpeg, .jpg).
  * This was the primary reason images and products were not loading.
- */
-document.addEventListener('authReady', (e) => {
-    const user = e.detail.user;
+ window.HatakeSocial.onAuthReady((user) => {
+    const user = user;
     const productGrid = document.getElementById('product-grid');
     if (!productGrid) return; // Exit if not on the shop page
 

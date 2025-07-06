@@ -1,5 +1,5 @@
-document.addEventListener('authReady', (e) => {
-    const user = e.detail.user;
+window.HatakeSocial.onAuthReady((user) => {
+    const user = user;
     const settingsContainer = document.getElementById('settings-page-container');
     if (!settingsContainer) return;
 

@@ -5,8 +5,7 @@
  * - Includes the missing renderComments function to fix the comments feature.
  * - Adds admin delete functionality.
  */
-document.addEventListener('authReady', (e) => {
-    const user = e.detail.user;
+window.HatakeSocial.onAuthReady((user) => {   const user = user;
     const postsContainer = document.getElementById('postsContainer');
     if (!postsContainer) return;
 

@@ -5,9 +5,7 @@
  * - Fixes bugs in the feedback system.
  * - Ensures the "Leave Feedback" button only shows when appropriate.
  * - Reliably updates user reputation scores upon feedback submission.
- */
-document.addEventListener('authReady', (e) => {
-    const user = e.detail.user;
+ */window.HatakeSocial.onAuthReady((user) => {    const user = user;
     const tradesPageContainer = document.querySelector('main.container');
     if (!tradesPageContainer || !document.getElementById('tab-content-incoming')) return;
 

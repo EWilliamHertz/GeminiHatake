@@ -5,9 +5,8 @@
  * 288-line file and merges it with the corrected query logic.
  * FIX: Price display now correctly shows USD, as the API value is in USD.
  * FIX: Uses optional chaining to prevent 'undefined' error on seller handles.
- */
-document.addEventListener('authReady', (e) => {
-    const user = e.detail.user;
+ window.HatakeSocial.onAuthReady((user) => {
+    const user = user;
     const marketplaceGrid = document.getElementById('marketplace-grid');
     if (!marketplaceGrid) return;
 

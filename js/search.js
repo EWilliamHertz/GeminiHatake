@@ -1,5 +1,5 @@
-document.addEventListener('authReady', (e) => {
-    const db = firebase.firestore();
+window.HatakeSocial.onAuthReady((user) => {
+    
     const params = new URLSearchParams(window.location.search);
     const query = params.get('query');
 
