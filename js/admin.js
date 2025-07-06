@@ -4,8 +4,7 @@
  * This script handles all logic for the admin.html page.
  * It verifies admin status and provides tools to manage users.
  */
-document.addEventListener('authReady', async (e) => {
-    const user = e.detail.user;
+window.HatakeSocial.onAuthReady((user) => {    const user = e.detail.user;
     const adminContainer = document.getElementById('admin-dashboard-container');
     const accessDeniedContainer = document.getElementById('admin-access-denied');
     const userTableBody = document.getElementById('user-management-table');
