@@ -1,20 +1,17 @@
 /**
- * HatakeSocial - My Collection Page Script (v4 - Manual Add Feature)
+ * HatakeSocial - My Collection Page Script (v5 - Merged with Collection Statistics)
  *
- * This script is based on the original from your repository and adds:
- * - A new event listener for the manual add form.
- * - Logic to take user input for quantity, condition, and foil status.
- * - Integration with the Scryfall API to fetch card details for the manually added card.
+ * This script now includes all previous functionality plus:
+ * - A new function to calculate and display key statistics about the user's collection.
  */
 window.HatakeSocial.onAuthReady((user) => {
-    const user = e.detail.user;
     const collectionPage = document.getElementById('content-collection');
     if (!collectionPage) return;
 
     // --- State ---
     let bulkEditMode = false;
     let selectedCards = new Set();
-    let currentCollectionIds = []; // To store IDs of all cards currently displayed
+    let currentCollectionIds = [];
     let cardSearchResults = [];
 
     // --- DOM Elements ---
@@ -56,7 +53,7 @@ window.HatakeSocial.onAuthReady((user) => {
         });
     });
 
-    // --- NEW: Manual Card Add Logic ---
+    // --- Manual Card Add Logic ---
     manualAddBtn.addEventListener('click', async () => {
         if (!user) {
             alert("Please log in to add cards.");
@@ -85,10 +82,11 @@ window.HatakeSocial.onAuthReady((user) => {
 
             const cardDoc = {
                 name: cardData.name,
-                tcg: "Magic: The Gathering", // Assuming MTG for now
+                tcg: "Magic: The Gathering",
                 scryfallId: cardData.id,
                 set: cardData.set,
                 setName: cardData.set_name,
+                rarity: cardData.rarity, // Important for stats
                 imageUrl: cardData.image_uris?.normal || '',
                 priceUsd: cardData.prices?.usd || '0.00',
                 priceUsdFoil: cardData.prices?.usd_foil || '0.00',
@@ -101,8 +99,8 @@ window.HatakeSocial.onAuthReady((user) => {
 
             await db.collection('users').doc(user.uid).collection('collection').add(cardDoc);
             alert(`${quantity}x ${cardData.name} added to your collection!`);
-            document.getElementById('manual-add-form').reset(); // Clear the form
-            loadCardList('collection'); // Refresh the view
+            document.getElementById('manual-add-form').reset();
+            loadCardList('collection');
 
         } catch (error) {
             console.error("Error adding card manually: ", error);
@@ -113,8 +111,7 @@ window.HatakeSocial.onAuthReady((user) => {
         }
     });
 
-
-    // --- CSV Import Logic (FIXED & ROBUST) ---
+    // --- CSV Import Logic ---
     csvUploadBtn.addEventListener('click', () => {
         if (!user) { alert("Please log in."); return; }
         if (csvUploadInput.files.length === 0) { alert("Please select a file."); return; }
@@ -130,19 +127,17 @@ window.HatakeSocial.onAuthReady((user) => {
                 }
 
                 const header = Object.keys(rows[0]);
-                console.log("Detected CSV Headers:", header);
-                
                 const nameKey = header.find(h => h.toLowerCase().includes('name'));
                 const quantityKey = header.find(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('count'));
                 const foilKey = header.find(h => h.toLowerCase().includes('foil'));
                 const conditionKey = header.find(h => h.toLowerCase().includes('condition'));
 
                 if (!nameKey) {
-                    csvStatus.textContent = 'Error: Could not find a "Name" or "Card Name" column in your CSV.';
+                    csvStatus.textContent = 'Error: Could not find a "Name" column in your CSV.';
                     return;
                 }
 
-                csvStatus.textContent = `Found ${rows.length} cards. Fetching data from Scryfall... This may take a moment.`;
+                csvStatus.textContent = `Found ${rows.length} cards. Fetching data...`;
                 
                 let processedCount = 0;
                 let errorCount = 0;
@@ -160,7 +155,8 @@ window.HatakeSocial.onAuthReady((user) => {
 
                         const cardDoc = {
                             name: cardData.name, tcg: "Magic: The Gathering", scryfallId: cardData.id,
-                            set: cardData.set, setName: cardData.set_name, imageUrl: cardData.image_uris?.normal || '',
+                            set: cardData.set, setName: cardData.set_name, rarity: cardData.rarity,
+                            imageUrl: cardData.image_uris?.normal || '',
                             priceUsd: cardData.prices?.usd || '0.00', priceUsdFoil: cardData.prices?.usd_foil || '0.00',
                             quantity: quantityKey ? (parseInt(row[quantityKey], 10) || 1) : 1,
                             isFoil: foilKey ? (row[foilKey] && row[foilKey].toLowerCase() === 'foil') : false,
@@ -171,7 +167,6 @@ window.HatakeSocial.onAuthReady((user) => {
                         const docRef = collectionRef.doc();
                         batch.set(docRef, cardDoc);
                         processedCount++;
-
                     } catch (error) {
                         console.warn(`Could not find card "${cardName}". Skipping.`, error);
                         errorCount++;
@@ -182,14 +177,14 @@ window.HatakeSocial.onAuthReady((user) => {
 
                 try {
                     await batch.commit();
-                    csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''} Refreshing...`;
+                    csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                     setTimeout(() => {
                         loadCardList('collection');
                         csvStatus.textContent = '';
                     }, 2000);
                 } catch (error) {
                     console.error("CSV Batch Commit Error: ", error);
-                    csvStatus.textContent = "Error saving cards. Check console for details.";
+                    csvStatus.textContent = "Error saving cards.";
                 }
             }
         });
@@ -239,6 +234,41 @@ window.HatakeSocial.onAuthReady((user) => {
         loadCardList('collection');
     };
 
+    // --- NEW: Statistics Calculation and Display ---
+    const calculateAndDisplayStats = (snapshot) => {
+        let totalCards = 0;
+        let totalValue = 0;
+        const rarityCounts = { common: 0, uncommon: 0, rare: 0, mythic: 0 };
+        const uniqueCards = snapshot.size;
+
+        snapshot.forEach(doc => {
+            const card = doc.data();
+            const quantity = card.quantity || 1;
+            totalCards += quantity;
+            
+            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            totalValue += price * quantity;
+
+            if (card.rarity) {
+                if (rarityCounts.hasOwnProperty(card.rarity)) {
+                    rarityCounts[card.rarity] += quantity;
+                }
+            }
+        });
+
+        document.getElementById('stats-total-cards').textContent = totalCards;
+        document.getElementById('stats-unique-cards').textContent = uniqueCards;
+        document.getElementById('stats-total-value').textContent = `$${totalValue.toFixed(2)}`;
+        
+        const rarityContainer = document.getElementById('stats-rarity-breakdown');
+        rarityContainer.innerHTML = `
+            <span title="Common" class="flex items-center"><i class="fas fa-circle text-gray-400 mr-1"></i>${rarityCounts.common}</span>
+            <span title="Uncommon" class="flex items-center"><i class="fas fa-circle text-blue-400 mr-1"></i>${rarityCounts.uncommon}</span>
+            <span title="Rare" class="flex items-center"><i class="fas fa-circle text-yellow-400 mr-1"></i>${rarityCounts.rare}</span>
+            <span title="Mythic" class="flex items-center"><i class="fas fa-circle text-red-500 mr-1"></i>${rarityCounts.mythic}</span>
+        `;
+    };
+
     // --- Main Display Function ---
     const loadCardList = async (listType) => {
         const container = document.getElementById(`${listType}-list`);
@@ -246,6 +276,11 @@ window.HatakeSocial.onAuthReady((user) => {
         container.innerHTML = '<p class="text-center p-4">Loading...</p>';
 
         const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
+        
+        if (listType === 'collection') {
+            calculateAndDisplayStats(snapshot);
+        }
+
         if (snapshot.empty) { container.innerHTML = `<p class="text-center p-4">Your ${listType} is empty.</p>`; return; }
        
         container.innerHTML = '';
