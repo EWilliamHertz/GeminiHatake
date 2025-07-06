@@ -1,3 +1,9 @@
+/**
+ * HatakeSocial - Settings Page Script (v3 - Multi-Factor Authentication)
+ *
+ * This version adds the full UI and logic for enabling and disabling
+ * multi-factor authentication via phone number.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const settingsContainer = document.getElementById('settings-page-container');
@@ -26,6 +32,8 @@ document.addEventListener('authReady', (e) => {
     const accountEmailEl = document.getElementById('account-email');
     const resetPasswordBtn = document.getElementById('reset-password-btn');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const mfaSection = document.getElementById('mfa-section');
+    let confirmationResult = null;
 
     // --- Tab Switching Logic ---
     navButtons.forEach(button => {
@@ -56,7 +64,87 @@ document.addEventListener('authReady', (e) => {
             bannerPicPreview.src = data.bannerURL || 'https://placehold.co/600x200';
             accountEmailEl.textContent = user.email;
         }
+        loadMfaStatus();
     };
+
+    const loadMfaStatus = () => {
+        const mfaEnabled = user.multiFactor.enrolledFactors.length > 0;
+        if (mfaEnabled) {
+            mfaSection.innerHTML = `
+                <p class="text-green-600 font-semibold">Multi-Factor Authentication is enabled.</p>
+                <button id="disable-mfa-btn" class="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Disable MFA</button>
+            `;
+            document.getElementById('disable-mfa-btn').addEventListener('click', disableMfa);
+        } else {
+            mfaSection.innerHTML = `
+                <p class="text-gray-600">Add an extra layer of security to your account.</p>
+                <div class="mt-4 space-y-2">
+                    <input type="tel" id="phone-number-input" class="block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="Enter phone number (e.g., +16505551234)">
+                    <div id="recaptcha-container"></div>
+                    <button id="send-verification-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Send Verification Code</button>
+                </div>
+                <div id="mfa-verification-step" class="hidden mt-4 space-y-2">
+                    <input type="text" id="mfa-code-input" class="block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="Enter 6-digit code">
+                    <button id="verify-mfa-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Verify & Enable</button>
+                </div>
+            `;
+            setupMfaEventListeners();
+        }
+    };
+
+    const setupMfaEventListeners = () => {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+          'size': 'invisible'
+        });
+
+        document.getElementById('send-verification-btn').addEventListener('click', async () => {
+            const phoneNumber = document.getElementById('phone-number-input').value;
+            if (!phoneNumber) {
+                alert("Please enter a phone number.");
+                return;
+            }
+            try {
+                const phoneProvider = new firebase.auth.PhoneAuthProvider();
+                confirmationResult = await phoneProvider.verifyPhoneNumber(phoneNumber, window.recaptchaVerifier);
+                alert("Verification code sent!");
+                document.getElementById('mfa-verification-step').classList.remove('hidden');
+            } catch (error) {
+                console.error("Error sending verification code:", error);
+                alert("Error sending code: " + error.message);
+            }
+        });
+
+        document.getElementById('verify-mfa-btn').addEventListener('click', async () => {
+            const code = document.getElementById('mfa-code-input').value;
+            if (!code) {
+                alert("Please enter the verification code.");
+                return;
+            }
+            try {
+                const cred = firebase.auth.PhoneAuthProvider.credential(confirmationResult.verificationId, code);
+                await user.multiFactor.enroll(cred, "My Phone");
+                alert("MFA enabled successfully!");
+                loadMfaStatus();
+            } catch (error) {
+                console.error("Error verifying MFA code:", error);
+                alert("Error verifying code: " + error.message);
+            }
+        });
+    };
+
+    const disableMfa = async () => {
+        if (confirm("Are you sure you want to disable Multi-Factor Authentication?")) {
+            try {
+                await user.multiFactor.unenroll(user.multiFactor.enrolledFactors[0].uid);
+                alert("MFA has been disabled.");
+                loadMfaStatus();
+            } catch (error) {
+                console.error("Error disabling MFA:", error);
+                alert("Could not disable MFA. " + error.message);
+            }
+        }
+    };
+
 
     // --- Event Listeners ---
     profilePicUpload.addEventListener('change', (e) => {
