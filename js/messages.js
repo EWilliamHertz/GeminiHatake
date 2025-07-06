@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Messages Page Script (v8 - Index-Reliant Fix)
+ * HatakeSocial - Messages Page Script (v9 - Search Fix)
  *
  * This script handles all logic for the messages.html page.
  * - FIX: Corrects the Firestore queries to be compliant with the required indexes.
  * - FIX: Ensures both user and group chats load correctly after indexes are built.
  * - FIX: Improves logic for creating new 1-on-1 conversations.
- 
+ * - FIX: User search now queries a lowercase field for case-insensitive results.
+ */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const chatArea = document.getElementById('chat-area');
@@ -15,7 +16,7 @@ document.addEventListener('authReady', (e) => {
         chatArea.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-center p-8 text-gray-500 dark:text-gray-400">Please log in to view your messages.</p></div>';
         return;
     }
-    
+
     let currentChatListener = null;
     let currentConversationId = null;
 
@@ -41,9 +42,8 @@ document.addEventListener('authReady', (e) => {
 
     const loadConversations = () => {
         conversationsListEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
-        
+
         const isGroup = activeTab === 'groups';
-        // FIX: This query requires a composite index in Firestore.
         let query = db.collection('conversations')
                       .where('participants', 'array-contains', currentUser.uid)
                       .where('isGroupChat', '==', isGroup)
@@ -54,7 +54,7 @@ document.addEventListener('authReady', (e) => {
                 conversationsListEl.innerHTML = `<p class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">No ${activeTab} conversations.</p>`;
                 return;
             }
-            
+
             conversationsListEl.innerHTML = ''; // Clear spinner
             snapshot.forEach(doc => {
                 const conversation = doc.data();
@@ -72,11 +72,10 @@ document.addEventListener('authReady', (e) => {
                         title = remoteUserInfo.displayName || 'Unknown User';
                         imageUrl = remoteUserInfo.photoURL || 'https://placehold.co/40x40?text=U';
                     } else {
-                        // Skip rendering if data is incomplete
                         return;
                     }
                 }
-                
+
                 const item = document.createElement('div');
                 item.className = 'conversation-item flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600';
                 item.innerHTML = `
@@ -114,12 +113,12 @@ document.addEventListener('authReady', (e) => {
             if (doc.exists) {
                 const conversation = doc.data();
                 const messages = conversation.messages || [];
-                
+
                 messages.forEach(msg => {
                     const messageEl = document.createElement('div');
                     const isSent = msg.senderId === currentUser.uid;
                     const senderInfo = conversation.participantInfo[msg.senderId];
-                    
+
                     messageEl.className = `message-group ${isSent ? 'sent' : 'received'}`;
                     messageEl.innerHTML = `
                         <div class="flex items-center ${isSent ? 'flex-row-reverse' : ''}">
@@ -143,12 +142,11 @@ document.addEventListener('authReady', (e) => {
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
-            timestamp: new Date() 
+            timestamp: new Date()
         };
-        
+
         messageInput.value = '';
         try {
-            // Use server timestamp for updatedAt for consistency
             await conversationRef.update({
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
                 lastMessage: content,
@@ -174,8 +172,9 @@ document.addEventListener('authReady', (e) => {
         }
         userSearchResultsEl.classList.remove('hidden');
         const usersRef = db.collection('users');
-        const query = usersRef.orderBy('displayName').startAt(searchTerm).endAt(searchTerm + '\uf8ff');
-        
+        // MODIFIED: Uses the 'displayName_lower' field for case-insensitive search
+        const query = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff');
+
         const snapshot = await query.get();
         userSearchResultsEl.innerHTML = '';
         if (snapshot.empty) {
@@ -191,19 +190,18 @@ document.addEventListener('authReady', (e) => {
             resultItem.addEventListener('click', async () => {
                 userSearchInput.value = '';
                 userSearchResultsEl.classList.add('hidden');
-                
-                // Create a consistent ID for 1-on-1 chats
+
                 const conversationId = [currentUser.uid, doc.id].sort().join('_');
                 const conversationRef = db.collection('conversations').doc(conversationId);
 
                 const convoDoc = await conversationRef.get();
                 if (!convoDoc.exists) {
-                    // Create conversation if it doesn't exist
-                    const currentUserData = await db.collection('users').doc(currentUser.uid).get();
+                    const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const currentUserData = currentUserDoc.data();
                     await conversationRef.set({
                         participants: [currentUser.uid, doc.id],
                         participantInfo: {
-                            [currentUser.uid]: { displayName: currentUserData.data().displayName, photoURL: currentUserData.data().photoURL },
+                            [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
                             [doc.id]: { displayName: userData.displayName, photoURL: userData.photoURL }
                         },
                         isGroupChat: false,
@@ -212,11 +210,9 @@ document.addEventListener('authReady', (e) => {
                         lastMessage: 'Conversation started.'
                     }, { merge: true });
                 }
-                
-                // Switch to users tab and reload
+
                 document.querySelector('.message-tab-button[data-tab="users"]').click();
-                
-                // Open the chat
+
                 const newConvoData = (await conversationRef.get()).data();
                 openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
 
