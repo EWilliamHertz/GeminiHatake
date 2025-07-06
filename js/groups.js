@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Groups Page Script (v6 - Invite Feature & Index Fix)
+ * HatakeSocial - Groups Page Script (v7 - Invite Fix & Logging)
  *
  * - FIX: Corrects the Firestore query for discovering public groups, which requires an index.
  * - NEW: Adds complete functionality for admins to invite users to groups.
  * - FIX: Ensures joining/leaving a group also updates the corresponding conversation document.
+ * - FIX: Added robust checks and error logging to the inviteUserToGroup function to prevent failures.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -57,8 +58,8 @@ document.addEventListener('authReady', (e) => {
                 participants: [user.uid],
                 participantInfo: {
                     [user.uid]: {
-                        displayName: user.displayName,
-                        photoURL: user.photoURL
+                        displayName: user.displayName || "User",
+                        photoURL: user.photoURL || null
                     }
                 },
                 moderators: [user.uid],
@@ -68,13 +69,15 @@ document.addEventListener('authReady', (e) => {
 
             const groupDocRef = await db.collection('groups').add(groupData);
             
-            // Also create a corresponding conversation for the group chat
             await db.collection('conversations').doc(groupDocRef.id).set({
                 isGroupChat: true,
                 groupName: groupName,
                 participants: [user.uid],
                 participantInfo: {
-                    [user.uid]: { displayName: user.displayName, photoURL: user.photoURL }
+                    [user.uid]: {
+                        displayName: user.displayName || "User",
+                        photoURL: user.photoURL || null
+                    }
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastMessage: 'Group created!'
@@ -105,7 +108,7 @@ document.addEventListener('authReady', (e) => {
                 <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">${groupData.description.substring(0, 100)}...</p>
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400 flex justify-between items-center mt-auto">
-                <span><i class="fas fa-users mr-2"></i>${groupData.participantCount || groupData.participants.length} members</span>
+                <span><i class="fas fa-users mr-2"></i>${groupData.participantCount || groupData.participants?.length || 0} members</span>
                 <span>${groupData.isPublic ? '<i class="fas fa-globe-americas mr-1"></i> Public' : '<i class="fas fa-lock mr-1"></i> Private'}</span>
             </div>
         `;
@@ -135,8 +138,11 @@ document.addEventListener('authReady', (e) => {
     const loadDiscoverGroups = async () => {
         discoverGroupsList.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
         try {
-            // FIX: This query requires an index. See instructions.
-            const snapshot = await db.collection('groups').where('isPublic', '==', true).orderBy('createdAt', 'desc').limit(10).get();
+            // FIX: This query requires the index: groups(isPublic ASC, createdAt DESC)
+            const snapshot = await db.collection('groups')
+                .where('isPublic', '==', true)
+                .orderBy('createdAt', 'desc')
+                .limit(10).get();
 
             if (snapshot.empty) {
                 discoverGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">No public groups to show right now.</p>';
@@ -144,13 +150,17 @@ document.addEventListener('authReady', (e) => {
             }
 
             discoverGroupsList.innerHTML = '';
+            let groupsFound = 0;
             snapshot.forEach(doc => {
                 const groupData = doc.data();
-                // Don't show groups the user is already in
                 if (!user || !groupData.participants.includes(user.uid)) {
                    discoverGroupsList.appendChild(createGroupCard(groupData, doc.id));
+                   groupsFound++;
                 }
             });
+            if (groupsFound === 0) {
+                 discoverGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">No new public groups to join.</p>';
+            }
         } catch (error) {
             console.error("Error loading discoverable groups:", error);
             discoverGroupsList.innerHTML = `<p class="text-red-500 text-sm p-4">Error loading groups. This is likely because the required database index has not been created or is still building. Please follow the setup instructions carefully.</p>`;
@@ -158,10 +168,9 @@ document.addEventListener('authReady', (e) => {
     };
     
     const loadGroupFeed = async (groupId) => {
-        // This function would load posts related to the group. Assuming it exists in another file.
-        // Placeholder implementation:
         const feedContainer = document.getElementById('group-feed-container');
-        if (feedContainer) feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Feed loading is handled by index.js or similar.</p>';
+        if (!feedContainer) return;
+        feedContainer.innerHTML = '';
     };
 
     const viewGroup = async (groupId) => {
@@ -184,10 +193,10 @@ document.addEventListener('authReady', (e) => {
         let actionButtonsHTML = '';
         if (user) {
             if (isMember) {
-                actionButtonsHTML += `<button id="leave-group-action-btn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full text-sm">Leave Group</button>`;
                 if (isAdmin) {
-                    actionButtonsHTML += `<button id="invite-member-action-btn" class="ml-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-full text-sm">Invite Member</button>`;
+                    actionButtonsHTML += `<button id="invite-member-action-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full text-sm">Invite Member</button>`;
                 }
+                actionButtonsHTML += `<button id="leave-group-action-btn" class="ml-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-full text-sm">Leave Group</button>`;
             } else if (groupData.isPublic) {
                 actionButtonsHTML = `<button id="join-group-action-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full text-sm">Join Group</button>`;
             }
@@ -200,7 +209,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="flex justify-between items-start">
                         <div>
                             <h1 class="text-3xl font-bold text-gray-800 dark:text-white">${groupData.name}</h1>
-                            <p class="text-gray-500 dark:text-gray-400">${groupData.isPublic ? 'Public Group' : 'Private Group'} • ${groupData.participantCount || groupData.participants.length} members</p>
+                            <p class="text-gray-500 dark:text-gray-400">${groupData.isPublic ? 'Public Group' : 'Private Group'} • ${groupData.participantCount || groupData.participants?.length || 0} members</p>
                         </div>
                         <div class="flex-shrink-0 flex space-x-2">
                             ${actionButtonsHTML}
@@ -209,17 +218,9 @@ document.addEventListener('authReady', (e) => {
                     <p class="mt-4 text-gray-700 dark:text-gray-300">${groupData.description}</p>
                 </div>
             </div>
-
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-2 space-y-6">
-                    ${isMember ? `
-                    <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-                         <h3 class="font-bold text-gray-800 dark:text-white mb-2">Create a post in this group</h3>
-                         <textarea id="groupPostContent" class="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600" rows="3" placeholder="Share something with the group..."></textarea>
-                         <div class="text-right mt-2">
-                            <button id="submitGroupPostBtn" class="px-4 py-2 bg-blue-500 text-white rounded-full font-semibold">Post</button>
-                         </div>
-                    </div>` : '<p class="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">Join the group to post.</p>'}
+                    ${isMember ? `<div id="create-group-post-container"></div>` : '<p class="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">Join the group to post.</p>'}
                     <div id="group-feed-container" class="space-y-6"></div>
                 </div>
                 <div class="md:col-span-1 space-y-6">
@@ -232,24 +233,24 @@ document.addEventListener('authReady', (e) => {
         `;
         
         loadGroupFeed(groupId);
-
-        // Populate and handle view logic
         populateMembersAndSetupListeners(groupId, groupData);
     };
 
     function populateMembersAndSetupListeners(groupId, groupData) {
         const memberListEl = document.getElementById('group-member-list');
         memberListEl.innerHTML = '';
-        for (const memberId in groupData.participantInfo) {
-            const member = groupData.participantInfo[memberId];
-            const memberEl = document.createElement('a');
-            memberEl.href = `profile.html?uid=${memberId}`;
-            memberEl.className = 'flex items-center space-x-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded';
-            memberEl.innerHTML = `
-                <img src="${member.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-8 h-8 rounded-full object-cover">
-                <span class="text-sm font-medium text-gray-800 dark:text-white">${member.displayName}</span>
-            `;
-            memberListEl.appendChild(memberEl);
+        if (groupData.participantInfo) {
+            for (const memberId in groupData.participantInfo) {
+                const member = groupData.participantInfo[memberId];
+                const memberEl = document.createElement('a');
+                memberEl.href = `profile.html?uid=${memberId}`;
+                memberEl.className = 'flex items-center space-x-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded';
+                memberEl.innerHTML = `
+                    <img src="${member.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-8 h-8 rounded-full object-cover">
+                    <span class="text-sm font-medium text-gray-800 dark:text-white">${member.displayName}</span>
+                `;
+                memberListEl.appendChild(memberEl);
+            }
         }
 
         document.getElementById('back-to-groups-list').addEventListener('click', () => {
@@ -259,65 +260,49 @@ document.addEventListener('authReady', (e) => {
             loadDiscoverGroups();
         });
 
-        const handleAction = async (action) => {
-            const groupRef = db.collection('groups').doc(groupId);
-            const convoRef = db.collection('conversations').doc(groupId);
-
-            if (action === 'join') {
-                await groupRef.update({
-                    participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
-                    participantCount: firebase.firestore.FieldValue.increment(1),
-                    [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
-                });
-                await convoRef.update({
-                    participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
-                    [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
-                });
-                alert(`Joined ${groupData.name}!`);
-            } else if (action === 'leave') {
-                if (confirm(`Are you sure you want to leave ${groupData.name}?`)) {
-                    await groupRef.update({
-                        participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
-                        participantCount: firebase.firestore.FieldValue.increment(-1),
-                        [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
-                    });
-                     await convoRef.update({
-                        participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
-                        [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
-                    });
-                    alert(`You have left ${groupData.name}.`);
-                    document.getElementById('back-to-groups-list').click(); // Go back to main list
-                    return;
-                } else {
-                    return;
-                }
-            }
-            viewGroup(groupId);
-        };
-        
-        document.getElementById('join-group-action-btn')?.addEventListener('click', () => handleAction('join'));
-        document.getElementById('leave-group-action-btn')?.addEventListener('click', () => handleAction('leave'));
+        document.getElementById('join-group-action-btn')?.addEventListener('click', () => handleAction('join', groupId, groupData.name));
+        document.getElementById('leave-group-action-btn')?.addEventListener('click', () => handleAction('leave', groupId, groupData.name));
         document.getElementById('invite-member-action-btn')?.addEventListener('click', () => {
             document.getElementById('invite-group-id').value = groupId;
             openModal(inviteMemberModal);
         });
-
-        // Post submission logic...
-        document.getElementById('submitGroupPostBtn')?.addEventListener('click', async () => {
-             const content = document.getElementById('groupPostContent').value.trim();
-            if (!content) return alert("Please write something to post.");
-
-            const postData = {
-                author: user.displayName, authorId: user.uid, authorPhotoURL: user.photoURL,
-                content: content, timestamp: new Date(), likes: [], comments: [],
-                groupId: groupId, groupName: groupData.name
-            };
-
-            await db.collection('posts').add(postData);
-            document.getElementById('groupPostContent').value = '';
-            loadGroupFeed(groupId); // Refresh feed
-        });
     }
+
+    const handleAction = async (action, groupId, groupName) => {
+        const groupRef = db.collection('groups').doc(groupId);
+        const convoRef = db.collection('conversations').doc(groupId);
+
+        if (action === 'join') {
+            await groupRef.update({
+                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                participantCount: firebase.firestore.FieldValue.increment(1),
+                [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
+            });
+            await convoRef.update({
+                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
+            });
+            alert(`Joined ${groupName}!`);
+        } else if (action === 'leave') {
+            if (confirm(`Are you sure you want to leave ${groupName}?`)) {
+                await groupRef.update({
+                    participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
+                    participantCount: firebase.firestore.FieldValue.increment(-1),
+                    [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
+                });
+                 await convoRef.update({
+                    participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
+                    [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
+                });
+                alert(`You have left ${groupName}.`);
+                document.getElementById('back-to-groups-list').click();
+                return;
+            } else {
+                return;
+            }
+        }
+        viewGroup(groupId);
+    };
     
     // --- NEW: Invite User Logic ---
     inviteUserSearchInput.addEventListener('keyup', async (e) => {
@@ -331,7 +316,7 @@ document.addEventListener('authReady', (e) => {
         inviteUserResultsContainer.classList.remove('hidden');
 
         try {
-            const snapshot = await db.collection('users').where('handle', '>=', searchTerm).where('handle', '<=', searchTerm + '\uf8ff').limit(10).get();
+            const snapshot = await db.collection('users').orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').limit(10).get();
             inviteUserResultsContainer.innerHTML = '';
             if (snapshot.empty) {
                 inviteUserResultsContainer.innerHTML = '<p class="p-2 text-sm text-gray-500">No users found.</p>';
@@ -343,7 +328,7 @@ document.addEventListener('authReady', (e) => {
                 resultItem.className = 'flex items-center space-x-3 p-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700';
                 resultItem.innerHTML = `
                     <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-8 h-8 rounded-full object-cover">
-                    <span>${userData.displayName} (@${userData.handle})</span>
+                    <span>${userData.displayName || 'User'} (@${userData.handle || 'handle'})</span>
                 `;
                 resultItem.addEventListener('click', () => inviteUserToGroup(doc.id, userData));
                 inviteUserResultsContainer.appendChild(resultItem);
@@ -358,32 +343,39 @@ document.addEventListener('authReady', (e) => {
         const groupId = document.getElementById('invite-group-id').value;
         if (!groupId) return;
 
-        const groupRef = db.collection('groups').doc(groupId);
-        const convoRef = db.collection('conversations').doc(groupId);
+        // Ensure we have the necessary data before proceeding
+        const displayName = userDataToInvite.displayName || 'User';
+        const photoURL = userDataToInvite.photoURL || null;
 
-        if (confirm(`Are you sure you want to add ${userDataToInvite.displayName} to this group?`)) {
+        if (confirm(`Are you sure you want to add ${displayName} to this group?`)) {
             try {
-                await groupRef.update({
+                const groupRef = db.collection('groups').doc(groupId);
+                const convoRef = db.collection('conversations').doc(groupId);
+
+                // Use a batch to ensure both updates succeed or fail together
+                const batch = db.batch();
+
+                const groupUpdateData = {
                     participants: firebase.firestore.FieldValue.arrayUnion(userIdToInvite),
                     participantCount: firebase.firestore.FieldValue.increment(1),
-                    [`participantInfo.${userIdToInvite}`]: {
-                        displayName: userDataToInvite.displayName,
-                        photoURL: userDataToInvite.photoURL
-                    }
-                });
-                await convoRef.update({
+                    [`participantInfo.${userIdToInvite}`]: { displayName, photoURL }
+                };
+                batch.update(groupRef, groupUpdateData);
+
+                const convoUpdateData = {
                     participants: firebase.firestore.FieldValue.arrayUnion(userIdToInvite),
-                    [`participantInfo.${userIdToInvite}`]: {
-                        displayName: userDataToInvite.displayName,
-                        photoURL: userDataToInvite.photoURL
-                    }
-                });
-                alert(`${userDataToInvite.displayName} has been added to the group.`);
+                    [`participantInfo.${userIdToInvite}`]: { displayName, photoURL }
+                };
+                batch.update(convoRef, convoUpdateData);
+
+                await batch.commit();
+
+                alert(`${displayName} has been added to the group.`);
                 closeModal(inviteMemberModal);
                 viewGroup(groupId); // Refresh the group view
             } catch (error) {
                 console.error("Error inviting user:", error);
-                alert("Failed to invite user.");
+                alert(`Failed to invite user. Error: ${error.message}`);
             }
         }
     };
