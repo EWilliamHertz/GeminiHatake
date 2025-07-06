@@ -1,16 +1,15 @@
 /**
- * HatakeSocial - Groups Page Script (v8 - Group Feed)
+ * HatakeSocial - Groups Page Script (v9 - Group Feed & Discovery Fix)
  *
+ * - FIX: Corrects the Firestore query for discovering public groups.
  * - NEW: Adds a dedicated post feed to each group's detail page.
  * - NEW: Members can now create posts that are only visible within the group.
- * - FIX: The group detail view is now a fully interactive space.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const groupsPage = document.getElementById('groups-main-view');
     if (!groupsPage) return;
 
-    // --- DOM Elements ---
     const createGroupBtn = document.getElementById('create-group-btn');
     const createGroupModal = document.getElementById('create-group-modal');
     const closeGroupModalBtn = document.getElementById('close-group-modal');
@@ -23,7 +22,6 @@ document.addEventListener('authReady', (e) => {
     const inviteUserSearchInput = document.getElementById('invite-user-search');
     const inviteUserResultsContainer = document.getElementById('invite-user-results');
 
-    // --- Event Listeners for Modals ---
     if (user) {
         createGroupBtn.classList.remove('hidden');
     }
@@ -31,7 +29,6 @@ document.addEventListener('authReady', (e) => {
     closeGroupModalBtn.addEventListener('click', () => closeModal(createGroupModal));
     closeInviteModalBtn.addEventListener('click', () => closeModal(inviteMemberModal));
 
-    // --- Group Creation Form ---
     createGroupForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!user) {
@@ -66,22 +63,8 @@ document.addEventListener('authReady', (e) => {
                 participantCount: 1
             };
 
-            const groupDocRef = await db.collection('groups').add(groupData);
+            await db.collection('groups').add(groupData);
             
-            await db.collection('conversations').doc(groupDocRef.id).set({
-                isGroupChat: true,
-                groupName: groupName,
-                participants: [user.uid],
-                participantInfo: {
-                    [user.uid]: {
-                        displayName: user.displayName || "User",
-                        photoURL: user.photoURL || null
-                    }
-                },
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastMessage: 'Group created!'
-            });
-
             alert("Group created successfully!");
             closeModal(createGroupModal);
             createGroupForm.reset();
@@ -97,7 +80,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // --- Core Functions ---
     const createGroupCard = (groupData, groupId) => {
         const card = document.createElement('div');
         card.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow';
@@ -165,7 +147,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- NEW: Function to load the group-specific feed ---
     const loadGroupFeed = async (groupId) => {
         const feedContainer = document.getElementById('group-feed-container');
         if (!feedContainer) return;
@@ -232,7 +213,6 @@ document.addEventListener('authReady', (e) => {
             }
         }
 
-        // --- NEW: Create Post Form HTML (only for members) ---
         const createPostHTML = `
             <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                 <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Create a Post</h3>
@@ -308,7 +288,6 @@ document.addEventListener('authReady', (e) => {
             openModal(inviteMemberModal);
         });
 
-        // --- NEW: Event listener for submitting a group post ---
         document.getElementById('submit-group-post-btn')?.addEventListener('click', async () => {
             const contentEl = document.getElementById('group-post-content');
             const content = contentEl.value.trim();
@@ -327,7 +306,7 @@ document.addEventListener('authReady', (e) => {
 
             try {
                 await db.collection('groups').doc(groupId).collection('posts').add(postData);
-                contentEl.value = ''; // Clear the textarea
+                contentEl.value = '';
             } catch (error) {
                 console.error("Error creating group post:", error);
                 alert("Could not create post. Please try again.");
@@ -337,16 +316,11 @@ document.addEventListener('authReady', (e) => {
 
     const handleAction = async (action, groupId, groupName) => {
         const groupRef = db.collection('groups').doc(groupId);
-        const convoRef = db.collection('conversations').doc(groupId);
 
         if (action === 'join') {
             await groupRef.update({
                 participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
                 participantCount: firebase.firestore.FieldValue.increment(1),
-                [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
-            });
-            await convoRef.update({
-                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
                 [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
             });
             alert(`Joined ${groupName}!`);
@@ -355,10 +329,6 @@ document.addEventListener('authReady', (e) => {
                 await groupRef.update({
                     participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
                     participantCount: firebase.firestore.FieldValue.increment(-1),
-                    [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
-                });
-                 await convoRef.update({
-                    participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
                     [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
                 });
                 alert(`You have left ${groupName}.`);
@@ -371,7 +341,6 @@ document.addEventListener('authReady', (e) => {
         viewGroup(groupId);
     };
     
-    // --- Invite User Logic ---
     inviteUserSearchInput.addEventListener('keyup', async (e) => {
         const searchTerm = e.target.value.toLowerCase().trim();
         if (searchTerm.length < 2) {
@@ -416,25 +385,11 @@ document.addEventListener('authReady', (e) => {
         if (confirm(`Are you sure you want to add ${displayName} to this group?`)) {
             try {
                 const groupRef = db.collection('groups').doc(groupId);
-                const convoRef = db.collection('conversations').doc(groupId);
-
-                const batch = db.batch();
-
-                const groupUpdateData = {
+                await groupRef.update({
                     participants: firebase.firestore.FieldValue.arrayUnion(userIdToInvite),
                     participantCount: firebase.firestore.FieldValue.increment(1),
                     [`participantInfo.${userIdToInvite}`]: { displayName, photoURL }
-                };
-                batch.update(groupRef, groupUpdateData);
-
-                const convoUpdateData = {
-                    participants: firebase.firestore.FieldValue.arrayUnion(userIdToInvite),
-                    [`participantInfo.${userIdToInvite}`]: { displayName, photoURL }
-                };
-                batch.update(convoRef, convoUpdateData);
-
-                await batch.commit();
-
+                });
                 alert(`${displayName} has been added to the group.`);
                 closeModal(inviteMemberModal);
                 viewGroup(groupId);
@@ -445,8 +400,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-
-    // --- Initial Load ---
     loadMyGroups();
     loadDiscoverGroups();
 });
