@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Marketplace Page Script (v5 - Complete Version with Query Fix)
+ * HatakeSocial - Marketplace Page Script (v6 - Complete with Handle Fix)
  *
  * This version restores all of the original trade modal functionality from the user's
- * 281-line file and merges it with the corrected, valid Firestore query logic.
- * This ensures the page loads correctly AND all features are present.
+ * 288-line file and merges it with the corrected, valid Firestore query logic.
+ * FIX: Adds optional chaining to prevent 'undefined' error on seller handles.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -18,12 +18,12 @@ document.addEventListener('authReady', (e) => {
     // --- DOM Elements ---
     const loader = document.getElementById('marketplace-loader');
     const searchForm = document.getElementById('marketplace-search-form');
-    const tradeModal = document.getElementById('propose-trade-modal'); // Assuming a trade modal exists in your HTML
+    const tradeModal = document.getElementById('propose-trade-modal');
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
     const sendTradeOfferBtn = document.getElementById('send-trade-offer-btn');
     
     // --- State ---
-    let allCardsData = []; // This will store the full data for all fetched cards
+    let allCardsData = [];
     let myCollectionForTrade = [];
     let tradeOffer = {
         receiverCard: null,
@@ -39,7 +39,6 @@ document.addEventListener('authReady', (e) => {
         marketplaceGrid.innerHTML = '';
 
         try {
-            // Build the query based on form inputs
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
             const cardName = document.getElementById('search-card-name').value.trim();
@@ -48,26 +47,17 @@ document.addEventListener('authReady', (e) => {
             const sellerCountry = document.getElementById('filter-location').value.trim();
 
             if (cardName) {
-                // The index for (forSale ASC, name ASC) will be used here.
                 query = query.orderBy('name').startAt(cardName).endAt(cardName + '\uf8ff');
-            } else {
-                // For beta, we keep the non-name search simple to avoid complex indexes.
-                // Default sort order when not searching by name.
-                // Note: a separate index on (forSale ASC, addedAt DESC) would be needed for this.
-                // For now, we omit the orderBy to ensure it loads.
-                // query = query.orderBy('addedAt', 'desc');
             }
-
             if (language !== 'any') {
                query = query.where('language', '==', language);
             }
             if (condition !== 'any') {
                query = query.where('condition', '==', condition);
             }
-             if (sellerCountry) {
-                // Note: This requires another composite index. Skipping for beta stability.
+            if (sellerCountry) {
                 console.warn("Filtering by seller country is not yet supported in this query version.");
-             }
+            }
 
             const snapshot = await query.limit(50).get();
             
@@ -77,7 +67,6 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
 
-            // Fetch seller data efficiently
             const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
@@ -90,8 +79,8 @@ document.addEventListener('authReady', (e) => {
                 const sellerId = doc.ref.parent.parent.id;
                 return {
                     id: doc.id,
-                    sellerId: sellerId, // Keep track of the seller's ID
-                    sellerData: sellers[sellerId] || { handle: 'unknown', displayName: 'Unknown Seller' },
+                    sellerId: sellerId,
+                    sellerData: sellers[sellerId], // This can be undefined if rules block access
                     ...doc.data()
                 };
             });
@@ -100,7 +89,7 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading marketplace:", error);
-            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500 p-8">Could not load cards. Please ensure you have created the correct database indexes in Firebase. Check the browser console (F12) for a link or more details.</p>`;
+            marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-red-500 p-8">Error loading cards. Please ensure your Firestore Rules are set correctly. Error: ${error.message}</p>`;
         } finally {
             loader.style.display = 'none';
         }
@@ -109,11 +98,13 @@ document.addEventListener('authReady', (e) => {
     const renderMarketplace = (cards) => {
         marketplaceGrid.innerHTML = '';
         cards.forEach(card => {
+            // FIX: Use optional chaining (?.) to safely access the handle.
+            const sellerHandle = card.sellerData?.handle || 'unknown'; 
             const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `${card.salePrice.toFixed(2)} SEK` : 'For Trade';
+            
             const cardEl = document.createElement('div');
             cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
             
-            // Note: The outer element is a div now to attach a click listener for the trade modal.
             cardEl.innerHTML = `
                 <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block h-full flex flex-col">
                     <div class="relative w-full">
@@ -122,16 +113,16 @@ document.addEventListener('authReady', (e) => {
                     <div class="flex-grow flex flex-col p-1">
                         <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white">${card.name}</h4>
                         <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 group-hover:underline">from @${card.sellerData.handle}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 group-hover:underline">from @${sellerHandle}</p>
                     </div>
                 </a>
-                 <button class="propose-trade-btn mt-2 w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-full hover:bg-green-700" data-card-id="${card.id}">Propose Trade</button>
+                <button class="propose-trade-btn mt-2 w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-full hover:bg-green-700" data-card-id="${card.id}">Propose Trade</button>
             `;
             marketplaceGrid.appendChild(cardEl);
         });
     };
 
-    // --- Trade Modal Logic (Restored) ---
+    // --- Trade Modal Logic ---
     const openTradeModal = async (cardId) => {
         const cardToTradeFor = allCardsData.find(c => c.id === cardId);
         if (!cardToTradeFor) {
@@ -139,27 +130,21 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         
-        // Reset the trade offer state
-        tradeOffer = {
-            receiverCard: cardToTradeFor,
-            proposerCards: [],
-            proposerMoney: 0,
-            receiverMoney: 0,
-            notes: ''
-        };
+        tradeOffer = { receiverCard: cardToTradeFor, proposerCards: [], proposerMoney: 0, receiverMoney: 0, notes: '' };
 
         const receiverDisplay = document.getElementById('receiver-card-display');
-        receiverDisplay.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <img src="${cardToTradeFor.imageUrl}" class="w-12 h-16 object-cover rounded-md">
-                <div>
-                    <p class="font-bold">${cardToTradeFor.name}</p>
-                    <p class="text-sm text-gray-500">from @${cardToTradeFor.sellerData.handle}</p>
-                    <p class="text-sm font-semibold">Market Value: $${parseFloat(cardToTradeFor.priceUsd || 0).toFixed(2)}</p>
-                </div>
-            </div>
-        `;
-
+        if(receiverDisplay) {
+            receiverDisplay.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <img src="${cardToTradeFor.imageUrl}" class="w-12 h-16 object-cover rounded-md">
+                    <div>
+                        <p class="font-bold">${cardToTradeFor.name}</p>
+                        <p class="text-sm text-gray-500">from @${cardToTradeFor.sellerData?.handle || 'unknown'}</p>
+                        <p class="text-sm font-semibold">Market Value: $${parseFloat(cardToTradeFor.priceUsd || 0).toFixed(2)}</p>
+                    </div>
+                </div>`;
+        }
+        
         const myCollectionList = document.getElementById('my-collection-list');
         myCollectionList.innerHTML = '<p>Loading your collection...</p>';
         const snapshot = await db.collection('users').doc(user.uid).collection('collection').get();
@@ -178,10 +163,7 @@ document.addEventListener('authReady', (e) => {
             const cardEl = document.createElement('div');
             cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 rounded cursor-pointer';
             cardEl.dataset.cardId = card.id;
-            cardEl.innerHTML = `
-                <span class="text-sm truncate">${card.name}</span>
-                <i class="fas fa-plus-circle text-green-500"></i>
-            `;
+            cardEl.innerHTML = `<span class="text-sm truncate">${card.name}</span><i class="fas fa-plus-circle text-green-500"></i>`;
             cardEl.addEventListener('click', () => selectCardForTrade(card.id));
             myCollectionList.appendChild(cardEl);
         });
@@ -204,6 +186,7 @@ document.addEventListener('authReady', (e) => {
 
     const updateProposerSelectionUI = () => {
         const container = document.getElementById('proposer-selected-cards');
+        if(!container) return;
         if (tradeOffer.proposerCards.length === 0) {
             container.innerHTML = '<p class="text-sm text-gray-500 italic">No cards selected.</p>';
         } else {
@@ -211,18 +194,27 @@ document.addEventListener('authReady', (e) => {
             tradeOffer.proposerCards.forEach(card => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'flex items-center justify-between p-1 bg-blue-100 rounded';
-                cardEl.innerHTML = `
-                    <span class="text-sm truncate">${card.name}</span>
-                    <button data-card-id="${card.id}" class="remove-trade-item-btn text-red-500 hover:text-red-700"><i class="fas fa-times-circle"></i></button>
-                `;
+                cardEl.innerHTML = `<span class="text-sm truncate">${card.name}</span><button data-card-id="${card.id}" class="remove-trade-item-btn text-red-500 hover:text-red-700"><i class="fas fa-times-circle"></i></button>`;
                 container.appendChild(cardEl);
             });
         }
     };
 
     const updateTradeValues = () => {
-        // This function would calculate and display the total value of items being traded on each side
-        // Placeholder for brevity
+        const proposerValueEl = document.getElementById('proposer-total-value');
+        const receiverValueEl = document.getElementById('receiver-total-value');
+        if(!proposerValueEl || !receiverValueEl) return;
+
+        const proposerCardValue = tradeOffer.proposerCards.reduce((sum, card) => sum + parseFloat(card.priceUsd || 0), 0);
+        const proposerMoney = parseFloat(document.getElementById('proposer-money')?.value) || 0;
+        const proposerTotal = proposerCardValue + proposerMoney;
+        
+        const receiverCardValue = parseFloat(tradeOffer.receiverCard.priceUsd || 0);
+        const receiverMoney = parseFloat(document.getElementById('receiver-money')?.value) || 0;
+        const receiverTotal = receiverCardValue + receiverMoney;
+        
+        proposerValueEl.textContent = `Total Value: $${proposerTotal.toFixed(2)}`;
+        receiverValueEl.textContent = `Total Value: $${receiverTotal.toFixed(2)}`;
     };
 
     const sendTradeOffer = async () => {
@@ -234,7 +226,7 @@ document.addEventListener('authReady', (e) => {
             proposerId: user.uid,
             proposerName: user.displayName,
             receiverId: tradeOffer.receiverCard.sellerId,
-            receiverName: tradeOffer.receiverCard.sellerData.displayName,
+            receiverName: tradeOffer.receiverCard.sellerData?.displayName || 'Unknown Seller',
             participants: [user.uid, tradeOffer.receiverCard.sellerId],
             proposerCards: tradeOffer.proposerCards.map(c => ({ name: c.name, imageUrl: c.imageUrl, value: c.priceUsd })),
             receiverCards: [{ name: tradeOffer.receiverCard.name, imageUrl: tradeOffer.receiverCard.imageUrl, value: tradeOffer.receiverCard.priceUsd }],
@@ -265,7 +257,6 @@ document.addEventListener('authReady', (e) => {
         loadMarketplaceCards();
     });
     
-    // Event listener for the whole grid to handle clicks on trade buttons
     marketplaceGrid.addEventListener('click', (e) => {
         const tradeButton = e.target.closest('.propose-trade-btn');
         if (tradeButton) {
@@ -276,12 +267,17 @@ document.addEventListener('authReady', (e) => {
 
     closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
     sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
-
-    // Add other event listeners for trade modal functionality if they exist in your HTML
     document.getElementById('proposer-selected-cards')?.addEventListener('click', (e) => {
         const button = e.target.closest('.remove-trade-item-btn');
         if (button) removeCardFromTrade(button.dataset.cardId);
     });
+    document.getElementById('my-collection-search')?.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredCards = myCollectionForTrade.filter(card => card.name.toLowerCase().includes(searchTerm));
+        renderMyCollectionForTrade(filteredCards);
+    });
+    document.getElementById('proposer-money')?.addEventListener('input', updateTradeValues);
+    document.getElementById('receiver-money')?.addEventListener('input', updateTradeValues);
 
     // --- Initial Load ---
     loadMarketplaceCards();
