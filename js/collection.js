@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v3 - Advanced Bulk Edit)
+ * HatakeSocial - My Collection Page Script (v4 - Manual Add Feature)
  *
- * This script is based on the original from your repository and merges in fixes for:
- * - A more robust CSV import that handles different column names.
- * - Better user feedback during the import process.
- * - The bulk edit and list-for-sale functionality with "Select All" and percentage pricing.
+ * This script is based on the original from your repository and adds:
+ * - A new event listener for the manual add form.
+ * - Logic to take user input for quantity, condition, and foil status.
+ * - Integration with the Scryfall API to fetch card details for the manually added card.
  */
 window.HatakeSocial.onAuthReady((user) => {
     const user = e.detail.user;
@@ -20,11 +20,6 @@ window.HatakeSocial.onAuthReady((user) => {
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
-    const searchCardBtn = document.getElementById('search-card-btn');
-    const searchResultsSection = document.getElementById('card-search-results-section');
-    const searchResultsContainer = document.getElementById('card-search-results');
-    const setFilter = document.getElementById('filter-set');
-    const typeFilter = document.getElementById('filter-type');
     const csvUploadBtn = document.getElementById('csv-upload-btn');
     const csvUploadInput = document.getElementById('csv-upload-input');
     const csvStatus = document.getElementById('csv-status');
@@ -43,6 +38,7 @@ window.HatakeSocial.onAuthReady((user) => {
     const listingForm = document.getElementById('manage-listing-form');
     const forSaleToggle = document.getElementById('forSale');
     const priceInputContainer = document.getElementById('price-input-container');
+    const manualAddBtn = document.getElementById('manual-add-btn');
 
     // --- Tab Switching ---
     tabs.forEach(tab => {
@@ -60,78 +56,63 @@ window.HatakeSocial.onAuthReady((user) => {
         });
     });
 
-    // --- Single Card Search & Add ---
-    searchCardBtn.addEventListener('click', async () => {
-        const cardName = document.getElementById('search-card-name').value;
-        if (!cardName) return;
-        searchResultsSection.classList.remove('hidden');
-        searchResultsContainer.innerHTML = '<p>Searching...</p>';
-        try {
-            const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints`);
-            if (!response.ok) throw new Error("Card not found.");
-            const data = await response.json();
-            cardSearchResults = data.data;
-            renderSearchResults();
-        } catch (error) {
-            searchResultsContainer.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-        }
-    });
-
-    const renderSearchResults = () => {
-        const set = setFilter.value;
-        const type = typeFilter.value;
-        let filteredResults = cardSearchResults;
-
-        if (set) filteredResults = filteredResults.filter(card => card.set === set);
-        if (type) filteredResults = filteredResults.filter(card => card.type_line && card.type_line.includes(type));
-
-        searchResultsContainer.innerHTML = '';
-        if (filteredResults.length === 0) {
-            searchResultsContainer.innerHTML = '<p>No results match your filters.</p>';
+    // --- NEW: Manual Card Add Logic ---
+    manualAddBtn.addEventListener('click', async () => {
+        if (!user) {
+            alert("Please log in to add cards.");
             return;
         }
 
-        const uniqueSets = [...new Set(cardSearchResults.map(card => card.set_name))].sort();
-        setFilter.innerHTML = '<option value="">All Sets</option>';
-        uniqueSets.forEach(setName => setFilter.innerHTML += `<option value="${cardSearchResults.find(c=>c.set_name === setName).set}">${setName}</option>`);
-       
-        const uniqueTypes = [...new Set(cardSearchResults.map(card => card.type_line ? card.type_line.split('—')[0].trim() : 'Unknown'))].sort();
-        typeFilter.innerHTML = '<option value="">All Types</option>';
-        uniqueTypes.forEach(typeName => typeFilter.innerHTML += `<option value="${typeName}">${typeName}</option>`);
+        const cardName = document.getElementById('manual-card-name').value;
+        const quantity = parseInt(document.getElementById('manual-quantity').value, 10);
+        const condition = document.getElementById('manual-condition').value;
+        const isFoil = document.getElementById('manual-is-foil').checked;
 
-        filteredResults.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'cursor-pointer';
-            cardEl.innerHTML = `<img src="${card.image_uris?.normal || ''}" class="rounded-lg shadow-md w-full">`;
-            cardEl.addEventListener('click', () => addCardToDb(card));
-            searchResultsContainer.appendChild(cardEl);
-        });
-    };
-   
-    setFilter.addEventListener('change', renderSearchResults);
-    typeFilter.addEventListener('change', renderSearchResults);
-
-    const addCardToDb = async (cardData) => {
-        if (!user) { alert("Please log in."); return; }
-        const listType = document.querySelector('input[name="add-to-list"]:checked').value;
-       
-        const cardDoc = {
-            name: cardData.name, tcg: "Magic: The Gathering", scryfallId: cardData.id,
-            set: cardData.set, setName: cardData.set_name, imageUrl: cardData.image_uris?.normal || '',
-            priceUsd: cardData.prices?.usd || '0.00', priceUsdFoil: cardData.prices?.usd_foil || '0.00',
-            quantity: 1, isFoil: false, condition: 'Near Mint', addedAt: new Date(),
-            forSale: false
-        };
-       
-        try {
-            await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
-            alert(`${cardData.name} (${cardData.set_name}) added to your ${listType}!`);
-            loadCardList(listType);
-        } catch(error) {
-            console.error("Error adding card: ", error);
-            alert("Could not add card. See console for details.");
+        if (!cardName || !quantity || quantity < 1) {
+            alert("Please enter a valid card name and quantity.");
+            return;
         }
-    };
+
+        manualAddBtn.disabled = true;
+        manualAddBtn.textContent = 'Adding...';
+
+        try {
+            const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
+            if (!response.ok) {
+                throw new Error("Card not found. Please check the spelling.");
+            }
+            const cardData = await response.json();
+
+            const cardDoc = {
+                name: cardData.name,
+                tcg: "Magic: The Gathering", // Assuming MTG for now
+                scryfallId: cardData.id,
+                set: cardData.set,
+                setName: cardData.set_name,
+                imageUrl: cardData.image_uris?.normal || '',
+                priceUsd: cardData.prices?.usd || '0.00',
+                priceUsdFoil: cardData.prices?.usd_foil || '0.00',
+                quantity: quantity,
+                isFoil: isFoil,
+                condition: condition,
+                addedAt: new Date(),
+                forSale: false
+            };
+
+            await db.collection('users').doc(user.uid).collection('collection').add(cardDoc);
+            alert(`${quantity}x ${cardData.name} added to your collection!`);
+            document.getElementById('manual-add-form').reset(); // Clear the form
+            loadCardList('collection'); // Refresh the view
+
+        } catch (error) {
+            console.error("Error adding card manually: ", error);
+            alert("Could not add card. " + error.message);
+        } finally {
+            manualAddBtn.disabled = false;
+            manualAddBtn.textContent = 'Add Manually';
+        }
+    });
+
 
     // --- CSV Import Logic (FIXED & ROBUST) ---
     csvUploadBtn.addEventListener('click', () => {
