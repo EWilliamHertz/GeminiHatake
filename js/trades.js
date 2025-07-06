@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Trades Page Script (v3 - Robust Feedback System)
+ * HatakeSocial - Trades Page Script (v4 - Trade Partner Search)
  *
  * This script handles all logic for the trades page.
- * - Fixes bugs in the feedback system.
- * - Ensures the "Leave Feedback" button only shows when appropriate.
- * - Reliably updates user reputation scores upon feedback submission.
+ * - Implements a search functionality to find trade partners by their handle.
+ * - Dynamically fetches and displays the selected partner's collection.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -180,7 +179,7 @@ document.addEventListener('authReady', (e) => {
         return itemsHtml || '<p class="text-sm text-gray-500 italic">No items</p>';
     };
 
-    // --- Propose Trade Modal Logic (Unchanged) ---
+    // --- Propose Trade Modal Logic ---
     const openProposeTradeModal = async () => {
         tradeOffer = { proposerCards: [], receiverCards: [], receiver: null };
         tradePartnerSearch.value = '';
