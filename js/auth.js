@@ -7,7 +7,7 @@
  * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
  * - Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
  * - FIX: Adds a 'displayName_lower' field on user creation to enable case-insensitive searching.
- */
+
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
