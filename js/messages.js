@@ -1,11 +1,9 @@
 /**
- * HatakeSocial - Messages Page Script (v9 - Search Fix)
+ * HatakeSocial - Messages Page Script (v10 - Advanced Search & Profile Linking)
  *
  * This script handles all logic for the messages.html page.
- * - FIX: Corrects the Firestore queries to be compliant with the required indexes.
- * - FIX: Ensures both user and group chats load correctly after indexes are built.
- * - FIX: Improves logic for creating new 1-on-1 conversations.
- * - FIX: User search now queries a lowercase field for case-insensitive results.
+ * - FIX: Implements combined search for both displayName and handle.
+ * - FIX: Adds logic to handle opening a chat directly from a user's profile page.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -42,7 +40,7 @@ document.addEventListener('authReady', (e) => {
 
     const loadConversations = () => {
         conversationsListEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
-
+        
         const isGroup = activeTab === 'groups';
         let query = db.collection('conversations')
                       .where('participants', 'array-contains', currentUser.uid)
@@ -54,8 +52,8 @@ document.addEventListener('authReady', (e) => {
                 conversationsListEl.innerHTML = `<p class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">No ${activeTab} conversations.</p>`;
                 return;
             }
-
-            conversationsListEl.innerHTML = ''; // Clear spinner
+            
+            conversationsListEl.innerHTML = '';
             snapshot.forEach(doc => {
                 const conversation = doc.data();
                 const convoId = doc.id;
@@ -75,7 +73,7 @@ document.addEventListener('authReady', (e) => {
                         return;
                     }
                 }
-
+                
                 const item = document.createElement('div');
                 item.className = 'conversation-item flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600';
                 item.innerHTML = `
@@ -90,7 +88,7 @@ document.addEventListener('authReady', (e) => {
             });
         }, error => {
             console.error(`Error loading ${activeTab} conversations:`, error);
-            conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load conversations. This is likely due to a missing database index. Please check the setup instructions.</p>`;
+            conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load conversations. This is likely due to a missing database index or data issue.</p>`;
         });
     };
 
@@ -113,12 +111,12 @@ document.addEventListener('authReady', (e) => {
             if (doc.exists) {
                 const conversation = doc.data();
                 const messages = conversation.messages || [];
-
+                
                 messages.forEach(msg => {
                     const messageEl = document.createElement('div');
                     const isSent = msg.senderId === currentUser.uid;
                     const senderInfo = conversation.participantInfo[msg.senderId];
-
+                    
                     messageEl.className = `message-group ${isSent ? 'sent' : 'received'}`;
                     messageEl.innerHTML = `
                         <div class="flex items-center ${isSent ? 'flex-row-reverse' : ''}">
@@ -142,9 +140,9 @@ document.addEventListener('authReady', (e) => {
         const newMessage = {
             content: content,
             senderId: currentUser.uid,
-            timestamp: new Date()
+            timestamp: new Date() 
         };
-
+        
         messageInput.value = '';
         try {
             await conversationRef.update({
@@ -163,6 +161,34 @@ document.addEventListener('authReady', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
 
+    const startConversationWithUser = async (userId, userData) => {
+        const conversationId = [currentUser.uid, userId].sort().join('_');
+        const conversationRef = db.collection('conversations').doc(conversationId);
+
+        const convoDoc = await conversationRef.get();
+        if (!convoDoc.exists) {
+            // Create conversation if it doesn't exist
+            const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+            const currentUserData = currentUserDoc.data();
+            await conversationRef.set({
+                participants: [currentUser.uid, userId],
+                participantInfo: {
+                    [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
+                    [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
+                },
+                isGroupChat: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: 'Conversation started.'
+            }, { merge: true });
+        }
+        
+        document.querySelector('.message-tab-button[data-tab="users"]').click();
+        
+        const newConvoData = (await conversationRef.get()).data();
+        openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
+    };
+
     userSearchInput.addEventListener('keyup', async (e) => {
         const searchTerm = e.target.value.toLowerCase().trim();
         if (searchTerm.length < 2) {
@@ -171,55 +197,57 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         userSearchResultsEl.classList.remove('hidden');
+        userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">Searching...</div>';
+        
         const usersRef = db.collection('users');
-        // MODIFIED: Uses the 'displayName_lower' field for case-insensitive search
-        const query = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff');
+        const queryByDisplayName = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
+        const queryByHandle = usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
 
-        const snapshot = await query.get();
+        const [displayNameSnapshot, handleSnapshot] = await Promise.all([queryByDisplayName, queryByHandle]);
+        
+        const results = new Map();
+        displayNameSnapshot.forEach(doc => {
+            if (doc.id !== currentUser.uid) {
+                results.set(doc.id, doc.data());
+            }
+        });
+        handleSnapshot.forEach(doc => {
+            if (doc.id !== currentUser.uid) {
+                results.set(doc.id, doc.data());
+            }
+        });
+
         userSearchResultsEl.innerHTML = '';
-        if (snapshot.empty) {
+        if (results.size === 0) {
             userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No users found</div>';
             return;
         }
-        snapshot.forEach(doc => {
-            if (doc.id === currentUser.uid) return;
-            const userData = doc.data();
+        
+        results.forEach((userData, userId) => {
             const resultItem = document.createElement('div');
             resultItem.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
-            resultItem.textContent = userData.displayName;
-            resultItem.addEventListener('click', async () => {
+            resultItem.textContent = `${userData.displayName} (@${userData.handle})`;
+            resultItem.addEventListener('click', () => {
                 userSearchInput.value = '';
                 userSearchResultsEl.classList.add('hidden');
-
-                const conversationId = [currentUser.uid, doc.id].sort().join('_');
-                const conversationRef = db.collection('conversations').doc(conversationId);
-
-                const convoDoc = await conversationRef.get();
-                if (!convoDoc.exists) {
-                    const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                    const currentUserData = currentUserDoc.data();
-                    await conversationRef.set({
-                        participants: [currentUser.uid, doc.id],
-                        participantInfo: {
-                            [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
-                            [doc.id]: { displayName: userData.displayName, photoURL: userData.photoURL }
-                        },
-                        isGroupChat: false,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        lastMessage: 'Conversation started.'
-                    }, { merge: true });
-                }
-
-                document.querySelector('.message-tab-button[data-tab="users"]').click();
-
-                const newConvoData = (await conversationRef.get()).data();
-                openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
-
+                startConversationWithUser(userId, userData);
             });
             userSearchResultsEl.appendChild(resultItem);
         });
     });
 
+    const checkForUrlParams = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const userIdToMessage = params.get('with');
+
+        if (userIdToMessage) {
+            const userDoc = await db.collection('users').doc(userIdToMessage).get();
+            if (userDoc.exists) {
+                startConversationWithUser(userDoc.id, userDoc.data());
+            }
+        }
+    };
+
     loadConversations();
+    checkForUrlParams();
 });
