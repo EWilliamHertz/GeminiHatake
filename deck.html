@@ -94,29 +94,37 @@
 
         <div>
             <div id="content-builder" class="tab-content">
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h1 id="builder-title" class="text-3xl font-bold text-gray-800 mb-4">Create New Deck</h1>
-                    <form id="deck-builder-form">
-                        <input type="hidden" id="editing-deck-id">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <input type="text" id="deck-name-input" class="w-full p-3 border border-gray-300 rounded-md" placeholder="Enter Deck Name" required>
-                            <select id="deck-tcg-select" class="w-full p-3 border border-gray-300 rounded-md" required>
-                                <option value="" disabled selected>Select a Game</option>
-                                <option value="Magic: The Gathering">Magic: The Gathering</option>
-                                <option value="Pokémon">Pokémon</option>
-                                <option value="Flesh and Blood">Flesh and Blood</option>
-                                <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
-                            </select>
-                        </div>
-                        <div id="deck-format-select-container" class="mb-4 hidden">
-                            <select id="deck-format-select" class="w-full p-3 border border-gray-300 rounded-md"></select>
-                        </div>
-                        <div class="mb-4">
-                            <textarea id="deck-bio-input" class="w-full p-3 border border-gray-300 rounded-md resize-y" rows="3" placeholder="Enter a short description for your deck..."></textarea>
-                        </div>
-                        <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4" placeholder="Paste your decklist here..."></textarea>
-                        <button type="submit" id="build-deck-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build & Price Deck</button>
-                    </form>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h1 id="builder-title" class="text-3xl font-bold text-gray-800 mb-4">Create New Deck</h1>
+                        <form id="deck-builder-form">
+                            <input type="hidden" id="editing-deck-id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <input type="text" id="deck-name-input" class="w-full p-3 border border-gray-300 rounded-md" placeholder="Enter Deck Name" required>
+                                <select id="deck-tcg-select" class="w-full p-3 border border-gray-300 rounded-md" required>
+                                    <option value="" disabled selected>Select a Game</option>
+                                    <option value="Magic: The Gathering">Magic: The Gathering</option>
+                                    <option value="Pokémon">Pokémon</option>
+                                    <option value="Flesh and Blood">Flesh and Blood</option>
+                                    <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
+                                </select>
+                            </div>
+                            <div id="deck-format-select-container" class="mb-4 hidden">
+                                <select id="deck-format-select" class="w-full p-3 border border-gray-300 rounded-md"></select>
+                            </div>
+                            <div class="mb-4">
+                                <textarea id="deck-bio-input" class="w-full p-3 border border-gray-300 rounded-md resize-y" rows="3" placeholder="Enter a short description for your deck..."></textarea>
+                            </div>
+                            <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4" placeholder="Paste your decklist here..."></textarea>
+                            <button type="submit" id="build-deck-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build & Price Deck</button>
+                        </form>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Add from Collection</h2>
+                        <input type="text" id="deck-builder-collection-search" class="w-full p-2 border rounded-md mb-4" placeholder="Search your collection...">
+                        <div id="deck-builder-collection-list" class="h-96 overflow-y-auto pr-2">
+                            </div>
+                    </div>
                 </div>
             </div>
 
