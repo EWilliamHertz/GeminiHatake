@@ -5,7 +5,7 @@
  * - FIX: Corrects the Firestore queries to be compliant with the required indexes.
  * - FIX: Ensures both user and group chats load correctly after indexes are built.
  * - FIX: Improves logic for creating new 1-on-1 conversations.
- */
+ 
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const chatArea = document.getElementById('chat-area');
