@@ -48,6 +48,17 @@
                 </ul>
             </nav>
             <div class="relative flex items-center">
+                <div id="notification-container" class="relative">
+    <button id="notification-bell-btn" class="text-gray-600 hover:text-blue-600 text-xl relative">
+        <i class="fas fa-bell"></i>
+        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
+    </button>
+    <div id="notification-dropdown" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-md shadow-lg border z-20 hidden">
+        <div class="p-3 font-bold text-lg border-b">Notifications</div>
+        <div id="notification-list" class="max-h-96 overflow-y-auto">
+            </div>
+    </div>
+</div>
                 <!-- Login/Register Buttons (Visible when logged out) -->
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
@@ -239,6 +250,8 @@
     
     <!-- Your Custom Scripts -->
     <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/search.js"></script>
 <script src="js/messenger.js"></script>
 </body>
