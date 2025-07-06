@@ -11,10 +11,8 @@
 <body class="min-h-screen flex flex-col bg-gray-100">
 
 
-     <!-- Header Section -->
- <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
     <div class="container mx-auto px-4 flex justify-between items-center">
-        <!-- Logo and Site Name -->
         <div class="flex items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -22,7 +20,6 @@
             </a>
         </div>
 
-        <!-- Search Bar -->
         <div class="hidden md:flex flex-grow justify-center mx-4">
             <div class="relative w-full max-w-md">
                 <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -30,7 +27,6 @@
             </div>
         </div>
 
-        <!-- Main Navigation and User Menu -->
         <div class="flex items-center space-x-6">
             <nav class="hidden md:block">
                 <ul class="flex space-x-6">
@@ -47,23 +43,10 @@
                 </ul>
             </nav>
             <div class="relative flex items-center">
-                <div id="notification-container" class="relative">
-    <button id="notification-bell-btn" class="text-gray-600 hover:text-blue-600 text-xl relative">
-        <i class="fas fa-bell"></i>
-        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
-    </button>
-    <div id="notification-dropdown" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-md shadow-lg border z-20 hidden">
-        <div class="p-3 font-bold text-lg border-b">Notifications</div>
-        <div id="notification-list" class="max-h-96 overflow-y-auto">
-            </div>
-    </div>
-</div>
-                <!-- Login/Register Buttons (Visible when logged out) -->
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
                 
-                <!-- User Avatar & Dropdown (Visible when logged in) -->
-                <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src=\'https://placehold.co/40x40?text=User\';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
                 <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
                     <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
                     <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
@@ -78,9 +61,7 @@
 
 
 
- <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-8">
-        <!-- Tab Navigation -->
+ <main class="flex-grow container mx-auto px-4 py-8">
         <div class="mb-6 border-b border-gray-200">
             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
                 <button id="tab-builder" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">Deck Builder</button>
@@ -91,12 +72,11 @@
         </div>
 
 
-        <!-- TCG and Format Filters -->
         <div id="deck-filters" class="hidden mb-6">
             <div class="bg-white p-4 rounded-lg shadow-md">
                 <div class="mb-4">
                     <h3 class="font-bold text-lg mb-2">Filter by Game</h3>
-                    <div class="flex flex-wrap gap-2">
+                    <div id="tcg-filter-buttons" class="flex flex-wrap gap-2">
                         <button class="tcg-filter-btn filter-btn-active" data-tcg="all">All</button>
                         <button class="tcg-filter-btn" data-tcg="Magic: The Gathering">Magic: The Gathering</button>
                         <button class="tcg-filter-btn" data-tcg="Pokémon">Pokémon</button>
@@ -112,9 +92,7 @@
         </div>
 
 
-        <!-- Tab Content -->
         <div>
-            <!-- Deck Builder / Edit Tab -->
             <div id="content-builder" class="tab-content">
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h1 id="builder-title" class="text-3xl font-bold text-gray-800 mb-4">Create New Deck</h1>
@@ -143,11 +121,9 @@
             </div>
 
 
-            <!-- My Decks & Community Decks Tabs -->
             <div id="content-my-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4">My Decks</h2><div id="my-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
             <div id="content-community-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4">Community Decks</h2><div id="community-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
             
-            <!-- Deck View Tab -->
             <div id="content-deck-view" class="tab-content hidden">
                  <div class="bg-white p-6 rounded-lg shadow-md">
                     <div class="flex justify-between items-start mb-4">
@@ -175,7 +151,6 @@
 
 
   
-   <!-- Login Modal -->
    <div id="loginModal" class="modal-overlay">
        <div class="modal-content w-full max-w-md">
            <button class="close-button" id="closeLoginModal">&times;</button>
@@ -195,7 +170,6 @@
    </div>
 
 
-   <!-- Register Modal -->
    <div id="registerModal" class="modal-overlay">
        <div class="modal-content w-full max-w-md">
            <button class="close-button" id="closeRegisterModal">&times;</button>
@@ -274,20 +248,15 @@
 
 
 
-   <!-- Firebase Libraries (use the compat libraries for v8 syntax) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     
-    <!-- PapaParse for CSV (only needed on my_collection.html, but safe to include) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     
-    <!-- Your Custom Scripts -->
     <script src="js/auth.js"></script>
-    <script src="js/notifications.js"></script>
+    <script src="js/deck.js"></script>
    <script src="js/messenger.js"></script>
 </body>
 </html>
-
-
