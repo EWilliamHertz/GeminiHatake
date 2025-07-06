@@ -7,7 +7,21 @@
 .profile-tab-button.active {
     @apply text-blue-600 border-blue-600;
 }
-/* Add these styles to the end of your existing css/style.css file */
+
+/* --- NEW: Badge Styles --- */
+.badge-item {
+    @apply flex flex-col items-center justify-center text-center p-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-24 h-24 transition-transform duration-200 hover:scale-105;
+    position: relative;
+    cursor: help; /* Indicates more info on hover */
+}
+
+.badge-icon {
+    @apply text-3xl mb-1;
+}
+
+.badge-name {
+    @apply text-xs font-semibold text-gray-700 dark:text-gray-200;
+}
 
 /* --- Message Bubbles with Headers --- */
 #messages-container .message-group {
