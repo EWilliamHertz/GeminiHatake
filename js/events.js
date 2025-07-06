@@ -90,7 +90,7 @@ document.addEventListener('authReady', (e) => {
             eventCard.className = 'bg-white p-6 rounded-lg shadow-md flex flex-col md:flex-row gap-6';
 
             const isAttending = user ? event.attendees.includes(user.uid) : false;
-            const isCreator = user && event.creatorId === user.uid; // Check if current user is the creator
+            const isCreator = user && event.creatorId === user.uid;
 
             eventCard.innerHTML = `
                 <img src="${event.imageUrl || 'https://placehold.co/400x250/cccccc/969696?text=Event'}" alt="${event.name}" class="w-full md:w-1/3 h-48 object-cover rounded-md">
