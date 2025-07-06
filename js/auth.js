@@ -1,26 +1,17 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v15 - Race Condition & Search Fix)
+ * HatakeSocial - Core Authentication & UI Script (v16 - Final Stable Version)
  *
  * This script is included on EVERY page. It handles:
  * - All Login/Register Modal and Form logic.
  * - The main auth state listener that correctly updates the header UI.
- * - FIX: Implements a global registry (window.HatakeSocial) to prevent race conditions,
- * ensuring page-specific scripts run only after authentication is ready.
- * - FIX: Adds a 'displayName_lower' field on user creation to enable case-insensitive searching.
+ * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
+ * - FIX: The auth check is now wrapped in DOMContentLoaded to prevent race conditions,
+ * making this the stable, definitive version.
  * - Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
-    // --- Global App Namespace ---
-    window.HatakeSocial = {
-        pageInit: null, // This will hold the function for the specific page
-        onAuthReady: function(initFunction) {
-            this.pageInit = initFunction;
-        }
-    };
-
-    // --- Firebase Configuration ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
@@ -30,23 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
 
-    // --- Firebase Initialization ---
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
-
+    
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-    // --- Global Helpers ---
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
-
-    // --- Core UI Listeners (Run Immediately) ---
+    
     const setupGlobalListeners = () => {
-        const headerSearchForm = document.querySelector('header form#header-search-form');
+        const headerSearchForm = document.querySelector('header form#header-search-form'); 
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -85,16 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
                     return db.collection('users').doc(cred.user.uid).set({
                         displayName: displayName,
-                        displayName_lower: displayName.toLowerCase(), // Added for searching
-                        email: email,
-                        photoURL: defaultPhotoURL,
-                        city: city,
-                        country: country,
-                        favoriteTcg: favoriteTcg,
+                        displayName_lower: displayName.toLowerCase(),
+                        email: email, photoURL: defaultPhotoURL,
+                        city: city, country: country, favoriteTcg: favoriteTcg,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
                         bio: "New HatakeSocial user!",
-                        isAdmin: false
+                        isAdmin: false // Default role
                     });
                 })
                 .then(() => closeModal(registerModal))
@@ -110,14 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const handle = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
                         return userRef.set({
                             displayName: user.displayName,
-                            displayName_lower: user.displayName.toLowerCase(), // Added for searching
-                            email: user.email,
-                            photoURL: user.photoURL,
+                            displayName_lower: user.displayName.toLowerCase(),
+                            email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            handle: handle,
-                            bio: "New HatakeSocial user!",
-                            favoriteTcg: "Not set",
-                            isAdmin: false
+                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false
                         });
                     }
                 });
@@ -126,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal(registerModal);
             }).catch(err => alert(err.message));
         };
-
+        
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
@@ -135,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (headerSearchForm) {
             headerSearchForm.addEventListener('submit', (e) => {
-                e.preventDefault();
+                e.preventDefault(); 
                 const searchBar = document.getElementById('searchBar');
                 const query = searchBar.value.trim();
                 if (query) {
@@ -145,17 +126,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Auth State Controller ---
     auth.onAuthStateChanged(async (user) => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const userAvatar = document.getElementById('userAvatar');
         const userDropdown = document.getElementById('userDropdown');
         const sidebarUserInfo = document.getElementById('sidebar-user-info');
-
+        
         const existingAdminLink = document.getElementById('admin-link-container');
         if (existingAdminLink) existingAdminLink.remove();
-
+        
         if (user) {
             loginButton?.classList.add('hidden');
             registerButton?.classList.add('hidden');
@@ -170,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
 
                     if (userAvatar) userAvatar.src = photo;
-
+                    
                     if (sidebarUserInfo) {
                         sidebarUserInfo.classList.remove('hidden');
                         document.getElementById('sidebar-user-avatar').src = photo;
@@ -200,22 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
             userDropdown?.classList.add('hidden');
             sidebarUserInfo?.classList.add('hidden');
         }
+        
+        // This is the critical part: Dispatch the event that all other scripts listen for.
+        const event = new CustomEvent('authReady', { detail: { user } });
+        document.dispatchEvent(event);
 
-        // **THE FIX**: Check if a page has registered an initialization function, and run it.
-        if (window.HatakeSocial.pageInit && typeof window.HatakeSocial.pageInit === 'function') {
-            try {
-                // Pass the user object to the page's init function
-                window.HatakeSocial.pageInit(user);
-            } catch (error) {
-                console.error("Error running page-specific script:", error);
-            }
-        }
-
-        // Finally, make the body visible to prevent UI flash
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
-
-    // --- Initial Call ---
+    
     setupGlobalListeners();
 });
