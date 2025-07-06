@@ -181,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebarUserInfo?.classList.add('hidden');
         }
         
-        // This is the critical part: Dispatch the event that all other scripts listen for.
         const event = new CustomEvent('authReady', { detail: { user } });
         document.dispatchEvent(event);
 
