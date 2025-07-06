@@ -1,3 +1,10 @@
+/**
+ * HatakeSocial - Shop Page Script (v2 - Corrected Image Paths)
+ *
+ * This script is responsible for the shop page functionality.
+ * FIX: Corrected image extensions in the product data to match actual filenames (.jpeg, .jpg).
+ * This was the primary reason images and products were not loading.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const productGrid = document.getElementById('product-grid');
@@ -7,6 +14,7 @@ document.addEventListener('authReady', (e) => {
     const productModal = document.getElementById('product-detail-modal');
     const cartModal = document.getElementById('cart-modal');
     const checkoutBtn = document.getElementById('checkout-btn');
+    const cartButton = document.getElementById('cart-button'); // Assuming you have a cart button in the header
 
     // --- Product Data with CORRECTED image extensions ---
     const products = [
@@ -20,7 +28,8 @@ document.addEventListener('authReady', (e) => {
     ];
 
     // --- State ---
-    let cart = [];
+    let cart = JSON.parse(localStorage.getItem('hatakeCart')) || [];
+    // This is a placeholder key. Replace with your actual Stripe publishable key.
     const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
 
     // --- Functions ---
@@ -51,15 +60,17 @@ document.addEventListener('authReady', (e) => {
 
     function showProductDetail(productId) {
         const product = products.find(p => p.id === productId);
+        if (!product) return;
+
         const modalBody = document.getElementById('modal-body');
         
         const thumbnailsHTML = product.images.map(image => 
-            `<img src="images/${image}" alt="${product.name}" class="thumbnail cursor-pointer">`
+            `<img src="images/${image}" alt="${product.name}" class="thumbnail cursor-pointer w-16 h-16 object-cover rounded-md border-2 border-transparent hover:border-blue-500">`
         ).join('');
 
         modalBody.innerHTML = `
             <div class="product-image-gallery">
-                <img src="images/${product.images[0]}" alt="${product.name}" id="modal-main-image" class="w-full h-auto object-contain rounded-lg mb-4">
+                <img src="images/${product.images[0]}" alt="${product.name}" id="modal-main-image" class="w-full h-auto max-h-96 object-contain rounded-lg mb-4">
                 <div class="thumbnail-strip flex flex-wrap gap-2 justify-center">
                     ${thumbnailsHTML}
                 </div>
@@ -70,7 +81,7 @@ document.addEventListener('authReady', (e) => {
                 <p><strong>Availability:</strong> ${product.availability}</p>
                 ${product.unitsAvailable ? `<p><strong>Units Available:</strong> Only ${product.unitsAvailable} left for preorder</p>` : ''}
                 <p class="mt-4">${product.description}</p>
-                ${product.features.length > 0 ? `
+                ${product.features && product.features.length > 0 ? `
                     <h4 class="font-bold mt-4">Features</h4>
                     <ul class="list-disc list-inside">${product.features.map(f => `<li>${f}</li>`).join('')}</ul>
                 ` : ''}
@@ -84,8 +95,8 @@ document.addEventListener('authReady', (e) => {
         const mainImage = document.getElementById('modal-main-image');
         document.querySelectorAll('.thumbnail').forEach(thumb => {
             thumb.addEventListener('click', () => {
-                document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active', 'border-blue-500', 'border-2'));
-                thumb.classList.add('active', 'border-blue-500', 'border-2');
+                document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('border-blue-500'));
+                thumb.classList.add('border-blue-500');
                 mainImage.src = thumb.src;
             });
         });
@@ -107,11 +118,12 @@ document.addEventListener('authReady', (e) => {
     }
     
     function updateCart() {
+        localStorage.setItem('hatakeCart', JSON.stringify(cart));
         const cartCount = document.getElementById('cart-count');
         const cartItemsContainer = document.getElementById('cart-items-container');
         const cartTotalEl = document.getElementById('cart-total');
         
-        cartCount.textContent = cart.length;
+        if(cartCount) cartCount.textContent = cart.length;
         
         if (cart.length === 0) {
             cartItemsContainer.innerHTML = '<p class="text-center text-gray-500">Your cart is empty.</p>';
@@ -160,37 +172,55 @@ document.addEventListener('authReady', (e) => {
             return acc;
         }, {});
 
-        const line_items = Object.values(groupedCart).map(item => {
-            return {
-                price_data: {
-                    currency: 'sek',
-                    product_data: {
-                        name: item.name,
-                        images: [`https://hatakesocial.com/images/${item.images[0]}`],
-                    },
-                    unit_amount: item.price * 100,
+        const line_items = Object.values(groupedCart).map(item => ({
+            price_data: {
+                currency: 'sek',
+                product_data: {
+                    name: item.name,
+                    images: [`https://hatake.eu/images/${item.images[0]}`], // Use a live URL for Stripe
                 },
-                quantity: item.quantity,
-            };
-        });
+                unit_amount: item.price * 100, // Price in öre
+            },
+            quantity: item.quantity,
+        }));
 
         try {
             const functions = firebase.functions();
             const createStripeCheckout = functions.httpsCallable('createStripeCheckout');
             
-            const result = await createStripeCheckout({ line_items });
-            const sessionId = result.data.id;
+            const result = await createStripeCheckout({ 
+                line_items,
+                success_url: window.location.origin + '/shop.html?success=true',
+                cancel_url: window.location.origin + '/shop.html?canceled=true'
+            });
 
-            const { error } = await stripe.redirectToCheckout({ sessionId });
-            if (error) {
-                alert(error.message);
+            if (result.data && result.data.id) {
+                const { error } = await stripe.redirectToCheckout({ sessionId: result.data.id });
+                if (error) {
+                    alert(error.message);
+                }
+            } else {
+                 throw new Error("Failed to create Stripe session.");
             }
+
         } catch (error) {
             console.error("Error during checkout: ", error);
-            alert("Could not initiate checkout. Please see the console for details. You may need to deploy the Firebase Cloud Function.");
+            alert("Could not initiate checkout. This could be due to a misconfiguration of Firebase Cloud Functions or Stripe API keys.");
         } finally {
             checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Checkout';
+            checkoutBtn.innerHTML = 'Checkout';
+        }
+    }
+
+    function checkCheckoutStatus() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('success')) {
+            alert('Order placed! You will receive an email confirmation.');
+            cart = [];
+            updateCart();
+        }
+        if (params.get('canceled')) {
+            alert('Order canceled. Your cart has been saved.');
         }
     }
 
@@ -224,11 +254,12 @@ document.addEventListener('authReady', (e) => {
     });
 
     document.getElementById('close-product-modal').addEventListener('click', () => closeModal(productModal));
-    document.getElementById('cart-button').addEventListener('click', () => openModal(cartModal));
+    if (cartButton) cartButton.addEventListener('click', () => openModal(cartModal));
     document.getElementById('close-cart-modal').addEventListener('click', () => closeModal(cartModal));
     checkoutBtn.addEventListener('click', handleCheckout);
 
     // --- Initial Load ---
     renderProducts();
     updateCart();
+    checkCheckoutStatus();
 });
