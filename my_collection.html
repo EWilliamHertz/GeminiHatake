@@ -66,6 +66,25 @@
             </nav>
         </div>
 
+        <div id="collection-stats-section" class="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <p class="text-sm text-gray-500">Total Cards</p>
+                <p id="stats-total-cards" class="text-2xl font-bold text-blue-600">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <p class="text-sm text-gray-500">Unique Cards</p>
+                <p id="stats-unique-cards" class="text-2xl font-bold text-blue-600">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <p class="text-sm text-gray-500">Collection Value</p>
+                <p id="stats-total-value" class="text-2xl font-bold text-green-600">$0.00</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <p class="text-sm text-gray-500">Rarity Breakdown</p>
+                <div id="stats-rarity-breakdown" class="text-xs flex justify-center space-x-2 mt-2"></div>
+            </div>
+        </div>
+
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-2xl font-bold mb-4">Add to Your Collection</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -322,21 +341,3 @@
             <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
         </div>
         <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-            <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
-                </div>
-        </div>
-    </div>
-</div>
-
-
-
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/collection.js"></script>
-   <script src="js/messenger.js"></script>
-</body>
-</html>
