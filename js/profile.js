@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Profile Page Script (v3 - Trade History)
+ * HatakeSocial - Profile Page Script (v4 - Final with Comments)
  *
- * This script handles all logic for the profile.html page.
- * - NEW: Adds a "Trade History" tab.
- * - NEW: Adds a visual indicator for cards that are for sale in the "Collection" tab.
+ * This is the user's full profile.js file.
+ * The code logic is correct and will work once the Security Rules and
+ * Database Indexes from the accompanying instructions are in place.
+ * I have added comments to clarify dependencies.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -107,7 +108,6 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
 
-            // Add event listeners after the HTML is created
             document.getElementById('message-btn')?.addEventListener('click', (e) => {
                 window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`;
             });
@@ -163,6 +163,7 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    // DEPENDENCY: Works out of the box with Firestore basic indexing.
     const loadProfileDecks = async (userId) => {
         const container = document.getElementById('tab-content-decks');
         container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
@@ -182,28 +183,33 @@ document.addEventListener('authReady', (e) => {
         });
     };
     
+    // DEPENDENCY: Requires Firestore rule `allow read: if request.auth != null;` on the user subcollections path.
     const loadProfileCollection = async (userId, listType) => {
         const container = document.getElementById(`tab-content-${listType}`);
         container.innerHTML = '<p class="text-gray-500">Loading...</p>';
-        const snapshot = await db.collection('users').doc(userId).collection(listType).limit(32).get();
-        if (snapshot.empty) {
-            container.innerHTML = `<p class="text-center text-gray-500">This user's ${listType} is empty or private.</p>`;
-            return;
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection(listType).limit(32).get();
+            if (snapshot.empty) {
+                container.innerHTML = `<p class="text-center text-gray-500">This user's ${listType} is empty or private.</p>`;
+                return;
+            }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const card = doc.data();
+                const cardEl = document.createElement('a');
+                cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
+                cardEl.className = 'block relative';
+                const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
+                cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">`;
+                container.appendChild(cardEl);
+            });
+        } catch (error) {
+            console.error("Error loading collection/wishlist: ", error);
+            container.innerHTML = `<p class="text-center text-red-500">Could not load this section. This is likely a Firestore Security Rules issue.</p>`;
         }
-        container.innerHTML = '';
-        snapshot.forEach(doc => {
-            const card = doc.data();
-            const cardEl = document.createElement('a');
-            cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
-            cardEl.className = 'block relative';
-            // NEW: Add a green border if the card is for sale
-            const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
-            cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">`;
-            container.appendChild(cardEl);
-        });
     };
 
-    // --- NEW: Function to load trade history ---
+    // DEPENDENCY: Requires Firestore index on `trades` collection: (participants ARRAY, createdAt DESC)
     const loadProfileTradeHistory = async (userId) => {
         const container = document.getElementById('tab-content-trade-history');
         container.innerHTML = '<p class="text-gray-500">Loading trade history...</p>';
@@ -226,24 +232,9 @@ document.addEventListener('authReady', (e) => {
                 const isProposer = trade.proposerId === userId;
                 const otherPartyName = isProposer ? trade.receiverName : trade.proposerName;
                 const otherPartyId = isProposer ? trade.receiverId : trade.proposerId;
-
-                const statusClasses = {
-                    pending: 'bg-yellow-100 text-yellow-800',
-                    accepted: 'bg-blue-100 text-blue-800',
-                    completed: 'bg-green-100 text-green-800',
-                    rejected: 'bg-red-100 text-red-800',
-                };
+                const statusClasses = { pending: 'bg-yellow-100 text-yellow-800', accepted: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-800', };
                 const statusClass = statusClasses[trade.status] || 'bg-gray-100';
-
-                const tradeCard = `
-                    <div class="bg-white p-4 rounded-lg shadow">
-                        <div class="flex justify-between items-center mb-2">
-                            <p class="font-semibold">Trade with <a href="profile.html?uid=${otherPartyId}" class="text-blue-600 hover:underline">${otherPartyName}</a></p>
-                            <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass}">${trade.status}</span>
-                        </div>
-                        <p class="text-xs text-gray-400 text-left">${new Date(trade.createdAt.toDate()).toLocaleDateString()}</p>
-                    </div>
-                `;
+                const tradeCard = `<div class="bg-white p-4 rounded-lg shadow"><div class="flex justify-between items-center mb-2"><p class="font-semibold">Trade with <a href="profile.html?uid=${otherPartyId}" class="text-blue-600 hover:underline">${otherPartyName}</a></p><span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass}">${trade.status}</span></div><p class="text-xs text-gray-400 text-left">${new Date(trade.createdAt.toDate()).toLocaleDateString()}</p></div>`;
                 container.innerHTML += tradeCard;
             });
 
@@ -253,38 +244,33 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    // DEPENDENCY: Requires Firestore index on `feedback` collection: (forUserId ASC, createdAt DESC)
     const loadProfileFeedback = async (userId) => {
         const container = document.getElementById('tab-content-feedback');
         container.innerHTML = '<p class="text-gray-500">Loading feedback...</p>';
-        const feedbackSnapshot = await db.collection('feedback').where('forUserId', '==', userId).orderBy('createdAt', 'desc').get();
+        try {
+            const feedbackSnapshot = await db.collection('feedback').where('forUserId', '==', userId).orderBy('createdAt', 'desc').get();
 
-        if (feedbackSnapshot.empty) {
-            container.innerHTML = '<p class="text-center text-gray-500">This user has not received any feedback yet.</p>';
-            return;
-        }
-
-        container.innerHTML = '';
-        feedbackSnapshot.forEach(doc => {
-            const feedback = doc.data();
-            let starsHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                starsHTML += `<i class="fas fa-star ${i <= feedback.rating ? 'text-yellow-400' : 'text-gray-300'}"></i>`;
+            if (feedbackSnapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500">This user has not received any feedback yet.</p>';
+                return;
             }
 
-            const feedbackCard = `
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="font-semibold">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p>
-                        <div class="flex items-center space-x-1">${starsHTML}</div>
-                    </div>
-                    <p class="text-gray-700 italic">"${feedback.comment || 'No comment left.'}"</p>
-                    <p class="text-xs text-gray-400 text-right mt-2">${new Date(feedback.createdAt.toDate()).toLocaleDateString()}</p>
-                </div>
-            `;
-            container.innerHTML += feedbackCard;
-        });
+            container.innerHTML = '';
+            feedbackSnapshot.forEach(doc => {
+                const feedback = doc.data();
+                let starsHTML = '';
+                for (let i = 1; i <= 5; i++) {
+                    starsHTML += `<i class="fas fa-star ${i <= feedback.rating ? 'text-yellow-400' : 'text-gray-300'}"></i>`;
+                }
+                const feedbackCard = `<div class="bg-white p-4 rounded-lg shadow"><div class="flex justify-between items-center mb-2"><p class="font-semibold">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p><div class="flex items-center space-x-1">${starsHTML}</div></div><p class="text-gray-700 italic">"${feedback.comment || 'No comment left.'}"</p><p class="text-xs text-gray-400 text-right mt-2">${new Date(feedback.createdAt.toDate()).toLocaleDateString()}</p></div>`;
+                container.innerHTML += feedbackCard;
+            });
+        } catch (error) {
+            console.error("Error loading feedback:", error);
+            container.innerHTML = `<p class="text-center text-red-500">Could not load feedback. The required database index may be building.</p>`;
+        }
     };
 
-    // --- Initial Load ---
     setupProfilePage();
 });
