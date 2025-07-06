@@ -1,7 +1,7 @@
 /**
- * HatakeSocial - Events Page Script (v4 - View Attendees)
+ * HatakeSocial - Events Page Script (v5 - Calendar View)
  *
- * This version adds the ability for users to see who is attending an event.
+ * This version adds a full calendar view for events.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -14,6 +14,14 @@ document.addEventListener('authReady', (e) => {
     const createEventForm = document.getElementById('create-event-form');
     const attendeesModal = document.getElementById('attendees-modal');
     const closeAttendeesModalBtn = document.getElementById('close-attendees-modal');
+    
+    // View toggle elements
+    const listViewBtn = document.getElementById('list-view-btn');
+    const calendarViewBtn = document.getElementById('calendar-view-btn');
+    const eventsListView = document.getElementById('events-list-view');
+    const calendarView = document.getElementById('calendar-view');
+    const calendarEl = document.getElementById('calendar');
+    let calendar;
 
     if (user) {
         createEventBtn.classList.remove('hidden');
@@ -81,24 +89,27 @@ document.addEventListener('authReady', (e) => {
         const snapshot = await db.collection('events').orderBy('date', 'asc').get();
         if (snapshot.empty) {
             eventsListContainer.innerHTML = '<p class="text-center text-gray-500">No upcoming events. Why not create one?</p>';
+            if(calendar) calendar.removeAllEvents();
             return;
         }
 
         eventsListContainer.innerHTML = '';
+        const calendarEvents = [];
         snapshot.forEach(doc => {
             const event = doc.data();
             const eventId = doc.id;
+            const eventDate = new Date(event.date.seconds * 1000);
+            
+            // For List View
             const eventCard = document.createElement('div');
             eventCard.className = 'bg-white p-6 rounded-lg shadow-md flex flex-col md:flex-row gap-6';
-
             const isAttending = user ? event.attendees.includes(user.uid) : false;
             const isCreator = user && event.creatorId === user.uid;
-
             eventCard.innerHTML = `
                 <img src="${event.imageUrl || 'https://placehold.co/400x250/cccccc/969696?text=Event'}" alt="${event.name}" class="w-full md:w-1/3 h-48 object-cover rounded-md">
                 <div class="flex-grow">
                      <div class="flex justify-between items-start">
-                        <p class="text-sm font-semibold text-blue-600">${new Date(event.date.seconds * 1000).toDateString()}</p>
+                        <p class="text-sm font-semibold text-blue-600">${eventDate.toDateString()}</p>
                         ${isCreator ? `<button data-id="${eventId}" class="delete-event-btn text-gray-400 hover:text-red-500 text-xs" title="Delete Event"><i class="fas fa-trash fa-lg"></i></button>` : ''}
                     </div>
                     <h3 class="text-2xl font-bold text-gray-800 mt-1">${event.name}</h3>
@@ -119,9 +130,37 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
             eventsListContainer.appendChild(eventCard);
+            
+            // For Calendar View
+            calendarEvents.push({
+                id: eventId,
+                title: event.name,
+                start: eventDate,
+                allDay: true
+            });
         });
+        
+        renderCalendar(calendarEvents);
     };
     
+    const renderCalendar = (events) => {
+        if (calendar) {
+            calendar.removeAllEvents();
+            calendar.addEventSource(events);
+        } else {
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: events,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                }
+            });
+            calendar.render();
+        }
+    };
+
     const showAttendeesModal = async (eventId) => {
         const attendeesListContainer = document.getElementById('attendees-list-container');
         attendeesListContainer.innerHTML = '<p>Loading attendees...</p>';
@@ -208,6 +247,22 @@ document.addEventListener('authReady', (e) => {
             showAttendeesModal(eventId);
         }
     });
+    
+    // View Toggle Logic
+    listViewBtn.addEventListener('click', () => {
+        listViewBtn.classList.add('bg-white', 'shadow');
+        calendarViewBtn.classList.remove('bg-white', 'shadow');
+        eventsListView.classList.remove('hidden');
+        calendarView.classList.add('hidden');
+    });
+
+    calendarViewBtn.addEventListener('click', () => {
+        calendarViewBtn.classList.add('bg-white', 'shadow');
+        listViewBtn.classList.remove('bg-white', 'shadow');
+        calendarView.classList.remove('hidden');
+        eventsListView.classList.add('hidden');
+    });
+
 
     const seedInitialEvents = async () => {
         const eventsRef = db.collection('events');
