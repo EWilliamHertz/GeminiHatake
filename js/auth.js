@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v13 - Admin Link)
+ * HatakeSocial - Core Authentication & UI Script (v14 - Lowercase Name Fix)
  *
  * This script is included on EVERY page. It handles:
  * - All Login/Register Modal and Form logic.
  * - The main auth state listener that correctly updates the header UI.
  * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * - NEW: Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
+ * - Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
+ * - FIX: Adds a 'displayName_lower' field on user creation to enable case-insensitive searching.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
-    
+
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
@@ -30,9 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
-    
+
     const setupGlobalListeners = () => {
-        const headerSearchForm = document.querySelector('header form#header-search-form'); 
+        const headerSearchForm = document.querySelector('header form#header-search-form');
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const logoutButton = document.getElementById('logoutButton');
@@ -70,12 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
                     cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
                     return db.collection('users').doc(cred.user.uid).set({
-                        displayName: displayName, email: email, photoURL: defaultPhotoURL,
-                        city: city, country: country, favoriteTcg: favoriteTcg,
+                        displayName: displayName,
+                        displayName_lower: displayName.toLowerCase(), // Added for searching
+                        email: email,
+                        photoURL: defaultPhotoURL,
+                        city: city,
+                        country: country,
+                        favoriteTcg: favoriteTcg,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
                         bio: "New HatakeSocial user!",
-                        isAdmin: false // Default role
+                        isAdmin: false
                     });
                 })
                 .then(() => closeModal(registerModal))
@@ -90,9 +96,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!doc.exists) {
                         const handle = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
                         return userRef.set({
-                            displayName: user.displayName, email: user.email, photoURL: user.photoURL,
+                            displayName: user.displayName,
+                            displayName_lower: user.displayName.toLowerCase(), // Added for searching
+                            email: user.email,
+                            photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false
+                            handle: handle,
+                            bio: "New HatakeSocial user!",
+                            favoriteTcg: "Not set",
+                            isAdmin: false
                         });
                     }
                 });
@@ -101,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal(registerModal);
             }).catch(err => alert(err.message));
         };
-        
+
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
@@ -110,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (headerSearchForm) {
             headerSearchForm.addEventListener('submit', (e) => {
-                e.preventDefault(); 
+                e.preventDefault();
                 const searchBar = document.getElementById('searchBar');
                 const query = searchBar.value.trim();
                 if (query) {
@@ -126,11 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const userAvatar = document.getElementById('userAvatar');
         const userDropdown = document.getElementById('userDropdown');
         const sidebarUserInfo = document.getElementById('sidebar-user-info');
-        
-        // Clear any existing admin link
+
         const existingAdminLink = document.getElementById('admin-link-container');
         if (existingAdminLink) existingAdminLink.remove();
-        
+
         if (user) {
             loginButton?.classList.add('hidden');
             registerButton?.classList.add('hidden');
@@ -145,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
 
                     if (userAvatar) userAvatar.src = photo;
-                    
+
                     if (sidebarUserInfo) {
                         sidebarUserInfo.classList.remove('hidden');
                         document.getElementById('sidebar-user-avatar').src = photo;
@@ -153,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
                     }
 
-                    // *** NEW: Check for admin status and add link ***
                     if (userData.isAdmin === true && userDropdown) {
                         const adminLinkContainer = document.createElement('div');
                         adminLinkContainer.id = 'admin-link-container';
@@ -176,13 +186,13 @@ document.addEventListener('DOMContentLoaded', () => {
             userDropdown?.classList.add('hidden');
             sidebarUserInfo?.classList.add('hidden');
         }
-        
+
         const event = new CustomEvent('authReady', { detail: { user } });
         document.dispatchEvent(event);
 
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
-    
+
     setupGlobalListeners();
 });
