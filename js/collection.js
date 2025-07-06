@@ -6,7 +6,7 @@
  * - Better user feedback during the import process.
  * - The bulk edit and list-for-sale functionality with "Select All" and percentage pricing.
  */
-document.addEventListener('authReady', (e) => {
+window.HatakeSocial.onAuthReady((user) => {
     const user = e.detail.user;
     const collectionPage = document.getElementById('content-collection');
     if (!collectionPage) return;
