@@ -1,8 +1,7 @@
 /**
- * HatakeSocial - Events Page Script (v3 - Complete with Delete Fix)
+ * HatakeSocial - Events Page Script (v4 - View Attendees)
  *
- * This is the full version of the events script, with a fix
- * to properly display the delete button for event creators.
+ * This version adds the ability for users to see who is attending an event.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -13,6 +12,8 @@ document.addEventListener('authReady', (e) => {
     const createEventModal = document.getElementById('create-event-modal');
     const closeEventModalBtn = document.getElementById('close-event-modal');
     const createEventForm = document.getElementById('create-event-form');
+    const attendeesModal = document.getElementById('attendees-modal');
+    const closeAttendeesModalBtn = document.getElementById('close-attendees-modal');
 
     if (user) {
         createEventBtn.classList.remove('hidden');
@@ -20,6 +21,7 @@ document.addEventListener('authReady', (e) => {
 
     createEventBtn.addEventListener('click', () => openModal(createEventModal));
     closeEventModalBtn.addEventListener('click', () => closeModal(createEventModal));
+    closeAttendeesModalBtn.addEventListener('click', () => closeModal(attendeesModal));
 
     createEventForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -111,7 +113,7 @@ document.addEventListener('authReady', (e) => {
                             <button data-id="${eventId}" class="attend-btn px-5 py-2 font-semibold rounded-full ${isAttending ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-800'}">
                                 ${isAttending ? '<i class="fas fa-check mr-2"></i>Attending' : 'Attend'}
                             </button>
-                            <p class="text-sm text-gray-500 mt-1">${event.attendees.length} attending</p>
+                            <p class="text-sm text-gray-500 mt-1"><a href="#" class="view-attendees-btn" data-id="${eventId}">${event.attendees.length} attending</a></p>
                         </div>
                     </div>
                 </div>
@@ -119,10 +121,51 @@ document.addEventListener('authReady', (e) => {
             eventsListContainer.appendChild(eventCard);
         });
     };
+    
+    const showAttendeesModal = async (eventId) => {
+        const attendeesListContainer = document.getElementById('attendees-list-container');
+        attendeesListContainer.innerHTML = '<p>Loading attendees...</p>';
+        openModal(attendeesModal);
+
+        try {
+            const eventDoc = await db.collection('events').doc(eventId).get();
+            if (!eventDoc.exists) throw new Error("Event not found.");
+            
+            const attendeeIds = eventDoc.data().attendees;
+            if (attendeeIds.length === 0) {
+                attendeesListContainer.innerHTML = '<p>No one is attending yet.</p>';
+                return;
+            }
+
+            attendeesListContainer.innerHTML = '';
+            for (const userId of attendeeIds) {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const attendeeEl = document.createElement('a');
+                    attendeeEl.href = `profile.html?uid=${userId}`;
+                    attendeeEl.className = 'flex items-center space-x-4 p-2 hover:bg-gray-100 rounded-md';
+                    attendeeEl.innerHTML = `
+                        <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="w-12 h-12 rounded-full object-cover">
+                        <div>
+                            <p class="font-bold text-gray-800">${userData.displayName}</p>
+                            <p class="text-sm text-gray-500">@${userData.handle}</p>
+                        </div>
+                    `;
+                    attendeesListContainer.appendChild(attendeeEl);
+                }
+            }
+        } catch (error) {
+            console.error("Error loading attendees:", error);
+            attendeesListContainer.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+        }
+    };
+
 
     eventsListContainer.addEventListener('click', async (e) => {
         const attendBtn = e.target.closest('.attend-btn');
         const deleteBtn = e.target.closest('.delete-event-btn');
+        const viewAttendeesBtn = e.target.closest('.view-attendees-btn');
 
         if (attendBtn) {
             if (!user) {
@@ -157,6 +200,12 @@ document.addEventListener('authReady', (e) => {
                     alert("Could not delete event. Check security rules in Firebase.");
                 }
             }
+        }
+        
+        if (viewAttendeesBtn) {
+            e.preventDefault();
+            const eventId = viewAttendeesBtn.dataset.id;
+            showAttendeesModal(eventId);
         }
     });
 
