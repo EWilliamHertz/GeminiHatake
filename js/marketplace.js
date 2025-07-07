@@ -3,10 +3,11 @@
  *
  * This script handles all logic for the marketplace.html page.
  *
- * FIX v15: Resolves "Missing or insufficient permissions" by simplifying Firestore queries.
- * The code now performs a broader query (e.g., all cards for sale, sorted by date)
- * and then applies additional filters (language, condition, country) on the client-side.
- * This is more robust and avoids the need for numerous complex composite indexes.
+ * FIX v16: Final fix for "Missing or insufficient permissions" error.
+ * This version simplifies the Firestore query to its most basic form
+ * by removing all default sorting (.orderBy). All sorting (by date, by price)
+ * is now handled reliably on the client-side after the data is fetched.
+ * This is the most robust solution to avoid complex index requirements.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -55,17 +56,15 @@ document.addEventListener('authReady', (e) => {
             
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
-            // If a specific card name is entered, we query for that name.
-            // Otherwise, we do a general query for all cards for sale, sorted by date.
+            // If a specific card name is entered, we add a filter for that name.
+            // The query is now much simpler and doesn't require complex indexes.
             if (cardName) {
-                query = query.orderBy('name').startAt(cardName).endAt(cardName + '\uf8ff');
-            } else {
-                query = query.orderBy('addedAt', 'desc');
+                query = query.where('name', '>=', cardName).where('name', '<=', cardName + '\uf8ff');
             }
             
-            const snapshot = await query.limit(200).get(); // Fetch a larger base of cards to filter on the client
+            const snapshot = await query.limit(200).get();
             
-            if (snapshot.empty && !cardName) { // Only show this if it's a default load with no results
+            if (snapshot.empty && !cardName) {
                 marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">The marketplace is currently empty. List a card for sale!</p>';
                 loader.style.display = 'none';
                 return;
@@ -87,7 +86,6 @@ document.addEventListener('authReady', (e) => {
                 addedAt: doc.data().addedAt?.toDate ? doc.data().addedAt.toDate() : new Date(0)
             }));
             
-            // Now, apply filters on the client side
             applyFiltersAndSort();
 
         } catch (error) {
@@ -127,8 +125,9 @@ document.addEventListener('authReady', (e) => {
             filteredCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity));
         } else if (sortBy === 'price-desc') {
             filteredCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
+        } else { // Default sort is 'date-desc'
+            filteredCards.sort((a, b) => b.addedAt - a.addedAt);
         }
-        // The default 'date-desc' is already handled by the initial query.
         
         renderMarketplace(filteredCards);
     };
@@ -222,10 +221,12 @@ document.addEventListener('authReady', (e) => {
         e.preventDefault();
         loadMarketplaceCards();
     });
-    // We now call applyFiltersAndSort instead of querying the DB again
+    
+    // All filters now call applyFiltersAndSort, which works on the already-loaded data.
     sortByEl.addEventListener('change', applyFiltersAndSort); 
     document.getElementById('filter-language').addEventListener('change', applyFiltersAndSort);
     document.getElementById('filter-condition').addEventListener('change', applyFiltersAndSort);
+    document.getElementById('filter-location').addEventListener('input', applyFiltersAndSort);
 
 
     setupTabs();
