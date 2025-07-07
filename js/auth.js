@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
         projectId: "hatakesocial-88b5e",
-        storageBucket: "hatakesocial-88b5e.appspot.com",
+        storageBucket: "hatakesocial-88b5e.firebasestorage.app", // <-- CORRECTED
         messagingSenderId: "1091697032506",
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
