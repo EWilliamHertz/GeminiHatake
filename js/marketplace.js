@@ -3,10 +3,10 @@
  *
  * FIX v21: Final fix for "Database Error". This version uses the simplest
  * possible Firestore query and performs all filtering and sorting on the
+
  * client-side. This is the most robust method to prevent any and all
  * "missing index" errors, regardless of how the data grows.
  */
-
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const marketplaceGrid = document.getElementById('marketplace-grid');
