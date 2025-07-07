@@ -1,19 +1,30 @@
 /**
- * HatakeSocial - Deck Page Script (v7 - Fully Merged)
+ * HatakeSocial - Deck Page Script (v8 - Goldfishing Feature)
  *
- * This script is a complete merge of the original deck builder functionality
- * with the new features for interactive collection integration, deck statistics,
- * and legality validation.
+ * This script now includes a full playtesting/goldfishing feature.
+ * - Adds a "Test Hand" button to the deck view.
+ * - Opens a modal with a virtual playmat.
+ * - Allows drawing, mulliganing, and resetting.
+ * - Implements drag-and-drop for cards between hand and battlefield.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
     if (!deckBuilderForm) return;
 
+    // --- State Variables ---
     let deckToShare = null;
     let fullCollection = [];
     let manaCurveChart = null;
+    let playtestState = {
+        deck: [],
+        hand: [],
+        battlefield: [],
+        graveyard: [],
+        library: []
+    };
 
+    // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     const deckFilters = document.getElementById('deck-filters');
@@ -32,6 +43,14 @@ document.addEventListener('authReady', (e) => {
     const shareDeckBtn = document.getElementById('share-deck-to-feed-btn');
     const collectionSearchInput = document.getElementById('deck-builder-collection-search');
     const collectionListContainer = document.getElementById('deck-builder-collection-list');
+    const testHandBtn = document.getElementById('test-hand-btn');
+    const playtestModal = document.getElementById('playtest-modal');
+    const closePlaytestModalBtn = document.getElementById('close-playtest-modal');
+    const playtestDrawBtn = document.getElementById('playtest-draw-btn');
+    const playtestMulliganBtn = document.getElementById('playtest-mulligan-btn');
+    const playtestResetBtn = document.getElementById('playtest-reset-btn');
+    const battlefieldEl = document.getElementById('playtest-battlefield');
+    const handEl = document.getElementById('playtest-hand');
     
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
@@ -464,6 +483,121 @@ document.addEventListener('authReady', (e) => {
 
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
     };
+
+    // --- Playtest Modal Logic ---
+    const initializePlaytest = () => {
+        if (!deckToShare) return;
+        
+        // Create a flat array representing the deck
+        playtestState.deck = [];
+        deckToShare.cards.forEach(card => {
+            for (let i = 0; i < card.quantity; i++) {
+                playtestState.deck.push({ ...card, instanceId: Math.random() });
+            }
+        });
+
+        // Shuffle the library
+        playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
+        playtestState.hand = [];
+        playtestState.battlefield = [];
+        playtestState.graveyard = [];
+
+        // Draw opening hand
+        drawCards(7);
+        renderPlaytestState();
+        openModal(playtestModal);
+    };
+
+    const drawCards = (numToDraw) => {
+        for (let i = 0; i < numToDraw; i++) {
+            if (playtestState.library.length > 0) {
+                playtestState.hand.push(playtestState.library.pop());
+            }
+        }
+        renderPlaytestState();
+    };
+    
+    const takeMulligan = () => {
+        if (playtestState.hand.length === 0) return;
+        
+        const newHandSize = playtestState.hand.length - 1;
+        playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
+        playtestState.hand = [];
+        drawCards(newHandSize);
+    };
+
+    const renderPlaytestState = () => {
+        // Update counts
+        document.getElementById('library-count').textContent = playtestState.library.length;
+        document.getElementById('hand-count').textContent = playtestState.hand.length;
+
+        // Render hand
+        handEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Hand</h3>';
+        playtestState.hand.forEach(card => {
+            handEl.appendChild(createPlaytestCard(card));
+        });
+
+        // Render battlefield
+        battlefieldEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Battlefield</h3>';
+        playtestState.battlefield.forEach(card => {
+            battlefieldEl.appendChild(createPlaytestCard(card));
+        });
+    };
+
+    const createPlaytestCard = (card) => {
+        const cardEl = document.createElement('img');
+        cardEl.src = card.image_uris?.normal || 'https://placehold.co/223x310';
+        cardEl.className = 'playtest-card';
+        cardEl.dataset.instanceId = card.instanceId;
+        cardEl.draggable = true;
+        cardEl.addEventListener('dragstart', handleDragStart);
+        return cardEl;
+    };
+
+    const handleDragStart = (e) => {
+        e.dataTransfer.setData('text/plain', e.target.dataset.instanceId);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const zoneEl = e.target.closest('.playtest-zone');
+        if (!zoneEl) return;
+        
+        const cardInstanceId = parseFloat(e.dataTransfer.getData('text/plain'));
+        const newZone = zoneEl.id.includes('battlefield') ? 'battlefield' : 'hand';
+        
+        // Find card and its original zone
+        let cardToMove = null;
+        let originalZone = null;
+
+        if (playtestState.hand.some(c => c.instanceId === cardInstanceId)) {
+            originalZone = 'hand';
+            cardToMove = playtestState.hand.find(c => c.instanceId === cardInstanceId);
+        } else if (playtestState.battlefield.some(c => c.instanceId === cardInstanceId)) {
+            originalZone = 'battlefield';
+            cardToMove = playtestState.battlefield.find(c => c.instanceId === cardInstanceId);
+        }
+
+        if (cardToMove && originalZone !== newZone) {
+            // Remove from original zone
+            playtestState[originalZone] = playtestState[originalZone].filter(c => c.instanceId !== cardInstanceId);
+            // Add to new zone
+            playtestState[newZone].push(cardToMove);
+            renderPlaytestState();
+        }
+    };
+
+    battlefieldEl.addEventListener('dragover', (e) => e.preventDefault());
+    handEl.addEventListener('dragover', (e) => e.preventDefault());
+    battlefieldEl.addEventListener('drop', handleDrop);
+    handEl.addEventListener('drop', handleDrop);
+
+    // --- Event Listeners ---
+    testHandBtn.addEventListener('click', initializePlaytest);
+    closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
+    playtestDrawBtn.addEventListener('click', () => drawCards(1));
+    playtestMulliganBtn.addEventListener('click', takeMulligan);
+    playtestResetBtn.addEventListener('click', initializePlaytest);
 
     shareDeckBtn.addEventListener('click', async () => {
         if (!user || !deckToShare) {
