@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - Deck Page Script (v8 - Goldfishing Feature)
+ * HatakeSocial - Deck Page Script (v10 - Final Index Fix)
  *
- * This script now includes a full playtesting/goldfishing feature.
- * - Adds a "Test Hand" button to the deck view.
- * - Opens a modal with a virtual playmat.
- * - Allows drawing, mulliganing, and resetting.
- * - Implements drag-and-drop for cards between hand and battlefield.
+ * This script is a complete merge of all previous versions and includes
+ * the definitive fix for the Firestore index error on the "Community Decks" tab.
+ * The logic is now aligned with the marketplace fix: it performs a simple
+ * query and handles all filtering on the client-side.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -15,6 +14,7 @@ document.addEventListener('authReady', (e) => {
     // --- State Variables ---
     let deckToShare = null;
     let fullCollection = [];
+    let allCommunityDecks = []; // NEW: To store all community decks for client-side filtering
     let manaCurveChart = null;
     let playtestState = {
         deck: [],
@@ -84,11 +84,21 @@ document.addEventListener('authReady', (e) => {
         tab.addEventListener('click', () => {
             if (tab.id === 'tab-deck-view') return;
             switchTab(tab.id);
-            if (tab.id === 'tab-my-decks') loadMyDecks();
-            if (tab.id === 'tab-community-decks') loadCommunityDecks();
+            if (tab.id === 'tab-my-decks') {
+                loadMyDecks();
+            }
+            if (tab.id === 'tab-community-decks') {
+                // Only load from scratch if the data isn't already there
+                if (allCommunityDecks.length === 0) {
+                    loadCommunityDecks();
+                } else {
+                    applyDeckFilters(); // Otherwise, just re-filter and render
+                }
+            }
         });
     });
 
+    // --- Deck Builder Logic ---
     const loadCollectionForDeckBuilder = async () => {
         if (!user) {
             collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
@@ -400,6 +410,7 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    // --- My Decks Logic ---
     const loadMyDecks = async (tcg = 'all', format = 'all') => {
         const myDecksList = document.getElementById('my-decks-list');
         if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
@@ -442,32 +453,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
     
-    const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
-        const communityDecksList = document.getElementById('community-decks-list');
-        communityDecksList.innerHTML = '<p>Loading...</p>';
-        try {
-            let query = db.collectionGroup('decks');
-            if(tcg !== 'all') query = query.where('tcg', '==', tcg);
-            if(format !== 'all') query = query.where('format', '==', format);
-            const snapshot = await query.orderBy('createdAt', 'desc').limit(21).get();
-
-            if (snapshot.empty) { communityDecksList.innerHTML = '<p>No decks found for the selected filters.</p>'; return; }
-            communityDecksList.innerHTML = '';
-            snapshot.forEach(doc => {
-                const deck = doc.data();
-                const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
-                const deckCard = document.createElement('div');
-                deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-                deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deck.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deck.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
-                deckCard.addEventListener('click', () => viewDeck(deck, doc.id));
-                communityDecksList.appendChild(deckCard);
-            });
-        } catch (error) {
-            console.error(error);
-            communityDecksList.innerHTML = `<p class="text-red-500">Error loading decks. The necessary database index might be missing.</p>`;
-        }
-    };
-
     const editDeck = (deck, deckId) => {
         switchTab('tab-builder');
         builderTitle.textContent = "Edit Deck";
@@ -483,12 +468,117 @@ document.addEventListener('authReady', (e) => {
 
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
     };
+    
+    // --- Community Decks Logic (REVISED) ---
+    const loadCommunityDecks = async () => {
+        const communityDecksList = document.getElementById('community-decks-list');
+        communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
+        try {
+            // Simple query, no ordering. This avoids needing any composite indexes.
+            const snapshot = await db.collectionGroup('decks').limit(200).get();
+
+            if (snapshot.empty) { 
+                communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No community decks found.</p>'; 
+                allCommunityDecks = [];
+                return; 
+            }
+            
+            // Store all decks for client-side filtering
+            allCommunityDecks = snapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(),
+                // Ensure createdAt is a comparable value
+                createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(0)
+            }));
+            
+            // Sort by date initially
+            allCommunityDecks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+            applyDeckFilters(); // Apply filters and render
+
+        } catch (error) {
+            console.error("Error loading community decks:", error);
+            communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">Error loading decks. Please try again later.</p>`;
+        }
+    };
+
+    const applyDeckFilters = () => {
+        const activeTab = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
+        if (activeTab === 'my') {
+            // My Decks filtering logic can be added here if needed, or just call loadMyDecks
+            loadMyDecks(
+                tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg,
+                formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all'
+            );
+            return;
+        }
+
+        const activeTcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
+        const activeFormat = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
+        
+        let filteredDecks = [...allCommunityDecks];
+
+        if (activeTcg !== 'all') {
+            filteredDecks = filteredDecks.filter(deck => deck.tcg === activeTcg);
+        }
+        if (activeFormat !== 'all') {
+            filteredDecks = filteredDecks.filter(deck => deck.format === activeFormat);
+        }
+        
+        renderCommunityDecks(filteredDecks);
+    };
+    
+    const renderCommunityDecks = (decks) => {
+        const communityDecksList = document.getElementById('community-decks-list');
+        communityDecksList.innerHTML = '';
+        if (decks.length === 0) {
+            communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No decks found for the selected filters.</p>';
+            return;
+        }
+        decks.forEach(deckData => {
+            const totalPrice = deckData.cards.reduce((acc, card) => {
+                const price = card.prices?.usd || 0;
+                return acc + (parseFloat(price) * card.quantity);
+            }, 0);
+            const deckCard = document.createElement('div');
+            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
+            deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deckData.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
+            deckCard.addEventListener('click', () => viewDeck(deckData, deckData.id));
+            communityDecksList.appendChild(deckCard);
+        });
+    };
+
+    tcgFilterButtons.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tcg-filter-btn')) {
+            tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+            e.target.classList.add('filter-btn-active');
+            
+            const selectedTcg = e.target.dataset.tcg;
+            formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
+            if (selectedTcg !== 'all' && formats[selectedTcg]) {
+                formats[selectedTcg].forEach(format => {
+                    formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
+                });
+                formatFilterContainer.classList.remove('hidden');
+            } else {
+                formatFilterContainer.classList.add('hidden');
+            }
+            applyDeckFilters();
+        }
+    });
+
+    formatFilterButtons.addEventListener('click', (e) => {
+        if (e.target.classList.contains('format-filter-btn')) {
+            formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+            e.target.classList.add('filter-btn-active');
+            applyDeckFilters();
+        }
+    });
 
     // --- Playtest Modal Logic ---
     const initializePlaytest = () => {
         if (!deckToShare) return;
         
-        // Create a flat array representing the deck
         playtestState.deck = [];
         deckToShare.cards.forEach(card => {
             for (let i = 0; i < card.quantity; i++) {
@@ -496,13 +586,11 @@ document.addEventListener('authReady', (e) => {
             }
         });
 
-        // Shuffle the library
         playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
         playtestState.hand = [];
         playtestState.battlefield = [];
         playtestState.graveyard = [];
 
-        // Draw opening hand
         drawCards(7);
         renderPlaytestState();
         openModal(playtestModal);
@@ -527,17 +615,14 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderPlaytestState = () => {
-        // Update counts
         document.getElementById('library-count').textContent = playtestState.library.length;
         document.getElementById('hand-count').textContent = playtestState.hand.length;
 
-        // Render hand
         handEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Hand</h3>';
         playtestState.hand.forEach(card => {
             handEl.appendChild(createPlaytestCard(card));
         });
 
-        // Render battlefield
         battlefieldEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Battlefield</h3>';
         playtestState.battlefield.forEach(card => {
             battlefieldEl.appendChild(createPlaytestCard(card));
@@ -566,7 +651,6 @@ document.addEventListener('authReady', (e) => {
         const cardInstanceId = parseFloat(e.dataTransfer.getData('text/plain'));
         const newZone = zoneEl.id.includes('battlefield') ? 'battlefield' : 'hand';
         
-        // Find card and its original zone
         let cardToMove = null;
         let originalZone = null;
 
@@ -579,9 +663,7 @@ document.addEventListener('authReady', (e) => {
         }
 
         if (cardToMove && originalZone !== newZone) {
-            // Remove from original zone
             playtestState[originalZone] = playtestState[originalZone].filter(c => c.instanceId !== cardInstanceId);
-            // Add to new zone
             playtestState[newZone].push(cardToMove);
             renderPlaytestState();
         }
@@ -591,26 +673,22 @@ document.addEventListener('authReady', (e) => {
     handEl.addEventListener('dragover', (e) => e.preventDefault());
     battlefieldEl.addEventListener('drop', handleDrop);
     handEl.addEventListener('drop', handleDrop);
-
-    // --- Event Listeners ---
     testHandBtn.addEventListener('click', initializePlaytest);
     closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
     playtestDrawBtn.addEventListener('click', () => drawCards(1));
     playtestMulliganBtn.addEventListener('click', takeMulligan);
     playtestResetBtn.addEventListener('click', initializePlaytest);
 
+    // --- Other Listeners ---
     shareDeckBtn.addEventListener('click', async () => {
         if (!user || !deckToShare) {
             alert("Please log in and select a deck to share.");
             return;
         }
-
         const postContent = `Check out my deck: [deck:${deckToShare.id}:${deckToShare.name}]\n\n${deckToShare.bio || ''}`;
-        
         try {
             const userDoc = await db.collection('users').doc(user.uid).get();
             const userData = userDoc.data();
-            
             await db.collection('posts').add({
                 author: userData.displayName || 'Anonymous',
                 authorId: user.uid,
@@ -628,6 +706,7 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
+    // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
     const deckId = urlParams.get('deckId');
     if (deckId) {
@@ -642,6 +721,7 @@ document.addEventListener('authReady', (e) => {
 
     if (user) {
         loadMyDecks();
-        loadCollectionForDeckBuilder();
     }
+    // Default to community decks on first load of the page
+    loadCommunityDecks();
 });
