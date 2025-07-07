@@ -1,15 +1,15 @@
 /**
- * HatakeSocial - Profile Page Script (v6 - Merged Friends & Badges)
+ * HatakeSocial - Profile Page Script (v7 - Friend Request Notifications)
  *
  * This script handles all logic for the user profile page.
- * It now includes the integrated friends system and the new achievement badges system.
+ * NEW: Creates a notification when a user sends a friend request.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
 
-    // --- NEW: Badge Definitions ---
+    // --- Badge Definitions ---
     const badgeDefinitions = {
         pioneer: {
             name: 'Pioneer',
@@ -17,8 +17,6 @@ document.addEventListener('authReady', (e) => {
             icon: 'fa-rocket',
             color: 'text-purple-500',
             async check(userData, userId) {
-                // This is a simplified check. A real implementation would need to query
-                // the first 100 users by createdAt timestamp.
                 const pioneerDate = new Date('2025-07-01');
                 return userData.createdAt.toDate() < pioneerDate;
             }
@@ -58,14 +56,11 @@ document.addEventListener('authReady', (e) => {
             icon: 'fa-handshake',
             color: 'text-yellow-500',
             async check(userData, userId) {
-                 // This is a placeholder check. A real implementation would query
-                 // the trades and feedback collections.
                  return (userData.ratingCount || 0) >= 10 && (userData.averageRating || 0) >= 4.5;
             }
         }
     };
 
-    // This function sets up the entire profile page, including the new friends functionality
     const setupProfilePage = async () => {
         profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
 
@@ -92,7 +87,6 @@ document.addEventListener('authReady', (e) => {
             const profileUserData = userDoc.data();
             const isOwnProfile = currentUser && currentUser.uid === profileUserId;
 
-            // --- Friend Status Logic ---
             let friendStatus = 'none';
             if (currentUser && !isOwnProfile) {
                 if (profileUserData.friends && profileUserData.friends.includes(currentUser.uid)) {
@@ -117,7 +111,6 @@ document.addEventListener('authReady', (e) => {
             }
 
 
-            // Reputation Display
             const averageRating = profileUserData.averageRating || 0;
             const ratingCount = profileUserData.ratingCount || 0;
             let starsHTML = '';
@@ -128,7 +121,6 @@ document.addEventListener('authReady', (e) => {
             }
             const reputationHTML = `<div class="flex items-center space-x-2 text-sm text-gray-600 mt-1"> <span class="flex">${starsHTML}</span> <span class="font-semibold">${averageRating.toFixed(1)}</span> <span>(${ratingCount} ratings)</span> </div>`;
 
-            // --- Main Profile HTML Structure ---
             profileContainer.innerHTML = `
                 <div class="bg-white rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
@@ -158,12 +150,9 @@ document.addEventListener('authReady', (e) => {
                             <div class="mt-2 text-sm text-gray-600">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
-                            <!-- NEW: Badge Container -->
                             <div id="profile-badges-container" class="mt-4">
                                 <h3 class="font-bold text-lg mb-2">Achievements</h3>
-                                <div id="badges-list" class="flex flex-wrap gap-4">
-                                    <!-- Badges will be loaded here -->
-                                </div>
+                                <div id="badges-list" class="flex flex-wrap gap-4"></div>
                             </div>
                         </div>
                     </div>
@@ -193,7 +182,6 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
 
-            // --- Event Listeners for Action Buttons ---
             document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
             const addFriendBtn = document.getElementById('add-friend-btn');
             if(addFriendBtn) {
@@ -201,9 +189,28 @@ document.addEventListener('authReady', (e) => {
                     if (friendStatus === 'none') {
                         addFriendBtn.disabled = true;
                         addFriendBtn.textContent = 'Sending...';
-                        await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: profileUserId, status: 'pending', createdAt: new Date() });
+                        
+                        // Create Friend Request
+                        await db.collection('friendRequests').add({ 
+                            senderId: currentUser.uid, 
+                            receiverId: profileUserId, 
+                            status: 'pending', 
+                            createdAt: new Date() 
+                        });
+                        
+                        // --- NEW: Create Notification ---
+                        const notificationData = {
+                            message: `${currentUser.displayName} sent you a friend request.`,
+                            link: `/profile.html?uid=${currentUser.uid}#friends`,
+                            isRead: false,
+                            timestamp: new Date()
+                        };
+                        await db.collection('users').doc(profileUserId).collection('notifications').add(notificationData);
+                        
                         addFriendBtn.textContent = 'Request Sent';
-                    } else if (friendStatus === 'request_received') { window.location.href = '/profile.html#friends'; }
+                    } else if (friendStatus === 'request_received') { 
+                        window.location.href = '/profile.html#friends'; 
+                    }
                 });
             }
 
@@ -222,7 +229,6 @@ document.addEventListener('authReady', (e) => {
                 if(targetTab) targetTab.click();
             }
 
-            // --- Initial Content Load ---
             loadProfileFeed(profileUserId);
             loadProfileDecks(profileUserId);
             loadProfileCollection(profileUserId, 'collection');
@@ -231,9 +237,7 @@ document.addEventListener('authReady', (e) => {
             loadProfileFeedback(profileUserId);
             if (window.location.hash === '#friends') loadProfileFriends(profileUserId);
             
-            // --- NEW: Badge Evaluation and Display ---
             if (isOwnProfile) {
-                // Only check for new badges if the user is viewing their own profile
                 await evaluateAndAwardBadges(profileUserId, profileUserData);
             }
             await loadAndDisplayBadges(profileUserId);
@@ -244,7 +248,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- NEW: Badge Logic Functions ---
     const evaluateAndAwardBadges = async (userId, userData) => {
         const userBadgesRef = db.collection('users').doc(userId).collection('badges');
         const existingBadgesSnapshot = await userBadgesRef.get();
@@ -269,7 +272,7 @@ document.addEventListener('authReady', (e) => {
 
     const loadAndDisplayBadges = async (userId) => {
         const badgesListContainer = document.getElementById('badges-list');
-        badgesListContainer.innerHTML = ''; // Clear previous badges
+        badgesListContainer.innerHTML = '';
         const snapshot = await db.collection('users').doc(userId).collection('badges').get();
 
         if (snapshot.empty) {
@@ -281,7 +284,7 @@ document.addEventListener('authReady', (e) => {
             const badge = doc.data();
             const badgeEl = document.createElement('div');
             badgeEl.className = 'badge-item';
-            badgeEl.title = badge.description; // Tooltip on hover
+            badgeEl.title = badge.description;
             badgeEl.innerHTML = `
                 <i class="fas ${badge.icon} ${badge.color} badge-icon"></i>
                 <span class="badge-name">${badge.name}</span>
@@ -289,8 +292,6 @@ document.addEventListener('authReady', (e) => {
             badgesListContainer.appendChild(badgeEl);
         });
     };
-
-    // --- Functions to load tab content ---
 
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
@@ -425,7 +426,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- Function to load friends tab ---
     const loadProfileFriends = async (userId) => {
         const container = document.getElementById('tab-content-friends');
         if (!container) return;
@@ -439,7 +439,6 @@ document.addEventListener('authReady', (e) => {
             
             let friendsHTML = '';
 
-            // Display Friend Requests (only if viewing your own profile)
             if (currentUser && currentUser.uid === userId) {
                  const friendRequests = await db.collection('friendRequests')
                                            .where('receiverId', '==', userId)
@@ -474,7 +473,6 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
-            // Display Friends List
             friendsHTML += `<h3 class="text-xl font-bold mb-4">All Friends (${friendIds.length})</h3>`;
             if (friendIds.length === 0) {
                 friendsHTML += '<p class="text-gray-500">No friends to display.</p>';
@@ -505,7 +503,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- Event listener for friend request buttons ---
     document.body.addEventListener('click', async (event) => {
         const acceptButton = event.target.closest('.accept-friend-btn');
         const rejectButton = event.target.closest('.reject-friend-btn');
@@ -522,18 +519,29 @@ document.addEventListener('authReady', (e) => {
             batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
             batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
             batch.delete(requestRef);
-
+            
+            // --- NEW: Create Notification for Accepted Request ---
+            const senderDoc = await senderRef.get();
+            const senderData = senderDoc.data();
+            const notificationData = {
+                message: `${currentUser.displayName} accepted your friend request.`,
+                link: `/profile.html?uid=${currentUser.uid}`,
+                isRead: false,
+                timestamp: new Date()
+            };
+            const notificationRef = db.collection('users').doc(senderId).collection('notifications').doc();
+            batch.set(notificationRef, notificationData);
+            
             await batch.commit();
-            loadProfileFriends(currentUser.uid); // Refresh the list
+            loadProfileFriends(currentUser.uid);
         }
 
         if (rejectButton) {
             const requestId = rejectButton.dataset.requestId;
             await db.collection('friendRequests').doc(requestId).delete();
-            loadProfileFriends(currentUser.uid); // Refresh the list
+            loadProfileFriends(currentUser.uid);
         }
     });
 
-    // --- Initial Page Setup Call ---
     setupProfilePage();
 });
