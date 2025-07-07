@@ -1,10 +1,10 @@
 /**
  * HatakeSocial - Marketplace Page Script
  *
- * FIX v20: Final version to work with explicit Firestore indexes.
- * This version makes the database queries match the required indexes exactly,
- * removing any ambiguity for Firestore's query planner, which should
- * resolve the "missing index" error permanently.
+ * FIX v21: Final fix for "Database Error". This version uses the simplest
+ * possible Firestore query and performs all filtering and sorting on the
+ * client-side. This is the most robust method to prevent any and all
+ * "missing index" errors, regardless of how the data grows.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -45,26 +45,13 @@ document.addEventListener('authReady', (e) => {
         loader.style.display = 'block';
         marketplaceGrid.innerHTML = '';
         try {
-            const cardName = document.getElementById('search-card-name').value.trim();
+            // This is the simplest possible query. It only requires the default single-field index on 'forSale'.
+            const query = db.collectionGroup('collection').where('forSale', '==', true);
             
-            let query = db.collectionGroup('collection').where('forSale', '==', true);
-
-            // This is the key change: We make the queries explicit.
-            if (cardName) {
-                // This query uses the (forSale, name) index.
-                query = query.orderBy('name').startAt(cardName).endAt(cardName + '\uf8ff');
-            } else {
-                // This query uses the (forSale, addedAt) index.
-                query = query.orderBy('addedAt', 'desc');
-            }
-            
-            const snapshot = await query.limit(100).get();
+            const snapshot = await query.limit(500).get();
             
             if (snapshot.empty) {
-                const message = cardName 
-                    ? `No results found for "${cardName}".`
-                    : "The marketplace is currently empty.";
-                marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">${message}</p>`;
+                marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">The marketplace is currently empty.</p>`;
                 allCardsData = [];
                 loader.style.display = 'none';
                 return;
@@ -86,6 +73,7 @@ document.addEventListener('authReady', (e) => {
                 addedAt: doc.data().addedAt?.toDate ? doc.data().addedAt.toDate() : new Date(0)
             }));
             
+            // Filters and sorting will be applied after the initial load.
             applyFiltersAndSort();
 
         } catch (error) {
@@ -96,24 +84,42 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    /**
+     * Applies all filters and sorting on the client-side after data is fetched.
+     */
     const applyFiltersAndSort = () => {
         let filteredCards = [...allCardsData];
         
+        const cardName = document.getElementById('search-card-name').value.trim().toLowerCase();
         const language = document.getElementById('filter-language').value;
         const condition = document.getElementById('filter-condition').value;
-        const country = document.getElementById('filter-location').value.trim();
+        const country = document.getElementById('filter-location').value.trim().toLowerCase();
         const sortBy = sortByEl.value;
 
-        if (language !== 'any') filteredCards = filteredCards.filter(card => card.language === language);
-        if (condition !== 'any') filteredCards = filteredCards.filter(card => card.condition === condition);
-        if (country) filteredCards = filteredCards.filter(card => card.sellerData?.country?.toLowerCase().includes(country.toLowerCase()));
+        // Client-side filtering logic
+        if (cardName) {
+            filteredCards = filteredCards.filter(card => card.name.toLowerCase().includes(cardName));
+        }
+        if (language !== 'any') {
+            filteredCards = filteredCards.filter(card => card.language === language);
+        }
+        if (condition !== 'any') {
+            filteredCards = filteredCards.filter(card => card.condition === condition);
+        }
+        if (country) {
+            filteredCards = filteredCards.filter(card =>
+                card.sellerData && card.sellerData.country && card.sellerData.country.toLowerCase().includes(country)
+            );
+        }
 
+        // Client-side sorting logic
         if (sortBy === 'price-asc') {
             filteredCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity));
         } else if (sortBy === 'price-desc') {
             filteredCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
+        } else { // Default sort is 'date-desc'
+            filteredCards.sort((a, b) => b.addedAt - a.addedAt);
         }
-        // Default 'newest' sort is now handled by the initial database query
         
         renderMarketplace(filteredCards);
     };
@@ -149,7 +155,10 @@ document.addEventListener('authReady', (e) => {
     const loadAuctions = () => { /* ... unchanged ... */ };
     const renderAnalyticsCharts = () => { /* ... unchanged ... */ };
 
-    searchForm.addEventListener('submit', (e) => { e.preventDefault(); loadMarketplaceCards(); });
+    // The search form now triggers the client-side filtering, not a new DB query
+    searchForm.addEventListener('submit', (e) => { e.preventDefault(); applyFiltersAndSort(); });
+    
+    // All filter controls now trigger the client-side filtering and sorting
     sortByEl.addEventListener('change', applyFiltersAndSort); 
     document.getElementById('filter-language').addEventListener('change', applyFiltersAndSort);
     document.getElementById('filter-condition').addEventListener('change', applyFiltersAndSort);
