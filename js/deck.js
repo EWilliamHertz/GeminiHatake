@@ -1,9 +1,11 @@
 /**
- * HatakeSocial - Deck Page Script (v13 - Final Index Match)
+ * HatakeSocial - Deck Page Script (v14 - Final Index Match)
  *
  * This version has been rewritten to perfectly match the existing composite
  * index on the 'decks' collection group (tcg ASC, createdAt DESC).
- * This is the definitive fix for the "Community Decks" error.
+ * This is the definitive fix for the "Community Decks" error. It now handles
+ * the "All" filter by running multiple queries in parallel to satisfy
+ * Firestore's indexing requirements.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -460,15 +462,40 @@ document.addEventListener('authReady', (e) => {
         const communityDecksList = document.getElementById('community-decks-list');
         communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
         try {
-            let query = db.collectionGroup('decks');
+            let query;
             
-            // This query structure now perfectly matches the index in your screenshot
             if (tcg !== 'all') {
-                // Filter by tcg first, then order by date. This uses the (tcg, createdAt) index.
-                query = query.where('tcg', '==', tcg).orderBy('createdAt', 'desc');
+                // This query uses the (tcg, createdAt) index you have.
+                query = db.collectionGroup('decks')
+                          .where('tcg', '==', tcg)
+                          .orderBy('createdAt', 'desc');
             } else {
-                // If "All" TCGs are selected, just order by date. This uses a different, simpler index.
-                query = query.orderBy('createdAt', 'desc');
+                // For "All", we must run multiple queries as Firestore doesn't support
+                // ordering by a field without filtering on the first field of a composite index.
+                const tcgList = ["Magic: The Gathering", "Pokémon", "Flesh and Blood", "Yu-Gi-Oh!"];
+                const promises = tcgList.map(game =>
+                    db.collectionGroup('decks')
+                      .where('tcg', '==', game)
+                      .orderBy('createdAt', 'desc')
+                      .limit(15) // Get a few from each game to keep it fast
+                      .get()
+                );
+                const snapshots = await Promise.all(promises);
+                let allDocs = [];
+                snapshots.forEach(snapshot => {
+                    snapshot.docs.forEach(doc => allDocs.push(doc));
+                });
+                // Manually sort the combined results by date
+                allDocs.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
+                
+                let decks = allDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Client-side filtering for format
+                if (format !== 'all') {
+                    decks = decks.filter(deck => deck.format === format);
+                }
+                renderCommunityDecks(decks);
+                return; // Exit the function here as we've handled the "All" case
             }
             
             const snapshot = await query.limit(50).get();
@@ -480,7 +507,7 @@ document.addEventListener('authReady', (e) => {
 
             let decks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // Client-side filtering for format, as it's not in our primary index
+            // Client-side filtering for format
             if (format !== 'all') {
                 decks = decks.filter(deck => deck.format === format);
             }
