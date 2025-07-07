@@ -6,6 +6,7 @@
  * client-side. This is the most robust method to prevent any and all
  * "missing index" errors, regardless of how the data grows.
  */
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const marketplaceGrid = document.getElementById('marketplace-grid');
