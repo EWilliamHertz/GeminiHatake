@@ -1,8 +1,6 @@
 /**
  * HatakeSocial - My Collection Page Script
  *
- * This script handles all logic for the my_collection.html page.
- *
  * FIX v8: Corrected a major performance issue in the bulk "List for Sale"
  * functionality. The original code was fetching each card's price individually
  * within a loop, causing timeouts. The new logic uses pre-loaded collection
