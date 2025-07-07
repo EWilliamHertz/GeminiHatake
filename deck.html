@@ -37,6 +37,16 @@
                         <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
                         <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
                         <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                        <li id="notification-container" class="relative">
+                            <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl">
+                                <i class="fas fa-bell"></i>
+                                <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
+                            </button>
+                            <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-20 hidden">
+                                <div class="p-3 font-bold text-lg border-b dark:border-gray-700">Notifications</div>
+                                <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
+                            </div>
+                        </li>
                     </ul>
                 </nav>
                 <div class="relative flex items-center">
