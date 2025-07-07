@@ -3,10 +3,10 @@
  *
  * This script handles all logic for the marketplace.html page.
  *
- * FIX v14: Resolves "Missing or insufficient permissions" error on default load.
- * Adds a default .orderBy('addedAt', 'desc') to the initial query. This makes the
- * query more efficient at scale and allows Firestore to use a specific index,
- * which is now required as the dataset has grown.
+ * FIX v15: Resolves "Missing or insufficient permissions" by simplifying Firestore queries.
+ * The code now performs a broader query (e.g., all cards for sale, sorted by date)
+ * and then applies additional filters (language, condition, country) on the client-side.
+ * This is more robust and avoids the need for numerous complex composite indexes.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -52,34 +52,25 @@ document.addEventListener('authReady', (e) => {
         marketplaceGrid.innerHTML = '';
         try {
             const cardName = document.getElementById('search-card-name').value.trim();
-            const language = document.getElementById('filter-language').value;
-            const condition = document.getElementById('filter-condition').value;
-            const country = document.getElementById('filter-location').value.trim();
             
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
-            // --- THIS IS THE FIX ---
-            // We now explicitly tell the database to sort by the date added.
-            // This requires a new, specific index in Firestore but makes the query much more stable.
-            if (!cardName) { // Only apply default sort if not searching by name
-                 query = query.orderBy('addedAt', 'desc');
-            }
-            // --- END FIX ---
-
+            // If a specific card name is entered, we query for that name.
+            // Otherwise, we do a general query for all cards for sale, sorted by date.
             if (cardName) {
-                // When searching by name, we must order by name for the filter to work
                 query = query.orderBy('name').startAt(cardName).endAt(cardName + '\uf8ff');
+            } else {
+                query = query.orderBy('addedAt', 'desc');
             }
-            if (language !== 'any') query = query.where('language', '==', language);
-            if (condition !== 'any') query = query.where('condition', '==', condition);
             
-            const snapshot = await query.limit(50).get();
+            const snapshot = await query.limit(200).get(); // Fetch a larger base of cards to filter on the client
             
-            if (snapshot.empty) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards match your search criteria.</p>';
+            if (snapshot.empty && !cardName) { // Only show this if it's a default load with no results
+                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">The marketplace is currently empty. List a card for sale!</p>';
                 loader.style.display = 'none';
                 return;
             }
+
             const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
@@ -87,6 +78,7 @@ document.addEventListener('authReady', (e) => {
             sellerDocs.forEach(doc => {
                 if (doc.exists) sellers[doc.id] = doc.data();
             });
+
             allCardsData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 sellerId: doc.ref.parent.parent.id,
@@ -94,12 +86,10 @@ document.addEventListener('authReady', (e) => {
                 ...doc.data(),
                 addedAt: doc.data().addedAt?.toDate ? doc.data().addedAt.toDate() : new Date(0)
             }));
-            if (country) {
-                allCardsData = allCardsData.filter(card =>
-                    card.sellerData && card.sellerData.country && card.sellerData.country.toLowerCase().includes(country.toLowerCase())
-                );
-            }
-            sortAndRender();
+            
+            // Now, apply filters on the client side
+            applyFiltersAndSort();
+
         } catch (error) {
             console.error("Error loading marketplace:", error);
             marketplaceGrid.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md col-span-full" role="alert"><p class="font-bold">Database Error</p><p>Could not perform search. This may be due to a missing Firebase index. Please check the browser console (F12) for an error link to create the required index.</p></div>`;
@@ -108,19 +98,39 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const sortAndRender = () => {
-        const sortBy = sortByEl.value;
-        let sortedCards = [...allCardsData];
-
-        // The default sort by date is now handled by the database query.
-        // We only need to handle client-side sorting for price.
-        if (sortBy === 'price-asc') {
-            sortedCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity));
-        } else if (sortBy === 'price-desc') {
-            sortedCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
-        }
+    /**
+     * Applies filters and sorting on the client-side after data is fetched.
+     */
+    const applyFiltersAndSort = () => {
+        let filteredCards = [...allCardsData];
         
-        renderMarketplace(sortedCards);
+        const language = document.getElementById('filter-language').value;
+        const condition = document.getElementById('filter-condition').value;
+        const country = document.getElementById('filter-location').value.trim();
+        const sortBy = sortByEl.value;
+
+        // Client-side filtering
+        if (language !== 'any') {
+            filteredCards = filteredCards.filter(card => card.language === language);
+        }
+        if (condition !== 'any') {
+            filteredCards = filteredCards.filter(card => card.condition === condition);
+        }
+        if (country) {
+            filteredCards = filteredCards.filter(card =>
+                card.sellerData && card.sellerData.country && card.sellerData.country.toLowerCase().includes(country.toLowerCase())
+            );
+        }
+
+        // Client-side sorting
+        if (sortBy === 'price-asc') {
+            filteredCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity));
+        } else if (sortBy === 'price-desc') {
+            filteredCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
+        }
+        // The default 'date-desc' is already handled by the initial query.
+        
+        renderMarketplace(filteredCards);
     };
 
     const renderMarketplace = (cards) => {
@@ -154,10 +164,9 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    // --- Auction and Analytics Functions ---
+    // --- Auction and Analytics Functions (unchanged) ---
     const loadAuctions = () => {
         auctionContainer.innerHTML = '';
-        // This is mock data. You would fetch this from a 'auctions' collection in Firestore.
         const mockAuctions = [
             { id: 1, name: 'Foil Black Lotus', imageUrl: 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-22807f3ec608.jpg?1614638838', currentBid: 1500, endsIn: '2h 15m' },
             { id: 2, name: 'Gaea\'s Cradle', imageUrl: 'https://cards.scryfall.io/large/front/2/5/25b0b8c2-5729-4ba1-97b5-ae52b24309a1.jpg?1562902898', currentBid: 850, endsIn: '1d 4h' },
@@ -213,7 +222,11 @@ document.addEventListener('authReady', (e) => {
         e.preventDefault();
         loadMarketplaceCards();
     });
-    sortByEl.addEventListener('change', sortAndRender);
+    // We now call applyFiltersAndSort instead of querying the DB again
+    sortByEl.addEventListener('change', applyFiltersAndSort); 
+    document.getElementById('filter-language').addEventListener('change', applyFiltersAndSort);
+    document.getElementById('filter-condition').addEventListener('change', applyFiltersAndSort);
+
 
     setupTabs();
     loadMarketplaceCards();
