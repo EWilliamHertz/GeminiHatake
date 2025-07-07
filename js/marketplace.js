@@ -55,11 +55,13 @@ document.addEventListener('authReady', (e) => {
             
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
+            // If a specific card name is entered, we add a filter for that name.
+            // The query is now much simpler and doesn't require complex indexes.
             if (cardName) {
                 query = query.where('name', '>=', cardName).where('name', '<=', cardName + '\uf8ff');
             }
             
-            const snapshot = await query.limit(200).get();
+            const snapshot = await query.limit(500).get(); // Increased limit to get more results for client-side filtering
             
             // This is the key change: Check for empty results right away.
             if (snapshot.empty) {
