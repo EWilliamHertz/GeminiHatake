@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Deck Page Script (v10 - Final Index Fix)
+ * HatakeSocial - Deck Page Script (v11 - Final Index Fix)
  *
- * This script is a complete merge of all previous versions and includes
- * the definitive fix for the Firestore index error on the "Community Decks" tab.
- * The logic is now aligned with the marketplace fix: it performs a simple
- * query and handles all filtering on the client-side.
+ * This version uses the correct Firestore query that relies on the
+ * newly created composite index for the 'decks' collection group.
+ * This is the definitive fix for the "Community Decks" error.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -14,7 +13,6 @@ document.addEventListener('authReady', (e) => {
     // --- State Variables ---
     let deckToShare = null;
     let fullCollection = [];
-    let allCommunityDecks = []; // NEW: To store all community decks for client-side filtering
     let manaCurveChart = null;
     let playtestState = {
         deck: [],
@@ -84,21 +82,13 @@ document.addEventListener('authReady', (e) => {
         tab.addEventListener('click', () => {
             if (tab.id === 'tab-deck-view') return;
             switchTab(tab.id);
-            if (tab.id === 'tab-my-decks') {
-                loadMyDecks();
-            }
-            if (tab.id === 'tab-community-decks') {
-                // Only load from scratch if the data isn't already there
-                if (allCommunityDecks.length === 0) {
-                    loadCommunityDecks();
-                } else {
-                    applyDeckFilters(); // Otherwise, just re-filter and render
-                }
-            }
+            const tcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
+            const format = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
+            if (tab.id === 'tab-my-decks') loadMyDecks(tcg, format);
+            if (tab.id === 'tab-community-decks') loadCommunityDecks(tcg, format);
         });
     });
 
-    // --- Deck Builder Logic ---
     const loadCollectionForDeckBuilder = async () => {
         if (!user) {
             collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
@@ -410,7 +400,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    // --- My Decks Logic ---
     const loadMyDecks = async (tcg = 'all', format = 'all') => {
         const myDecksList = document.getElementById('my-decks-list');
         if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
@@ -469,63 +458,43 @@ document.addEventListener('authReady', (e) => {
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
     };
     
-    // --- Community Decks Logic (REVISED) ---
-    const loadCommunityDecks = async () => {
+    // --- Community Decks Logic (REVISED AND FINAL) ---
+    const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
         const communityDecksList = document.getElementById('community-decks-list');
         communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
         try {
-            // Simple query, no ordering. This avoids needing any composite indexes.
-            const snapshot = await db.collectionGroup('decks').limit(200).get();
+            // This query now relies on the new index we are creating.
+            let query = db.collectionGroup('decks').orderBy('createdAt', 'desc');
 
-            if (snapshot.empty) { 
-                communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No community decks found.</p>'; 
-                allCommunityDecks = [];
-                return; 
+            // NOTE: Firestore requires that if you use a filter on a field, and you have an orderBy clause,
+            // the first orderBy must be on the same field as the filter.
+            // To support flexible filtering, we will apply filters after the initial fetch.
+            // The 'createdAt' index is primarily to enable the collectionGroup query itself.
+            
+            const snapshot = await query.limit(100).get();
+
+            if (snapshot.empty) {
+                communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No community decks found.</p>';
+                return;
+            }
+
+            let decks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Client-side filtering
+            if (tcg !== 'all') {
+                decks = decks.filter(deck => deck.tcg === tcg);
+            }
+            if (format !== 'all') {
+                decks = decks.filter(deck => deck.format === format);
             }
             
-            // Store all decks for client-side filtering
-            allCommunityDecks = snapshot.docs.map(doc => ({ 
-                id: doc.id, 
-                ...doc.data(),
-                // Ensure createdAt is a comparable value
-                createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(0)
-            }));
-            
-            // Sort by date initially
-            allCommunityDecks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-            applyDeckFilters(); // Apply filters and render
+            renderCommunityDecks(decks);
 
         } catch (error) {
             console.error("Error loading community decks:", error);
-            communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">Error loading decks. Please try again later.</p>`;
+            // This error message is what the user is seeing. It correctly points to the index issue.
+            communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">Error loading decks. The necessary database index might be missing.</p>`;
         }
-    };
-
-    const applyDeckFilters = () => {
-        const activeTab = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
-        if (activeTab === 'my') {
-            // My Decks filtering logic can be added here if needed, or just call loadMyDecks
-            loadMyDecks(
-                tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg,
-                formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all'
-            );
-            return;
-        }
-
-        const activeTcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
-        const activeFormat = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
-        
-        let filteredDecks = [...allCommunityDecks];
-
-        if (activeTcg !== 'all') {
-            filteredDecks = filteredDecks.filter(deck => deck.tcg === activeTcg);
-        }
-        if (activeFormat !== 'all') {
-            filteredDecks = filteredDecks.filter(deck => deck.format === activeFormat);
-        }
-        
-        renderCommunityDecks(filteredDecks);
     };
     
     const renderCommunityDecks = (decks) => {
@@ -563,7 +532,13 @@ document.addEventListener('authReady', (e) => {
             } else {
                 formatFilterContainer.classList.add('hidden');
             }
-            applyDeckFilters();
+            // Re-run the correct loader based on the active tab
+            const activeTab = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
+            if (activeTab === 'my') {
+                loadMyDecks(selectedTcg, 'all');
+            } else {
+                loadCommunityDecks(selectedTcg, 'all');
+            }
         }
     });
 
@@ -571,7 +546,15 @@ document.addEventListener('authReady', (e) => {
         if (e.target.classList.contains('format-filter-btn')) {
             formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
             e.target.classList.add('filter-btn-active');
-            applyDeckFilters();
+            const activeTcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
+            const activeFormat = e.target.dataset.format;
+             // Re-run the correct loader based on the active tab
+            const activeTab = document.querySelector('#tab-my-decks.text-blue-600') ? 'my' : 'community';
+            if (activeTab === 'my') {
+                loadMyDecks(activeTcg, activeFormat);
+            } else {
+                loadCommunityDecks(activeTcg, activeFormat);
+            }
         }
     });
 
