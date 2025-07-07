@@ -1,7 +1,12 @@
 /**
- * HatakeSocial - Marketplace Page Script (v13 - Auctions & Analytics)
+ * HatakeSocial - Marketplace Page Script
  *
- * This version adds the UI logic for the new auction and analytics features.
+ * This script handles all logic for the marketplace.html page.
+ *
+ * FIX v14: Resolves "Missing or insufficient permissions" error on default load.
+ * Adds a default .orderBy('addedAt', 'desc') to the initial query. This makes the
+ * query more efficient at scale and allows Firestore to use a specific index,
+ * which is now required as the dataset has grown.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -50,11 +55,26 @@ document.addEventListener('authReady', (e) => {
             const language = document.getElementById('filter-language').value;
             const condition = document.getElementById('filter-condition').value;
             const country = document.getElementById('filter-location').value.trim();
+            
             let query = db.collectionGroup('collection').where('forSale', '==', true);
-            if (cardName) query = query.where('name', '>=', cardName).where('name', '<=', cardName + '\uf8ff');
+
+            // --- THIS IS THE FIX ---
+            // We now explicitly tell the database to sort by the date added.
+            // This requires a new, specific index in Firestore but makes the query much more stable.
+            if (!cardName) { // Only apply default sort if not searching by name
+                 query = query.orderBy('addedAt', 'desc');
+            }
+            // --- END FIX ---
+
+            if (cardName) {
+                // When searching by name, we must order by name for the filter to work
+                query = query.orderBy('name').startAt(cardName).endAt(cardName + '\uf8ff');
+            }
             if (language !== 'any') query = query.where('language', '==', language);
             if (condition !== 'any') query = query.where('condition', '==', condition);
-            const snapshot = await query.limit(200).get();
+            
+            const snapshot = await query.limit(50).get();
+            
             if (snapshot.empty) {
                 marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards match your search criteria.</p>';
                 loader.style.display = 'none';
@@ -82,7 +102,7 @@ document.addEventListener('authReady', (e) => {
             sortAndRender();
         } catch (error) {
             console.error("Error loading marketplace:", error);
-            marketplaceGrid.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md col-span-full" role="alert"><p class="font-bold">Database Error</p><p>Could not perform search. This may be due to a missing Firebase index.</p></div>`;
+            marketplaceGrid.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md col-span-full" role="alert"><p class="font-bold">Database Error</p><p>Could not perform search. This may be due to a missing Firebase index. Please check the browser console (F12) for an error link to create the required index.</p></div>`;
         } finally {
             loader.style.display = 'none';
         }
@@ -91,21 +111,26 @@ document.addEventListener('authReady', (e) => {
     const sortAndRender = () => {
         const sortBy = sortByEl.value;
         let sortedCards = [...allCardsData];
-        switch (sortBy) {
-            case 'price-asc': sortedCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity)); break;
-            case 'price-desc': sortedCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0)); break;
-            case 'date-desc': default: sortedCards.sort((a, b) => b.addedAt - a.addedAt); break;
+
+        // The default sort by date is now handled by the database query.
+        // We only need to handle client-side sorting for price.
+        if (sortBy === 'price-asc') {
+            sortedCards.sort((a, b) => (a.salePrice || Infinity) - (b.salePrice || Infinity));
+        } else if (sortBy === 'price-desc') {
+            sortedCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
         }
+        
         renderMarketplace(sortedCards);
     };
 
     const renderMarketplace = (cards) => {
         const grid = document.getElementById('marketplace-grid');
+        grid.innerHTML = '';
         if (cards.length === 0) {
             grid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards found for the current filters.</p>';
             return;
         }
-        grid.innerHTML = '';
+        
         cards.forEach(card => {
             const sellerHandle = card.sellerData?.handle || 'unknown';
             const priceDisplay = (typeof card.salePrice === 'number' && card.salePrice > 0) ? `${card.salePrice.toFixed(2)} SEK` : 'For Trade';
@@ -120,7 +145,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="flex-grow flex flex-col p-1">
                         <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white">${card.name}</h4>
                         <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
-                        <a href="profile.html?user=${sellerHandle}" class="text-xs text-gray-500 dark:text-gray-400 hover:underline">from @${sellerHandle}</a>
+                        <a href="profile.html?uid=${card.sellerId}" class="text-xs text-gray-500 dark:text-gray-400 hover:underline">from @${sellerHandle}</a>
                     </div>
                 </a>
                 <a href="trades.html?propose_to_card=${card.id}" class="propose-trade-btn mt-2 w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-full hover:bg-green-700">Propose Trade</a>
@@ -129,9 +154,10 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    // --- NEW: Auction and Analytics Functions ---
+    // --- Auction and Analytics Functions ---
     const loadAuctions = () => {
         auctionContainer.innerHTML = '';
+        // This is mock data. You would fetch this from a 'auctions' collection in Firestore.
         const mockAuctions = [
             { id: 1, name: 'Foil Black Lotus', imageUrl: 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-22807f3ec608.jpg?1614638838', currentBid: 1500, endsIn: '2h 15m' },
             { id: 2, name: 'Gaea\'s Cradle', imageUrl: 'https://cards.scryfall.io/large/front/2/5/25b0b8c2-5729-4ba1-97b5-ae52b24309a1.jpg?1562902898', currentBid: 850, endsIn: '1d 4h' },
@@ -168,14 +194,19 @@ document.addEventListener('authReady', (e) => {
         if (trendingUpChart) trendingUpChart.destroy();
         if (trendingDownChart) trendingDownChart.destroy();
 
-        trendingUpChart = renderChart(document.getElementById('trending-up-chart').getContext('2d'), '% Change (7d)', trendingUpData, 'rgba(34, 197, 94, 0.6)');
-        trendingDownChart = renderChart(document.getElementById('trending-down-chart').getContext('2d'), '% Change (7d)', trendingDownData, 'rgba(239, 68, 68, 0.6)');
-
+        const upCtx = document.getElementById('trending-up-chart')?.getContext('2d');
+        const downCtx = document.getElementById('trending-down-chart')?.getContext('2d');
         const undervaluedList = document.getElementById('undervalued-list');
-        undervaluedList.innerHTML = `
-            <li class="flex justify-between items-center text-sm"><a href="#" class="text-blue-600 hover:underline">Force of Will</a> <span class="text-green-600 font-semibold">+5% Pred.</span></li>
-            <li class="flex justify-between items-center text-sm"><a href="#" class="text-blue-600 hover:underline">Misty Rainforest</a> <span class="text-green-600 font-semibold">+3% Pred.</span></li>
-        `;
+
+        if (upCtx) trendingUpChart = renderChart(upCtx, '% Change (7d)', trendingUpData, 'rgba(34, 197, 94, 0.6)');
+        if (downCtx) trendingDownChart = renderChart(downCtx, '% Change (7d)', trendingDownData, 'rgba(239, 68, 68, 0.6)');
+
+        if (undervaluedList) {
+            undervaluedList.innerHTML = `
+                <li class="flex justify-between items-center text-sm"><a href="#" class="text-blue-600 hover:underline">Force of Will</a> <span class="text-green-600 font-semibold">+5% Pred.</span></li>
+                <li class="flex justify-between items-center text-sm"><a href="#" class="text-blue-600 hover:underline">Misty Rainforest</a> <span class="text-green-600 font-semibold">+3% Pred.</span></li>
+            `;
+        }
     };
 
     searchForm.addEventListener('submit', (e) => {
