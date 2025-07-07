@@ -3,11 +3,10 @@
  *
  * This script handles all logic for the marketplace.html page.
  *
- * FIX v16: Final fix for "Missing or insufficient permissions" error.
- * This version simplifies the Firestore query to its most basic form
- * by removing all default sorting (.orderBy). All sorting (by date, by price)
- * is now handled reliably on the client-side after the data is fetched.
- * This is the most robust solution to avoid complex index requirements.
+ * FIX v17: Final fix for "Database Error" when no search results are found.
+ * This version restructures the logic to ensure that filtering and sorting
+ * only occur *after* confirming that the initial database query returned results.
+ * This prevents errors when applying filters to an empty dataset.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -56,17 +55,20 @@ document.addEventListener('authReady', (e) => {
             
             let query = db.collectionGroup('collection').where('forSale', '==', true);
 
-            // If a specific card name is entered, we add a filter for that name.
-            // The query is now much simpler and doesn't require complex indexes.
             if (cardName) {
                 query = query.where('name', '>=', cardName).where('name', '<=', cardName + '\uf8ff');
             }
             
             const snapshot = await query.limit(200).get();
             
-            if (snapshot.empty && !cardName) {
-                marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">The marketplace is currently empty. List a card for sale!</p>';
+            // This is the key change: Check for empty results right away.
+            if (snapshot.empty) {
+                const message = cardName 
+                    ? `No results found for "${cardName}".`
+                    : "The marketplace is currently empty. List a card for sale!";
+                marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">${message}</p>`;
                 loader.style.display = 'none';
+                allCardsData = []; // Clear any previous data
                 return;
             }
 
