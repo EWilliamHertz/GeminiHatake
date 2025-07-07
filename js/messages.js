@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Messages Page Script (v10 - Advanced Search & Profile Linking)
+ * HatakeSocial - Messages Page Script (v11 - New Message Notifications)
  *
  * This script handles all logic for the messages.html page.
- * - FIX: Implements combined search for both displayName and handle.
- * - FIX: Adds logic to handle opening a chat directly from a user's profile page.
+ * - NEW: Creates a notification for the recipient when a new message is sent.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -17,6 +16,7 @@ document.addEventListener('authReady', (e) => {
 
     let currentChatListener = null;
     let currentConversationId = null;
+    let currentConversationData = null; // Store current conversation data
 
     const conversationsListEl = document.getElementById('conversations-list');
     const userSearchInput = document.getElementById('user-search-input');
@@ -28,6 +28,17 @@ document.addEventListener('authReady', (e) => {
     const messageTabs = document.querySelectorAll('.message-tab-button');
 
     let activeTab = 'users';
+
+    // --- NEW: Reusable Notification Function ---
+    const createNotification = async (userId, message, link) => {
+        const notificationData = {
+            message: message,
+            link: link,
+            isRead: false,
+            timestamp: new Date()
+        };
+        await db.collection('users').doc(userId).collection('notifications').add(notificationData);
+    };
 
     messageTabs.forEach(button => {
         button.addEventListener('click', () => {
@@ -95,6 +106,7 @@ document.addEventListener('authReady', (e) => {
     const openChat = (conversationId, title, imageUrl, conversationData) => {
         if (currentChatListener) currentChatListener();
         currentConversationId = conversationId;
+        currentConversationData = conversationData; // Store conversation data
 
         chatWelcomeScreen.classList.add('hidden');
         chatView.classList.remove('hidden');
@@ -134,7 +146,7 @@ document.addEventListener('authReady', (e) => {
 
     const sendMessage = async () => {
         const content = messageInput.value.trim();
-        if (!content || !currentConversationId) return;
+        if (!content || !currentConversationId || !currentConversationData) return;
 
         const conversationRef = db.collection('conversations').doc(currentConversationId);
         const newMessage = {
@@ -145,11 +157,23 @@ document.addEventListener('authReady', (e) => {
         
         messageInput.value = '';
         try {
+            // Update the conversation with the new message
             await conversationRef.update({
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
                 lastMessage: content,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            // --- Send notifications to other participants ---
+            const recipients = currentConversationData.participants.filter(id => id !== currentUser.uid);
+            for (const recipientId of recipients) {
+                await createNotification(
+                    recipientId,
+                    `New message from ${currentUser.displayName}`,
+                    `/messages.html?with=${currentUser.uid}` // Link back to the sender's conversation
+                );
+            }
+
         } catch (error) {
             console.error("Error sending message:", error);
             alert("Could not send message.");
@@ -167,7 +191,6 @@ document.addEventListener('authReady', (e) => {
 
         const convoDoc = await conversationRef.get();
         if (!convoDoc.exists) {
-            // Create conversation if it doesn't exist
             const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
             const currentUserData = currentUserDoc.data();
             await conversationRef.set({
