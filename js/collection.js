@@ -1,10 +1,13 @@
 /**
- * HatakeSocial - My Collection Page Script (v7 - Complete with Bulk Edit)
+ * HatakeSocial - My Collection Page Script
  *
  * This script handles all logic for the my_collection.html page.
- * It is now correctly structured to run after the 'authReady' event.
- * This version is a complete merge, restoring the bulk edit functionality
- * that was missing in the previous version.
+ *
+ * FIX v8: Corrected a major performance issue in the bulk "List for Sale"
+ * functionality. The original code was fetching each card's price individually
+ * within a loop, causing timeouts. The new logic uses pre-loaded collection
+ * data for instant price calculations, making the feature fast and reliable.
+ * Also added USD to SEK currency conversion.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -25,7 +28,7 @@ document.addEventListener('authReady', (e) => {
     // --- State ---
     let bulkEditMode = false;
     let selectedCards = new Set();
-    let currentCollectionIds = []; // To help with the "Select All" feature
+    let fullCollection = []; // Holds all card objects from the current user's collection
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -60,8 +63,9 @@ document.addEventListener('authReady', (e) => {
             const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
             
             if (listType === 'collection') {
-                calculateAndDisplayStats(snapshot);
-                currentCollectionIds = snapshot.docs.map(doc => doc.id);
+                // Store all collection data in memory for bulk operations
+                fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                calculateAndDisplayStats(fullCollection);
             }
 
             if (snapshot.empty) {
@@ -70,14 +74,15 @@ document.addEventListener('authReady', (e) => {
             }
         
             container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const card = doc.data();
+            const cardsToRender = listType === 'collection' ? fullCollection : snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            cardsToRender.forEach(card => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'relative group cursor-pointer';
-                cardEl.dataset.id = doc.id;
+                cardEl.dataset.id = card.id;
 
                 const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
-                const isSelected = selectedCards.has(doc.id);
+                const isSelected = selectedCards.has(card.id);
                 const checkboxOverlay = bulkEditMode && listType === 'collection' ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
                 cardEl.innerHTML = `
@@ -98,14 +103,13 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Statistics ---
-    const calculateAndDisplayStats = (snapshot) => {
+    const calculateAndDisplayStats = (collectionData) => {
         let totalCards = 0;
         let totalValue = 0;
         const rarityCounts = { common: 0, uncommon: 0, rare: 0, mythic: 0 };
-        const uniqueCards = snapshot.size;
+        const uniqueCards = collectionData.length;
 
-        snapshot.forEach(doc => {
-            const card = doc.data();
+        collectionData.forEach(card => {
             const quantity = card.quantity || 1;
             totalCards += quantity;
             
@@ -167,13 +171,15 @@ document.addEventListener('authReady', (e) => {
         const cardEl = document.querySelector(`div[data-id="${cardId}"]`);
         cardEl?.querySelector('.bulk-checkbox-overlay')?.classList.toggle('hidden', !selectedCards.has(cardId));
         if (selectAllCheckbox) {
-            selectAllCheckbox.checked = selectedCards.size === currentCollectionIds.length && currentCollectionIds.length > 0;
+            const allCollectionIds = fullCollection.map(c => c.id);
+            selectAllCheckbox.checked = selectedCards.size === allCollectionIds.length && allCollectionIds.length > 0;
         }
     };
     
     const handleSelectAll = (e) => {
+        const allCollectionIds = fullCollection.map(c => c.id);
         if (e.target.checked) {
-            currentCollectionIds.forEach(id => selectedCards.add(id));
+            allCollectionIds.forEach(id => selectedCards.add(id));
         } else {
             selectedCards.clear();
         }
@@ -181,29 +187,47 @@ document.addEventListener('authReady', (e) => {
         loadCardList('collection'); // Re-render to show selections
     };
 
+    /**
+     * THIS IS THE FIXED FUNCTION
+     * Lists selected cards for sale based on a price option and value.
+     * It now uses the pre-loaded `fullCollection` array for efficiency.
+     * @param {string} priceOption - 'percentage' or 'custom'.
+     * @param {number} value - The percentage or custom price.
+     */
     const listCardsForSale = async (priceOption, value) => {
+        const USD_TO_SEK_RATE = 10.5; // Example conversion rate, adjust as needed
         const batch = db.batch();
         const collectionRef = db.collection('users').doc(user.uid).collection('collection');
         
-        for (const cardId of selectedCards) {
-            const docRef = collectionRef.doc(cardId);
-            let newPrice = 0;
+        // Use the pre-loaded fullCollection array to find card data instantly
+        const selectedCardsData = fullCollection.filter(card => selectedCards.has(card.id));
+
+        for (const card of selectedCardsData) {
+            const docRef = collectionRef.doc(card.id);
+            let newPriceSEK = 0;
+
             if (priceOption === 'percentage') {
-                // This requires fetching each doc to get its price, which can be slow.
-                // For a better UX, this data could be pre-loaded or passed differently.
-                const cardDoc = await docRef.get();
-                const marketPrice = parseFloat(cardDoc.data().priceUsd || 0);
-                newPrice = marketPrice * (value / 100);
+                const marketPriceUSD = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                if (marketPriceUSD > 0) {
+                    const priceInSEK = marketPriceUSD * USD_TO_SEK_RATE;
+                    newPriceSEK = priceInSEK * (value / 100);
+                }
             } else { // custom price
-                newPrice = parseFloat(value);
+                newPriceSEK = parseFloat(value);
             }
-            batch.update(docRef, { forSale: true, salePrice: newPrice });
+
+            batch.update(docRef, { forSale: true, salePrice: parseFloat(newPriceSEK.toFixed(2)) });
         }
 
-        await batch.commit();
-        alert(`${selectedCards.size} cards listed for sale!`);
-        closeModal(listForSaleModal);
-        toggleBulkEditMode(); // Exit bulk edit mode after action
+        try {
+            await batch.commit();
+            alert(`${selectedCards.size} cards listed for sale!`);
+            closeModal(listForSaleModal);
+            toggleBulkEditMode(); // Exit bulk edit mode after action
+        } catch (error) {
+            console.error("Error listing cards for sale:", error);
+            alert("An error occurred while listing cards. Please try again.");
+        }
     };
 
     // --- Event Handlers ---
@@ -292,6 +316,7 @@ document.addEventListener('authReady', (e) => {
                 let processedCount = 0;
                 let errorCount = 0;
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+                const batch = db.batch();
 
                 for (const row of rows) {
                     const cardName = row[nameKey];
@@ -315,7 +340,8 @@ document.addEventListener('authReady', (e) => {
                             addedAt: new Date(), forSale: false
                         };
                         
-                        await collectionRef.add(cardDoc);
+                        const newDocRef = collectionRef.doc();
+                        batch.set(newDocRef, cardDoc);
                         processedCount++;
                     } catch (error) {
                         console.warn(`Could not process card "${cardName}". Skipping.`);
@@ -323,7 +349,8 @@ document.addEventListener('authReady', (e) => {
                     }
                     csvStatus.textContent = `Processing... ${processedCount + errorCount} / ${rows.length}`;
                 }
-
+                
+                await batch.commit();
                 csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                 csvUploadBtn.disabled = false;
                 setTimeout(() => {
