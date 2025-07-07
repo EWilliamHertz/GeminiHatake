@@ -6,6 +6,9 @@
  * It fetches card data and an image from the Scryfall API.
  * It simulates a 90-day price history and renders it in a chart.
  * It fetches and displays all user listings for the card from Firestore.
+ *
+ * FIX v3: Correctly handles the case where no listings are found,
+ * preventing the UI from getting stuck on "Loading...".
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -58,7 +61,7 @@ document.addEventListener('authReady', (e) => {
             renderPriceChart(cardData);
 
             // 4. Fetch listings for this card from our Firestore database
-            fetchListingsFromFirestore(cardData.name);
+            await fetchListingsFromFirestore(cardData);
 
         } catch (error) {
             console.error("Error loading card view:", error);
@@ -87,41 +90,48 @@ document.addEventListener('authReady', (e) => {
 
     /**
      * Fetches listings for a specific card name from Firestore.
-     * @param {string} name - The exact name of the card to look for.
+     * @param {object} cardData - The full card object from Scryfall.
      */
-    const fetchListingsFromFirestore = async (name) => {
+    const fetchListingsFromFirestore = async (cardData) => {
         listingsContainer.innerHTML = '<p class="p-4 text-center text-gray-500 dark:text-gray-400">Loading listings...</p>';
         
-        const listingsQuery = db.collectionGroup('collection')
-            .where('name', '==', name)
-            .where('forSale', '==', true);
+        try {
+            const listingsQuery = db.collectionGroup('collection')
+                .where('name', '==', cardData.name)
+                .where('forSale', '==', true);
 
-        const listingsSnapshot = await listingsQuery.get();
+            const listingsSnapshot = await listingsQuery.get();
+            
+            // THIS IS THE FIX: This block now correctly handles the "no listings" case.
+            if (listingsSnapshot.empty) {
+                listingsContainer.innerHTML = '<p class="p-4 text-center text-gray-500 dark:text-gray-400">No one is currently selling this card.</p>';
+                return; // Exit the function gracefully
+            }
 
-        if (listingsSnapshot.empty) {
-            listingsContainer.innerHTML = '<p class="p-4 text-center text-gray-500 dark:text-gray-400">No one is currently selling this card.</p>';
-            return;
+            // Efficiently get all seller info in one batch
+            const sellerIds = [...new Set(listingsSnapshot.docs.map(doc => doc.ref.parent.parent.id))];
+            const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
+            const sellerDocs = await Promise.all(sellerPromises);
+            const sellers = {};
+            sellerDocs.forEach(doc => {
+                if (doc.exists) sellers[doc.id] = doc.data();
+            });
+
+            allListings = listingsSnapshot.docs.map(doc => {
+                const sellerId = doc.ref.parent.parent.id;
+                return {
+                    id: doc.id,
+                    seller: sellers[sellerId] || { handle: 'unknown', displayName: 'Unknown', averageRating: 0, photoURL: 'https://i.imgur.com/B06rBhI.png' },
+                    ...doc.data()
+                };
+            });
+            
+            applyFiltersAndSort(); // Render the fetched listings
+
+        } catch (error) {
+            console.error("Firestore query for listings failed:", error);
+            listingsContainer.innerHTML = `<div class="p-4 text-center text-red-500 dark:text-red-400">Could not load listings. A database index may be required. Please check the browser console (F12) for an error link.</div>`;
         }
-
-        // Efficiently get all seller info in one batch
-        const sellerIds = [...new Set(listingsSnapshot.docs.map(doc => doc.ref.parent.parent.id))];
-        const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
-        const sellerDocs = await Promise.all(sellerPromises);
-        const sellers = {};
-        sellerDocs.forEach(doc => {
-            if (doc.exists) sellers[doc.id] = doc.data();
-        });
-
-        allListings = listingsSnapshot.docs.map(doc => {
-            const sellerId = doc.ref.parent.parent.id;
-            return {
-                id: doc.id,
-                seller: sellers[sellerId] || { handle: 'unknown', displayName: 'Unknown', averageRating: 0, photoURL: 'https://i.imgur.com/B06rBhI.png' },
-                ...doc.data()
-            };
-        });
-        
-        applyFiltersAndSort(); // Render the fetched listings
     };
 
 
@@ -237,17 +247,14 @@ document.addEventListener('authReady', (e) => {
             date.setDate(date.getDate() - i);
             labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
             
-            // Add some random volatility
             const volatility = price * 0.05; // 5% volatility
             price += (Math.random() - 0.5) * volatility;
-            // Add a slight upward trend to meet the current price
             price += (currentPrice - price) * 0.02; 
-            // Ensure price doesn't go below a certain threshold
             price = Math.max(price, currentPrice * 0.2); 
 
             history.push(price.toFixed(2));
         }
-        history[89] = currentPrice.toFixed(2); // Ensure the last point is the current price
+        history[history.length - 1] = currentPrice.toFixed(2);
 
         priceChart = new Chart(chartCtx, {
             type: 'line',
@@ -259,8 +266,8 @@ document.addEventListener('authReady', (e) => {
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 2,
-                    tension: 0.4, // Makes the line smoother
-                    pointRadius: 0, // Hides the data points
+                    tension: 0.4,
+                    pointRadius: 0,
                 }]
             },
             options: {
@@ -268,25 +275,16 @@ document.addEventListener('authReady', (e) => {
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        ticks: {
-                            maxTicksLimit: 8, // Limit the number of visible dates
-                            color: '#6b7280' // gray-500
-                        },
-                        grid: {
-                            display: false
-                        }
+                        ticks: { maxTicksLimit: 8, color: '#6b7280' },
+                        grid: { display: false }
                     },
                     y: {
                         beginAtZero: false,
-                        ticks: {
-                            color: '#6b7280' // gray-500
-                        }
+                        ticks: { color: '#6b7280' }
                     }
                 },
                 plugins: {
-                    legend: {
-                        display: false // Hide the legend
-                    }
+                    legend: { display: false }
                 }
             }
         });
