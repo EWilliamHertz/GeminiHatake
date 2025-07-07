@@ -4,6 +4,7 @@
  * This script handles all logic for the trades page.
  * It merges the trade partner search and proposal modal functionality with the
  * secure trade completion (escrow) flow.
+ * NEW: Adds notification creation when a trade offer is sent.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -294,6 +295,17 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    // --- NEW: Function to create a notification ---
+    const createNotification = async (userId, message, link) => {
+        const notificationData = {
+            message: message,
+            link: link,
+            isRead: false,
+            timestamp: new Date()
+        };
+        await db.collection('users').doc(userId).collection('notifications').add(notificationData);
+    };
+
     const sendTradeOffer = async () => {
         if (!tradeOffer.receiver) {
             alert("Please select a trade partner.");
@@ -329,7 +341,15 @@ document.addEventListener('authReady', (e) => {
         };
 
         try {
-            await db.collection('trades').add(tradeData);
+            const tradeDocRef = await db.collection('trades').add(tradeData);
+            
+            // --- Send Notification ---
+            await createNotification(
+                tradeOffer.receiver.id,
+                `You have a new trade offer from ${user.displayName}!`,
+                '/trades.html'
+            );
+            
             alert("Trade offer sent successfully!");
             closeModal(tradeModal);
         } catch (error) {
@@ -415,6 +435,12 @@ document.addEventListener('authReady', (e) => {
             if (action === 'accepted' || action === 'rejected') {
                  if (confirm(`Are you sure you want to ${action} this trade?`)) {
                     await tradeRef.update({ status: action });
+                    
+                    // --- Send Notification on Accept/Reject ---
+                    const tradeDoc = await tradeRef.get();
+                    const tradeData = tradeDoc.data();
+                    const message = action === 'accepted' ? `Your trade offer was accepted by ${user.displayName}.` : `Your trade offer was rejected by ${user.displayName}.`;
+                    await createNotification(tradeData.proposerId, message, '/trades.html');
                 }
             } else if (action === 'confirm-shipment') {
                 if (confirm('Please confirm that you have shipped your items.')) {
@@ -438,6 +464,10 @@ document.addEventListener('authReady', (e) => {
                     const updatedDoc = await tradeRef.get();
                     if (updatedDoc.data().proposerConfirmedReceipt && updatedDoc.data().receiverConfirmedReceipt) {
                         await tradeRef.update({ status: 'completed' });
+                         // --- Send Notification on Completion ---
+                         const tradeData = updatedDoc.data();
+                         await createNotification(tradeData.proposerId, `Your trade with ${tradeData.receiverName} is complete! Leave feedback.`, '/trades.html');
+                         await createNotification(tradeData.receiverId, `Your trade with ${tradeData.proposerName} is complete! Leave feedback.`, '/trades.html');
                     }
                 }
             }
