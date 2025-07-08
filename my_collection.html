@@ -129,7 +129,12 @@
             <div id="content-collection" class="tab-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-3xl font-bold text-gray-800 dark:text-white">My Collection</h2>
-                    <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
+                    <div class="flex space-x-2">
+                        <button id="quick-edit-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600">
+                            <i class="fas fa-edit mr-2"></i>Quick Edit
+                        </button>
+                        <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
+                    </div>
                 </div>
                 <div id="bulk-action-bar" class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40">
                     <div class="flex items-center space-x-3">
@@ -142,7 +147,17 @@
                          <button id="delete-selected-btn" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Delete</button>
                     </div>
                 </div>
-                <div id="collection-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+                
+                <div id="quick-edit-save-bar" class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40">
+                    <p class="font-semibold text-green-800 dark:text-green-200"><i class="fas fa-info-circle mr-2"></i>You are in Quick Edit mode. Make your changes below and save.</p>
+                    <button id="save-quick-edits-btn" class="px-6 py-2 bg-green-600 text-white font-bold rounded-full hover:bg-green-700">
+                        <i class="fas fa-save mr-2"></i>Save All Changes
+                    </button>
+                </div>
+
+                <div id="collection-grid-view" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+                <div id="collection-table-view" class="hidden overflow-x-auto"></div>
+
             </div>
             <div id="content-wishlist" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">My Wishlist</h2>
@@ -224,17 +239,24 @@
             <h2 class="text-2xl font-bold mb-4 dark:text-white">List Selected Cards</h2>
             <p class="mb-4 dark:text-gray-300">You have selected <strong id="list-sale-count">0</strong> cards. How would you like to price them?</p>
             <div class="space-y-4">
-                 <form id="percentage-price-form" class="flex items-center space-x-2">
-                    <input type="number" id="percentage-price-input" placeholder="% of Market Price" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" min="1" max="500" required>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Set %</button>
+                 <form id="percentage-price-form" class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Set price based on market value:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="percentage-price-input" placeholder="e.g., 90" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" min="1" max="500" required>
+                        <span class="font-bold dark:text-white">%</span>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Set</button>
+                    </div>
                 </form>
                 <div class="relative">
                     <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="w-full border-t border-gray-300 dark:border-gray-600"></div></div>
                     <div class="relative flex justify-center"><span class="px-2 bg-white dark:bg-gray-800 text-sm text-gray-500">OR</span></div>
                 </div>
-                <form id="custom-price-form" class="flex items-center space-x-2">
-                    <input type="number" id="custom-price-input" placeholder="Custom Price (SEK)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" step="0.01" required>
-                    <button type="submit" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Set Price</button>
+                <form id="fixed-undercut-form" class="space-y-2">
+                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Undercut lowest listing by a fixed amount:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="fixed-undercut-input" placeholder="e.g., 10.00" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" step="0.01" required>
+                        <button type="submit" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Set</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -281,8 +303,7 @@
         </div>
     </footer>
 
-    <!-- Login/Register Modals -->
-    <div id="loginModal" class="modal-overlay">
+   <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
@@ -331,22 +352,26 @@
             </form>
         </div>
     </div>
-    
-    <!-- Messenger Widget -->
-    <div id="messenger-widget-container" class="minimized">
-        <div id="messenger-open-btn">
-            <i class="fas fa-comments"></i>
+
+
+
+<div id="messenger-widget-container" class="minimized">
+    <div id="messenger-open-btn">
+        <i class="fas fa-comments"></i>
+    </div>
+
+    <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
+        <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
+            <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
+            <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
         </div>
-        <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
-            <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-                <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
-                <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
-            </div>
-            <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-                <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
-            </div>
+        <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
+            <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
+                </div>
         </div>
     </div>
+</div>
+
 
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
