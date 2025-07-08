@@ -1,8 +1,10 @@
 /**
- * HatakeSocial - Friends Page Script
+ * HatakeSocial - Friends Hub Script
  *
- * This script handles all logic for the friends.html page, including
- * displaying friends, showing friend requests, and handling accept/reject actions.
+ * This script handles all logic for the friends.html page, turning it into a dynamic hub.
+ * - Manages friend requests directly on the page.
+ * - Provides friend suggestions based on shared groups and location.
+ * - Displays a dedicated activity feed of friends' posts and new decks.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -14,13 +16,32 @@ document.addEventListener('authReady', (e) => {
         return;
     }
 
+    const tabs = document.querySelectorAll('.friend-tab-button');
+    const tabContents = document.querySelectorAll('.friend-tab-content');
     const requestsListEl = document.getElementById('friend-requests-list');
     const friendsListEl = document.getElementById('friends-list');
+    const suggestionsListEl = document.getElementById('friend-suggestions-list');
+    const activityFeedEl = document.getElementById('friend-activity-feed');
+    const requestCountBadge = document.getElementById('friend-request-count');
 
-    const loadFriendsPage = async () => {
-        loadFriendRequests();
-        loadFriendsList();
+    const switchTab = (tabId) => {
+        tabs.forEach(button => {
+            button.classList.toggle('active', button.dataset.tab === tabId);
+        });
+        tabContents.forEach(content => {
+            content.classList.toggle('hidden', content.id !== `tab-content-${tabId}`);
+        });
+
+        // Load content for the selected tab
+        if (tabId === 'all-friends') loadFriendsList();
+        if (tabId === 'requests') loadFriendRequests();
+        if (tabId === 'suggestions') loadFriendSuggestions();
+        if (tabId === 'activity') loadFriendActivityFeed();
     };
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
 
     const loadFriendRequests = async () => {
         requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading requests...</p>';
@@ -31,8 +52,12 @@ document.addEventListener('authReady', (e) => {
 
         if (requestsSnapshot.empty) {
             requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No new friend requests.</p>';
+            requestCountBadge.classList.add('hidden');
             return;
         }
+
+        requestCountBadge.textContent = requestsSnapshot.size;
+        requestCountBadge.classList.remove('hidden');
 
         requestsListEl.innerHTML = '';
         requestsSnapshot.forEach(async (doc) => {
@@ -88,19 +113,99 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // Event Delegation for handling accept/reject buttons
+    const loadFriendSuggestions = async () => {
+        suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Finding potential friends...</p>';
+        const currentUserData = (await db.collection('users').doc(currentUser.uid).get()).data();
+        const myFriends = currentUserData.friends || [];
+        const myRequestsSent = (await db.collection('friendRequests').where('senderId', '==', currentUser.uid).get()).docs.map(d => d.data().receiverId);
+        const myRequestsReceived = (await db.collection('friendRequests').where('receiverId', '==', currentUser.uid).get()).docs.map(d => d.data().senderId);
+        const excludedIds = [currentUser.uid, ...myFriends, ...myRequestsSent, ...myRequestsReceived];
+
+        let suggestions = new Map();
+
+        // Suggest based on country
+        if (currentUserData.country) {
+            const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
+            countrySnapshot.forEach(doc => {
+                if (!excludedIds.includes(doc.id)) {
+                    suggestions.set(doc.id, doc.data());
+                }
+            });
+        }
+        
+        suggestionsListEl.innerHTML = '';
+        if (suggestions.size === 0) {
+            suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No suggestions right now. Try joining some groups!</p>';
+            return;
+        }
+
+        suggestions.forEach((user, userId) => {
+            const suggestionCard = document.createElement('div');
+            suggestionCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+            suggestionCard.innerHTML = `
+                <a href="profile.html?uid=${userId}" class="flex items-center space-x-3">
+                    <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
+                    <div>
+                        <p class="font-semibold text-gray-800 dark:text-white">${user.displayName}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>
+                    </div>
+                </a>
+                <button class="add-friend-sugg-btn bg-blue-500 text-white w-8 h-8 rounded-full hover:bg-blue-600 transition" data-uid="${userId}"><i class="fas fa-plus"></i></button>
+            `;
+            suggestionsListEl.appendChild(suggestionCard);
+        });
+    };
+
+    const loadFriendActivityFeed = async () => {
+        activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friend activity...</p>';
+        const myFriends = (await db.collection('users').doc(currentUser.uid).get()).data()?.friends || [];
+
+        if (myFriends.length === 0) {
+            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Add some friends to see their activity here.</p>';
+            return;
+        }
+
+        const postsSnapshot = await db.collection('posts').where('authorId', 'in', myFriends).orderBy('timestamp', 'desc').limit(10).get();
+        
+        let activities = [];
+        postsSnapshot.forEach(doc => activities.push({ type: 'post', data: doc.data(), id: doc.id, timestamp: doc.data().timestamp.toDate() }));
+        
+        // In a larger app, you'd query other collections (decks, trades) and merge them here.
+        
+        activities.sort((a, b) => b.timestamp - a.timestamp);
+
+        if (activities.length === 0) {
+            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
+            return;
+        }
+
+        activityFeedEl.innerHTML = '';
+        activities.forEach(activity => {
+            const post = activity.data;
+            const postElement = document.createElement('div');
+            postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+            postElement.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                    <div>
+                        <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white">${post.author}</a>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                    </div>
+                </div>
+                <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
+            `;
+            activityFeedEl.appendChild(postElement);
+        });
+    };
+
     friendsPageContainer.addEventListener('click', async (event) => {
-        const target = event.target.closest('button');
-        if (!target) return;
+        const button = event.target.closest('button');
+        if (!button) return;
 
-        const isAccept = target.classList.contains('accept-friend-btn');
-        const isReject = target.classList.contains('reject-friend-btn');
-
-        if (isAccept) {
-            const requestId = target.dataset.requestId;
-            const senderId = target.dataset.senderId;
+        if (button.classList.contains('accept-friend-btn')) {
+            const requestId = button.dataset.requestId;
+            const senderId = button.dataset.senderId;
             
-            // Use a Cloud Function trigger or a more secure rule for this in production
             const batch = db.batch();
             const userRef = db.collection('users').doc(currentUser.uid);
             const senderRef = db.collection('users').doc(senderId);
@@ -109,18 +214,33 @@ document.addEventListener('authReady', (e) => {
             batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
             batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
             batch.delete(requestRef);
-
+            
+            const notificationData = { message: `${currentUser.displayName} accepted your friend request.`, link: `/profile.html?uid=${currentUser.uid}`, isRead: false, timestamp: new Date() };
+            const notificationRef = db.collection('users').doc(senderId).collection('notifications').doc();
+            batch.set(notificationRef, notificationData);
+            
             await batch.commit();
-            loadFriendsPage(); // Refresh both lists
+            loadFriendRequests();
+            loadFriendsList();
         }
 
-        if (isReject) {
-            const requestId = target.dataset.requestId;
+        if (button.classList.contains('reject-friend-btn')) {
+            const requestId = button.dataset.requestId;
             await db.collection('friendRequests').doc(requestId).delete();
-            loadFriendsPage(); // Refresh both lists
+            loadFriendRequests();
+        }
+
+        if (button.classList.contains('add-friend-sugg-btn')) {
+            const receiverId = button.dataset.uid;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: receiverId, status: 'pending', createdAt: new Date() });
+            const notificationData = { message: `${currentUser.displayName} sent you a friend request.`, link: `/friends.html`, isRead: false, timestamp: new Date() };
+            await db.collection('users').doc(receiverId).collection('notifications').add(notificationData);
         }
     });
 
     // Initial Load
-    loadFriendsPage();
+    loadFriendsList();
+    loadFriendRequests();
 });
