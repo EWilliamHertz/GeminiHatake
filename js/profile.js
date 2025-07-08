@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Profile Page Script (v11 - Merged Functionality)
+ * HatakeSocial - Profile Page Script (v12 - Fully Merged)
  *
  * This script handles all logic for the user profile page.
- * - Merges friend request/list logic and trade history functionality.
- * - Retains the expanded achievements system.
+ * - Merges all functionalities: friend requests, trade history, and expanded achievements.
+ * - Restores all original tabs and their data loading functions.
  * - Creates notifications for friend requests and acceptances.
  */
 document.addEventListener('authReady', (e) => {
@@ -13,94 +13,16 @@ document.addEventListener('authReady', (e) => {
 
     // --- Badge Definitions ---
     const badgeDefinitions = {
-        pioneer: {
-            name: 'Pioneer',
-            description: 'One of the first 100 users to join HatakeSocial!',
-            icon: 'fa-rocket',
-            color: 'text-purple-500',
-            async check(userData, userId) {
-                const pioneerDate = new Date('2025-07-01');
-                return userData.createdAt.toDate() < pioneerDate;
-            }
-        },
-        collector: {
-            name: 'Collector',
-            description: 'Has over 100 cards in their collection.',
-            icon: 'fa-box-open',
-            color: 'text-blue-500',
-            async check(userData, userId) {
-                const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get();
-                return snapshot.size > 100;
-            }
-        },
-        deck_brewer: { // Renamed from deckmaster
-            name: 'Deck Brewer',
-            description: 'Has created at least 5 decks.',
-            icon: 'fa-layer-group',
-            color: 'text-green-500',
-            async check(userData, userId) {
-                const snapshot = await db.collection('users').doc(userId).collection('decks').limit(5).get();
-                return snapshot.size >= 5;
-            }
-        },
-        socialite: {
-            name: 'Socialite',
-            description: 'Has more than 10 friends.',
-            icon: 'fa-users',
-            color: 'text-pink-500',
-            async check(userData, userId) {
-                return userData.friends && userData.friends.length > 10;
-            }
-        },
-        trusted_trader: {
-            name: 'Trusted Trader',
-            description: 'Completed 10 trades with positive feedback.',
-            icon: 'fa-handshake',
-            color: 'text-yellow-500',
-            async check(userData, userId) {
-                 const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2;
-                 return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5;
-            }
-        },
-        first_trade: {
-            name: 'First Trade',
-            description: 'Completed your first trade successfully!',
-            icon: 'fa-medal',
-            color: 'text-red-500',
-            async check(userData, userId) {
-                const tradeQuery = await db.collection('trades')
-                    .where('participants', 'array-contains', userId)
-                    .where('status', '==', 'completed')
-                    .limit(1).get();
-                return !tradeQuery.empty;
-            }
-        },
-        top_reviewer: {
-            name: 'Top Reviewer',
-            description: 'Provided helpful feedback on at least 5 trades.',
-            icon: 'fa-star',
-            color: 'text-blue-400',
-            async check(userData, userId) {
-                const feedbackQuery = await db.collection('feedback')
-                    .where('fromUserId', '==', userId)
-                    .limit(5).get();
-                return feedbackQuery.size >= 5;
-            }
-        },
-        guild_founder: {
-            name: 'Guild Founder',
-            description: 'Founded your first Trading Guild.',
-            icon: 'fa-shield-alt',
-            color: 'text-indigo-500',
-            async check(userData, userId) {
-                const groupQuery = await db.collection('groups')
-                    .where('creatorId', '==', userId)
-                    .where('groupType', '==', 'trading_guild')
-                    .limit(1).get();
-                return !groupQuery.empty;
-            }
-        }
+        pioneer: { name: 'Pioneer', description: 'One of the first 100 users to join HatakeSocial!', icon: 'fa-rocket', color: 'text-purple-500', async check(userData, userId) { const pioneerDate = new Date('2025-07-01'); return userData.createdAt.toDate() < pioneerDate; } },
+        collector: { name: 'Collector', description: 'Has over 100 cards in their collection.', icon: 'fa-box-open', color: 'text-blue-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get(); return snapshot.size > 100; } },
+        deck_brewer: { name: 'Deck Brewer', description: 'Has created at least 5 decks.', icon: 'fa-layer-group', color: 'text-green-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('decks').limit(5).get(); return snapshot.size >= 5; } },
+        socialite: { name: 'Socialite', description: 'Has more than 10 friends.', icon: 'fa-users', color: 'text-pink-500', async check(userData, userId) { return userData.friends && userData.friends.length > 10; } },
+        trusted_trader: { name: 'Trusted Trader', description: 'Completed 10 trades with positive feedback.', icon: 'fa-handshake', color: 'text-yellow-500', async check(userData, userId) { const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2; return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5; } },
+        first_trade: { name: 'First Trade', description: 'Completed your first trade successfully!', icon: 'fa-medal', color: 'text-red-500', async check(userData, userId) { const tradeQuery = await db.collection('trades').where('participants', 'array-contains', userId).where('status', '==', 'completed').limit(1).get(); return !tradeQuery.empty; } },
+        top_reviewer: { name: 'Top Reviewer', description: 'Provided helpful feedback on at least 5 trades.', icon: 'fa-star', color: 'text-blue-400', async check(userData, userId) { const feedbackQuery = await db.collection('feedback').where('fromUserId', '==', userId).limit(5).get(); return feedbackQuery.size >= 5; } },
+        guild_founder: { name: 'Guild Founder', description: 'Founded your first Trading Guild.', icon: 'fa-shield-alt', color: 'text-indigo-500', async check(userData, userId) { const groupQuery = await db.collection('groups').where('creatorId', '==', userId).where('groupType', '==', 'trading_guild').limit(1).get(); return !groupQuery.empty; } }
     };
+
 
     const setupProfilePage = async () => {
         profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
@@ -155,7 +77,6 @@ document.addEventListener('authReady', (e) => {
             const avgAccuracy = profileUserData.averageAccuracy || 0;
             const avgPackaging = profileUserData.averagePackaging || 0;
             const overallAvg = ratingCount > 0 ? (avgAccuracy + avgPackaging) / 2 : 0;
-
             let starsHTML = '';
             for (let i = 1; i <= 5; i++) {
                 if (i <= overallAvg) starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
