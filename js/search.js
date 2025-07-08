@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Search Page Script
+ * HatakeSocial - Search Page Script (v2 - Index Link Generation)
  *
  * BUG FIX: Implements robust parallel queries for searching across
  * different collection groups to avoid Firestore index errors.
  * BUG FIX: Adds a 'name_lower' field to documents to enable case-insensitive search.
+ * NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const db = firebase.firestore();
@@ -19,6 +20,16 @@ document.addEventListener('authReady', (e) => {
     const filterUsersCheckbox = document.getElementById('filter-users');
     const filterDecksCheckbox = document.getElementById('filter-decks');
     const filterCardsCheckbox = document.getElementById('filter-cards');
+
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (collection, fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        return url;
+    };
 
     // --- Initial Setup ---
     if (searchQueryDisplay) {
@@ -114,9 +125,19 @@ document.addEventListener('authReady', (e) => {
         } catch (error) {
             console.error("Deck search error: ", error);
             if (error.code === 'failed-precondition') {
-                 console.error("Firebase Index Error: You are missing a composite index for this query. Please create it in your Firebase console. The error message below contains a link to do so automatically.");
-                 console.error(error.message);
-                 container.innerHTML = `<p class="text-red-500 p-4 text-center">Error searching decks. A required database index is missing. Please open the browser console (F12) for a link to create it.</p>`;
+                 const indexLink = generateIndexCreationLink('decks', [{ name: 'name_lower', order: 'asc' }]);
+                 const errorMessage = `
+                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
+                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                           Click Here to Create the Index
+                        </a>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                    </div>
+                 `;
+                 container.innerHTML = errorMessage;
             } else {
                 container.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred while searching decks.</p>`;
             }
@@ -163,9 +184,19 @@ document.addEventListener('authReady', (e) => {
         } catch (error) {
             console.error("Card search error: ", error);
             if (error.code === 'failed-precondition') {
-                 console.error("Firebase Index Error: You are missing a composite index for this query. Please create it in your Firebase console. The error message below contains a link to do so automatically.");
-                 console.error(error.message);
-                 container.innerHTML = `<p class="text-red-500 p-4 text-center">Error searching cards. A required database index is missing. Please open the browser console (F12) for a link to create it.</p>`;
+                 const indexLink = generateIndexCreationLink('collection', [{ name: 'name_lower', order: 'asc' }]);
+                 const errorMessage = `
+                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
+                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                           Click Here to Create the Index
+                        </a>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                    </div>
+                 `;
+                 container.innerHTML = errorMessage;
             } else {
                 container.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred while searching cards.</p>`;
             }
