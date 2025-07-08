@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Deck Page Script (v15 - Bug Fixes & Collection Check)
+ * HatakeSocial - Deck Page Script (v16 - Index Link Generation)
  *
  * BUG FIX: Corrects the logic for loading the user's collection into the deck builder.
  * BUG FIX: Implements a more robust method for querying community decks to avoid index errors.
  * NEW: Adds a "Check Against My Collection" feature to the deck view.
  * NEW: Displays a list of missing cards with links to the marketplace.
  * NEW: Logs Firebase index creation links to the console on error.
+ * NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -55,6 +56,16 @@ document.addEventListener('authReady', (e) => {
         "Pokémon": ["Standard", "Expanded"],
         "Flesh and Blood": ["Classic Constructed", "Blitz"],
         "Yu-Gi-Oh!": ["Advanced", "Traditional"]
+    };
+
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (collection, fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        return url;
     };
 
     const switchTab = (tabId) => {
@@ -468,32 +479,17 @@ document.addEventListener('authReady', (e) => {
     const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
         const communityDecksList = document.getElementById('community-decks-list');
         communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
-        try {
-            let query;
-            
-            if (tcg !== 'all') {
-                query = db.collectionGroup('decks').where('tcg', '==', tcg).orderBy('createdAt', 'desc');
-            } else {
-                const tcgList = ["Magic: The Gathering", "Pokémon", "Flesh and Blood", "Yu-Gi-Oh!"];
-                const promises = tcgList.map(game =>
-                    db.collectionGroup('decks').where('tcg', '==', game).orderBy('createdAt', 'desc').limit(15).get()
-                );
-                const snapshots = await Promise.all(promises);
-                let allDocs = [];
-                snapshots.forEach(snapshot => {
-                    snapshot.docs.forEach(doc => allDocs.push(doc));
-                });
-                allDocs.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
-                
-                let decks = allDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        let indexFields = [{ name: 'createdAt', order: 'desc' }];
+        if (tcg !== 'all') indexFields.unshift({ name: 'tcg', order: 'asc' });
+        if (format !== 'all') indexFields.unshift({ name: 'format', order: 'asc' });
 
-                if (format !== 'all') {
-                    decks = decks.filter(deck => deck.format === format);
-                }
-                renderCommunityDecks(decks);
-                return;
-            }
-            
+        try {
+            let query = db.collectionGroup('decks');
+            if(tcg !== 'all') query = query.where('tcg', '==', tcg);
+            if(format !== 'all') query = query.where('format', '==', format);
+            query = query.orderBy('createdAt', 'desc');
+
             const snapshot = await query.limit(50).get();
 
             if (snapshot.empty) {
@@ -502,19 +498,24 @@ document.addEventListener('authReady', (e) => {
             }
 
             let decks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            if (format !== 'all') {
-                decks = decks.filter(deck => deck.format === format);
-            }
-            
             renderCommunityDecks(decks);
 
         } catch (error) {
             console.error("Error loading community decks:", error);
             if (error.code === 'failed-precondition') {
-                 console.error("Firebase Index Error: You are missing a composite index for this query. Please create it in your Firebase console. The error message below contains a link to do so automatically.");
-                 console.error(error.message);
-                 communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">Error loading decks. A required database index is missing. Please open the browser console (F12) for a link to create it.</p>`;
+                 const indexLink = generateIndexCreationLink('decks', indexFields);
+                 const errorMessage = `
+                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
+                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                           Click Here to Create the Index
+                        </a>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                    </div>
+                 `;
+                 communityDecksList.innerHTML = errorMessage;
             } else {
                 communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred while loading decks.</p>`;
             }
@@ -769,7 +770,6 @@ document.addEventListener('authReady', (e) => {
         }
         missingCardsSection.classList.remove('hidden');
     };
-    
 
     checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
 
