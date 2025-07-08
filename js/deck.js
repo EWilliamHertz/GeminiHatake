@@ -769,6 +769,7 @@ document.addEventListener('authReady', (e) => {
         }
         missingCardsSection.classList.remove('hidden');
     };
+    
 
     checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
 
