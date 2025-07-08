@@ -31,9 +31,9 @@
                         <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
                         <li><a href="friends.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Friends"><i class="fas fa-user-friends"></i></a></li>
                         <li><a href="groups.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
-                        <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                        <li><a href="deck.html" class="text-blue-600 dark:text-blue-400 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
                         <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                        <li><a href="my_collection.html" class="text-blue-600 dark:text-blue-400 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
                         <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
                         <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
                         <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
@@ -143,6 +143,10 @@
                             <p class="text-lg text-gray-500 dark:text-gray-400">Total Price: <span id="deck-view-price" class="font-bold text-blue-600 dark:text-blue-400"></span></p>
                         </div>
                         <div class="flex space-x-2">
+                            <!-- NEW: Check Collection Button -->
+                            <button id="check-collection-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700 flex items-center">
+                                <i class="fas fa-check-double mr-2"></i> Check Collection
+                            </button>
                             <button id="test-hand-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full shadow-md hover:bg-yellow-600 flex items-center">
                                 <i class="fas fa-hand-sparkles mr-2"></i> Test Hand
                             </button>
@@ -154,6 +158,14 @@
                     <p id="deck-view-bio" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg italic"></p>
                     
                     <div id="deck-legality-section" class="mb-6"></div>
+
+                    <!-- NEW: Missing Cards Section -->
+                    <div id="missing-cards-section" class="hidden mb-8">
+                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Missing Cards</h3>
+                        <div id="missing-cards-list" class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg space-y-2">
+                            <!-- Missing cards will be populated here -->
+                        </div>
+                    </div>
 
                     <div id="deck-stats-section" class="mb-8">
                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Deck Statistics</h3>
@@ -307,5 +319,6 @@
     <script src="js/deck.js"></script>
     <script src="js/notifications.js"></script>
     <script src="js/darkmode.js"></script>
+    <script src="js/messenger.js"></script>
 </body>
 </html>
