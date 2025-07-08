@@ -1,8 +1,10 @@
 /**
- * HatakeSocial - Messages Page Script (v11 - New Message Notifications)
+ * HatakeSocial - Messages Page Script (v12 - Robust Search & Creation)
  *
  * This script handles all logic for the messages.html page.
- * - NEW: Creates a notification for the recipient when a new message is sent.
+ * - FIX: Implements a robust user search by querying multiple fields and merging results.
+ * - FIX: Ensures new conversations are created correctly and opened immediately.
+ * - Creates notifications for the recipient when a new message is sent.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -16,20 +18,19 @@ document.addEventListener('authReady', (e) => {
 
     let currentChatListener = null;
     let currentConversationId = null;
-    let currentConversationData = null; // Store current conversation data
+    let currentConversationData = null;
 
     const conversationsListEl = document.getElementById('conversations-list');
     const userSearchInput = document.getElementById('user-search-input');
     const userSearchResultsEl = document.getElementById('user-search-results');
+    const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
-    const sendMessageBtn = document.getElementById('send-message-btn');
     const chatWelcomeScreen = document.getElementById('chat-welcome-screen');
     const chatView = document.getElementById('chat-view');
     const messageTabs = document.querySelectorAll('.message-tab-button');
 
     let activeTab = 'users';
 
-    // --- NEW: Reusable Notification Function ---
     const createNotification = async (userId, message, link) => {
         const notificationData = {
             message: message,
@@ -106,7 +107,7 @@ document.addEventListener('authReady', (e) => {
     const openChat = (conversationId, title, imageUrl, conversationData) => {
         if (currentChatListener) currentChatListener();
         currentConversationId = conversationId;
-        currentConversationData = conversationData; // Store conversation data
+        currentConversationData = conversationData;
 
         chatWelcomeScreen.classList.add('hidden');
         chatView.classList.remove('hidden');
@@ -131,11 +132,11 @@ document.addEventListener('authReady', (e) => {
                     
                     messageEl.className = `message-group ${isSent ? 'sent' : 'received'}`;
                     messageEl.innerHTML = `
-                        <div class="flex items-center ${isSent ? 'flex-row-reverse' : ''}">
-                           ${!isSent ? `<img src="${senderInfo?.photoURL || 'https://placehold.co/40x40'}" class="h-6 w-6 rounded-full mr-2">` : ''}
+                        <div class="flex items-center ${isSent ? 'flex-row-reverse' : ''} gap-2">
+                           ${!isSent && conversation.isGroupChat ? `<img src="${senderInfo?.photoURL || 'https://placehold.co/40x40'}" class="h-6 w-6 rounded-full self-end">` : ''}
                             <div class="message-bubble">${msg.content}</div>
                         </div>
-                         <div class="text-xs text-gray-400 mt-1 ${isSent ? 'text-right' : 'text-left ml-8'}">${new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                         <div class="text-xs text-gray-400 mt-1 ${isSent ? 'text-right' : (conversation.isGroupChat ? 'text-left ml-8' : 'text-left')}">${new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                     `;
                     messagesContainer.appendChild(messageEl);
                 });
@@ -157,59 +158,61 @@ document.addEventListener('authReady', (e) => {
         
         messageInput.value = '';
         try {
-            // Update the conversation with the new message
             await conversationRef.update({
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
                 lastMessage: content,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // --- Send notifications to other participants ---
             const recipients = currentConversationData.participants.filter(id => id !== currentUser.uid);
             for (const recipientId of recipients) {
                 await createNotification(
                     recipientId,
                     `New message from ${currentUser.displayName}`,
-                    `/messages.html?with=${currentUser.uid}` // Link back to the sender's conversation
+                    `/messages.html?with=${currentUser.uid}`
                 );
             }
-
         } catch (error) {
             console.error("Error sending message:", error);
             alert("Could not send message.");
         }
     };
 
-    sendMessageBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') sendMessage();
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sendMessage();
     });
 
     const startConversationWithUser = async (userId, userData) => {
         const conversationId = [currentUser.uid, userId].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
 
-        const convoDoc = await conversationRef.get();
-        if (!convoDoc.exists) {
-            const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-            const currentUserData = currentUserDoc.data();
-            await conversationRef.set({
-                participants: [currentUser.uid, userId],
-                participantInfo: {
-                    [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
-                    [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
-                },
-                isGroupChat: false,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastMessage: 'Conversation started.'
-            }, { merge: true });
+        try {
+            const convoDoc = await conversationRef.get();
+            if (!convoDoc.exists) {
+                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                const currentUserData = currentUserDoc.data();
+                await conversationRef.set({
+                    participants: [currentUser.uid, userId],
+                    participantInfo: {
+                        [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
+                        [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
+                    },
+                    isGroupChat: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessage: 'Conversation started.'
+                }, { merge: true });
+            }
+            
+            document.querySelector('.message-tab-button[data-tab="users"]').click();
+            
+            const newConvoData = (await conversationRef.get()).data();
+            openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
+        } catch (error) {
+            console.error("Error starting conversation:", error);
+            alert("Could not start conversation.");
         }
-        
-        document.querySelector('.message-tab-button[data-tab="users"]').click();
-        
-        const newConvoData = (await conversationRef.get()).data();
-        openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
     };
 
     userSearchInput.addEventListener('keyup', async (e) => {
@@ -223,40 +226,46 @@ document.addEventListener('authReady', (e) => {
         userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">Searching...</div>';
         
         const usersRef = db.collection('users');
+        // Firestore doesn't support OR queries on different fields.
+        // We must run two separate queries and merge the results client-side.
         const queryByDisplayName = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
         const queryByHandle = usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
 
-        const [displayNameSnapshot, handleSnapshot] = await Promise.all([queryByDisplayName, queryByHandle]);
-        
-        const results = new Map();
-        displayNameSnapshot.forEach(doc => {
-            if (doc.id !== currentUser.uid) {
-                results.set(doc.id, doc.data());
-            }
-        });
-        handleSnapshot.forEach(doc => {
-            if (doc.id !== currentUser.uid) {
-                results.set(doc.id, doc.data());
-            }
-        });
-
-        userSearchResultsEl.innerHTML = '';
-        if (results.size === 0) {
-            userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No users found</div>';
-            return;
-        }
-        
-        results.forEach((userData, userId) => {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
-            resultItem.textContent = `${userData.displayName} (@${userData.handle})`;
-            resultItem.addEventListener('click', () => {
-                userSearchInput.value = '';
-                userSearchResultsEl.classList.add('hidden');
-                startConversationWithUser(userId, userData);
+        try {
+            const [displayNameSnapshot, handleSnapshot] = await Promise.all([queryByDisplayName, queryByHandle]);
+            
+            const results = new Map();
+            displayNameSnapshot.forEach(doc => {
+                if (doc.id !== currentUser.uid) results.set(doc.id, doc.data());
             });
-            userSearchResultsEl.appendChild(resultItem);
-        });
+            handleSnapshot.forEach(doc => {
+                if (doc.id !== currentUser.uid) results.set(doc.id, doc.data());
+            });
+
+            userSearchResultsEl.innerHTML = '';
+            if (results.size === 0) {
+                userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No users found</div>';
+                return;
+            }
+            
+            results.forEach((userData, userId) => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
+                resultItem.innerHTML = `
+                    <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-8 w-8 rounded-full mr-2 object-cover">
+                    <span class="text-sm dark:text-gray-200">${userData.displayName} (@${userData.handle})</span>
+                `;
+                resultItem.addEventListener('click', () => {
+                    userSearchInput.value = '';
+                    userSearchResultsEl.classList.add('hidden');
+                    startConversationWithUser(userId, userData);
+                });
+                userSearchResultsEl.appendChild(resultItem);
+            });
+        } catch (error) {
+            console.error("User search error:", error);
+            userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-red-500">Error searching. Required indexes might be missing.</div>';
+        }
     });
 
     const checkForUrlParams = async () => {
