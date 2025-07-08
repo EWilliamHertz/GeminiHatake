@@ -1,13 +1,14 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v16 - Final Stable Version)
+ * HatakeSocial - Core Authentication & UI Script (v18 - Correct Storage & Intl Merged)
  *
  * This script is included on EVERY page. It handles:
  * - All Login/Register Modal and Form logic.
  * - The main auth state listener that correctly updates the header UI.
  * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * - FIX: The auth check is now wrapped in DOMContentLoaded to prevent race conditions,
- * making this the stable, definitive version.
- * - Checks for admin status and dynamically adds an "Admin" link to the user dropdown.
+ * - FIX: Uses the correct `firebasestorage.app` URL for the storageBucket.
+ * - NEW: Manages global currency selection and conversion.
+ * - NEW: Injects a currency selector into the header.
+ * - NEW: Adds City and Country to the registration form.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -30,6 +31,76 @@ document.addEventListener('DOMContentLoaded', () => {
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+    // --- Internationalization & Currency ---
+    window.HatakeSocial = {
+        // In a real app, these rates would be fetched from an API daily.
+        // Rates are relative to SEK (Swedish Krona).
+        conversionRates: {
+            SEK: 1,
+            USD: 0.095,
+            EUR: 0.088,
+        },
+        // Get user's preferred currency from localStorage or default to SEK
+        currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
+
+        /**
+         * Converts a price from a source currency to the user's currently selected currency.
+         * @param {number} amount - The price amount.
+         * @param {string} fromCurrency - The currency the price is stored in (e.g., 'USD').
+         * @returns {string} - The formatted price string in the user's currency.
+         */
+        convertAndFormatPrice(amount, fromCurrency = 'SEK') {
+            const toCurrency = this.currentCurrency;
+            if (amount === undefined || amount === null || isNaN(amount)) {
+                return `0.00 ${toCurrency}`;
+            }
+
+            // Find the SEK rate for the 'from' currency.
+            const fromRate = this.conversionRates[fromCurrency];
+            if (fromRate === undefined) {
+                 console.error(`Unknown currency to convert from: ${fromCurrency}`);
+                 return `N/A`;
+            }
+
+            // Convert the amount from its source currency to SEK first.
+            const amountInSEK = amount / fromRate;
+            
+            // Now convert from SEK to the target currency.
+            const toRate = this.conversionRates[toCurrency];
+             if (toRate === undefined) {
+                 console.error(`Unknown currency to convert to: ${toCurrency}`);
+                 return `N/A`;
+            }
+            const convertedAmount = amountInSEK * toRate;
+
+            return `${convertedAmount.toFixed(2)} ${toCurrency}`;
+        }
+    };
+
+    const setupCurrencySelector = () => {
+        const container = document.getElementById('currency-selector-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
+                <option value="SEK">SEK</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+            </select>
+        `;
+        const selector = document.getElementById('currency-selector');
+        selector.value = window.HatakeSocial.currentCurrency;
+
+        selector.addEventListener('change', (e) => {
+            window.HatakeSocial.currentCurrency = e.target.value;
+            localStorage.setItem('hatakeCurrency', e.target.value);
+            // Reload the page to apply the new currency everywhere.
+            window.location.reload();
+        });
+    };
+
+
+    // --- Global UI & Auth Logic ---
     window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
@@ -78,8 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         city: city, country: country, favoriteTcg: favoriteTcg,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
-                        bio: "New HatakeSocial user!",
-                        isAdmin: false // Default role
+                        isAdmin: false,
+                        primaryCurrency: 'SEK' // Default currency for new users
                     });
                 })
                 .then(() => closeModal(registerModal))
@@ -98,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             displayName_lower: user.displayName.toLowerCase(),
                             email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false
+                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false, primaryCurrency: 'SEK'
                         });
                     }
                 });
@@ -189,4 +260,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     setupGlobalListeners();
+    setupCurrencySelector();
 });
