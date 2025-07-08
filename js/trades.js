@@ -1,17 +1,13 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v7)
+ * HatakeSocial - Advanced Trades Page Script (v9 - Index Link Generation)
  *
  * This script implements a comprehensive and secure trading system.
- *
- * Key Features:
- * - Trustee (Escrow) System: Manages the trade lifecycle through multiple statuses
- * (pending, accepted, shipped, completed) to ensure security.
- * - Granular Reputation System: Allows users to leave detailed feedback after a trade.
- * - Automated Value Calculation: Fetches card prices and calculates the total value
- * of each side of the trade in real-time.
- * - Formal Counter-Offers: Enables users to formally counter an offer, creating a
- * clear and auditable negotiation history.
- * - Dispute Resolution: Provides a mechanism for users to report problems with a trade.
+ * - Trustee (Escrow) System: Manages the trade lifecycle through multiple statuses.
+ * - Granular Reputation System: Allows users to leave detailed feedback.
+ * - Automated Value Calculation: Fetches card prices and calculates trade value.
+ * - Formal Counter-Offers: Enables clear and auditable negotiation.
+ * - Dispute Resolution: Provides a mechanism for users to report problems.
+ * - NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -71,6 +67,31 @@ document.addEventListener('authReady', (e) => {
     };
     const USD_TO_SEK_RATE = 10.5; // Example static rate. In a real app, this would be fetched from an API.
 
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (collection, fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        return url;
+    };
+    
+    const displayIndexError = (container, link) => {
+        const errorMessage = `
+            <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                <a href="${link}" target="_blank" rel="noopener noreferrer" 
+                   class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                   Click Here to Create the Index
+                </a>
+                <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+            </div>
+         `;
+        container.innerHTML = errorMessage;
+    };
+
     // --- Tab Switching Logic ---
     if(proposeNewTradeBtn) proposeNewTradeBtn.classList.remove('hidden');
     tabs.forEach(button => {
@@ -123,8 +144,14 @@ document.addEventListener('authReady', (e) => {
 
         }, err => {
             console.error("Error loading trades:", err);
-            const errorMessage = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p class="font-bold">Error Loading Trades</p><p>This is likely due to a missing database index. Please open the browser console (F12) and look for an error message from Firebase. It should contain a link to create the required index.</p></div>`;
-            incomingContainer.innerHTML = errorMessage;
+            if (err.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('trades', [{ name: 'participants', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
+                displayIndexError(incomingContainer, indexLink);
+                outgoingContainer.innerHTML = '';
+                historyContainer.innerHTML = '';
+            } else {
+                incomingContainer.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred.</p>`;
+            }
         });
     };
 
