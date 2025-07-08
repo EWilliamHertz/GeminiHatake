@@ -1,8 +1,10 @@
 /**
- * HatakeSocial - Profile Page Script (v7 - Friend Request Notifications)
+ * HatakeSocial - Profile Page Script (v9 - Merged Functionality)
  *
  * This script handles all logic for the user profile page.
- * NEW: Creates a notification when a user sends a friend request.
+ * - Merges friend request/list logic and trade history from v7.
+ * - Retains the granular reputation display and logic from v8.
+ * - Creates notifications for friend requests and acceptances.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -56,7 +58,8 @@ document.addEventListener('authReady', (e) => {
             icon: 'fa-handshake',
             color: 'text-yellow-500',
             async check(userData, userId) {
-                 return (userData.ratingCount || 0) >= 10 && (userData.averageRating || 0) >= 4.5;
+                 const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2;
+                 return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5;
             }
         }
     };
@@ -110,19 +113,32 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
-
-            const averageRating = profileUserData.averageRating || 0;
+            // --- REPUTATION DISPLAY ---
             const ratingCount = profileUserData.ratingCount || 0;
+            const avgAccuracy = profileUserData.averageAccuracy || 0;
+            const avgPackaging = profileUserData.averagePackaging || 0;
+            const overallAvg = ratingCount > 0 ? (avgAccuracy + avgPackaging) / 2 : 0;
+
             let starsHTML = '';
             for (let i = 1; i <= 5; i++) {
-                if (i <= averageRating) starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
-                else if (i - 0.5 <= averageRating) starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
+                if (i <= overallAvg) starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
+                else if (i - 0.5 <= overallAvg) starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
                 else starsHTML += '<i class="far fa-star text-gray-300"></i>';
             }
-            const reputationHTML = `<div class="flex items-center space-x-2 text-sm text-gray-600 mt-1"> <span class="flex">${starsHTML}</span> <span class="font-semibold">${averageRating.toFixed(1)}</span> <span>(${ratingCount} ratings)</span> </div>`;
+            const reputationHTML = `
+                <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mt-1"> 
+                    <span class="flex">${starsHTML}</span> 
+                    <span class="font-semibold">${overallAvg.toFixed(1)}</span> 
+                    <span>(${ratingCount} ratings)</span> 
+                </div>
+                <div class="text-xs space-x-3 mt-1">
+                    <span>Accuracy: <strong class="dark:text-gray-200">${avgAccuracy.toFixed(1)}</strong></span>
+                    <span>Packaging: <strong class="dark:text-gray-200">${avgPackaging.toFixed(1)}</strong></span>
+                </div>
+            `;
 
             profileContainer.innerHTML = `
-                <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
                         <img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner'}" alt="Profile banner">
                         <div class="absolute top-4 right-4">
@@ -131,12 +147,12 @@ document.addEventListener('authReady', (e) => {
                     </div>
                     <div class="p-6">
                         <div class="flex items-end -mt-24">
-                            <img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white bg-gray-200 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar">
+                            <img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar">
                             <div class="ml-4 flex-grow">
                                 <div class="flex justify-between items-center">
                                      <div>
-                                        <h1 id="profile-displayName" class="text-3xl font-bold text-gray-800">${profileUserData.displayName || 'No Name'}</h1>
-                                        <p id="profile-handle" class="text-gray-600">@${profileUserData.handle || 'no-handle'}</p>
+                                        <h1 id="profile-displayName" class="text-3xl font-bold text-gray-800 dark:text-white">${profileUserData.displayName || 'No Name'}</h1>
+                                        <p id="profile-handle" class="text-gray-600 dark:text-gray-400">@${profileUserData.handle || 'no-handle'}</p>
                                         ${reputationHTML}
                                     </div>
                                     <div id="profile-action-buttons" class="flex space-x-2">
@@ -145,13 +161,13 @@ document.addEventListener('authReady', (e) => {
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-4 border-t pt-4">
-                            <p id="profile-bio" class="text-gray-700 mt-2">${profileUserData.bio || 'No bio yet.'}</p>
-                            <div class="mt-2 text-sm text-gray-600">
+                        <div class="mt-4 border-t dark:border-gray-700 pt-4">
+                            <p id="profile-bio" class="text-gray-700 dark:text-gray-300 mt-2">${profileUserData.bio || 'No bio yet.'}</p>
+                            <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
                             <div id="profile-badges-container" class="mt-4">
-                                <h3 class="font-bold text-lg mb-2">Achievements</h3>
+                                <h3 class="font-bold text-lg mb-2 dark:text-white">Achievements</h3>
                                 <div id="badges-list" class="flex flex-wrap gap-4"></div>
                             </div>
                         </div>
@@ -159,7 +175,7 @@ document.addEventListener('authReady', (e) => {
                 </div>
                 
                 <div class="mt-6">
-                    <div class="border-b border-gray-200">
+                    <div class="border-b border-gray-200 dark:border-gray-700">
                         <nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs">
                             <button data-tab="feed" class="profile-tab-button active">Feed</button>
                             <button data-tab="decks" class="profile-tab-button">Decks</button>
@@ -181,7 +197,7 @@ document.addEventListener('authReady', (e) => {
                     </div>
                 </div>
             `;
-
+            
             document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
             const addFriendBtn = document.getElementById('add-friend-btn');
             if(addFriendBtn) {
@@ -189,27 +205,12 @@ document.addEventListener('authReady', (e) => {
                     if (friendStatus === 'none') {
                         addFriendBtn.disabled = true;
                         addFriendBtn.textContent = 'Sending...';
-                        
-                        // Create Friend Request
-                        await db.collection('friendRequests').add({ 
-                            senderId: currentUser.uid, 
-                            receiverId: profileUserId, 
-                            status: 'pending', 
-                            createdAt: new Date() 
-                        });
-                        
-                        // --- NEW: Create Notification ---
-                        const notificationData = {
-                            message: `${currentUser.displayName} sent you a friend request.`,
-                            link: `/profile.html?uid=${currentUser.uid}#friends`,
-                            isRead: false,
-                            timestamp: new Date()
-                        };
+                        await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: profileUserId, status: 'pending', createdAt: new Date() });
+                        const notificationData = { message: `${currentUser.displayName} sent you a friend request.`, link: `/profile.html?uid=${currentUser.uid}#friends`, isRead: false, timestamp: new Date() };
                         await db.collection('users').doc(profileUserId).collection('notifications').add(notificationData);
-                        
                         addFriendBtn.textContent = 'Request Sent';
                     } else if (friendStatus === 'request_received') { 
-                        window.location.href = '/profile.html#friends'; 
+                        window.location.href = '/friends.html'; 
                     }
                 });
             }
@@ -305,16 +306,16 @@ document.addEventListener('authReady', (e) => {
         snapshot.forEach(doc => {
             const post = doc.data();
             const postElement = document.createElement('div');
-            postElement.className = 'bg-white p-4 rounded-lg shadow-md';
+            postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
             postElement.innerHTML = `
                 <div class="flex items-center mb-4">
                     <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover">
                     <div>
-                        <p class="font-bold">${post.author}</p>
-                        <p class="text-sm text-gray-500">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        <p class="font-bold dark:text-white">${post.author}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                     </div>
                 </div>
-                <p class="mb-4 whitespace-pre-wrap">${post.content}</p>
+                <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
                  ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
             `;
             container.appendChild(postElement);
@@ -334,8 +335,8 @@ document.addEventListener('authReady', (e) => {
             const deck = doc.data();
             const deckCard = document.createElement('a');
             deckCard.href = `deck.html?deckId=${doc.id}`;
-            deckCard.className = 'bg-white p-4 rounded-lg shadow-md block hover:shadow-lg';
-            deckCard.innerHTML = `<h3 class="text-xl font-bold truncate">${deck.name}</h3><p class="text-sm text-gray-500">${deck.format || deck.tcg}</p>`;
+            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md block hover:shadow-lg';
+            deckCard.innerHTML = `<h3 class="text-xl font-bold truncate dark:text-white">${deck.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>`;
             container.appendChild(deckCard);
         });
     };
@@ -367,7 +368,7 @@ document.addEventListener('authReady', (e) => {
 
     const loadProfileTradeHistory = async (userId) => {
         const container = document.getElementById('tab-content-trade-history');
-        container.innerHTML = '<p class="text-gray-500">Loading trade history...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading trade history...</p>';
 
         try {
             const snapshot = await db.collection('trades')
@@ -377,7 +378,7 @@ document.addEventListener('authReady', (e) => {
                 .get();
 
             if (snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500">This user has no trade history.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">This user has no trade history.</p>';
                 return;
             }
 
@@ -389,7 +390,7 @@ document.addEventListener('authReady', (e) => {
                 const otherPartyId = isProposer ? trade.receiverId : trade.proposerId;
                 const statusClasses = { pending: 'bg-yellow-100 text-yellow-800', accepted: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-800', };
                 const statusClass = statusClasses[trade.status] || 'bg-gray-100';
-                const tradeCard = `<div class="bg-white p-4 rounded-lg shadow"><div class="flex justify-between items-center mb-2"><p class="font-semibold">Trade with <a href="profile.html?uid=${otherPartyId}" class="text-blue-600 hover:underline">${otherPartyName}</a></p><span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass}">${trade.status}</span></div><p class="text-xs text-gray-400 text-left">${new Date(trade.createdAt.toDate()).toLocaleDateString()}</p></div>`;
+                const tradeCard = `<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><div class="flex justify-between items-center mb-2"><p class="font-semibold dark:text-white">Trade with <a href="profile.html?uid=${otherPartyId}" class="text-blue-600 hover:underline">${otherPartyName}</a></p><span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass}">${trade.status}</span></div><p class="text-xs text-gray-400 text-left">${new Date(trade.createdAt.toDate()).toLocaleDateString()}</p></div>`;
                 container.innerHTML += tradeCard;
             });
 
@@ -401,23 +402,34 @@ document.addEventListener('authReady', (e) => {
 
     const loadProfileFeedback = async (userId) => {
         const container = document.getElementById('tab-content-feedback');
-        container.innerHTML = '<p class="text-gray-500">Loading feedback...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading feedback...</p>';
         try {
             const feedbackSnapshot = await db.collection('feedback').where('forUserId', '==', userId).orderBy('createdAt', 'desc').get();
 
             if (feedbackSnapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500">This user has not received any feedback yet.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">This user has not received any feedback yet.</p>';
                 return;
             }
 
             container.innerHTML = '';
             feedbackSnapshot.forEach(doc => {
                 const feedback = doc.data();
-                let starsHTML = '';
-                for (let i = 1; i <= 5; i++) {
-                    starsHTML += `<i class="fas fa-star ${i <= feedback.rating ? 'text-yellow-400' : 'text-gray-300'}"></i>`;
-                }
-                const feedbackCard = `<div class="bg-white p-4 rounded-lg shadow"><div class="flex justify-between items-center mb-2"><p class="font-semibold">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p><div class="flex items-center space-x-1">${starsHTML}</div></div><p class="text-gray-700 italic">"${feedback.comment || 'No comment left.'}"</p><p class="text-xs text-gray-400 text-right mt-2">${new Date(feedback.createdAt.toDate()).toLocaleDateString()}</p></div>`;
+                const ratings = feedback.ratings || {};
+                const accuracyStars = '★'.repeat(ratings.accuracy || 0) + '☆'.repeat(5 - (ratings.accuracy || 0));
+                const packagingStars = '★'.repeat(ratings.packaging || 0) + '☆'.repeat(5 - (ratings.packaging || 0));
+
+                const feedbackCard = `
+                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="font-semibold dark:text-gray-200">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p>
+                            <div class="text-xs text-gray-400">${new Date(feedback.createdAt.toDate()).toLocaleDateString()}</div>
+                        </div>
+                        <div class="text-sm space-y-1 my-2 text-yellow-400">
+                           <p><strong>Accuracy:</strong> ${accuracyStars}</p>
+                           <p><strong>Packaging:</strong> ${packagingStars}</p>
+                        </div>
+                        <p class="text-gray-700 dark:text-gray-300 italic">"${feedback.comment || 'No comment left.'}"</p>
+                    </div>`;
                 container.innerHTML += feedbackCard;
             });
         } catch (error) {
@@ -445,7 +457,7 @@ document.addEventListener('authReady', (e) => {
                                            .where('status', '==', 'pending')
                                            .get();
                 if (!friendRequests.empty) {
-                    friendsHTML += '<h3 class="text-xl font-bold mb-4">Friend Requests</h3>';
+                    friendsHTML += '<h3 class="text-xl font-bold mb-4 dark:text-white">Friend Requests</h3>';
                     friendsHTML += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">';
                     for (const doc of friendRequests.docs) {
                         const request = doc.data();
@@ -453,11 +465,11 @@ document.addEventListener('authReady', (e) => {
                         if (senderDoc.exists) {
                             const sender = senderDoc.data();
                             friendsHTML += `
-                                <div class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
+                                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between">
                                     <a href="profile.html?uid=${request.senderId}" class="flex items-center space-x-3">
                                         <img src="${sender.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
                                         <div>
-                                            <p class="font-semibold">${sender.displayName}</p>
+                                            <p class="font-semibold dark:text-white">${sender.displayName}</p>
                                             <p class="text-sm text-gray-500">@${sender.handle}</p>
                                         </div>
                                     </a>
@@ -473,7 +485,7 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
-            friendsHTML += `<h3 class="text-xl font-bold mb-4">All Friends (${friendIds.length})</h3>`;
+            friendsHTML += `<h3 class="text-xl font-bold mb-4 dark:text-white">All Friends (${friendIds.length})</h3>`;
             if (friendIds.length === 0) {
                 friendsHTML += '<p class="text-gray-500">No friends to display.</p>';
             } else {
@@ -483,10 +495,10 @@ document.addEventListener('authReady', (e) => {
                     if (friendDoc.exists) {
                         const friend = friendDoc.data();
                         friendsHTML += `
-                            <a href="profile.html?uid=${friendId}" class="bg-white p-4 rounded-lg shadow-md flex items-center space-x-3 hover:shadow-lg">
+                            <a href="profile.html?uid=${friendId}" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center space-x-3 hover:shadow-lg">
                                 <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
                                 <div>
-                                    <p class="font-semibold">${friend.displayName}</p>
+                                    <p class="font-semibold dark:text-white">${friend.displayName}</p>
                                     <p class="text-sm text-gray-500">@${friend.handle}</p>
                                 </div>
                             </a>
@@ -520,7 +532,6 @@ document.addEventListener('authReady', (e) => {
             batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
             batch.delete(requestRef);
             
-            // --- NEW: Create Notification for Accepted Request ---
             const senderDoc = await senderRef.get();
             const senderData = senderDoc.data();
             const notificationData = {
