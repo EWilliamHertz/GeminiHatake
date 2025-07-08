@@ -1,14 +1,11 @@
 /**
- * HatakeSocial - Card View Page Script
+ * HatakeSocial - Card View Page Script (v5 - Merged Internationalization)
  *
  * This script is a complete, working version for the card-view.html page.
- * It correctly waits for Firebase authentication to be ready.
- * It fetches card data and an image from the Scryfall API.
- * It simulates a 90-day price history and renders it in a chart.
- * It fetches and displays all user listings for the card from Firestore.
- *
- * FIX v3: Correctly handles the case where no listings are found,
- * preventing the UI from getting stuck on "Loading...".
+ * - Restores the full original code structure from the repository.
+ * - Integrates the internationalization features for currency and shipping.
+ * - Displays all prices in the user's selected currency.
+ * - Shows seller's location and estimated shipping costs for each listing.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -33,8 +30,20 @@ document.addEventListener('authReady', (e) => {
     const sortByEl = document.getElementById('sort-by');
 
     // --- State ---
-    let allListings = []; // Store all listings to avoid re-fetching
-    let priceChart = null; // To hold the chart instance for proper destruction
+    let allListings = [];
+    let priceChart = null;
+
+    // --- NEW: Helper function to determine shipping region ---
+    const getShippingRegion = (sellerCountry, buyerCountry) => {
+        const europeanCountries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "United Kingdom"];
+        
+        if (!buyerCountry || !sellerCountry) return 'restOfWorld';
+        if (sellerCountry.toLowerCase() === buyerCountry.toLowerCase()) return 'domestic';
+        if (europeanCountries.includes(sellerCountry) && europeanCountries.includes(buyerCountry)) return 'europe';
+        if (buyerCountry === "United States" || buyerCountry === "Canada") return 'northAmerica';
+        
+        return 'restOfWorld';
+    };
 
     /**
      * Main function to load all data for the card view page.
@@ -102,10 +111,9 @@ document.addEventListener('authReady', (e) => {
 
             const listingsSnapshot = await listingsQuery.get();
             
-            // THIS IS THE FIX: This block now correctly handles the "no listings" case.
             if (listingsSnapshot.empty) {
                 listingsContainer.innerHTML = '<p class="p-4 text-center text-gray-500 dark:text-gray-400">No one is currently selling this card.</p>';
-                return; // Exit the function gracefully
+                return;
             }
 
             // Efficiently get all seller info in one batch
@@ -121,12 +129,12 @@ document.addEventListener('authReady', (e) => {
                 const sellerId = doc.ref.parent.parent.id;
                 return {
                     id: doc.id,
-                    seller: sellers[sellerId] || { handle: 'unknown', displayName: 'Unknown', averageRating: 0, photoURL: 'https://i.imgur.com/B06rBhI.png' },
+                    seller: sellers[sellerId] || { handle: 'unknown', displayName: 'Unknown', photoURL: 'https://i.imgur.com/B06rBhI.png', primaryCurrency: 'SEK', shippingProfile: {} },
                     ...doc.data()
                 };
             });
             
-            applyFiltersAndSort(); // Render the fetched listings
+            applyFiltersAndSort();
 
         } catch (error) {
             console.error("Firestore query for listings failed:", error);
@@ -161,7 +169,8 @@ document.addEventListener('authReady', (e) => {
         } else if (sortBy === 'price-desc') {
             filteredListings.sort((a, b) => b.salePrice - a.salePrice);
         } else if (sortBy === 'rating-desc') {
-            filteredListings.sort((a, b) => (b.seller.averageRating || 0) - (a.seller.averageRating || 0));
+            const getOverallRating = (seller) => ((seller.averageAccuracy || 0) + (seller.averagePackaging || 0)) / 2;
+            filteredListings.sort((a, b) => getOverallRating(b.seller) - getOverallRating(a.seller));
         }
 
         renderListingsTable(filteredListings);
@@ -184,32 +193,48 @@ document.addEventListener('authReady', (e) => {
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Seller</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Details</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price + Ship</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
         `;
         
+        const buyerData = window.HatakeSocial.currentUserData;
+
         listings.forEach(listing => {
-            const rating = listing.seller.averageRating ? listing.seller.averageRating.toFixed(1) : 'N/A';
+            const seller = listing.seller;
+            const overallRating = (((seller.averageAccuracy || 0) + (seller.averagePackaging || 0)) / 2).toFixed(1);
+            const sellerCurrency = seller.primaryCurrency || 'SEK';
+            const priceDisplay = window.HatakeSocial.convertAndFormatPrice(listing.salePrice, sellerCurrency);
+
+            // Calculate shipping
+            const shippingRegion = getShippingRegion(seller.country, buyerData?.country);
+            const shippingCost = seller.shippingProfile?.[shippingRegion] || null;
+            const shippingDisplay = shippingCost !== null 
+                ? `+ ${window.HatakeSocial.convertAndFormatPrice(shippingCost, sellerCurrency)} ship`
+                : '(Shipping not set)';
+
             tableHTML += `
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 h-10 w-10">
-                                <img class="h-10 w-10 rounded-full object-cover" src="${listing.seller.photoURL}" alt="${listing.seller.displayName}">
+                                <img class="h-10 w-10 rounded-full object-cover" src="${seller.photoURL}" alt="${seller.displayName}">
                             </div>
                             <div class="ml-4">
-                                <a href="profile.html?uid=${listing.sellerId}" class="text-sm font-medium text-gray-900 dark:text-white hover:underline">${listing.seller.displayName}</a>
-                                <div class="text-sm text-gray-500 dark:text-gray-400">Rating: ${rating} ★</div>
+                                <a href="profile.html?uid=${listing.sellerId}" class="text-sm font-medium text-gray-900 dark:text-white hover:underline">${seller.displayName}</a>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">★ ${overallRating} | from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</div>
                             </div>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         ${listing.condition} ${listing.isFoil ? '<span class="text-blue-500 font-bold">(Foil)</span>' : ''}
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">${listing.salePrice.toFixed(2)} SEK</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <p class="font-semibold text-gray-900 dark:text-white">${priceDisplay}</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs">${shippingDisplay}</p>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <a href="trades.html?propose_to_card=${listing.id}" class="text-indigo-600 dark:text-indigo-400 hover:underline">Propose Trade</a>
                     </td>
@@ -231,8 +256,8 @@ document.addEventListener('authReady', (e) => {
             priceChart.destroy(); // Destroy old chart instance
         }
 
-        const currentPrice = parseFloat(cardData?.prices?.usd || 0);
-        if (currentPrice === 0) {
+        const priceUSD = parseFloat(cardData?.prices?.usd || 0);
+        if (priceUSD === 0) {
             chartCtx.canvas.parentNode.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 flex items-center justify-center h-full">Price data is not available for this card.</p>';
             return;
         }
@@ -240,7 +265,7 @@ document.addEventListener('authReady', (e) => {
         // --- Simulate 90 days of historical data ---
         const history = [];
         const labels = [];
-        let price = currentPrice * (0.8 + Math.random() * 0.4); // Start price between 80% and 120% of current
+        let price = priceUSD * (0.8 + Math.random() * 0.4); // Start price between 80% and 120% of current
 
         for (let i = 90; i >= 0; i--) {
             const date = new Date();
@@ -249,20 +274,23 @@ document.addEventListener('authReady', (e) => {
             
             const volatility = price * 0.05; // 5% volatility
             price += (Math.random() - 0.5) * volatility;
-            price += (currentPrice - price) * 0.02; 
-            price = Math.max(price, currentPrice * 0.2); 
+            price += (priceUSD - price) * 0.02; 
+            price = Math.max(price, priceUSD * 0.2); 
 
-            history.push(price.toFixed(2));
+            history.push(price);
         }
-        history[history.length - 1] = currentPrice.toFixed(2);
+        history[history.length - 1] = priceUSD;
+        
+        const convertedHistory = history.map(p => parseFloat(window.HatakeSocial.convertAndFormatPrice(p, 'USD').split(' ')[0]));
+        const currencyLabel = window.HatakeSocial.currentCurrency;
 
         priceChart = new Chart(chartCtx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Price (USD)',
-                    data: history,
+                    label: `Price (${currencyLabel})`,
+                    data: convertedHistory,
                     backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 2,
@@ -274,17 +302,25 @@ document.addEventListener('authReady', (e) => {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        ticks: { maxTicksLimit: 8, color: '#6b7280' },
-                        grid: { display: false }
-                    },
-                    y: {
-                        beginAtZero: false,
-                        ticks: { color: '#6b7280' }
-                    }
+                    x: { ticks: { maxTicksLimit: 8, color: '#6b7280' }, grid: { display: false } },
+                    y: { beginAtZero: false, ticks: { color: '#6b7280' } }
                 },
-                plugins: {
-                    legend: { display: false }
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += `${context.parsed.y.toFixed(2)} ${currencyLabel}`;
+                                }
+                                return label;
+                            }
+                        }
+                    }
                 }
             }
         });
