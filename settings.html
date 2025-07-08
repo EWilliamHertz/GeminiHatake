@@ -8,39 +8,40 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 dark:bg-gray-900">
 
 
-     <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+     <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50">
     <div class="container mx-auto px-4 flex justify-between items-center">
         <div class="flex items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
-                <span class="ml-3 text-3xl font-extrabold text-gray-800">HatakeSocial</span>
+                <span class="ml-3 text-3xl font-extrabold text-gray-800 dark:text-white">HatakeSocial</span>
             </a>
         </div>
 
         <div class="hidden md:flex flex-grow justify-center mx-4">
             <div class="relative w-full max-w-md">
-                <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
             </div>
         </div>
 
-        <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-4">
+            <div id="currency-selector-container"></div>
             <nav class="hidden md:block">
                 <ul class="flex space-x-6">
-                    <li><a href="index.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                    <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
                     <li><a href="friends.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Friends"><i class="fas fa-user-friends"></i></a></li>
-                    <li><a href="groups.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
-                    <li><a href="deck.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
-                    <li><a href="shop.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                    <li><a href="my_collection.html" class="text-gray-600 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
-                    <li><a href="trades.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                    <li><a href="marketplace.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
-                    <li><a href="events.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
-                    <li><a href="messages.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
-                    <li><a href="settings.html" class="text-gray-600 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                    <li><a href="groups.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
+                    <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                    <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
+                    <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                    <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
+                    <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                    <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
+                    <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
+                    <li><a href="settings.html" class="text-blue-600 dark:text-blue-400 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
                     <li id="notification-container" class="relative">
                         <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl">
                             <i class="fas fa-bell"></i>
@@ -58,11 +59,11 @@
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
                 
                 <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
-                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
-                    <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
-                    <a href="settings.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Settings</a>
-                    <div class="border-t my-1 border-gray-200"></div>
-                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Logout</a>
+                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 hidden">
+                    <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+                    <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                    <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
                 </div>
             </div>
         </div>
@@ -127,52 +128,64 @@
         <div id="settings-page-container" class="md:flex md:space-x-8">
             <aside class="md:w-1/4 mb-8 md:mb-0">
                 <nav class="space-y-1">
-                    <button data-section="profile" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold bg-blue-100 text-blue-700">
+                    <button data-section="profile" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200">
                         <i class="fas fa-user-edit mr-2"></i>Profile
                     </button>
-                    <button data-section="account" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 hover:bg-gray-200">
+                    <button data-section="account" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i class="fas fa-id-card mr-2"></i>Account
                     </button>
-                    <button data-section="security" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 hover:bg-gray-200">
+                     <button data-section="shipping" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <i class="fas fa-shipping-fast mr-2"></i>Shipping
+                    </button>
+                    <button data-section="security" class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
                         <i class="fas fa-shield-alt mr-2"></i>Security
                     </button>
                 </nav>
             </aside>
 
             <div class="md:w-3/4">
-                <section id="settings-profile" class="settings-section bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-6 border-b pb-4">Public Profile</h2>
+                <section id="settings-profile" class="settings-section bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">Public Profile</h2>
                     <form id="profile-settings-form">
                         <div class="flex items-center space-x-6 mb-6">
                             <img id="profile-pic-preview" src="https://placehold.co/96x96" class="w-24 h-24 rounded-full object-cover">
                             <div>
-                                <label for="profile-pic-upload" class="cursor-pointer px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300">Change Picture</label>
+                                <label for="profile-pic-upload" class="cursor-pointer px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Change Picture</label>
                                 <input type="file" id="profile-pic-upload" class="hidden" accept="image/*">
                             </div>
                         </div>
                         <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Profile Banner</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Profile Banner</label>
                             <img id="banner-pic-preview" src="https://placehold.co/600x200" class="w-full h-40 object-cover rounded-md mb-2">
-                            <label for="banner-pic-upload" class="cursor-pointer px-4 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300">Change Banner</label>
+                            <label for="banner-pic-upload" class="cursor-pointer px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Change Banner</label>
                             <input type="file" id="banner-pic-upload" class="hidden" accept="image/*">
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="displayName" class="block text-sm font-medium text-gray-700">Display Name</label>
-                                <input type="text" id="displayName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                <label for="displayName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Display Name</label>
+                                <input type="text" id="displayName" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
                             </div>
                              <div>
-                                <label for="handle" class="block text-sm font-medium text-gray-700">Username (@handle)</label>
-                                <input type="text" id="handle" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                <label for="handle" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username (@handle)</label>
+                                <input type="text" id="handle" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                            </div>
+                            <!-- NEW: City and Country fields -->
+                             <div>
+                                <label for="city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">City</label>
+                                <input type="text" id="city" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                            </div>
+                             <div>
+                                <label for="country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Country</label>
+                                <input type="text" id="country" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
                             </div>
                         </div>
                         <div class="mt-6">
-                            <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
-                            <textarea id="bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                            <label for="bio" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+                            <textarea id="bio" rows="3" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700"></textarea>
                         </div>
                         <div class="mt-6">
-                            <label for="favoriteTcg" class="block text-sm font-medium text-gray-700">Favorite TCG</label>
-                            <input type="text" id="favoriteTcg" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <label for="favoriteTcg" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Favorite TCG</label>
+                            <input type="text" id="favoriteTcg" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
                         </div>
                         <div class="mt-8 text-right">
                              <button type="submit" id="save-profile-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Save Profile</button>
@@ -180,30 +193,65 @@
                     </form>
                 </section>
 
-                <section id="settings-account" class="settings-section hidden bg-white p-6 rounded-lg shadow-md">
-                     <h2 class="text-2xl font-bold mb-6 border-b pb-4">Account</h2>
+                <section id="settings-account" class="settings-section hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                     <h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">Account</h2>
                      <div>
-                         <label class="block text-sm font-medium text-gray-700">Email Address</label>
-                         <p id="account-email" class="mt-1 text-gray-500"></p>
+                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                         <p id="account-email" class="mt-1 text-gray-500 dark:text-gray-400"></p>
                      </div>
-                     <div class="mt-8 pt-6 border-t border-red-200">
-                         <h3 class="text-lg font-semibold text-red-700">Danger Zone</h3>
-                         <p class="mt-1 text-sm text-gray-600">Deleting your account is a permanent action and cannot be undone.</p>
+                      <!-- NEW: Primary Currency -->
+                     <div class="mt-6">
+                        <label for="primaryCurrency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Primary Currency</label>
+                        <select id="primaryCurrency" class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                            <option value="SEK">Swedish Krona (SEK)</option>
+                            <option value="USD">US Dollar (USD)</option>
+                            <option value="EUR">Euro (EUR)</option>
+                        </select>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">This is the currency your items will be listed in.</p>
+                     </div>
+                     <div class="mt-8 pt-6 border-t border-red-200 dark:border-red-900/50">
+                         <h3 class="text-lg font-semibold text-red-700 dark:text-red-400">Danger Zone</h3>
+                         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Deleting your account is a permanent action and cannot be undone.</p>
                          <button id="delete-account-btn" class="mt-4 px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Delete Account</button>
                      </div>
                 </section>
 
-                <section id="settings-security" class="settings-section hidden bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-6 border-b pb-4">Security</h2>
+                <!-- NEW: Shipping Section -->
+                <section id="settings-shipping" class="settings-section hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">Shipping Profiles</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Set your default shipping costs. These will be used when you list items for sale. All prices should be in your primary currency (<span class="font-bold" id="shipping-currency-display">SEK</span>).</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="shippingDomestic" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Domestic (Your Country)</label>
+                            <input type="number" id="shippingDomestic" placeholder="e.g., 50.00" class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label for="shippingEurope" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Europe</label>
+                            <input type="number" id="shippingEurope" placeholder="e.g., 150.00" class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label for="shippingNorthAmerica" class="block text-sm font-medium text-gray-700 dark:text-gray-300">North America</label>
+                            <input type="number" id="shippingNorthAmerica" placeholder="e.g., 250.00" class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                        </div>
+                        <div>
+                            <label for="shippingRestOfWorld" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rest of World</label>
+                            <input type="number" id="shippingRestOfWorld" placeholder="e.g., 350.00" class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                        </div>
+                    </div>
+                </section>
+
+                <section id="settings-security" class="settings-section hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">Security</h2>
                      <div>
-                         <label class="block text-sm font-medium text-gray-700">Password</label>
-                         <p class="mt-1 text-sm text-gray-600">To change your password, we will send a secure reset link to your email address.</p>
-                         <button id="reset-password-btn" class="mt-4 px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Send Password Reset Email</button>
+                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">To change your password, we will send a secure reset link to your email address.</p>
+                         <button id="reset-password-btn" class="mt-4 px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white font-semibold rounded-full hover:bg-gray-700 dark:hover:bg-gray-600">Send Password Reset Email</button>
                      </div>
-                     <div class="mt-8 pt-6 border-t">
-                         <h3 class="text-lg font-semibold text-gray-800">Multi-Factor Authentication (MFA)</h3>
+                     <div class="mt-8 pt-6 border-t dark:border-gray-700">
+                         <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Multi-Factor Authentication (MFA)</h3>
                          <div id="mfa-section">
-                             </div>
+                             <!-- MFA content loaded by JS -->
+                         </div>
                      </div>
                 </section>
             </div>
@@ -267,9 +315,6 @@
     </div>
 </div>
 
-
-
-
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -277,5 +322,6 @@
     <script src="js/auth.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/messenger.js"></script>
+    <script src="js/darkmode.js"></script>
 </body>
 </html>
