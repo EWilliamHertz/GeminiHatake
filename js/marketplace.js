@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Marketplace Page Script (v24 - Advanced Rework)
+ * HatakeSocial - Marketplace Page Script (v25 - Index Creation Link)
  *
  * This version completely reworks the marketplace for a professional experience.
  * - Removes the non-functional analytics dashboard.
  * - Implements a powerful, multi-field search and filter system.
  * - Redesigns the card listings to show seller reputation, city, and country.
  * - Ensures efficient, paginated loading of marketplace data.
+ * - NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -21,7 +22,19 @@ document.addEventListener('authReady', (e) => {
     const searchForm = document.getElementById('marketplace-search-form');
     const sortByEl = document.getElementById('sort-by');
 
-    // Pagination variables
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=collection`;
+        
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        
+        return url;
+    };
+
+    // --- Pagination variables ---
     let lastVisible = null;
     const PAGE_SIZE = 24;
     let hasMore = true;
@@ -41,6 +54,8 @@ document.addEventListener('authReady', (e) => {
         isLoading = true;
         loader.style.display = 'block';
         
+        let indexFields = [{ name: 'forSale', order: 'asc' }]; // Base field for the query
+
         try {
             // Build the query based on filters
             let query = db.collectionGroup('collection').where('forSale', '==', true);
@@ -58,10 +73,13 @@ document.addEventListener('authReady', (e) => {
 
             if (sortBy === 'price-asc') {
                 query = query.orderBy('salePrice', 'asc');
+                indexFields.push({ name: 'salePrice', order: 'asc' });
             } else if (sortBy === 'price-desc') {
                 query = query.orderBy('salePrice', 'desc');
+                indexFields.push({ name: 'salePrice', order: 'desc' });
             } else {
                 query = query.orderBy('addedAt', 'desc');
+                indexFields.push({ name: 'addedAt', order: 'desc' });
             }
 
             if (lastVisible) {
@@ -111,8 +129,19 @@ document.addEventListener('authReady', (e) => {
         } catch (error) {
             console.error("Error loading marketplace:", error);
             if (error.code === 'failed-precondition') {
-                 console.error("Firebase Index Error:", error.message);
-                 marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">Error loading marketplace. A required database index is missing. Please open the browser console (F12) for a link to create it.</p>`;
+                 const indexLink = generateIndexCreationLink(indexFields);
+                 const errorMessage = `
+                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
+                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                           Click Here to Create the Index
+                        </a>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                    </div>
+                 `;
+                 marketplaceGrid.innerHTML = errorMessage;
             } else {
                 marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">An unknown error occurred.</p>`;
             }
