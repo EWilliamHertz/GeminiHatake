@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - Marketplace Page Script (v23 - Internationalization)
+ * HatakeSocial - Marketplace Page Script
  *
- * NEW: Uses the global currency conversion function to display all prices.
+ * BUG FIX v23: Rewrites the marketplace loading logic to be more robust
+ * and provides clear error messages if a Firestore index is missing.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -19,6 +20,7 @@ document.addEventListener('authReady', (e) => {
     const tabs = document.querySelectorAll('.marketplace-tab-button');
     const tabContents = document.querySelectorAll('.marketplace-tab-content');
 
+    // Pagination variables
     let lastVisible = null;
     const PAGE_SIZE = 24;
     let hasMore = true;
@@ -106,7 +108,13 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading marketplace:", error);
-            marketplaceGrid.innerHTML = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md col-span-full" role="alert"><p class="font-bold">Database Error</p><p>Could not load marketplace data. A required index may be missing.</p></div>`;
+            if (error.code === 'failed-precondition') {
+                 console.error("Firebase Index Error: You are missing a composite index for this query. Please create it in your Firebase console. The error message below contains a link to do so automatically.");
+                 console.error(error.message);
+                 marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">Error loading marketplace. A required database index is missing. Please open the browser console (F12) for a link to create it.</p>`;
+            } else {
+                marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">An unknown error occurred while loading the marketplace.</p>`;
+            }
         } finally {
             loader.style.display = 'none';
         }
@@ -138,19 +146,18 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderMarketplace = (cards) => {
-        marketplaceGrid.innerHTML = ''; // Clear the grid before rendering
+        marketplaceGrid.innerHTML = '';
 
-        if (cards.length === 0 && isInitialLoad) {
+        if (cards.length === 0) {
             marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards found for the current filters.</p>';
             return;
         }
         
         cards.forEach(card => {
             const sellerHandle = card.sellerData?.handle || 'unknown';
-            const sellerCurrency = card.sellerData?.primaryCurrency || 'SEK';
-            const priceDisplay = card.salePrice > 0 
-                ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, sellerCurrency)
-                : 'For Trade';
+            const priceDisplay = card.salePrice > 0 ? 
+                `${card.salePrice.toFixed(2)} SEK` : 
+                'For Trade';
             
             const cardEl = document.createElement('div');
             cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
@@ -194,8 +201,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const renderAnalyticsCharts = () => { /* ... (no changes) ... */ };
-
+    // Event listeners
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         resetAndLoadCards();
@@ -205,5 +211,4 @@ document.addEventListener('authReady', (e) => {
     
     setupTabs();
     loadMarketplaceCards();
-    // renderAnalyticsCharts(); // This can be enabled when you have data for it
 });
