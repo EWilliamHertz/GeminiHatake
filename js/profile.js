@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Profile Page Script (v9 - Merged Functionality)
+ * HatakeSocial - Profile Page Script (v11 - Merged Functionality)
  *
  * This script handles all logic for the user profile page.
- * - Merges friend request/list logic and trade history from v7.
- * - Retains the granular reputation display and logic from v8.
+ * - Merges friend request/list logic and trade history functionality.
+ * - Retains the expanded achievements system.
  * - Creates notifications for friend requests and acceptances.
  */
 document.addEventListener('authReady', (e) => {
@@ -33,8 +33,8 @@ document.addEventListener('authReady', (e) => {
                 return snapshot.size > 100;
             }
         },
-        deckmaster: {
-            name: 'Deck Master',
+        deck_brewer: { // Renamed from deckmaster
+            name: 'Deck Brewer',
             description: 'Has created at least 5 decks.',
             icon: 'fa-layer-group',
             color: 'text-green-500',
@@ -60,6 +60,44 @@ document.addEventListener('authReady', (e) => {
             async check(userData, userId) {
                  const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2;
                  return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5;
+            }
+        },
+        first_trade: {
+            name: 'First Trade',
+            description: 'Completed your first trade successfully!',
+            icon: 'fa-medal',
+            color: 'text-red-500',
+            async check(userData, userId) {
+                const tradeQuery = await db.collection('trades')
+                    .where('participants', 'array-contains', userId)
+                    .where('status', '==', 'completed')
+                    .limit(1).get();
+                return !tradeQuery.empty;
+            }
+        },
+        top_reviewer: {
+            name: 'Top Reviewer',
+            description: 'Provided helpful feedback on at least 5 trades.',
+            icon: 'fa-star',
+            color: 'text-blue-400',
+            async check(userData, userId) {
+                const feedbackQuery = await db.collection('feedback')
+                    .where('fromUserId', '==', userId)
+                    .limit(5).get();
+                return feedbackQuery.size >= 5;
+            }
+        },
+        guild_founder: {
+            name: 'Guild Founder',
+            description: 'Founded your first Trading Guild.',
+            icon: 'fa-shield-alt',
+            color: 'text-indigo-500',
+            async check(userData, userId) {
+                const groupQuery = await db.collection('groups')
+                    .where('creatorId', '==', userId)
+                    .where('groupType', '==', 'trading_guild')
+                    .limit(1).get();
+                return !groupQuery.empty;
             }
         }
     };
@@ -113,7 +151,6 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
-            // --- REPUTATION DISPLAY ---
             const ratingCount = profileUserData.ratingCount || 0;
             const avgAccuracy = profileUserData.averageAccuracy || 0;
             const avgPackaging = profileUserData.averagePackaging || 0;
