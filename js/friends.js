@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Friends Hub Script (v2 - Index Link Generation)
+ * HatakeSocial - Friends Hub Script (v3 - Index Link Generation)
  *
  * This script handles all logic for the friends.html page, turning it into a dynamic hub.
  * - Manages friend requests directly on the page.
@@ -33,6 +33,21 @@ document.addEventListener('authReady', (e) => {
             url += `&fields=${field.name},${field.order.toUpperCase()}`;
         });
         return url;
+    };
+    
+    const displayIndexError = (container, link) => {
+        const errorMessage = `
+            <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                <a href="${link}" target="_blank" rel="noopener noreferrer" 
+                   class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                   Click Here to Create the Index
+                </a>
+                <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+            </div>
+         `;
+        container.innerHTML = errorMessage;
     };
 
     const switchTab = (tabId) => {
@@ -210,18 +225,7 @@ document.addEventListener('authReady', (e) => {
             console.error("Error loading friend activity:", error);
             if (error.code === 'failed-precondition') {
                 const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
-                const errorMessage = `
-                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
-                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                           Click Here to Create the Index
-                        </a>
-                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
-                    </div>
-                 `;
-                activityFeedEl.innerHTML = errorMessage;
+                displayIndexError(activityFeedEl, indexLink);
             } else {
                 activityFeedEl.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred.</p>`;
             }
