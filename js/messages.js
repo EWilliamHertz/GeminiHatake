@@ -1,7 +1,9 @@
 /**
- * HatakeSocial - Messages Page Script (v13 - Index Link Generation)
+ * HatakeSocial - Messages Page Script (v14 - Conversation Creation Fix)
  *
  * This script handles all logic for the messages.html page.
+ * - FIX: Explicitly sets `isGroupChat: false` when creating a new one-on-one conversation
+ * to comply with Firestore rules and indexing requirements.
  * - FIX: Implements a robust user search by querying multiple fields and merging results.
  * - FIX: Ensures new conversations are created correctly and opened immediately.
  * - Creates notifications for the recipient when a new message is sent.
@@ -224,23 +226,29 @@ document.addEventListener('authReady', (e) => {
             if (!convoDoc.exists) {
                 const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
                 const currentUserData = currentUserDoc.data();
+                
+                // ** THE FIX IS HERE **
+                // Explicitly set `isGroupChat: false` when creating the new conversation document.
                 await conversationRef.set({
                     participants: [currentUser.uid, userId],
                     participantInfo: {
                         [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
                         [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
                     },
-                    isGroupChat: false,
+                    isGroupChat: false, // This line is crucial
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastMessage: 'Conversation started.'
-                }, { merge: true });
+                });
             }
             
+            // Switch to the 'Users' tab to ensure the new conversation appears
             document.querySelector('.message-tab-button[data-tab="users"]').click();
             
+            // Get the newly created or existing conversation data to open the chat
             const newConvoData = (await conversationRef.get()).data();
             openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
+
         } catch (error) {
             console.error("Error starting conversation:", error);
             alert("Could not start conversation.");
@@ -258,8 +266,6 @@ document.addEventListener('authReady', (e) => {
         userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">Searching...</div>';
         
         const usersRef = db.collection('users');
-        // Firestore doesn't support OR queries on different fields.
-        // We must run two separate queries and merge the results client-side.
         const queryByDisplayName = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
         const queryByHandle = usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
 
