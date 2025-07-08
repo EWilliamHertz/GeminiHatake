@@ -16,6 +16,7 @@ document.addEventListener('authReady', async (e) => {
 
     if (!user) {
         accessDeniedContainer.classList.remove('hidden');
+        adminContainer.classList.add('hidden');
         return;
     }
 
@@ -25,11 +26,13 @@ document.addEventListener('authReady', async (e) => {
 
     if (!isAdmin) {
         accessDeniedContainer.classList.remove('hidden');
+        adminContainer.classList.add('hidden');
         return;
     }
 
     // If user is an admin, show the dashboard
     adminContainer.classList.remove('hidden');
+    accessDeniedContainer.classList.add('hidden');
 
     // --- Functions ---
     const loadUsers = async () => {
@@ -57,7 +60,7 @@ document.addEventListener('authReady', async (e) => {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${userData.email}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${userIsAdmin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${userIsAdmin ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">
                         ${userIsAdmin ? 'Admin' : 'User'}
                     </span>
                 </td>
@@ -96,14 +99,14 @@ document.addEventListener('authReady', async (e) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">${reporterName}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-6 py-4">
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">${report.reason}</p>
-                    <p class="text-sm text-gray-500">${report.details || 'No details provided.'}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${report.details || 'No details provided.'}</p>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${postContent}</td>
+                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">${postContent}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <button data-report-id="${reportId}" class="dismiss-report-btn text-green-600 hover:text-green-900">Dismiss</button>
-                    ${postDoc.exists ? `<button data-report-id="${reportId}" data-post-id="${report.postId}" class="delete-post-btn text-red-600 hover:text-red-900">Delete Post</button>` : ''}
+                    <button data-report-id="${reportId}" class="dismiss-report-btn text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-200">Dismiss</button>
+                    ${postDoc.exists ? `<button data-report-id="${reportId}" data-post-id="${report.postId}" class="delete-post-btn text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200">Delete Post</button>` : ''}
                 </td>
             `;
             reportTableBody.appendChild(row);
