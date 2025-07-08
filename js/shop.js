@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Shop Page Script (v2 - Corrected Image Paths)
+ * HatakeSocial - Shop Page Script (v3 - Checkout Error Handling)
  *
  * This script is responsible for the shop page functionality.
  * FIX: Corrected image extensions in the product data to match actual filenames (.jpeg, .jpg).
- * This was the primary reason images and products were not loading.
+ * NEW: Adds robust error handling to the Stripe checkout process.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -205,7 +205,7 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error during checkout: ", error);
-            alert("Could not initiate checkout. This could be due to a misconfiguration of Firebase Cloud Functions or Stripe API keys.");
+            alert("Could not initiate checkout. The payment service may be temporarily unavailable. Please try again later.");
         } finally {
             checkoutBtn.disabled = false;
             checkoutBtn.innerHTML = 'Checkout';
