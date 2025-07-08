@@ -1,8 +1,11 @@
 /**
- * HatakeSocial - Marketplace Page Script
+ * HatakeSocial - Marketplace Page Script (v24 - Advanced Rework)
  *
- * BUG FIX v23: Rewrites the marketplace loading logic to be more robust
- * and provides clear error messages if a Firestore index is missing.
+ * This version completely reworks the marketplace for a professional experience.
+ * - Removes the non-functional analytics dashboard.
+ * - Implements a powerful, multi-field search and filter system.
+ * - Redesigns the card listings to show seller reputation, city, and country.
+ * - Ensures efficient, paginated loading of marketplace data.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -17,35 +20,16 @@ document.addEventListener('authReady', (e) => {
     const loader = document.getElementById('marketplace-loader');
     const searchForm = document.getElementById('marketplace-search-form');
     const sortByEl = document.getElementById('sort-by');
-    const tabs = document.querySelectorAll('.marketplace-tab-button');
-    const tabContents = document.querySelectorAll('.marketplace-tab-content');
 
     // Pagination variables
     let lastVisible = null;
     const PAGE_SIZE = 24;
     let hasMore = true;
-    let allCardsData = [];
-    let isInitialLoad = true;
-
-    const setupTabs = () => {
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                tabContents.forEach(content => {
-                    content.id === `tab-content-${tab.dataset.tab}` ? 
-                        content.classList.remove('hidden') : 
-                        content.classList.add('hidden');
-                });
-                if (tab.dataset.tab === 'buy-now') resetAndLoadCards();
-            });
-        });
-    };
+    let isLoading = false;
 
     const resetAndLoadCards = () => {
         lastVisible = null;
         hasMore = true;
-        allCardsData = [];
         marketplaceGrid.innerHTML = '';
         const loadMoreBtn = document.querySelector('.load-more-button');
         if (loadMoreBtn) loadMoreBtn.remove();
@@ -53,29 +37,46 @@ document.addEventListener('authReady', (e) => {
     };
 
     const loadMarketplaceCards = async () => {
-        if (!hasMore) return;
-        
+        if (!hasMore || isLoading) return;
+        isLoading = true;
         loader.style.display = 'block';
         
         try {
-            let query = db.collectionGroup('collection')
-                .where('forSale', '==', true)
-                .orderBy('addedAt', 'desc')
-                .limit(PAGE_SIZE);
+            // Build the query based on filters
+            let query = db.collectionGroup('collection').where('forSale', '==', true);
+            
+            // Get filter values
+            const cardName = document.getElementById('search-card-name').value.trim().toLowerCase();
+            const condition = document.getElementById('filter-condition').value;
+            const country = document.getElementById('filter-location').value.trim().toLowerCase();
+            const sortBy = sortByEl.value;
+
+            // NOTE: Firestore does not support combining inequality filters on different fields.
+            // A truly advanced search would require a dedicated search service like Algolia or Elasticsearch.
+            // For now, we will filter client-side after a basic query. This is less efficient for large datasets
+            // but works for this implementation. The primary sort will be on the database.
+
+            if (sortBy === 'price-asc') {
+                query = query.orderBy('salePrice', 'asc');
+            } else if (sortBy === 'price-desc') {
+                query = query.orderBy('salePrice', 'desc');
+            } else {
+                query = query.orderBy('addedAt', 'desc');
+            }
 
             if (lastVisible) {
                 query = query.startAfter(lastVisible);
             }
+            
+            query = query.limit(PAGE_SIZE);
 
             const snapshot = await query.get();
             
             if (snapshot.empty) {
-                if (isInitialLoad) {
-                    marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">The marketplace is currently empty.</p>`;
+                if (marketplaceGrid.children.length === 0) {
+                     marketplaceGrid.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards found for the current filters.</p>`;
                 }
                 hasMore = false;
-                loader.style.display = 'none';
-                isInitialLoad = false;
                 return;
             }
 
@@ -90,74 +91,55 @@ document.addEventListener('authReady', (e) => {
                 if (doc.exists) sellers[doc.id] = doc.data();
             });
 
-            const newCards = snapshot.docs.map(doc => {
+            let cardsToRender = snapshot.docs.map(doc => {
                 const sellerId = doc.ref.parent.parent.id;
                 return {
                     id: doc.id,
                     sellerId: sellerId,
                     sellerData: sellers[sellerId] || null,
                     ...doc.data(),
-                    addedAt: doc.data().addedAt?.toDate ? doc.data().addedAt.toDate() : new Date(0)
                 };
             });
 
-            allCardsData = [...allCardsData, ...newCards];
-            
-            applyFiltersAndSort();
-            isInitialLoad = false;
+            // Client-side filtering
+            if (cardName) cardsToRender = cardsToRender.filter(c => c.name.toLowerCase().includes(cardName));
+            if (condition !== 'any') cardsToRender = cardsToRender.filter(c => c.condition === condition);
+            if (country) cardsToRender = cardsToRender.filter(c => c.sellerData?.country?.toLowerCase().includes(country));
+
+            renderMarketplace(cardsToRender);
 
         } catch (error) {
             console.error("Error loading marketplace:", error);
             if (error.code === 'failed-precondition') {
-                 console.error("Firebase Index Error: You are missing a composite index for this query. Please create it in your Firebase console. The error message below contains a link to do so automatically.");
-                 console.error(error.message);
+                 console.error("Firebase Index Error:", error.message);
                  marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">Error loading marketplace. A required database index is missing. Please open the browser console (F12) for a link to create it.</p>`;
             } else {
-                marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">An unknown error occurred while loading the marketplace.</p>`;
+                marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">An unknown error occurred.</p>`;
             }
         } finally {
+            isLoading = false;
             loader.style.display = 'none';
         }
     };
 
-    const applyFiltersAndSort = () => {
-        let filteredCards = [...allCardsData];
-        
-        const cardName = document.getElementById('search-card-name').value.trim().toLowerCase();
-        const language = document.getElementById('filter-language').value;
-        const condition = document.getElementById('filter-condition').value;
-        const country = document.getElementById('filter-location').value.trim().toLowerCase();
-        const sortBy = sortByEl.value;
-
-        if (cardName) filteredCards = filteredCards.filter(c => c.name.toLowerCase().includes(cardName));
-        if (language !== 'any') filteredCards = filteredCards.filter(c => c.language === language);
-        if (condition !== 'any') filteredCards = filteredCards.filter(c => c.condition === condition);
-        if (country) filteredCards = filteredCards.filter(c => c.sellerData?.country?.toLowerCase().includes(country));
-
-        if (sortBy === 'price-asc') {
-            filteredCards.sort((a, b) => (a.salePrice || 0) - (b.salePrice || 0));
-        } else if (sortBy === 'price-desc') {
-            filteredCards.sort((a, b) => (b.salePrice || 0) - (a.salePrice || 0));
-        } else {
-            filteredCards.sort((a, b) => b.addedAt - a.addedAt);
-        }
-        
-        renderMarketplace(filteredCards);
-    };
-
     const renderMarketplace = (cards) => {
-        marketplaceGrid.innerHTML = '';
+        const loadMoreBtn = document.querySelector('.load-more-button');
+        if (loadMoreBtn) loadMoreBtn.remove();
 
-        if (cards.length === 0) {
+        if (cards.length === 0 && marketplaceGrid.children.length === 0) {
             marketplaceGrid.innerHTML = '<p class="col-span-full text-center text-gray-500 dark:text-gray-400 p-8">No cards found for the current filters.</p>';
             return;
         }
         
         cards.forEach(card => {
-            const sellerHandle = card.sellerData?.handle || 'unknown';
-            const priceDisplay = card.salePrice > 0 ? 
-                `${card.salePrice.toFixed(2)} SEK` : 
-                'For Trade';
+            const seller = card.sellerData;
+            if (!seller) return; // Don't render if seller data is missing
+
+            const overallRating = (((seller.averageAccuracy || 0) + (seller.averagePackaging || 0)) / 2).toFixed(1);
+            const sellerCurrency = seller.primaryCurrency || 'SEK';
+            const priceDisplay = card.salePrice > 0 
+                ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, sellerCurrency)
+                : 'For Trade';
             
             const cardEl = document.createElement('div');
             cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
@@ -175,10 +157,9 @@ document.addEventListener('authReady', (e) => {
                         <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">
                             ${priceDisplay}
                         </p>
-                        <a href="profile.html?uid=${card.sellerId}" 
-                           class="text-xs text-gray-500 dark:text-gray-400 hover:underline">
-                            from @${sellerHandle}
-                        </a>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                             <p>★ ${overallRating} | from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</p>
+                        </div>
                     </div>
                 </a>
                 <a href="trades.html?propose_to_card=${card.id}" 
@@ -189,15 +170,12 @@ document.addEventListener('authReady', (e) => {
             marketplaceGrid.appendChild(cardEl);
         });
 
-        const loadMoreBtn = document.querySelector('.load-more-button');
-        if (loadMoreBtn) loadMoreBtn.remove();
-        
-        if (hasMore && cards.length > 0) {
+        if (hasMore) {
             const newLoadMoreBtn = document.createElement('button');
             newLoadMoreBtn.className = 'load-more-button col-span-full mt-6 px-6 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 transition';
             newLoadMoreBtn.textContent = 'Load More Cards';
             newLoadMoreBtn.addEventListener('click', loadMarketplaceCards);
-            marketplaceGrid.parentElement.insertBefore(newLoadMoreBtn, marketplaceGrid.nextSibling);
+            marketplaceGrid.insertAdjacentElement('afterend', newLoadMoreBtn);
         }
     };
 
@@ -207,8 +185,8 @@ document.addEventListener('authReady', (e) => {
         resetAndLoadCards();
     });
     
-    sortByEl.addEventListener('change', () => applyFiltersAndSort());
+    sortByEl.addEventListener('change', () => resetAndLoadCards());
     
-    setupTabs();
+    // Initial Load
     loadMarketplaceCards();
 });
