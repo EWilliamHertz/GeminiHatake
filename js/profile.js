@@ -1,15 +1,41 @@
 /**
- * HatakeSocial - Profile Page Script (v12 - Fully Merged)
+ * HatakeSocial - Profile Page Script (v13 - Index Link Generation)
  *
  * This script handles all logic for the user profile page.
  * - Merges all functionalities: friend requests, trade history, and expanded achievements.
  * - Restores all original tabs and their data loading functions.
  * - Creates notifications for friend requests and acceptances.
+ * - NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
+
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (collection, fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        return url;
+    };
+    
+    const displayIndexError = (container, link) => {
+        const errorMessage = `
+            <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                <a href="${link}" target="_blank" rel="noopener noreferrer" 
+                   class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                   Click Here to Create the Index
+                </a>
+                <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+            </div>
+         `;
+        container.innerHTML = errorMessage;
+    };
 
     // --- Badge Definitions ---
     const badgeDefinitions = {
@@ -255,48 +281,68 @@ document.addEventListener('authReady', (e) => {
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
         container.innerHTML = '<p class="text-gray-500">Loading feed...</p>';
-        const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
-        if(snapshot.empty) {
-            container.innerHTML = '<p class="text-center text-gray-500">This user hasn\'t posted anything yet.</p>';
-            return;
-        }
-        container.innerHTML = '';
-        snapshot.forEach(doc => {
-            const post = doc.data();
-            const postElement = document.createElement('div');
-            postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-            postElement.innerHTML = `
-                <div class="flex items-center mb-4">
-                    <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover">
-                    <div>
-                        <p class="font-bold dark:text-white">${post.author}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+        try {
+            const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
+            if(snapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500">This user hasn\'t posted anything yet.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const post = doc.data();
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+                postElement.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover">
+                        <div>
+                            <p class="font-bold dark:text-white">${post.author}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
                     </div>
-                </div>
-                <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
-                 ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
-            `;
-            container.appendChild(postElement);
-        });
+                    <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
+                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
+                `;
+                container.appendChild(postElement);
+            });
+        } catch (error) {
+            console.error("Error loading profile feed:", error);
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
+                displayIndexError(container, indexLink);
+            } else {
+                container.innerHTML = `<p class="text-center text-red-500">Could not load feed.</p>`;
+            }
+        }
     };
 
     const loadProfileDecks = async (userId) => {
         const container = document.getElementById('tab-content-decks');
         container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
-        const snapshot = await db.collection('users').doc(userId).collection('decks').orderBy('createdAt', 'desc').get();
-        if (snapshot.empty) {
-            container.innerHTML = '<p class="text-center text-gray-500">This user has no public decks.</p>';
-            return;
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection('decks').orderBy('createdAt', 'desc').get();
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500">This user has no public decks.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const deck = doc.data();
+                const deckCard = document.createElement('a');
+                deckCard.href = `deck.html?deckId=${doc.id}`;
+                deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md block hover:shadow-lg';
+                deckCard.innerHTML = `<h3 class="text-xl font-bold truncate dark:text-white">${deck.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>`;
+                container.appendChild(deckCard);
+            });
+        } catch (error) {
+            console.error("Error loading profile decks:", error);
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('decks', [{ name: 'createdAt', order: 'desc' }]);
+                displayIndexError(container, indexLink);
+            } else {
+                container.innerHTML = `<p class="text-center text-red-500">Could not load decks.</p>`;
+            }
         }
-        container.innerHTML = '';
-        snapshot.forEach(doc => {
-            const deck = doc.data();
-            const deckCard = document.createElement('a');
-            deckCard.href = `deck.html?deckId=${doc.id}`;
-            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md block hover:shadow-lg';
-            deckCard.innerHTML = `<h3 class="text-xl font-bold truncate dark:text-white">${deck.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>`;
-            container.appendChild(deckCard);
-        });
     };
     
     const loadProfileCollection = async (userId, listType) => {
@@ -354,7 +400,12 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading trade history:", error);
-            container.innerHTML = `<p class="text-center text-red-500">Could not load trade history. The required database index may be building.</p>`;
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('trades', [{ name: 'participants', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
+                displayIndexError(container, indexLink);
+            } else {
+                container.innerHTML = `<p class="text-center text-red-500">Could not load trade history.</p>`;
+            }
         }
     };
 
@@ -392,7 +443,12 @@ document.addEventListener('authReady', (e) => {
             });
         } catch (error) {
             console.error("Error loading feedback:", error);
-            container.innerHTML = `<p class="text-center text-red-500">Could not load feedback. The required database index may be building.</p>`;
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('feedback', [{ name: 'forUserId', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
+                displayIndexError(container, indexLink);
+            } else {
+                container.innerHTML = `<p class="text-center text-red-500">Could not load feedback.</p>`;
+            }
         }
     };
     
