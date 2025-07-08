@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Messages Page Script (v12 - Robust Search & Creation)
+ * HatakeSocial - Messages Page Script (v13 - Index Link Generation)
  *
  * This script handles all logic for the messages.html page.
  * - FIX: Implements a robust user search by querying multiple fields and merging results.
  * - FIX: Ensures new conversations are created correctly and opened immediately.
  * - Creates notifications for the recipient when a new message is sent.
+ * - NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -30,6 +31,16 @@ document.addEventListener('authReady', (e) => {
     const messageTabs = document.querySelectorAll('.message-tab-button');
 
     let activeTab = 'users';
+
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (collection, fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        return url;
+    };
 
     const createNotification = async (userId, message, link) => {
         const notificationData = {
@@ -100,7 +111,28 @@ document.addEventListener('authReady', (e) => {
             });
         }, error => {
             console.error(`Error loading ${activeTab} conversations:`, error);
-            conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load conversations. This is likely due to a missing database index or data issue.</p>`;
+            if (error.code === 'failed-precondition') {
+                const indexFields = [
+                    { name: 'participants', order: 'asc' },
+                    { name: 'isGroupChat', order: 'asc' },
+                    { name: 'updatedAt', order: 'desc' }
+                ];
+                const indexLink = generateIndexCreationLink('conversations', indexFields);
+                const errorMessage = `
+                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
+                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                           Click Here to Create the Index
+                        </a>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                    </div>
+                 `;
+                conversationsListEl.innerHTML = errorMessage;
+            } else {
+                conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load conversations.</p>`;
+            }
         });
     };
 
