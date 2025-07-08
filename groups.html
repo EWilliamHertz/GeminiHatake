@@ -28,10 +28,10 @@
                     <ul class="flex space-x-6">
                         <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
                         <li><a href="friends.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Friends"><i class="fas fa-user-friends"></i></a></li>
-                        <li><a href="groups.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
+                        <li><a href="groups.html" class="text-blue-600 dark:text-blue-400 text-xl" title="Groups"><i class="fas fa-users"></i></a></li>
                         <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
                         <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                        <li><a href="my_collection.html" class="text-blue-600 dark:text-blue-400 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
                         <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
                         <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
                         <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
@@ -99,6 +99,16 @@
                     <label for="groupDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                     <textarea id="groupDescription" rows="3" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required></textarea>
                 </div>
+                <!-- NEW: Group Type Selector -->
+                <div>
+                    <label for="groupType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Type</label>
+                    <select id="groupType" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                        <option value="general" selected>General</option>
+                        <option value="trading_guild">Trading Guild</option>
+                        <option value="strategy_lab">Strategy Lab</option>
+                        <option value="regional_hub">Regional Hub</option>
+                    </select>
+                </div>
                 <div class="flex items-center">
                     <input id="groupPublic" type="checkbox" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                     <label for="groupPublic" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Make this group public</label>
@@ -110,6 +120,48 @@
         </div>
     </div>
     
+    <!-- NEW: Trade Post Modal -->
+    <div id="trade-post-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg">
+            <button id="close-trade-post-modal" class="close-button">&times;</button>
+            <h2 id="trade-post-modal-title" class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Create Trade Post</h2>
+            <form id="trade-post-form" class="space-y-4">
+                <input type="hidden" id="trade-post-type">
+                <div>
+                    <label for="trade-post-title-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Post Title</label>
+                    <input type="text" id="trade-post-title-input" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="e.g., WTT: Modern Staples for Commander Cards" required>
+                </div>
+                <div>
+                    <label for="trade-post-body-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                    <textarea id="trade-post-body-input" rows="4" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Add any extra details about what you're looking for, card conditions, etc."></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Haves Column -->
+                    <div id="trade-post-haves-section">
+                        <h3 class="font-semibold dark:text-white">Cards I Have:</h3>
+                        <div id="trade-post-haves-list" class="mt-2 space-y-2 min-h-[50px] bg-gray-100 dark:bg-gray-900/50 p-2 rounded-md"></div>
+                        <div class="relative mt-2">
+                            <input type="text" id="trade-post-haves-search" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Search your Collection...">
+                            <div id="trade-post-haves-results" class="absolute z-10 w-full bg-white dark:bg-gray-600 border rounded-md shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                        </div>
+                    </div>
+                    <!-- Wants Column -->
+                    <div id="trade-post-wants-section">
+                        <h3 class="font-semibold dark:text-white">Cards I Want:</h3>
+                         <div id="trade-post-wants-list" class="mt-2 space-y-2 min-h-[50px] bg-gray-100 dark:bg-gray-900/50 p-2 rounded-md"></div>
+                        <div class="relative mt-2">
+                            <input type="text" id="trade-post-wants-search" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Search your Wishlist...">
+                            <div id="trade-post-wants-results" class="absolute z-10 w-full bg-white dark:bg-gray-600 border rounded-md shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right pt-2">
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Create Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="invite-member-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button id="close-invite-modal" class="close-button">&times;</button>
@@ -242,5 +294,6 @@
     <script src="js/auth.js"></script>
     <script src="js/groups.js"></script>
     <script src="js/darkmode.js"></script>
+    <script src="js/messenger.js"></script>
 </body>
 </html>
