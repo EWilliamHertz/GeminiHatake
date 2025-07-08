@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Friends Hub Script
+ * HatakeSocial - Friends Hub Script (v2 - Index Link Generation)
  *
  * This script handles all logic for the friends.html page, turning it into a dynamic hub.
  * - Manages friend requests directly on the page.
  * - Provides friend suggestions based on shared groups and location.
  * - Displays a dedicated activity feed of friends' posts and new decks.
+ * - NEW: Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -23,6 +24,16 @@ document.addEventListener('authReady', (e) => {
     const suggestionsListEl = document.getElementById('friend-suggestions-list');
     const activityFeedEl = document.getElementById('friend-activity-feed');
     const requestCountBadge = document.getElementById('friend-request-count');
+
+    // --- Helper to generate a Firestore index creation link ---
+    const generateIndexCreationLink = (collection, fields) => {
+        const projectId = db.app.options.projectId;
+        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+        fields.forEach(field => {
+            url += `&fields=${field.name},${field.order.toUpperCase()}`;
+        });
+        return url;
+    };
 
     const switchTab = (tabId) => {
         tabs.forEach(button => {
@@ -165,37 +176,56 @@ document.addEventListener('authReady', (e) => {
             return;
         }
 
-        const postsSnapshot = await db.collection('posts').where('authorId', 'in', myFriends).orderBy('timestamp', 'desc').limit(10).get();
-        
-        let activities = [];
-        postsSnapshot.forEach(doc => activities.push({ type: 'post', data: doc.data(), id: doc.id, timestamp: doc.data().timestamp.toDate() }));
-        
-        // In a larger app, you'd query other collections (decks, trades) and merge them here.
-        
-        activities.sort((a, b) => b.timestamp - a.timestamp);
+        try {
+            const postsSnapshot = await db.collection('posts').where('authorId', 'in', myFriends).orderBy('timestamp', 'desc').limit(10).get();
+            
+            let activities = [];
+            postsSnapshot.forEach(doc => activities.push({ type: 'post', data: doc.data(), id: doc.id, timestamp: doc.data().timestamp.toDate() }));
+            
+            activities.sort((a, b) => b.timestamp - a.timestamp);
 
-        if (activities.length === 0) {
-            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
-            return;
-        }
+            if (activities.length === 0) {
+                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
+                return;
+            }
 
-        activityFeedEl.innerHTML = '';
-        activities.forEach(activity => {
-            const post = activity.data;
-            const postElement = document.createElement('div');
-            postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-            postElement.innerHTML = `
-                <div class="flex items-center mb-4">
-                    <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
-                    <div>
-                        <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white">${post.author}</a>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+            activityFeedEl.innerHTML = '';
+            activities.forEach(activity => {
+                const post = activity.data;
+                const postElement = document.createElement('div');
+                postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+                postElement.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                        <div>
+                            <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white">${post.author}</a>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
                     </div>
-                </div>
-                <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
-            `;
-            activityFeedEl.appendChild(postElement);
-        });
+                    <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
+                `;
+                activityFeedEl.appendChild(postElement);
+            });
+        } catch (error) {
+            console.error("Error loading friend activity:", error);
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
+                const errorMessage = `
+                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
+                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+                           Click Here to Create the Index
+                        </a>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                    </div>
+                 `;
+                activityFeedEl.innerHTML = errorMessage;
+            } else {
+                activityFeedEl.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred.</p>`;
+            }
+        }
     };
 
     friendsPageContainer.addEventListener('click', async (event) => {
