@@ -1,12 +1,13 @@
 /**
- * HatakeSocial - My Collection Page Script (v11 - Advanced Add & Bug Fix)
+ * HatakeSocial - My Collection Page Script (v12 - Advanced Add & Bug Fix)
  *
- * NEW: Implements an advanced manual add feature allowing users to select a game,
+ * This script handles all logic for the my_collection.html page.
+ * - Implements an advanced manual add feature allowing users to select a game,
  * search for a card, and see all available printings before adding.
- * NEW: Utilizes Scryfall API for Magic and Pokémon TCG API for Pokémon.
- * FIX: Patches a bug in the CSV importer that caused an error on malformed rows.
+ * - Utilizes Scryfall API for Magic and Pokémon TCG API for Pokémon.
+ * - Fixes a bug in the CSV importer that caused an error on malformed rows.
  * - Adds a "Quick Edit" mode to rapidly update quantity, condition, and price in a table view.
- * - Adds advanced bulk-pricing options (e.g., "undercut lowest by X").
+ * - Adds advanced bulk-pricing options.
  * - All bulk and quick-edit changes are saved in a single, efficient Firestore batch write.
  */
 document.addEventListener('authReady', (e) => {
@@ -51,7 +52,7 @@ document.addEventListener('authReady', (e) => {
     const percentagePriceForm = document.getElementById('percentage-price-form');
     const fixedUndercutForm = document.getElementById('fixed-undercut-form');
 
-    // NEW: Advanced Manual Add Elements
+    // Advanced Manual Add Elements
     const manualGameSelect = document.getElementById('manual-game-select');
     const searchCardVersionsBtn = document.getElementById('search-card-versions-btn');
     const manualAddResultsContainer = document.getElementById('manual-add-results');
@@ -81,7 +82,7 @@ document.addEventListener('authReady', (e) => {
                     renderGridView();
                 }
             } else {
-                // Wishlist logic would go here
+                // Wishlist logic can be expanded here
             }
         } catch (error) {
             console.error(`Error loading ${listType}:`, error);
@@ -133,8 +134,8 @@ document.addEventListener('authReady', (e) => {
             totalValue += price * quantity;
 
             if (card.rarity) {
-                if (rarityCounts.hasOwnProperty(card.rarity)) {
-                    rarityCounts[card.rarity] += quantity;
+                if (rarityCounts.hasOwnProperty(card.rarity.toLowerCase())) {
+                    rarityCounts[card.rarity.toLowerCase()] += quantity;
                 }
             }
         });
@@ -169,7 +170,7 @@ document.addEventListener('authReady', (e) => {
             quickEditBtn.classList.remove('hidden');
         }
         updateSelectedCount();
-        renderGridView(); // Re-render to show/hide checkboxes
+        renderGridView();
     };
 
     const toggleQuickEditMode = () => {
@@ -353,7 +354,7 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- NEW: Advanced Manual Add Logic ---
+    // --- Advanced Manual Add Logic ---
     searchCardVersionsBtn.addEventListener('click', async () => {
         const cardName = document.getElementById('manual-card-name').value;
         const game = manualGameSelect.value;
@@ -502,7 +503,6 @@ document.addEventListener('authReady', (e) => {
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
                 
                 for (const row of rows) {
-                    // FIX: Check if row and nameKey exist before trying to access them
                     if (!row || !row[nameKey]) {
                         errorCount++;
                         continue; 
@@ -510,7 +510,7 @@ document.addEventListener('authReady', (e) => {
                     const cardName = row[nameKey];
 
                     try {
-                        await new Promise(resolve => setTimeout(resolve, 100)); // Scryfall API rate limit
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         
                         const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
                         if (!response.ok) throw new Error(`Scryfall API error`);
