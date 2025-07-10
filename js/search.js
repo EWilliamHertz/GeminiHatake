@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Search Page Script (v2 - Index Link Generation)
+ * HatakeSocial - Search Page Script (v3 - Advanced Filters)
  *
- * BUG FIX: Implements robust parallel queries for searching across
- * different collection groups to avoid Firestore index errors.
- * BUG FIX: Adds a 'name_lower' field to documents to enable case-insensitive search.
- * NEW: Generates a direct link to create missing Firestore indexes on error.
+ * This version adds advanced filtering options for card searches.
+ * - Filters by card type, color, mana value, and price.
+ * - Combines Firestore queries with client-side filtering for complex searches.
  */
 document.addEventListener('authReady', (e) => {
     const db = firebase.firestore();
@@ -20,6 +19,13 @@ document.addEventListener('authReady', (e) => {
     const filterUsersCheckbox = document.getElementById('filter-users');
     const filterDecksCheckbox = document.getElementById('filter-decks');
     const filterCardsCheckbox = document.getElementById('filter-cards');
+    
+    // Advanced Filter Elements
+    const filterCardType = document.getElementById('filter-card-type');
+    const filterColor = document.getElementById('filter-color');
+    const filterManaValue = document.getElementById('filter-mana-value');
+    const filterPriceMin = document.getElementById('filter-price-min');
+    const filterPriceMax = document.getElementById('filter-price-max');
 
     // --- Helper to generate a Firestore index creation link ---
     const generateIndexCreationLink = (collection, fields) => {
@@ -45,7 +51,16 @@ document.addEventListener('authReady', (e) => {
             e.preventDefault();
             const newQuery = searchBarPage.value.trim();
             if (newQuery) {
-                window.location.href = `search.html?query=${encodeURIComponent(newQuery)}`;
+                // Build a new query string with all filters
+                const params = new URLSearchParams();
+                params.set('query', newQuery);
+                if (filterCardType.value) params.set('type', filterCardType.value);
+                if (filterColor.value) params.set('color', filterColor.value);
+                if (filterManaValue.value) params.set('cmc', filterManaValue.value);
+                if (filterPriceMin.value) params.set('minPrice', filterPriceMin.value);
+                if (filterPriceMax.value) params.set('maxPrice', filterPriceMax.value);
+
+                window.location.href = `search.html?${params.toString()}`;
             }
         });
     }
@@ -147,19 +162,42 @@ document.addEventListener('authReady', (e) => {
     async function searchCards(searchTerm) {
         const container = document.getElementById('cards-results');
         container.innerHTML = '<p class="text-gray-500">Searching for cards...</p>';
-        const cardsRef = db.collectionGroup('collection');
+        let cardsQuery = db.collectionGroup('collection');
+        
         try {
             const searchTermLower = searchTerm.toLowerCase();
-            const snapshot = await cardsRef.where('name_lower', '>=', searchTermLower).where('name_lower', '<=', searchTermLower + '\uf8ff').get();
+            if (searchTerm) {
+                 cardsQuery = cardsQuery.where('name_lower', '>=', searchTermLower).where('name_lower', '<=', searchTermLower + '\uf8ff');
+            }
+            // Add other filters if available
+            // Note: Firestore has limitations on combining inequality filters.
+            // For a production app, a dedicated search service like Algolia would be better here.
+            // For now, we will perform some filtering on the client side.
+
+            const snapshot = await cardsQuery.get();
 
             if (snapshot.empty) {
                 container.innerHTML = '<p class="text-gray-500">No cards with that name found in any collection.</p>';
                 return;
             }
+            
+            let allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Client-side filtering for advanced fields
+            const typeFilter = filterCardType.value;
+            const colorFilter = filterColor.value;
+            const cmcFilter = parseInt(filterManaValue.value, 10);
+            const minPriceFilter = parseFloat(filterPriceMin.value);
+            const maxPriceFilter = parseFloat(filterPriceMax.value);
+
+            if (typeFilter) allCards = allCards.filter(c => c.type_line && c.type_line.includes(typeFilter));
+            if (colorFilter) allCards = allCards.filter(c => c.colors && c.colors.includes(colorFilter));
+            if (!isNaN(cmcFilter)) allCards = allCards.filter(c => c.cmc === cmcFilter);
+            if (!isNaN(minPriceFilter)) allCards = allCards.filter(c => parseFloat(c.priceUsd) >= minPriceFilter);
+            if (!isNaN(maxPriceFilter)) allCards = allCards.filter(c => parseFloat(c.priceUsd) <= maxPriceFilter);
 
             const uniqueCards = {};
-            snapshot.forEach(doc => {
-                const card = doc.data();
+            allCards.forEach(card => {
                 if (!uniqueCards[card.name]) {
                     uniqueCards[card.name] = { name: card.name, imageUrl: card.imageUrl, count: 0 };
                 }
