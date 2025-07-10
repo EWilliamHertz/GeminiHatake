@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v9 - Index Link Generation)
+ * HatakeSocial - Advanced Trades Page Script (v10 - Auto-Balance)
  *
  * This script implements a comprehensive and secure trading system.
  * - Trustee (Escrow) System: Manages the trade lifecycle through multiple statuses.
@@ -7,7 +7,8 @@
  * - Automated Value Calculation: Fetches card prices and calculates trade value.
  * - Formal Counter-Offers: Enables clear and auditable negotiation.
  * - Dispute Resolution: Provides a mechanism for users to report problems.
- * - NEW: Generates a direct link to create missing Firestore indexes on error.
+ * - Generates a direct link to create missing Firestore indexes on error.
+ * - NEW: Adds an "Auto-Balance" feature to automatically suggest cards to match trade value.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -43,6 +44,7 @@ document.addEventListener('authReady', (e) => {
     const proposerMoneyInput = document.getElementById('proposer-money');
     const receiverMoneyInput = document.getElementById('receiver-money');
     const counterOfferInput = document.getElementById('counter-offer-original-id');
+    const autoBalanceBtn = document.getElementById('auto-balance-btn'); // NEW
 
 
     // Feedback Modal Elements
@@ -419,6 +421,60 @@ document.addEventListener('authReady', (e) => {
         receiverValueEl.textContent = `${(receiverValue * USD_TO_SEK_RATE).toFixed(2)} SEK`;
     };
 
+    // --- NEW: Auto-Balance Trade Logic ---
+    const autoBalanceTrade = () => {
+        // 1. Calculate target value from receiver's side
+        let targetValueUSD = 0;
+        tradeOffer.receiverCards.forEach(card => {
+            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            targetValueUSD += price;
+        });
+        targetValueUSD += parseFloat(receiverMoneyInput.value) / USD_TO_SEK_RATE || 0;
+    
+        // 2. Get the value we have already offered
+        let currentValueUSD = 0;
+        tradeOffer.proposerCards.forEach(card => {
+            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            currentValueUSD += price;
+        });
+        currentValueUSD += parseFloat(proposerMoneyInput.value) / USD_TO_SEK_RATE || 0;
+    
+        let valueToFind = targetValueUSD - currentValueUSD;
+        if (valueToFind <= 0) {
+            alert("Your offer already meets or exceeds their value!");
+            return;
+        }
+    
+        // 3. Get available cards from our collection
+        const availableCards = myCollectionForTrade
+            .filter(myCard => !tradeOffer.proposerCards.some(offerCard => offerCard.id === myCard.id)) // Filter out already selected cards
+            .map(card => ({ // Create a new object with calculated value
+                ...card,
+                value: parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0
+            }))
+            .filter(card => card.value > 0) // Only consider cards with a value
+            .sort((a, b) => b.value - a.value); // Sort from most to least valuable
+    
+        // 4. Greedy algorithm to select cards
+        const cardsToAdd = [];
+        for (const card of availableCards) {
+            if (valueToFind <= 0) break; // Stop if we've met the value
+            if (card.value <= valueToFind) {
+                cardsToAdd.push(card);
+                valueToFind -= card.value;
+            }
+        }
+    
+        // 5. Add the selected cards to the trade offer
+        if (cardsToAdd.length > 0) {
+            tradeOffer.proposerCards.push(...cardsToAdd);
+            updateSelectionUI('proposer', tradeOffer.proposerCards);
+            alert(`Added ${cardsToAdd.length} card(s) to your offer to help balance the trade.`);
+        } else {
+            alert("Could not find any suitable cards in your collection to automatically balance the trade.");
+        }
+    };
+
     // --- Notification Helper ---
     const createNotification = async (userId, message, link) => {
         const notificationData = {
@@ -534,6 +590,7 @@ document.addEventListener('authReady', (e) => {
     proposeNewTradeBtn?.addEventListener('click', () => openProposeTradeModal(null));
     closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
     sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
+    autoBalanceBtn?.addEventListener('click', autoBalanceTrade); // NEW
     
     // Listeners for value calculation
     proposerMoneyInput.addEventListener('input', updateTotalValueUI);
