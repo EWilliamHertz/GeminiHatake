@@ -1,14 +1,15 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v10 - Auto-Balance)
+ * HatakeSocial - Advanced Trades Page Script (v11 - Advanced Auto-Balance & Bug Fix)
  *
  * This script implements a comprehensive and secure trading system.
+ * - FIX: Correctly fetches and displays trade partner's collection.
+ * - NEW: Implements a modal-based, percentage-driven "Auto-Balance" feature.
+ * - NEW: Auto-Balance can be initiated from either side of the trade.
+ * - NEW: Displays card values in the selection list.
  * - Trustee (Escrow) System: Manages the trade lifecycle through multiple statuses.
  * - Granular Reputation System: Allows users to leave detailed feedback.
- * - Automated Value Calculation: Fetches card prices and calculates trade value.
  * - Formal Counter-Offers: Enables clear and auditable negotiation.
  * - Dispute Resolution: Provides a mechanism for users to report problems.
- * - Generates a direct link to create missing Firestore indexes on error.
- * - NEW: Adds an "Auto-Balance" feature to automatically suggest cards to match trade value.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -31,6 +32,7 @@ document.addEventListener('authReady', (e) => {
     const tradeModal = document.getElementById('propose-trade-modal');
     const feedbackModal = document.getElementById('feedback-modal');
     const disputeModal = document.getElementById('dispute-modal');
+    const autoBalanceModal = document.getElementById('auto-balance-modal');
 
     // Trade Modal Elements
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
@@ -44,7 +46,11 @@ document.addEventListener('authReady', (e) => {
     const proposerMoneyInput = document.getElementById('proposer-money');
     const receiverMoneyInput = document.getElementById('receiver-money');
     const counterOfferInput = document.getElementById('counter-offer-original-id');
-    const autoBalanceBtn = document.getElementById('auto-balance-btn'); // NEW
+    
+    // Auto-Balance Modal Elements
+    const closeBalanceModalBtn = document.getElementById('close-balance-modal');
+    const autoBalanceForm = document.getElementById('auto-balance-form');
+    const balanceTargetSideInput = document.getElementById('balance-target-side');
 
 
     // Feedback Modal Elements
@@ -67,7 +73,7 @@ document.addEventListener('authReady', (e) => {
         receiverMoney: 0,
         receiver: null
     };
-    const USD_TO_SEK_RATE = 10.5; // Example static rate. In a real app, this would be fetched from an API.
+    const USD_TO_SEK_RATE = 10.5;
 
     // --- Helper to generate a Firestore index creation link ---
     const generateIndexCreationLink = (collection, fields) => {
@@ -340,6 +346,8 @@ document.addEventListener('authReady', (e) => {
         tradePartnerResults.classList.add('hidden');
 
         document.getElementById('receiver-trade-section').classList.remove('opacity-50', 'pointer-events-none');
+        document.getElementById('receiver-selected-cards').innerHTML = '<p class="text-sm text-gray-500 italic">No cards selected.</p>';
+
 
         const theirCollectionList = document.getElementById('their-collection-list');
         theirCollectionList.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading collection...</p>';
@@ -353,13 +361,21 @@ document.addEventListener('authReady', (e) => {
         const container = document.getElementById(side === 'proposer' ? 'my-collection-list' : 'their-collection-list');
         container.innerHTML = '';
         if (cards.length === 0) {
-            container.innerHTML = '<p class="text-sm text-gray-500 p-2 italic">No cards found.</p>';
+            container.innerHTML = '<p class="text-sm text-gray-500 p-2 italic">No cards found for trade.</p>';
             return;
         }
         cards.forEach(card => {
             const cardEl = document.createElement('div');
             cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer';
-            cardEl.innerHTML = `<span class="text-sm truncate dark:text-gray-300">${card.name}</span><i class="fas fa-plus-circle text-green-500"></i>`;
+            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const localPrice = window.HatakeSocial.convertAndFormatPrice(price, 'USD');
+            cardEl.innerHTML = `
+                <span class="text-sm truncate dark:text-gray-300">${card.name}</span>
+                <div class="flex items-center">
+                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">${localPrice}</span>
+                    <i class="fas fa-plus-circle text-green-500"></i>
+                </div>
+            `;
             cardEl.addEventListener('click', () => selectCardForTrade(card, side));
             container.appendChild(cardEl);
         });
@@ -387,7 +403,7 @@ document.addEventListener('authReady', (e) => {
     const updateSelectionUI = (side, cards) => {
         const container = document.getElementById(`${side}-selected-cards`);
         if (cards.length === 0) {
-            container.innerHTML = `<p class="text-sm text-gray-500 italic">${side === 'receiver' ? 'Select a trade partner first.' : 'No cards selected.'}</p>`;
+            container.innerHTML = `<p class="text-sm text-gray-500 italic">No cards selected.</p>`;
         } else {
             container.innerHTML = '';
             cards.forEach(card => {
@@ -421,57 +437,56 @@ document.addEventListener('authReady', (e) => {
         receiverValueEl.textContent = `${(receiverValue * USD_TO_SEK_RATE).toFixed(2)} SEK`;
     };
 
-    // --- NEW: Auto-Balance Trade Logic ---
-    const autoBalanceTrade = () => {
-        // 1. Calculate target value from receiver's side
-        let targetValueUSD = 0;
-        tradeOffer.receiverCards.forEach(card => {
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            targetValueUSD += price;
-        });
-        targetValueUSD += parseFloat(receiverMoneyInput.value) / USD_TO_SEK_RATE || 0;
+    const autoBalanceTrade = (targetSide, percentage) => {
+        const sourceSide = targetSide === 'proposer' ? 'receiver' : 'proposer';
+        const sourceCards = tradeOffer[`${sourceSide}Cards`];
+        const sourceMoneyInput = document.getElementById(`${sourceSide}-money`);
+        const collectionToUse = targetSide === 'proposer' ? myCollectionForTrade : theirCollectionForTrade;
     
-        // 2. Get the value we have already offered
-        let currentValueUSD = 0;
-        tradeOffer.proposerCards.forEach(card => {
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            currentValueUSD += price;
+        let sourceValueUSD = 0;
+        sourceCards.forEach(card => {
+            sourceValueUSD += parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
         });
-        currentValueUSD += parseFloat(proposerMoneyInput.value) / USD_TO_SEK_RATE || 0;
+        sourceValueUSD += parseFloat(sourceMoneyInput.value) / USD_TO_SEK_RATE || 0;
     
-        let valueToFind = targetValueUSD - currentValueUSD;
+        const targetValueUSD = sourceValueUSD * (percentage / 100);
+    
+        let currentTargetValueUSD = 0;
+        tradeOffer[`${targetSide}Cards`].forEach(card => {
+            currentTargetValueUSD += parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+        });
+        currentTargetValueUSD += parseFloat(document.getElementById(`${targetSide}-money`).value) / USD_TO_SEK_RATE || 0;
+    
+        let valueToFind = targetValueUSD - currentTargetValueUSD;
         if (valueToFind <= 0) {
-            alert("Your offer already meets or exceeds their value!");
+            alert("The offer already meets or exceeds the target percentage!");
             return;
         }
     
-        // 3. Get available cards from our collection
-        const availableCards = myCollectionForTrade
-            .filter(myCard => !tradeOffer.proposerCards.some(offerCard => offerCard.id === myCard.id)) // Filter out already selected cards
-            .map(card => ({ // Create a new object with calculated value
+        const availableCards = collectionToUse
+            .filter(card => !tradeOffer[`${targetSide}Cards`].some(offerCard => offerCard.id === card.id))
+            .map(card => ({
                 ...card,
                 value: parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0
             }))
-            .filter(card => card.value > 0) // Only consider cards with a value
-            .sort((a, b) => b.value - a.value); // Sort from most to least valuable
+            .filter(card => card.value > 0)
+            .sort((a, b) => b.value - a.value);
     
-        // 4. Greedy algorithm to select cards
         const cardsToAdd = [];
         for (const card of availableCards) {
-            if (valueToFind <= 0) break; // Stop if we've met the value
+            if (valueToFind <= 0) break;
             if (card.value <= valueToFind) {
                 cardsToAdd.push(card);
                 valueToFind -= card.value;
             }
         }
     
-        // 5. Add the selected cards to the trade offer
         if (cardsToAdd.length > 0) {
-            tradeOffer.proposerCards.push(...cardsToAdd);
-            updateSelectionUI('proposer', tradeOffer.proposerCards);
-            alert(`Added ${cardsToAdd.length} card(s) to your offer to help balance the trade.`);
+            tradeOffer[`${targetSide}Cards`].push(...cardsToAdd);
+            updateSelectionUI(targetSide, tradeOffer[`${targetSide}Cards`]);
+            alert(`Added ${cardsToAdd.length} card(s) to the offer to meet ${percentage}% of the other side's value.`);
         } else {
-            alert("Could not find any suitable cards in your collection to automatically balance the trade.");
+            alert("Could not find any suitable cards to automatically balance the trade.");
         }
     };
 
@@ -519,7 +534,6 @@ document.addEventListener('authReady', (e) => {
         };
 
         try {
-            // If this is a counter-offer, update the original trade
             const originalTradeId = counterOfferInput.value;
             if (originalTradeId) {
                 await db.collection('trades').doc(originalTradeId).update({ status: 'countered' });
@@ -590,9 +604,24 @@ document.addEventListener('authReady', (e) => {
     proposeNewTradeBtn?.addEventListener('click', () => openProposeTradeModal(null));
     closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
     sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
-    autoBalanceBtn?.addEventListener('click', autoBalanceTrade); // NEW
     
-    // Listeners for value calculation
+    document.querySelectorAll('.auto-balance-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const side = e.currentTarget.dataset.side;
+            balanceTargetSideInput.value = side;
+            openModal(autoBalanceModal);
+        });
+    });
+
+    closeBalanceModalBtn?.addEventListener('click', () => closeModal(autoBalanceModal));
+    autoBalanceForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const side = balanceTargetSideInput.value;
+        const percentage = document.getElementById('balance-percentage').value;
+        autoBalanceTrade(side, percentage);
+        closeModal(autoBalanceModal);
+    });
+    
     proposerMoneyInput.addEventListener('input', updateTotalValueUI);
     receiverMoneyInput.addEventListener('input', updateTotalValueUI);
 
@@ -663,7 +692,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
     
-    // --- Feedback Modal Logic ---
     const openFeedbackModal = async (tradeId) => {
         const tradeDoc = await db.collection('trades').doc(tradeId).get();
         const trade = tradeDoc.data();
@@ -785,7 +813,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // --- Dispute Modal Logic ---
     const openDisputeModal = (tradeId) => {
         document.getElementById('dispute-trade-id').value = tradeId;
         disputeForm.reset();
