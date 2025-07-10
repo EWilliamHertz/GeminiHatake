@@ -7,7 +7,6 @@
    <script src="https://cdn.tailwindcss.com"></script>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
    <link rel="stylesheet" href="css/style.css">
-   <!-- Chart.js for mana curve -->
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
    
@@ -99,7 +98,12 @@
             <div id="content-builder" class="tab-content">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                        <h1 id="builder-title" class="text-3xl font-bold text-gray-800 dark:text-white mb-4">Create New Deck</h1>
+                        <div class="flex justify-between items-center mb-4">
+                            <h1 id="builder-title" class="text-3xl font-bold text-gray-800 dark:text-white">Create New Deck</h1>
+                            <button id="import-deck-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700 text-sm">
+                                <i class="fas fa-upload mr-2"></i>Import Deck List
+                            </button>
+                        </div>
                         <form id="deck-builder-form">
                             <input type="hidden" id="editing-deck-id">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -143,7 +147,6 @@
                             <p class="text-lg text-gray-500 dark:text-gray-400">Total Price: <span id="deck-view-price" class="font-bold text-blue-600 dark:text-blue-400"></span></p>
                         </div>
                         <div class="flex space-x-2">
-                            <!-- NEW: Check Collection Button -->
                             <button id="check-collection-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700 flex items-center">
                                 <i class="fas fa-check-double mr-2"></i> Check Collection
                             </button>
@@ -159,12 +162,10 @@
                     
                     <div id="deck-legality-section" class="mb-6"></div>
 
-                    <!-- NEW: Missing Cards Section -->
                     <div id="missing-cards-section" class="hidden mb-8">
                         <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Missing Cards</h3>
                         <div id="missing-cards-list" class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg space-y-2">
-                            <!-- Missing cards will be populated here -->
-                        </div>
+                            </div>
                     </div>
 
                     <div id="deck-stats-section" class="mb-8">
@@ -192,7 +193,19 @@
         </div>
     </main>
 
-    <!-- Modals -->
+    <div id="import-deck-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg">
+            <button id="close-import-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Import Decklist</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">You can paste your decklist directly or upload a file (.txt, .csv, .dek).</p>
+            <textarea id="import-deck-textarea" class="w-full h-48 p-3 border rounded-md resize-y dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="Paste your decklist here..."></textarea>
+            <div class="my-4 text-center text-gray-500 font-semibold">OR</div>
+            <input type="file" id="import-deck-file-input" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" accept=".txt,.csv,.dek">
+            <div class="text-right mt-6">
+                <button id="process-import-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Import Deck</button>
+            </div>
+        </div>
+    </div>
     <div id="playtest-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-7xl h-5/6 bg-gray-800 text-white flex flex-col">
             <button id="close-playtest-modal" class="close-button text-white">&times;</button>
@@ -217,7 +230,6 @@
         </div>
     </div>
 
-    <!-- Other Modals -->
     <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
@@ -253,7 +265,6 @@
         </div>
     </div>
 
-    <!-- Footer and other elements -->
     <div id="messenger-widget-container" class="minimized">
         <div id="messenger-open-btn">
             <i class="fas fa-comments"></i>
@@ -308,13 +319,11 @@
             </div>
         </div>
     </footer>
-    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     
-    <!-- Custom Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/deck.js"></script>
     <script src="js/notifications.js"></script>
