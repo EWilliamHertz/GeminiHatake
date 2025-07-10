@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Deck Page Script (v16 - Index Link Generation)
+ * HatakeSocial - Deck Page Script (v17 - Advanced Import)
  *
- * BUG FIX: Corrects the logic for loading the user's collection into the deck builder.
- * BUG FIX: Implements a more robust method for querying community decks to avoid index errors.
- * NEW: Adds a "Check Against My Collection" feature to the deck view.
- * NEW: Displays a list of missing cards with links to the marketplace.
- * NEW: Logs Firebase index creation links to the console on error.
- * NEW: Generates a direct link to create missing Firestore indexes on error.
+ * This version adds a robust deck import feature.
+ * - Adds an "Import Deck List" button and modal.
+ * - Parses decklists from pasted text or uploaded files (.txt, .csv, .dek).
+ * - Handles various formats like "4 Card Name" and "1x Card Name".
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -51,6 +49,14 @@ document.addEventListener('authReady', (e) => {
     const missingCardsSection = document.getElementById('missing-cards-section');
     const missingCardsList = document.getElementById('missing-cards-list');
     
+    // Import Modal Elements
+    const importDeckBtn = document.getElementById('import-deck-btn');
+    const importDeckModal = document.getElementById('import-deck-modal');
+    const closeImportModalBtn = document.getElementById('close-import-modal');
+    const importDeckTextarea = document.getElementById('import-deck-textarea');
+    const importDeckFileInput = document.getElementById('import-deck-file-input');
+    const processImportBtn = document.getElementById('process-import-btn');
+
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
         "Pokémon": ["Standard", "Expanded"],
@@ -772,6 +778,53 @@ document.addEventListener('authReady', (e) => {
     };
 
     checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
+    
+    // --- Import Modal Logic ---
+    importDeckBtn.addEventListener('click', () => {
+        openModal(importDeckModal);
+    });
+    
+    closeImportModalBtn.addEventListener('click', () => {
+        closeModal(importDeckModal);
+    });
+
+    processImportBtn.addEventListener('click', () => {
+        const file = importDeckFileInput.files[0];
+        const text = importDeckTextarea.value;
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                parseAndFillDecklist(content);
+            };
+            reader.readAsText(file);
+        } else if (text) {
+            parseAndFillDecklist(text);
+        } else {
+            alert("Please paste a decklist or select a file.");
+        }
+        closeModal(importDeckModal);
+    });
+
+    const parseAndFillDecklist = (content) => {
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        let parsedList = '';
+        lines.forEach(line => {
+            // Regex to match formats like "4 Card Name", "4x Card Name", "1 [SET] Card Name"
+            const match = line.match(/^(?:(\d+)x?\s+)?(.*?)(?:\s+\/\/.*|\s+\([A-Z0-9]+\))?$/);
+            if (match) {
+                const quantity = match[1] || '1';
+                const cardName = match[2].trim();
+                if (cardName && !cardName.toLowerCase().startsWith('sideboard')) {
+                     parsedList += `${quantity} ${cardName}\n`;
+                }
+            }
+        });
+        decklistInput.value = parsedList;
+        alert("Decklist imported successfully!");
+    };
+
 
     // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
