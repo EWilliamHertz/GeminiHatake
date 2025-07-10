@@ -97,23 +97,16 @@
                 <div>
                     <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">Manually Add a Card</h3>
                     <div id="manual-add-form" class="space-y-3">
+                        <!-- NEW: Game Selection -->
+                        <select id="manual-game-select" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="magic">Magic: The Gathering</option>
+                            <option value="pokemon">Pokémon</option>
+                        </select>
                         <input type="text" id="manual-card-name" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Card Name (e.g., Sol Ring)" required>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="number" id="manual-quantity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Quantity" value="1" min="1" required>
-                            <select id="manual-condition" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                                <option>Near Mint</option>
-                                <option>Lightly Played</option>
-                                <option>Moderately Played</option>
-                                <option>Heavily Played</option>
-                                <option>Damaged</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="manual-is-foil" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
-                            <label for="manual-is-foil" class="ml-2 text-sm dark:text-gray-300">Is this card foil?</label>
-                        </div>
-                        <button type="button" id="manual-add-btn" class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700">Add Manually</button>
+                        <button type="button" id="search-card-versions-btn" class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700">Search for Card</button>
                     </div>
+                    <!-- NEW: Container for search results -->
+                    <div id="manual-add-results" class="mt-4 space-y-2 max-h-96 overflow-y-auto"></div>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">Import from ManaBox (.csv)</h3>
@@ -167,6 +160,43 @@
     </main>
     
     <!-- Modals -->
+    <!-- NEW: Modal for adding a specific version of a card -->
+    <div id="add-version-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md dark:bg-gray-800">
+            <button id="close-add-version-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Add Card to Collection</h2>
+            <div id="add-version-preview" class="flex items-center space-x-4 mb-4">
+                <img id="add-version-image" src="https://placehold.co/100x140" class="w-24 rounded-lg">
+                <div>
+                    <h3 id="add-version-name" class="text-lg font-bold dark:text-white">Card Name</h3>
+                    <p id="add-version-set" class="text-sm text-gray-500 dark:text-gray-400">Set Name</p>
+                </div>
+            </div>
+            <form id="add-version-form" class="space-y-4">
+                <input type="hidden" id="add-version-data">
+                 <div>
+                    <label for="add-version-quantity" class="block font-bold mb-1 dark:text-gray-200">Quantity</label>
+                    <input type="number" id="add-version-quantity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" value="1" min="1" required>
+                </div>
+                <div>
+                    <label for="add-version-condition" class="block font-bold mb-1 dark:text-gray-200">Condition</label>
+                    <select id="add-version-condition" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        <option>Near Mint</option>
+                        <option>Lightly Played</option>
+                        <option>Moderately Played</option>
+                        <option>Heavily Played</option>
+                        <option>Damaged</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="checkbox" id="add-version-foil" class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500">
+                    <label for="add-version-foil" class="dark:text-gray-300">Is this card foil?</label>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700">Add to Collection</button>
+            </form>
+        </div>
+    </div>
+
     <div id="edit-card-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md dark:bg-gray-800">
             <button id="close-edit-card-modal" class="close-button">&times;</button>
