@@ -1,3 +1,25 @@
+/* --- Skeleton Loader Styles --- */
+@keyframes pulse {
+    50% {
+        opacity: .5;
+    }
+}
+.skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    background-color: #e2e8f0; /* gray-200 */
+    border-radius: 0.25rem;
+}
+.dark .skeleton {
+    background-color: #4b5563; /* gray-600 */
+}
+
+/* --- Scroll to Top Button --- */
+#scroll-to-top-btn {
+    transition: opacity 0.3s, transform 0.3s;
+}
+#scroll-to-top-btn:hover {
+    transform: scale(1.1);
+}
 /* Add these styles to the end of your existing css/style.css file */
 
 /* --- Playtest Modal --- */
