@@ -113,8 +113,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Receiver's Side -->
                 <div id="receiver-trade-section" class="flex flex-col opacity-50 pointer-events-none">
-                    <div class="flex justify-between items-baseline">
-                        <h3 class="font-bold text-lg mb-2 dark:text-white">They Offer:</h3>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-lg dark:text-white">They Offer:</h3>
+                        <button type="button" data-side="receiver" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50">
+                            <i class="fas fa-magic"></i> Auto-Balance
+                        </button>
                         <div class="text-sm font-semibold dark:text-gray-300">Value: <span id="receiver-value" class="text-green-600 dark:text-green-400">0.00 SEK</span></div>
                     </div>
                     <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
@@ -135,10 +138,9 @@
 
                 <!-- Proposer's Side -->
                 <div id="proposer-trade-section" class="flex flex-col">
-                     <div class="flex justify-between items-baseline">
-                        <h3 class="font-bold text-lg mb-2 dark:text-white">You Offer:</h3>
-                        <!-- NEW: Auto-Balance Button -->
-                        <button type="button" id="auto-balance-btn" class="px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50" title="Automatically add cards from your collection to match the other side's value.">
+                     <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-bold text-lg dark:text-white">You Offer:</h3>
+                        <button type="button" data-side="proposer" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50">
                             <i class="fas fa-magic"></i> Auto-Balance
                         </button>
                         <div class="text-sm font-semibold dark:text-gray-300">Value: <span id="proposer-value" class="text-green-600 dark:text-green-400">0.00 SEK</span></div>
@@ -170,6 +172,31 @@
         </div>
     </div>
     
+    <!-- NEW: Auto-Balance Modal -->
+    <div id="auto-balance-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md dark:bg-gray-800">
+            <button id="close-balance-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Auto-Balance Offer</h2>
+            <form id="auto-balance-form" class="space-y-4">
+                <input type="hidden" id="balance-target-side">
+                <p class="text-gray-600 dark:text-gray-300">Automatically add cards to match a percentage of the other side's value.</p>
+                <div>
+                    <label for="balance-percentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Match Percentage</label>
+                    <div class="relative mt-1">
+                        <input type="number" id="balance-percentage" value="100" min="1" max="1000" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 pr-8">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">%</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">e.g., 100% to match value, 110% to offer more.</p>
+                </div>
+                <div class="text-right pt-2">
+                    <button type="submit" class="px-6 py-2 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700">Balance Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="feedback-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-lg dark:bg-gray-800">
             <button id="close-feedback-modal" class="close-button">&times;</button>
