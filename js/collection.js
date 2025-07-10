@@ -1,9 +1,13 @@
 /**
- * HatakeSocial - My Collection Page Script (v10 - Power Tools)
+ * HatakeSocial - My Collection Page Script (v11 - Advanced Add & Bug Fix)
  *
- * NEW: Adds a "Quick Edit" mode to rapidly update quantity, condition, and price in a table view.
- * NEW: Adds advanced bulk-pricing options (e.g., "undercut lowest by X").
- * NEW: All bulk and quick-edit changes are saved in a single, efficient Firestore batch write.
+ * NEW: Implements an advanced manual add feature allowing users to select a game,
+ * search for a card, and see all available printings before adding.
+ * NEW: Utilizes Scryfall API for Magic and Pokémon TCG API for Pokémon.
+ * FIX: Patches a bug in the CSV importer that caused an error on malformed rows.
+ * - Adds a "Quick Edit" mode to rapidly update quantity, condition, and price in a table view.
+ * - Adds advanced bulk-pricing options (e.g., "undercut lowest by X").
+ * - All bulk and quick-edit changes are saved in a single, efficient Firestore batch write.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -41,12 +45,20 @@ document.addEventListener('authReady', (e) => {
     const editCardModal = document.getElementById('edit-card-modal');
     const editCardForm = document.getElementById('edit-card-form');
     const manageListingModal = document.getElementById('manage-listing-modal');
-    const manualAddBtn = document.getElementById('manual-add-btn');
     const quickEditBtn = document.getElementById('quick-edit-btn');
     const quickEditSaveBar = document.getElementById('quick-edit-save-bar');
     const saveQuickEditsBtn = document.getElementById('save-quick-edits-btn');
     const percentagePriceForm = document.getElementById('percentage-price-form');
     const fixedUndercutForm = document.getElementById('fixed-undercut-form');
+
+    // NEW: Advanced Manual Add Elements
+    const manualGameSelect = document.getElementById('manual-game-select');
+    const searchCardVersionsBtn = document.getElementById('search-card-versions-btn');
+    const manualAddResultsContainer = document.getElementById('manual-add-results');
+    const addVersionModal = document.getElementById('add-version-modal');
+    const addVersionForm = document.getElementById('add-version-form');
+    const closeAddVersionModalBtn = document.getElementById('close-add-version-modal');
+
 
     // --- Main Display Functions ---
     const loadCardList = async (listType = 'collection') => {
@@ -341,46 +353,123 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    manualAddBtn.addEventListener('click', async () => {
+    // --- NEW: Advanced Manual Add Logic ---
+    searchCardVersionsBtn.addEventListener('click', async () => {
         const cardName = document.getElementById('manual-card-name').value;
-        const quantity = parseInt(document.getElementById('manual-quantity').value, 10);
-        const condition = document.getElementById('manual-condition').value;
-        const isFoil = document.getElementById('manual-is-foil').checked;
-
-        if (!cardName || !quantity || quantity < 1) {
-            alert("Please enter a valid card name and quantity.");
+        const game = manualGameSelect.value;
+        if (!cardName) {
+            alert("Please enter a card name.");
             return;
         }
 
-        manualAddBtn.disabled = true;
-        manualAddBtn.textContent = 'Adding...';
+        searchCardVersionsBtn.disabled = true;
+        searchCardVersionsBtn.textContent = 'Searching...';
+        manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
 
         try {
-            const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
-            if (!response.ok) throw new Error("Card not found. Please check the spelling.");
-            
-            const cardData = await response.json();
-            const cardDoc = {
-                name: cardData.name, tcg: "Magic: The Gathering", scryfallId: cardData.id,
-                set: cardData.set, setName: cardData.set_name, rarity: cardData.rarity,
-                imageUrl: cardData.image_uris?.normal || '',
-                priceUsd: cardData.prices?.usd || '0.00', priceUsdFoil: cardData.prices?.usd_foil || '0.00',
-                quantity: quantity, isFoil: isFoil, condition: condition,
-                addedAt: new Date(), forSale: false
-            };
-
-            await db.collection('users').doc(user.uid).collection('collection').add(cardDoc);
-            alert(`${quantity}x ${cardData.name} added to your collection!`);
-            document.getElementById('manual-add-form').reset();
-            loadCardList('collection');
-
+            let versions = [];
+            if (game === 'magic') {
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=!"${encodeURIComponent(cardName)}"&unique=prints&order=released`);
+                if (!response.ok) throw new Error("Card not found on Scryfall.");
+                const result = await response.json();
+                versions = result.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    set: card.set,
+                    setName: card.set_name,
+                    rarity: card.rarity,
+                    imageUrl: card.image_uris?.normal || '',
+                    priceUsd: card.prices?.usd || null,
+                    priceUsdFoil: card.prices?.usd_foil || null,
+                    tcg: 'Magic: The Gathering'
+                }));
+            } else if (game === 'pokemon') {
+                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
+                if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
+                const result = await response.json();
+                versions = result.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    set: card.set.id,
+                    setName: card.set.name,
+                    rarity: card.rarity || 'Common',
+                    imageUrl: card.images?.small || '',
+                    priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                    priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
+                    tcg: 'Pokémon'
+                }));
+            }
+            displayCardVersions(versions);
         } catch (error) {
-            alert("Could not add card. " + error.message);
+            manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
         } finally {
-            manualAddBtn.disabled = false;
-            manualAddBtn.textContent = 'Add Manually';
+            searchCardVersionsBtn.disabled = false;
+            searchCardVersionsBtn.textContent = 'Search for Card';
         }
     });
+
+    const displayCardVersions = (versions) => {
+        manualAddResultsContainer.innerHTML = '';
+        if (versions.length === 0) {
+            manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
+            return;
+        }
+        versions.forEach(card => {
+            const versionEl = document.createElement('div');
+            versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+            versionEl.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm">
+                    <div>
+                        <p class="text-sm font-semibold dark:text-white">${card.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
+                    </div>
+                </div>
+                <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
+            `;
+            versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
+                openAddVersionModal(card);
+            });
+            manualAddResultsContainer.appendChild(versionEl);
+        });
+    };
+
+    const openAddVersionModal = (cardData) => {
+        document.getElementById('add-version-name').textContent = cardData.name;
+        document.getElementById('add-version-set').textContent = cardData.setName;
+        document.getElementById('add-version-image').src = cardData.imageUrl;
+        document.getElementById('add-version-data').value = JSON.stringify(cardData);
+        addVersionForm.reset();
+        openModal(addVersionModal);
+    };
+
+    addVersionForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cardData = JSON.parse(document.getElementById('add-version-data').value);
+        const cardDoc = {
+            ...cardData,
+            scryfallId: cardData.id, // Keep a consistent ID field
+            quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
+            condition: document.getElementById('add-version-condition').value,
+            isFoil: document.getElementById('add-version-foil').checked,
+            addedAt: new Date(),
+            forSale: false
+        };
+        delete cardDoc.id; // Remove the original API id if it conflicts
+
+        try {
+            await db.collection('users').doc(user.uid).collection('collection').add(cardDoc);
+            alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added!`);
+            closeModal(addVersionModal);
+            loadCardList('collection');
+        } catch (error) {
+            console.error("Error adding card version:", error);
+            alert("Could not add card to collection.");
+        }
+    });
+
+    // --- End of Advanced Manual Add Logic ---
+
 
     csvUploadBtn.addEventListener('click', () => {
         if (csvUploadInput.files.length === 0) {
@@ -411,11 +500,14 @@ document.addEventListener('authReady', (e) => {
                 let processedCount = 0;
                 let errorCount = 0;
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
-                const batch = db.batch();
-
+                
                 for (const row of rows) {
+                    // FIX: Check if row and nameKey exist before trying to access them
+                    if (!row || !row[nameKey]) {
+                        errorCount++;
+                        continue; 
+                    }
                     const cardName = row[nameKey];
-                    if (!cardName) continue;
 
                     try {
                         await new Promise(resolve => setTimeout(resolve, 100)); // Scryfall API rate limit
@@ -435,8 +527,7 @@ document.addEventListener('authReady', (e) => {
                             addedAt: new Date(), forSale: false
                         };
                         
-                        const newDocRef = collectionRef.doc();
-                        batch.set(newDocRef, cardDoc);
+                        await collectionRef.add(cardDoc);
                         processedCount++;
                     } catch (error) {
                         console.warn(`Could not process card "${cardName}". Skipping.`);
@@ -445,7 +536,6 @@ document.addEventListener('authReady', (e) => {
                     csvStatus.textContent = `Processing... ${processedCount + errorCount} / ${rows.length}`;
                 }
                 
-                await batch.commit();
                 csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                 csvUploadBtn.disabled = false;
                 setTimeout(() => {
@@ -587,6 +677,7 @@ document.addEventListener('authReady', (e) => {
     document.getElementById('close-edit-card-modal')?.addEventListener('click', () => closeModal(editCardModal));
     document.getElementById('close-listing-modal')?.addEventListener('click', () => closeModal(manageListingModal));
     document.getElementById('close-list-sale-modal')?.addEventListener('click', () => closeModal(listForSaleModal));
+    closeAddVersionModalBtn?.addEventListener('click', () => closeModal(addVersionModal));
     document.getElementById('forSale')?.addEventListener('change', (e) => {
         document.getElementById('price-input-container').classList.toggle('hidden', !e.target.checked);
     });
