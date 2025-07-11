@@ -180,6 +180,7 @@ document.addEventListener('authReady', (e) => {
         let actionButtons = '';
         let tradeStatusSection = '';
 
+        // Determine which buttons and status info to show based on the trade state
         switch(trade.status) {
             case 'pending':
                 if (!isProposer) {
@@ -217,6 +218,7 @@ document.addEventListener('authReady', (e) => {
                 break;
         }
 
+        // Add a "Report Problem" button for any active trade
         if (['accepted', 'shipped', 'disputed'].includes(trade.status)) {
             actionButtons += `<button data-id="${tradeId}" class="report-problem-btn text-xs text-gray-500 hover:text-red-500 ml-2">Report Problem</button>`;
         }
@@ -288,6 +290,7 @@ document.addEventListener('authReady', (e) => {
         return itemsHtml || '<p class="text-sm text-gray-500 italic">No items</p>';
     };
 
+    // --- Propose/Counter Trade Modal Logic ---
     const openProposeTradeModal = async (options = {}) => {
         const { counterOfTrade = null, initialCard = null, initialPartner = null } = options;
 
