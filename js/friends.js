@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Friends Hub Script (v6 - Final Friend Request Fix)
+ * HatakeSocial - Friends Hub Script (v7 - Robust Error Handling)
  *
  * This script handles all logic for the friends.html page.
- * - FIX: Ensures the two-part friend request acceptance process is robust.
- * - Adds a location search feature.
- * - Manages friend requests directly on the page.
- * - Provides friend suggestions based on shared groups and location.
- * - Displays a dedicated activity feed of friends' posts and new decks.
+ * - FIX: Adds try/catch blocks to all Firestore queries to prevent the page from freezing on error.
+ * - FIX: Displays a user-friendly message with a direct link to create missing Firestore indexes if a query fails.
+ * - Preserves all existing functionality for friend requests, suggestions, and activity feeds.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -27,6 +25,12 @@ document.addEventListener('authReady', (e) => {
     const requestCountBadge = document.getElementById('friend-request-count');
     const locationSearchInput = document.getElementById('location-search-input');
 
+    /**
+     * Generates a direct link to the Firebase console to create a missing composite index.
+     * @param {string} collection - The name of the collection needing the index.
+     * @param {Array<object>} fields - An array of field objects, e.g., [{ name: 'fieldName', order: 'asc' }]
+     * @returns {string} The generated URL.
+     */
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -36,6 +40,11 @@ document.addEventListener('authReady', (e) => {
         return url;
     };
     
+    /**
+     * Displays a standardized error message for missing Firestore indexes.
+     * @param {HTMLElement} container - The DOM element to display the error in.
+     * @param {string} link - The pre-generated link to create the index.
+     */
     const displayIndexError = (container, link) => {
         const errorMessage = `
             <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
@@ -71,88 +80,106 @@ document.addEventListener('authReady', (e) => {
 
     const loadFriendRequests = async () => {
         requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading requests...</p>';
-        const requestsSnapshot = await db.collection('friendRequests')
-            .where('receiverId', '==', currentUser.uid)
-            .where('status', '==', 'pending')
-            .get();
+        try {
+            const requestsSnapshot = await db.collection('friendRequests')
+                .where('receiverId', '==', currentUser.uid)
+                .where('status', '==', 'pending')
+                .get();
 
-        if (requestsSnapshot.empty) {
-            requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No new friend requests.</p>';
-            requestCountBadge.classList.add('hidden');
-            return;
-        }
-
-        requestCountBadge.textContent = requestsSnapshot.size;
-        requestCountBadge.classList.remove('hidden');
-
-        requestsListEl.innerHTML = '';
-        requestsSnapshot.forEach(async (doc) => {
-            const request = doc.data();
-            const senderDoc = await db.collection('users').doc(request.senderId).get();
-            if (senderDoc.exists) {
-                const sender = senderDoc.data();
-                const requestCard = document.createElement('div');
-                requestCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
-                requestCard.innerHTML = `
-                    <a href="profile.html?uid=${request.senderId}" class="flex items-center space-x-3">
-                        <img src="${sender.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
-                        <div>
-                            <p class="font-semibold text-gray-800 dark:text-white">${sender.displayName}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">@${sender.handle}</p>
-                        </div>
-                    </a>
-                    <div class="flex space-x-2">
-                        <button class="accept-friend-btn bg-green-500 text-white w-8 h-8 rounded-full hover:bg-green-600 transition" data-request-id="${doc.id}" data-sender-id="${request.senderId}"><i class="fas fa-check"></i></button>
-                        <button class="reject-friend-btn bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 transition" data-request-id="${doc.id}"><i class="fas fa-times"></i></button>
-                    </div>
-                `;
-                requestsListEl.appendChild(requestCard);
+            if (requestsSnapshot.empty) {
+                requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No new friend requests.</p>';
+                requestCountBadge.classList.add('hidden');
+                return;
             }
-        });
+
+            requestCountBadge.textContent = requestsSnapshot.size;
+            requestCountBadge.classList.remove('hidden');
+
+            requestsListEl.innerHTML = '';
+            for (const doc of requestsSnapshot.docs) {
+                const request = doc.data();
+                const senderDoc = await db.collection('users').doc(request.senderId).get();
+                if (senderDoc.exists) {
+                    const sender = senderDoc.data();
+                    const requestCard = document.createElement('div');
+                    requestCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+                    requestCard.innerHTML = `
+                        <a href="profile.html?uid=${request.senderId}" class="flex items-center space-x-3">
+                            <img src="${sender.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-gray-800 dark:text-white">${sender.displayName}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">@${sender.handle}</p>
+                            </div>
+                        </a>
+                        <div class="flex space-x-2">
+                            <button class="accept-friend-btn bg-green-500 text-white w-8 h-8 rounded-full hover:bg-green-600 transition" data-request-id="${doc.id}" data-sender-id="${request.senderId}"><i class="fas fa-check"></i></button>
+                            <button class="reject-friend-btn bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 transition" data-request-id="${doc.id}"><i class="fas fa-times"></i></button>
+                        </div>
+                    `;
+                    requestsListEl.appendChild(requestCard);
+                }
+            }
+        } catch (error) {
+            console.error("Error loading friend requests:", error);
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('friendRequests', [
+                    { name: 'receiverId', order: 'asc' },
+                    { name: 'status', order: 'asc' }
+                ]);
+                displayIndexError(requestsListEl, indexLink);
+            } else {
+                requestsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load friend requests.</p>';
+            }
+        }
     };
 
     const loadFriendsList = async (locationQuery = '') => {
         friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friends...</p>';
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        const friendIds = userDoc.data()?.friends || [];
+        try {
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const friendIds = userDoc.data()?.friends || [];
 
-        if (friendIds.length === 0) {
-            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\\'t added any friends yet.</p>';
-            return;
-        }
-
-        let friends = [];
-        for (const friendId of friendIds) {
-            const friendDoc = await db.collection('users').doc(friendId).get();
-            if (friendDoc.exists) {
-                friends.push({ id: friendDoc.id, ...friendDoc.data() });
+            if (friendIds.length === 0) {
+                friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\'t added any friends yet.</p>';
+                return;
             }
-        }
 
-        if (locationQuery) {
-            friends = friends.filter(friend => {
-                const city = friend.city || '';
-                const country = friend.country || '';
-                return city.toLowerCase().includes(locationQuery) || country.toLowerCase().includes(locationQuery);
-            });
-        }
+            let friends = [];
+            for (const friendId of friendIds) {
+                const friendDoc = await db.collection('users').doc(friendId).get();
+                if (friendDoc.exists) {
+                    friends.push({ id: friendDoc.id, ...friendDoc.data() });
+                }
+            }
 
-        if (friends.length === 0) {
-            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No friends found for this location.</p>';
-            return;
-        }
-        
-        friendsListEl.innerHTML = '';
-        for (const friend of friends) {
-            const friendCard = document.createElement('a');
-            friendCard.href = `profile.html?uid=${friend.id}`;
-            friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
-            friendCard.innerHTML = `
-                <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
-                <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
-            `;
-            friendsListEl.appendChild(friendCard);
+            if (locationQuery) {
+                friends = friends.filter(friend => {
+                    const city = friend.city || '';
+                    const country = friend.country || '';
+                    return city.toLowerCase().includes(locationQuery) || country.toLowerCase().includes(locationQuery);
+                });
+            }
+
+            if (friends.length === 0) {
+                friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No friends found for this location.</p>';
+                return;
+            }
+            
+            friendsListEl.innerHTML = '';
+            for (const friend of friends) {
+                const friendCard = document.createElement('a');
+                friendCard.href = `profile.html?uid=${friend.id}`;
+                friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
+                friendCard.innerHTML = `
+                    <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
+                    <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
+                `;
+                friendsListEl.appendChild(friendCard);
+            }
+        } catch (error) {
+            console.error("Error loading friends list:", error);
+            friendsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load friends.</p>';
         }
     };
 
@@ -162,44 +189,49 @@ document.addEventListener('authReady', (e) => {
 
     const loadFriendSuggestions = async () => {
         suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Finding potential friends...</p>';
-        const currentUserData = (await db.collection('users').doc(currentUser.uid).get()).data();
-        const myFriends = currentUserData.friends || [];
-        const myRequestsSent = (await db.collection('friendRequests').where('senderId', '==', currentUser.uid).get()).docs.map(d => d.data().receiverId);
-        const myRequestsReceived = (await db.collection('friendRequests').where('receiverId', '==', currentUser.uid).get()).docs.map(d => d.data().senderId);
-        const excludedIds = [currentUser.uid, ...myFriends, ...myRequestsSent, ...myRequestsReceived];
+        try {
+            const currentUserData = (await db.collection('users').doc(currentUser.uid).get()).data();
+            const myFriends = currentUserData.friends || [];
+            const myRequestsSent = (await db.collection('friendRequests').where('senderId', '==', currentUser.uid).get()).docs.map(d => d.data().receiverId);
+            const myRequestsReceived = (await db.collection('friendRequests').where('receiverId', '==', currentUser.uid).get()).docs.map(d => d.data().senderId);
+            const excludedIds = [currentUser.uid, ...myFriends, ...myRequestsSent, ...myRequestsReceived];
 
-        let suggestions = new Map();
+            let suggestions = new Map();
 
-        if (currentUserData.country) {
-            const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
-            countrySnapshot.forEach(doc => {
-                if (!excludedIds.includes(doc.id)) {
-                    suggestions.set(doc.id, doc.data());
-                }
+            if (currentUserData.country) {
+                const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
+                countrySnapshot.forEach(doc => {
+                    if (!excludedIds.includes(doc.id)) {
+                        suggestions.set(doc.id, doc.data());
+                    }
+                });
+            }
+            
+            suggestionsListEl.innerHTML = '';
+            if (suggestions.size === 0) {
+                suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No suggestions right now. Try joining some groups!</p>';
+                return;
+            }
+
+            suggestions.forEach((user, userId) => {
+                const suggestionCard = document.createElement('div');
+                suggestionCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+                suggestionCard.innerHTML = `
+                    <a href="profile.html?uid=${userId}" class="flex items-center space-x-3">
+                        <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
+                        <div>
+                            <p class="font-semibold text-gray-800 dark:text-white">${user.displayName}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>
+                        </div>
+                    </a>
+                    <button class="add-friend-sugg-btn bg-blue-500 text-white w-8 h-8 rounded-full hover:bg-blue-600 transition" data-uid="${userId}"><i class="fas fa-plus"></i></button>
+                `;
+                suggestionsListEl.appendChild(suggestionCard);
             });
+        } catch (error) {
+            console.error("Error loading friend suggestions:", error);
+            suggestionsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load suggestions.</p>';
         }
-        
-        suggestionsListEl.innerHTML = '';
-        if (suggestions.size === 0) {
-            suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No suggestions right now. Try joining some groups!</p>';
-            return;
-        }
-
-        suggestions.forEach((user, userId) => {
-            const suggestionCard = document.createElement('div');
-            suggestionCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
-            suggestionCard.innerHTML = `
-                <a href="profile.html?uid=${userId}" class="flex items-center space-x-3">
-                    <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
-                    <div>
-                        <p class="font-semibold text-gray-800 dark:text-white">${user.displayName}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>
-                    </div>
-                </a>
-                <button class="add-friend-sugg-btn bg-blue-500 text-white w-8 h-8 rounded-full hover:bg-blue-600 transition" data-uid="${userId}"><i class="fas fa-plus"></i></button>
-            `;
-            suggestionsListEl.appendChild(suggestionCard);
-        });
     };
 
     const loadFriendActivityFeed = async () => {
@@ -220,7 +252,7 @@ document.addEventListener('authReady', (e) => {
             activities.sort((a, b) => b.timestamp - a.timestamp);
 
             if (activities.length === 0) {
-                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\\'t been active recently.</p>';
+                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
                 return;
             }
 
