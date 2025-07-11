@@ -1,13 +1,14 @@
 /**
- * HatakeSocial - Groups Page Script (v11 - Pinned Posts)
+ * HatakeSocial - Groups Page Script (v12 - Real-time Updates)
  *
+ * - FIX: Groups list now updates in real-time when a new group is created.
  * - Adds a "Pin Post" option for group admins.
  * - Renders pinned posts at the top of the group feed.
- * - NEW: Adds a "Group Type" selector during group creation.
- * - NEW: If a group is a "Trading Guild", it displays specialized post-creation buttons (WTS, WTB, WTT).
- * - NEW: Implements a modal for creating structured trade posts.
- * - NEW: Users can select cards from their Collection (for Haves) and Wishlist (for Wants).
- * - NEW: Renders structured trade posts in the group feed with card details.
+ * - Adds a "Group Type" selector during group creation.
+ * - If a group is a "Trading Guild", it displays specialized post-creation buttons (WTS, WTB, WTT).
+ * - Implements a modal for creating structured trade posts.
+ * - Users can select cards from their Collection (for Haves) and Wishlist (for Wants).
+ * - Renders structured trade posts in the group feed with card details.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -18,6 +19,8 @@ document.addEventListener('authReady', (e) => {
     let userWishlist = [];
     let userCollection = [];
     let tradePostDraft = { haves: [], wants: [] };
+    let myGroupsUnsubscribe = null;
+    let discoverGroupsUnsubscribe = null;
 
     // --- DOM Elements ---
     const createGroupBtn = document.getElementById('create-group-btn');
@@ -94,8 +97,6 @@ document.addEventListener('authReady', (e) => {
             alert("Group created successfully!");
             closeModal(createGroupModal);
             createGroupForm.reset();
-            loadMyGroups();
-            loadDiscoverGroups();
         } catch (error) {
             console.error("Error creating group:", error);
             alert("Could not create group. " + error.message);
@@ -108,7 +109,6 @@ document.addEventListener('authReady', (e) => {
         const card = document.createElement('div');
         card.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow';
         
-        // NEW: Add an icon for the group type
         let typeIcon = '';
         switch(groupData.groupType) {
             case 'trading_guild': typeIcon = '<i class="fas fa-exchange-alt text-green-500" title="Trading Guild"></i>'; break;
@@ -131,8 +131,43 @@ document.addEventListener('authReady', (e) => {
         return card;
     };
 
-    const loadMyGroups = async () => { /* ... (no changes) ... */ };
-    const loadDiscoverGroups = async () => { /* ... (no changes) ... */ };
+    const loadMyGroups = () => {
+        if(myGroupsUnsubscribe) myGroupsUnsubscribe();
+
+        myGroupsUnsubscribe = db.collection('groups')
+            .where('participants', 'array-contains', user.uid)
+            .onSnapshot(snapshot => {
+                myGroupsList.innerHTML = '';
+                if (snapshot.empty) {
+                    myGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You are not a member of any groups yet.</p>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    myGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
+                });
+            });
+    };
+    
+    const loadDiscoverGroups = () => {
+        if(discoverGroupsUnsubscribe) discoverGroupsUnsubscribe();
+
+        discoverGroupsUnsubscribe = db.collection('groups')
+            .where('isPublic', '==', true)
+            .limit(10)
+            .onSnapshot(snapshot => {
+                discoverGroupsList.innerHTML = '';
+                if (snapshot.empty) {
+                    discoverGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No public groups to discover right now.</p>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    // Don't show groups the user is already in
+                    if (!doc.data().participants.includes(user.uid)) {
+                        discoverGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
+                    }
+                });
+            });
+    };
     
     // --- Render Group Feed (UPDATED) ---
     const loadGroupFeed = async (groupId) => {
@@ -176,7 +211,7 @@ document.addEventListener('authReady', (e) => {
 
     const createPostElement = (postId, postData, isPinned) => {
         const postEl = document.createElement('div');
-        postEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+        postEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md relative';
         
         if (postData.postType && ['wts', 'wtb', 'wtt'].includes(postData.postType)) {
             postEl.innerHTML = renderTradePost(postData);
@@ -281,7 +316,6 @@ document.addEventListener('authReady', (e) => {
             }
         }
 
-        // NEW: Determine which post creation UI to show
         let createPostHTML = '';
         if (isMember) {
             if (groupData.groupType === 'trading_guild') {
