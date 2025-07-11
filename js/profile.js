@@ -1,11 +1,15 @@
 /**
- * HatakeSocial - Profile Page Script (v13 - Index Link Generation)
+ * HatakeSocial - Profile Page Script (v15 - Merged & Final)
  *
  * This script handles all logic for the user profile page.
+ * - NEW: Adds a "Start Trade" button to user profiles for quick trade initiation.
+ * - NEW: Adds a "Trade Binder" tab to show only cards marked "forSale".
+ * - NEW: Adds a "Featured Items" section for users to pin a deck and cards.
+ * - NEW: Adds "Pin" buttons on user's own decks and cards.
  * - Merges all functionalities: friend requests, trade history, and expanded achievements.
  * - Restores all original tabs and their data loading functions.
  * - Creates notifications for friend requests and acceptances.
- * - NEW: Generates a direct link to create missing Firestore indexes on error.
+ * - Generates a direct link to create missing Firestore indexes on error.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -90,6 +94,7 @@ document.addEventListener('authReady', (e) => {
 
             let actionButtonHTML = '';
             if (!isOwnProfile && currentUser) {
+                actionButtonHTML += `<button id="start-trade-btn" class="px-4 py-2 bg-green-600 text-white rounded-full text-sm" data-uid="${profileUserId}">Start Trade</button>`;
                 actionButtonHTML += `<button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
                 switch (friendStatus) {
                     case 'none': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>`; break;
@@ -150,6 +155,9 @@ document.addEventListener('authReady', (e) => {
                             <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
+                            
+                            <div id="featured-items-section" class="mt-6"></div>
+
                             <div id="profile-badges-container" class="mt-4">
                                 <h3 class="font-bold text-lg mb-2 dark:text-white">Achievements</h3>
                                 <div id="badges-list" class="flex flex-wrap gap-4"></div>
@@ -163,6 +171,7 @@ document.addEventListener('authReady', (e) => {
                         <nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs">
                             <button data-tab="feed" class="profile-tab-button active">Feed</button>
                             <button data-tab="decks" class="profile-tab-button">Decks</button>
+                            <button data-tab="trade-binder" class="profile-tab-button">Trade Binder</button>
                             <button data-tab="collection" class="profile-tab-button">Collection</button>
                             <button data-tab="friends" class="profile-tab-button">Friends</button>
                             <button data-tab="wishlist" class="profile-tab-button">Wishlist</button>
@@ -173,6 +182,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="mt-6">
                         <div id="tab-content-feed" class="profile-tab-content space-y-6"></div>
                         <div id="tab-content-decks" class="profile-tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                        <div id="tab-content-trade-binder" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
                         <div id="tab-content-collection" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
                         <div id="tab-content-friends" class="profile-tab-content hidden"></div>
                         <div id="tab-content-wishlist" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
@@ -182,6 +192,7 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
             
+            document.getElementById('start-trade-btn')?.addEventListener('click', (e) => { window.location.href = `trades.html?with=${e.currentTarget.dataset.uid}`; });
             document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
             const addFriendBtn = document.getElementById('add-friend-btn');
             if(addFriendBtn) {
@@ -214,10 +225,12 @@ document.addEventListener('authReady', (e) => {
                 if(targetTab) targetTab.click();
             }
 
+            loadFeaturedItems(profileUserId, profileUserData);
             loadProfileFeed(profileUserId);
-            loadProfileDecks(profileUserId);
-            loadProfileCollection(profileUserId, 'collection');
+            loadProfileDecks(profileUserId, isOwnProfile);
+            loadProfileCollection(profileUserId, 'collection', isOwnProfile);
             loadProfileCollection(profileUserId, 'wishlist');
+            loadTradeBinder(profileUserId);
             loadProfileTradeHistory(profileUserId);
             loadProfileFeedback(profileUserId);
             if (window.location.hash === '#friends') loadProfileFriends(profileUserId);
@@ -316,7 +329,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const loadProfileDecks = async (userId) => {
+    const loadProfileDecks = async (userId, isOwnProfile) => {
         const container = document.getElementById('tab-content-decks');
         container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
         try {
@@ -328,10 +341,21 @@ document.addEventListener('authReady', (e) => {
             container.innerHTML = '';
             snapshot.forEach(doc => {
                 const deck = doc.data();
-                const deckCard = document.createElement('a');
-                deckCard.href = `deck.html?deckId=${doc.id}`;
-                deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md block hover:shadow-lg';
-                deckCard.innerHTML = `<h3 class="text-xl font-bold truncate dark:text-white">${deck.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>`;
+                const deckCard = document.createElement('div');
+                deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col';
+                
+                let pinButtonHTML = '';
+                if (isOwnProfile) {
+                    pinButtonHTML = `<button class="pin-deck-btn text-xs text-blue-500 hover:underline mt-2" data-deck-id="${doc.id}">Pin to Profile</button>`;
+                }
+                
+                deckCard.innerHTML = `
+                    <a href="deck.html?deckId=${doc.id}" class="block hover:opacity-80 flex-grow">
+                        <h3 class="text-xl font-bold truncate dark:text-white">${deck.name}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
+                    </a>
+                    ${pinButtonHTML}
+                `;
                 container.appendChild(deckCard);
             });
         } catch (error) {
@@ -345,7 +369,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    const loadProfileCollection = async (userId, listType) => {
+    const loadProfileCollection = async (userId, listType, isOwnProfile = false) => {
         const container = document.getElementById(`tab-content-${listType}`);
         container.innerHTML = '<p class="text-gray-500">Loading...</p>';
         try {
@@ -357,16 +381,96 @@ document.addEventListener('authReady', (e) => {
             container.innerHTML = '';
             snapshot.forEach(doc => {
                 const card = doc.data();
-                const cardEl = document.createElement('a');
-                cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
-                cardEl.className = 'block relative';
-                const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
-                cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}">`;
+                const cardEl = document.createElement('div');
+                cardEl.className = 'relative group';
+                
+                let pinButtonHTML = '';
+                if (isOwnProfile && listType === 'collection') {
+                     pinButtonHTML = `<button class="pin-card-btn text-white text-xs ml-1" title="Pin to Profile" data-card-id="${doc.id}"><i class="fas fa-thumbtack"></i></button>`;
+                }
+
+                cardEl.innerHTML = `
+                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block">
+                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${card.forSale ? 'border-4 border-green-500' : ''}">
+                    </a>
+                    <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${pinButtonHTML}
+                    </div>
+                `;
                 container.appendChild(cardEl);
             });
         } catch (error) {
             console.error("Error loading collection/wishlist: ", error);
             container.innerHTML = `<p class="text-center text-red-500">Could not load this section. This is likely a Firestore Security Rules issue.</p>`;
+        }
+    };
+
+    const loadTradeBinder = async (userId) => {
+        const container = document.getElementById('tab-content-trade-binder');
+        container.innerHTML = '<p class="text-gray-500">Loading trade binder...</p>';
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection('collection').where('forSale', '==', true).get();
+            if (snapshot.empty) {
+                container.innerHTML = `<p class="text-center text-gray-500">This user has no cards listed for trade.</p>`;
+                return;
+            }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const card = doc.data();
+                const cardEl = document.createElement('a');
+                cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
+                cardEl.className = 'block relative';
+                cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full">`;
+                container.appendChild(cardEl);
+            });
+        } catch (error) {
+            console.error("Error loading trade binder: ", error);
+             if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('collection', [{ name: 'forSale', order: 'asc' }]);
+                displayIndexError(container, indexLink);
+            } else {
+                container.innerHTML = `<p class="text-center text-red-500">Could not load trade binder.</p>`;
+            }
+        }
+    };
+    
+    const loadFeaturedItems = async (userId, userData) => {
+        const container = document.getElementById('featured-items-section');
+        container.innerHTML = '';
+        
+        let contentHTML = '';
+
+        if (userData.featuredDeck) {
+            const deckDoc = await db.collection('users').doc(userId).collection('decks').doc(userData.featuredDeck).get();
+            if (deckDoc.exists) {
+                const deck = deckDoc.data();
+                contentHTML += `
+                    <div class="mb-4">
+                        <h4 class="font-semibold text-gray-700 dark:text-gray-300">Featured Deck</h4>
+                        <a href="deck.html?deckId=${deckDoc.id}" class="block bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg mt-1 hover:shadow-md">
+                            <p class="font-bold text-lg text-blue-600 dark:text-blue-400">${deck.name}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
+        if (userData.featuredCards && userData.featuredCards.length > 0) {
+             contentHTML += `<h4 class="font-semibold text-gray-700 dark:text-gray-300 mt-4">Featured Cards</h4>`;
+             contentHTML += `<div class="flex flex-wrap gap-2 mt-2">`;
+             for (const cardId of userData.featuredCards) {
+                const cardDoc = await db.collection('users').doc(userId).collection('collection').doc(cardId).get();
+                if (cardDoc.exists) {
+                    const card = cardDoc.data();
+                    contentHTML += `<a href="card-view.html?name=${encodeURIComponent(card.name)}"><img src="${card.imageUrl}" alt="${card.name}" class="w-20 rounded-md hover:scale-105 transition-transform"></a>`;
+                }
+             }
+             contentHTML += `</div>`;
+        }
+
+        if (contentHTML) {
+            container.innerHTML = `<h3 class="font-bold text-lg mb-2 dark:text-white">Featured Items</h3><div class="border-t dark:border-gray-700 pt-4">${contentHTML}</div>`;
         }
     };
 
@@ -532,6 +636,8 @@ document.addEventListener('authReady', (e) => {
     document.body.addEventListener('click', async (event) => {
         const acceptButton = event.target.closest('.accept-friend-btn');
         const rejectButton = event.target.closest('.reject-friend-btn');
+        const pinDeckBtn = event.target.closest('.pin-deck-btn');
+        const pinCardBtn = event.target.closest('.pin-card-btn');
 
         if (acceptButton) {
             const requestId = acceptButton.dataset.requestId;
@@ -565,6 +671,31 @@ document.addEventListener('authReady', (e) => {
             const requestId = rejectButton.dataset.requestId;
             await db.collection('friendRequests').doc(requestId).delete();
             loadProfileFriends(currentUser.uid);
+        }
+
+        if (pinDeckBtn) {
+            const deckId = pinDeckBtn.dataset.deckId;
+            await db.collection('users').doc(currentUser.uid).update({ featuredDeck: deckId });
+            alert('Deck pinned to your profile!');
+            setupProfilePage(); // Reload profile to show changes
+        }
+
+        if (pinCardBtn) {
+            const cardId = pinCardBtn.dataset.cardId;
+            const userRef = db.collection('users').doc(currentUser.uid);
+            await db.runTransaction(async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                let featured = userDoc.data().featuredCards || [];
+                if (!featured.includes(cardId)) {
+                    featured.push(cardId);
+                    if (featured.length > 4) featured.shift();
+                } else {
+                    featured = featured.filter(id => id !== cardId); // Unpin if already pinned
+                }
+                transaction.update(userRef, { featuredCards: featured });
+            });
+            alert('Featured cards updated!');
+            setupProfilePage();
         }
     });
 
