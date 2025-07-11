@@ -1,14 +1,11 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v13 - @mentions & Trending Hashtags)
+ * HatakeSocial - Index Page (Feed) Script (v14 - Autocomplete Mentions)
  *
  * This script handles all logic for the main feed on index.html.
- * - Implements @mentions with notifications.
- * - Dynamically calculates and displays trending hashtags.
- * - Adds support for creating and displaying polls.
- * - Implements hashtag creation and rendering.
- * - FIX: Correctly handles all interactions (like, comment, delete, report) on posts from all feeds
- * by dynamically determining the post's correct location in the database (root 'posts' or 'groups/{id}/posts').
- * - FIX: Improves UI responsiveness by updating the like button immediately, without reloading the entire feed.
+ * - NEW: Implements autocomplete suggestions for @mentions.
+ * - Implements dynamic trending hashtags.
+ * - FIX: Correctly handles all interactions on posts from all feeds.
+ * - FIX: Improves UI responsiveness by updating the like button immediately.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -130,19 +127,21 @@ document.addEventListener('authReady', (e) => {
             }
 
             postsContainer.innerHTML = '';
-            posts.forEach(post => {
+            for (const post of posts) {
                 const postElement = document.createElement('div');
                 postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md post-container';
                 postElement.dataset.id = post.id;
-                // Add groupId to dataset if it exists
                 if (post.groupId) {
                     postElement.dataset.groupId = post.groupId;
                 }
                 
                 let content = post.content || '';
-                content = content.replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="text-blue-500 hover:underline">@$1</a>`);
-                content = content.replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="text-blue-500 hover:underline">#$1</a>`);
-                
+                content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                content = content.replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`);
+                content = content.replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`);
+                content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`);
+                content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
+
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
                 const canDelete = user && (post.authorId === user.uid || currentUserIsAdmin);
@@ -181,7 +180,7 @@ document.addEventListener('authReady', (e) => {
                         </form>
                     </div>`;
                 postsContainer.appendChild(postElement);
-            });
+            }
         } catch (error) {
             console.error("Error loading posts:", error);
             postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts. ${error.message}</p>`;
@@ -233,47 +232,69 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const handleCardSuggestions = async (textarea, suggestionsContainer) => {
+    const handleAutocomplete = async (textarea, suggestionsContainer) => {
         const text = textarea.value;
         const cursorPos = textarea.selectionStart;
-        const openBracketIndex = text.lastIndexOf('[', cursorPos - 1);
-        const closeBracketIndex = text.indexOf(']', openBracketIndex);
 
-        if (openBracketIndex !== -1 && (closeBracketIndex === -1 || cursorPos <= closeBracketIndex)) {
-            const query = text.substring(openBracketIndex + 1, cursorPos);
-            if (query.length > 2) {
-                try {
-                    const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
-                    const result = await response.json();
-                    
-                    suggestionsContainer.innerHTML = '';
-                    if (result.data && result.data.length > 0) {
-                        suggestionsContainer.classList.remove('hidden');
-                        result.data.slice(0, 7).forEach(cardName => {
-                            const suggestionEl = document.createElement('div');
-                            suggestionEl.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200';
-                            suggestionEl.textContent = cardName;
-                            suggestionEl.addEventListener('click', () => {
-                                const newText = text.substring(0, openBracketIndex) + `[${cardName}]` + text.substring(cursorPos);
-                                textarea.value = newText;
-                                suggestionsContainer.classList.add('hidden');
-                                textarea.focus();
-                            });
-                            suggestionsContainer.appendChild(suggestionEl);
+        // Check for @mention
+        const mentionMatch = /@(\w*)$/.exec(text.substring(0, cursorPos));
+        if (mentionMatch) {
+            const query = mentionMatch[1];
+            if (query.length > 0) {
+                const usersSnapshot = await db.collection('users').where('handle', '>=', query).where('handle', '<=', query + '\uf8ff').limit(5).get();
+                suggestionsContainer.innerHTML = '';
+                if (!usersSnapshot.empty) {
+                    suggestionsContainer.classList.remove('hidden');
+                    usersSnapshot.forEach(doc => {
+                        const userData = doc.data();
+                        const suggestionEl = document.createElement('div');
+                        suggestionEl.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200';
+                        suggestionEl.textContent = `@${userData.handle}`;
+                        suggestionEl.addEventListener('click', () => {
+                            const newText = text.substring(0, text.lastIndexOf('@')) + `@${userData.handle} ` + text.substring(cursorPos);
+                            textarea.value = newText;
+                            suggestionsContainer.classList.add('hidden');
+                            textarea.focus();
                         });
-                    } else {
-                        suggestionsContainer.classList.add('hidden');
-                    }
-                } catch (error) {
-                    console.error("Error fetching card suggestions:", error);
+                        suggestionsContainer.appendChild(suggestionEl);
+                    });
+                } else {
                     suggestionsContainer.classList.add('hidden');
                 }
-            } else {
-                suggestionsContainer.classList.add('hidden');
             }
-        } else {
-            suggestionsContainer.classList.add('hidden');
+            return;
         }
+
+        // Check for [card]
+        const cardMatch = /\[([^\]]*)$/.exec(text.substring(0, cursorPos));
+        if (cardMatch) {
+            const query = cardMatch[1];
+            if (query.length > 2) {
+                const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
+                const result = await response.json();
+                suggestionsContainer.innerHTML = '';
+                if (result.data && result.data.length > 0) {
+                    suggestionsContainer.classList.remove('hidden');
+                    result.data.slice(0, 7).forEach(cardName => {
+                        const suggestionEl = document.createElement('div');
+                        suggestionEl.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200';
+                        suggestionEl.textContent = cardName;
+                        suggestionEl.addEventListener('click', () => {
+                            const newText = text.substring(0, text.lastIndexOf('[')) + `[${cardName}] ` + text.substring(cursorPos);
+                            textarea.value = newText;
+                            suggestionsContainer.classList.add('hidden');
+                            textarea.focus();
+                        });
+                        suggestionsContainer.appendChild(suggestionEl);
+                    });
+                } else {
+                    suggestionsContainer.classList.add('hidden');
+                }
+            }
+            return;
+        }
+
+        suggestionsContainer.classList.add('hidden');
     };
     
     const loadTrendingHashtags = async () => {
@@ -292,6 +313,11 @@ document.addEventListener('authReady', (e) => {
 
         const sortedHashtags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+        if(sortedHashtags.length === 0){
+            trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">No trending tags yet.</p>';
+            return;
+        }
+
         sortedHashtags.forEach(([tag, count]) => {
             const li = document.createElement('li');
             li.innerHTML = `<a href="search.html?query=%23${tag}" class="block text-blue-600 dark:text-blue-400 hover:underline font-medium">#${tag}</a> <span class="text-gray-500 dark:text-gray-400 text-sm">${count} posts</span>`;
@@ -302,7 +328,7 @@ document.addEventListener('authReady', (e) => {
     const setupEventListeners = () => {
         const feedTabs = document.getElementById('feed-tabs');
         const postContentInput = document.getElementById('postContent');
-        const cardSuggestionsContainer = document.getElementById('card-suggestions');
+        const suggestionsContainer = document.getElementById('autocomplete-suggestions');
         const submitPostBtn = document.getElementById('submitPostBtn');
         const postStatusMessage = document.getElementById('postStatusMessage');
         const postImageUpload = document.getElementById('postImageUpload');
@@ -320,8 +346,8 @@ document.addEventListener('authReady', (e) => {
             }
         });
 
-        postContentInput?.addEventListener('input', () => handleCardSuggestions(postContentInput, cardSuggestionsContainer));
-        postContentInput?.addEventListener('blur', () => setTimeout(() => cardSuggestionsContainer.classList.add('hidden'), 200));
+        postContentInput?.addEventListener('input', () => handleAutocomplete(postContentInput, suggestionsContainer));
+        postContentInput?.addEventListener('blur', () => setTimeout(() => suggestionsContainer.classList.add('hidden'), 200));
 
         if (user) {
             submitPostBtn?.addEventListener('click', async () => {
@@ -354,19 +380,21 @@ document.addEventListener('authReady', (e) => {
                         likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags
                     };
 
-                    await db.collection('posts').add(postData);
+                    const postRef = await db.collection('posts').add(postData);
 
                     // Send notifications for mentions
                     for (const handle of mentions) {
                         const userQuery = await db.collection('users').where('handle', '==', handle).limit(1).get();
                         if (!userQuery.empty) {
                             const mentionedUser = userQuery.docs[0];
-                            await db.collection('users').doc(mentionedUser.id).collection('notifications').add({
-                                message: `${user.displayName} mentioned you in a post.`,
-                                link: `/`,
-                                isRead: false,
-                                timestamp: new Date()
-                            });
+                            if (mentionedUser.id !== user.uid) { // Don't notify self
+                                await db.collection('users').doc(mentionedUser.id).collection('notifications').add({
+                                    message: `${userData.displayName} mentioned you in a post.`,
+                                    link: `index.html#post-${postRef.id}`, // Link to the post
+                                    isRead: false,
+                                    timestamp: new Date()
+                                });
+                            }
                         }
                     }
 
