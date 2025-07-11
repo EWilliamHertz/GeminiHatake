@@ -1,6 +1,7 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v19 - UX Improvements)
+ * HatakeSocial - Core Authentication & UI Script (v20 - Mobile Header)
  *
+ * - Adds logic to toggle the mobile navigation menu.
  * - Replaces alert() with inline error messages for a better UX.
  * - Adds a "Scroll to Top" button for easier navigation.
  */
@@ -93,6 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const registerModal = document.getElementById('registerModal');
         const googleLoginButton = document.getElementById('googleLoginButton');
         const googleRegisterButton = document.getElementById('googleRegisterButton');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
 
         if (loginButton) loginButton.addEventListener('click', () => openModal(loginModal));
         if (registerButton) registerButton.addEventListener('click', () => openModal(registerModal));
@@ -203,6 +206,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             scrollToTopBtn.addEventListener('click', () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        if (mobileMenuButton) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
             });
         }
     };
