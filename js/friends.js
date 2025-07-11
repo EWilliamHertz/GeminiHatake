@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Friends Hub Script (v5 - Location Search)
+ * HatakeSocial - Friends Hub Script (v6 - Final Friend Request Fix)
  *
  * This script handles all logic for the friends.html page.
+ * - FIX: Ensures the two-part friend request acceptance process is robust.
  * - Adds a location search feature.
- * - FIX: Implements a secure, two-part process for accepting friend requests
- * that is compliant with Firestore security rules.
  * - Manages friend requests directly on the page.
  * - Provides friend suggestions based on shared groups and location.
  * - Displays a dedicated activity feed of friends' posts and new decks.
@@ -260,23 +259,21 @@ document.addEventListener('authReady', (e) => {
         const button = event.target.closest('button');
         if (!button) return;
 
-        // ** NEW, CORRECTED LOGIC FOR ACCEPTING A FRIEND REQUEST **
         if (button.classList.contains('accept-friend-btn')) {
             const requestId = button.dataset.requestId;
             const senderId = button.dataset.senderId;
             
-            // The receiver can add the sender to their own friends list
+            const batch = db.batch();
             const userRef = db.collection('users').doc(currentUser.uid);
-            await userRef.update({
-                friends: firebase.firestore.FieldValue.arrayUnion(senderId)
-            });
-        
-            // And update the request status to 'accepted'
-            // The sender's client will listen for this change to finish the process.
+            const senderRef = db.collection('users').doc(senderId);
             const requestRef = db.collection('friendRequests').doc(requestId);
-            await requestRef.update({ status: 'accepted' });
-        
-            // Notify the sender their request was accepted
+            
+            batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
+            batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
+            batch.delete(requestRef);
+            
+            await batch.commit();
+
             const notificationData = {
                 message: `${currentUser.displayName} accepted your friend request.`,
                 link: `/profile.html?uid=${currentUser.uid}`,
@@ -285,7 +282,6 @@ document.addEventListener('authReady', (e) => {
             };
             await db.collection('users').doc(senderId).collection('notifications').add(notificationData);
         
-            // Reload the UI
             loadFriendRequests();
             loadFriendsList();
         }
@@ -315,40 +311,8 @@ document.addEventListener('authReady', (e) => {
             await db.collection('users').doc(receiverId).collection('notifications').add(notificationData);
         }
     });
-    
-    // ** NEW FUNCTION TO PROCESS ACCEPTED REQUESTS ON THE SENDER'S END **
-    const listenForAcceptedRequests = () => {
-        if (!currentUser) return;
-    
-        db.collection('friendRequests')
-          .where('senderId', '==', currentUser.uid)
-          .where('status', '==', 'accepted')
-          .onSnapshot(snapshot => {
-              if (snapshot.empty) return;
-    
-              const batch = db.batch();
-              const userRef = db.collection('users').doc(currentUser.uid);
-    
-              snapshot.forEach(doc => {
-                  const request = doc.data();
-                  // Add the new friend to the sender's (current user's) list
-                  batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(request.receiverId) });
-                  // Delete the processed request
-                  batch.delete(doc.ref);
-              });
-    
-              batch.commit().then(() => {
-                  console.log("Accepted friend requests processed.");
-                  // Reload the friends list if the user is on that tab
-                  if (document.querySelector('.friend-tab-button[data-tab="all-friends"].active')) {
-                      loadFriendsList();
-                  }
-              });
-          });
-    };
 
     // Initial Load
     loadFriendsList();
     loadFriendRequests();
-    listenForAcceptedRequests(); // Add this call to start the listener
 });
