@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - My Collection Page Script (v12 - Advanced Add & Bug Fix)
+ * HatakeSocial - My Collection Page Script (v13 - Price Tags)
  *
  * This script handles all logic for the my_collection.html page.
+ * - NEW: Displays a price tag in the user's selected currency over each card image in the grid view.
  * - Implements an advanced manual add feature allowing users to select a game,
  * search for a card, and see all available printings before adding.
  * - Utilizes Scryfall API for Magic and Pokémon TCG API for Pokémon.
@@ -107,8 +108,17 @@ document.addEventListener('authReady', (e) => {
             const isSelected = selectedCards.has(card.id);
             const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
+            // --- NEW: Price Tag Logic ---
+            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
+            const priceTagHTML = formattedPrice 
+                ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
+                : '';
+            // --- End of Price Tag Logic ---
+
             cardEl.innerHTML = `
                 <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                ${priceTagHTML}
                 ${checkboxOverlay}
                 <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <button class="edit-card-btn text-white text-xs" data-list="collection"><i class="fas fa-edit"></i></button>
@@ -140,17 +150,23 @@ document.addEventListener('authReady', (e) => {
             }
         });
 
-        document.getElementById('stats-total-cards').textContent = totalCards;
-        document.getElementById('stats-unique-cards').textContent = uniqueCards;
-        document.getElementById('stats-total-value').textContent = `$${totalValue.toFixed(2)}`;
-        
+        const totalCardsEl = document.getElementById('stats-total-cards');
+        const uniqueCardsEl = document.getElementById('stats-unique-cards');
+        const totalValueEl = document.getElementById('stats-total-value');
         const rarityContainer = document.getElementById('stats-rarity-breakdown');
-        rarityContainer.innerHTML = `
-            <span title="Common" class="flex items-center"><i class="fas fa-circle text-gray-400 mr-1"></i>${rarityCounts.common}</span>
-            <span title="Uncommon" class="flex items-center"><i class="fas fa-circle text-blue-400 mr-1"></i>${rarityCounts.uncommon}</span>
-            <span title="Rare" class="flex items-center"><i class="fas fa-circle text-yellow-400 mr-1"></i>${rarityCounts.rare}</span>
-            <span title="Mythic" class="flex items-center"><i class="fas fa-circle text-red-500 mr-1"></i>${rarityCounts.mythic}</span>
-        `;
+
+        if(totalCardsEl) totalCardsEl.textContent = totalCards;
+        if(uniqueCardsEl) uniqueCardsEl.textContent = uniqueCards;
+        if(totalValueEl) totalValueEl.textContent = window.HatakeSocial.convertAndFormatPrice(totalValue, 'USD');
+        
+        if (rarityContainer) {
+            rarityContainer.innerHTML = `
+                <span title="Common" class="flex items-center"><i class="fas fa-circle text-gray-400 mr-1"></i>${rarityCounts.common}</span>
+                <span title="Uncommon" class="flex items-center"><i class="fas fa-circle text-blue-400 mr-1"></i>${rarityCounts.uncommon}</span>
+                <span title="Rare" class="flex items-center"><i class="fas fa-circle text-yellow-400 mr-1"></i>${rarityCounts.rare}</span>
+                <span title="Mythic" class="flex items-center"><i class="fas fa-circle text-red-500 mr-1"></i>${rarityCounts.mythic}</span>
+            `;
+        }
     };
 
     const toggleBulkEditMode = () => {
