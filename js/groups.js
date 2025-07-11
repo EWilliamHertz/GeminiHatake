@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Groups Page Script (v14 - Permissions Fix)
+ * HatakeSocial - Groups Page Script (v15 - Notification Link Fix)
  *
- * - This version is designed to work with the updated Firestore security rules.
- * - It ensures that all necessary data is fetched correctly and that actions like
- * joining, leaving, and posting in groups work as intended.
+ * - FIX: Corrects the group invitation notification to include a direct link to the specific group.
+ * - FIX: Adds logic to check for a groupId in the URL, allowing direct navigation to a group from a notification.
  * - All other existing functionalities (real-time updates, trade posts, etc.) are preserved.
  */
 document.addEventListener('authReady', (e) => {
@@ -310,6 +309,9 @@ document.addEventListener('authReady', (e) => {
             groupDetailView.innerHTML = '<p class="text-red-500 p-4">Group not found.</p>';
             return;
         }
+        
+        // Store the current group ID in the container for later access
+        groupDetailView.dataset.groupId = groupId;
 
         const groupData = groupDoc.data();
         const isMember = user ? groupData.participants.includes(user.uid) : false;
@@ -498,9 +500,11 @@ document.addEventListener('authReady', (e) => {
     const inviteUserToGroup = async (userIdToInvite, userDataToInvite, groupId, groupName) => {
         if (!user) return;
         
+        // ** THE FIX IS HERE **
+        // The link now includes the groupId so the user is taken directly to the group page.
         const notificationData = {
             message: `${user.displayName} invited you to join the group "${groupName}".`,
-            link: `groups.html`,
+            link: `groups.html?groupId=${groupId}`,
             isRead: false,
             timestamp: new Date()
         };
@@ -597,7 +601,7 @@ document.addEventListener('authReady', (e) => {
 
     tradePostForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const groupId = document.getElementById('invite-group-id').value; // Re-use this hidden input
+        const groupId = document.getElementById('group-detail-view').dataset.groupId;
         if (!groupId || !user) return;
         
         const postData = {
@@ -630,7 +634,17 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
+    // ** NEW ** Function to check for URL parameters on page load
+    const checkForUrlParams = () => {
+        const params = new URLSearchParams(window.location.search);
+        const groupId = params.get('groupId');
+        if (groupId) {
+            viewGroup(groupId);
+        }
+    };
+
     // Initial Load
     loadMyGroups();
     loadDiscoverGroups();
+    checkForUrlParams(); // Check for a direct link to a group
 });
