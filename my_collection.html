@@ -7,7 +7,6 @@
    <script src="https://cdn.tailwindcss.com"></script>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
    <link rel="stylesheet" href="css/style.css">
-   <!-- Chart.js for analytics -->
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
@@ -75,7 +74,23 @@
         </div>
 
         <div id="collection-stats-section" class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-            <!-- Stats will be populated here -->
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Cards</h4>
+                <p id="stats-total-cards" class="text-2xl font-bold dark:text-white">0</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Unique Cards</h4>
+                <p id="stats-unique-cards" class="text-2xl font-bold dark:text-white">0</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Value</h4>
+                <p id="stats-total-value" class="text-2xl font-bold dark:text-white">$0.00</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Rarity Breakdown</h4>
+                <div id="stats-rarity-breakdown" class="text-lg font-bold dark:text-white flex justify-center space-x-3 mt-2">
+                    </div>
+            </div>
         </div>
 
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
@@ -114,7 +129,6 @@
                         <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
                     </div>
                 </div>
-                <!-- NEW: Advanced Filters -->
                 <div id="collection-filters" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
@@ -164,7 +178,6 @@
         </div>
     </main>
     
-    <!-- Modals -->
     <div id="add-version-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md dark:bg-gray-800">
             <button id="close-add-version-modal" class="close-button">&times;</button>
@@ -411,7 +424,6 @@
 </div>
 
 
-    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
