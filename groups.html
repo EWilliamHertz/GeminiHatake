@@ -81,11 +81,9 @@
             </div>
         </div>
         <div id="group-detail-view" class="hidden">
-            <!-- This will be populated by js/groups.js -->
-        </div>
+            </div>
     </main>
 
-    <!-- Modals -->
     <div id="create-group-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg">
             <button id="close-group-modal" class="close-button">&times;</button>
@@ -99,7 +97,6 @@
                     <label for="groupDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                     <textarea id="groupDescription" rows="3" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required></textarea>
                 </div>
-                <!-- NEW: Group Type Selector -->
                 <div>
                     <label for="groupType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Type</label>
                     <select id="groupType" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
@@ -120,7 +117,6 @@
         </div>
     </div>
     
-    <!-- NEW: Trade Post Modal -->
     <div id="trade-post-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg">
             <button id="close-trade-post-modal" class="close-button">&times;</button>
@@ -136,7 +132,6 @@
                     <textarea id="trade-post-body-input" rows="4" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Add any extra details about what you're looking for, card conditions, etc."></textarea>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Haves Column -->
                     <div id="trade-post-haves-section">
                         <h3 class="font-semibold dark:text-white">Cards I Have:</h3>
                         <div id="trade-post-haves-list" class="mt-2 space-y-2 min-h-[50px] bg-gray-100 dark:bg-gray-900/50 p-2 rounded-md"></div>
@@ -145,7 +140,6 @@
                             <div id="trade-post-haves-results" class="absolute z-10 w-full bg-white dark:bg-gray-600 border rounded-md shadow-lg max-h-48 overflow-y-auto hidden"></div>
                         </div>
                     </div>
-                    <!-- Wants Column -->
                     <div id="trade-post-wants-section">
                         <h3 class="font-semibold dark:text-white">Cards I Want:</h3>
                          <div id="trade-post-wants-list" class="mt-2 space-y-2 min-h-[50px] bg-gray-100 dark:bg-gray-900/50 p-2 rounded-md"></div>
@@ -284,13 +278,11 @@
         </div>
     </footer>
 
-    <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     
-    <!-- Custom Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/groups.js"></script>
     <script src="js/darkmode.js"></script>
