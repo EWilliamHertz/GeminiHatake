@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Groups Page Script (v13 - Invite Fix)
+ * HatakeSocial - Groups Page Script (v14 - Permissions Fix)
  *
- * - FIX: Re-implements the logic for inviting members to a group.
- * - FIX: Correctly handles user search within the invite modal.
- * - FIX: Sends a notification to the invited user.
+ * - This version is designed to work with the updated Firestore security rules.
+ * - It ensures that all necessary data is fetched correctly and that actions like
+ * joining, leaving, and posting in groups work as intended.
  * - All other existing functionalities (real-time updates, trade posts, etc.) are preserved.
  */
 document.addEventListener('authReady', (e) => {
@@ -48,10 +48,10 @@ document.addEventListener('authReady', (e) => {
         // Pre-load user's collection and wishlist for the trade post modal
         db.collection('users').doc(user.uid).collection('collection').get().then(snap => {
             userCollection = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        });
+        }).catch(err => console.error("Could not load user collection:", err));
         db.collection('users').doc(user.uid).collection('wishlist').get().then(snap => {
             userWishlist = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-        });
+        }).catch(err => console.error("Could not load user wishlist:", err));
     }
     createGroupBtn.addEventListener('click', () => openModal(createGroupModal));
     closeGroupModalBtn.addEventListener('click', () => closeModal(createGroupModal));
@@ -128,6 +128,7 @@ document.addEventListener('authReady', (e) => {
     };
 
     const loadMyGroups = () => {
+        if (!user) return;
         if(myGroupsUnsubscribe) myGroupsUnsubscribe();
 
         myGroupsUnsubscribe = db.collection('groups')
@@ -141,6 +142,9 @@ document.addEventListener('authReady', (e) => {
                 snapshot.forEach(doc => {
                     myGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
                 });
+            }, err => {
+                console.error("Error loading my groups:", err);
+                myGroupsList.innerHTML = '<p class="text-red-500">Could not load your groups.</p>';
             });
     };
     
@@ -157,10 +161,16 @@ document.addEventListener('authReady', (e) => {
                     return;
                 }
                 snapshot.forEach(doc => {
-                    if (!doc.data().participants.includes(user.uid)) {
-                        discoverGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
+                    const groupData = doc.data();
+                    if (user && groupData.participants && groupData.participants.includes(user.uid)) {
+                        // Don't show groups the user is already in
+                    } else {
+                        discoverGroupsList.appendChild(createGroupCard(groupData, doc.id));
                     }
                 });
+            }, err => {
+                console.error("Error loading discover groups:", err);
+                discoverGroupsList.innerHTML = '<p class="text-red-500">Could not load groups to discover.</p>';
             });
     };
     
@@ -169,38 +179,47 @@ document.addEventListener('authReady', (e) => {
         if (!feedContainer) return;
         feedContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
         
-        const groupDoc = await db.collection('groups').doc(groupId).get();
-        const groupData = groupDoc.data();
-        const pinnedPostId = groupData.pinnedPost;
-
-        const postsRef = db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc');
-        
-        postsRef.onSnapshot(async snapshot => {
-            if (snapshot.empty && !pinnedPostId) {
-                feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No posts in this group yet. Be the first!</p>';
+        try {
+            const groupDoc = await db.collection('groups').doc(groupId).get();
+            if (!groupDoc.exists) {
+                feedContainer.innerHTML = '<p class="text-red-500">Group not found.</p>';
                 return;
             }
+            const groupData = groupDoc.data();
+            const pinnedPostId = groupData.pinnedPost;
 
-            feedContainer.innerHTML = '';
-
-            if (pinnedPostId) {
-                const pinnedPostDoc = await db.collection('groups').doc(groupId).collection('posts').doc(pinnedPostId).get();
-                if (pinnedPostDoc.exists) {
-                    const pinnedPostEl = createPostElement(pinnedPostDoc.id, pinnedPostDoc.data(), true);
-                    feedContainer.appendChild(pinnedPostEl);
-                }
-            }
+            const postsRef = db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc');
             
-            snapshot.forEach(doc => {
-                if (doc.id !== pinnedPostId) {
-                    const postEl = createPostElement(doc.id, doc.data(), false);
-                    feedContainer.appendChild(postEl);
+            postsRef.onSnapshot(async snapshot => {
+                if (snapshot.empty && !pinnedPostId) {
+                    feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No posts in this group yet. Be the first!</p>';
+                    return;
                 }
+
+                feedContainer.innerHTML = '';
+
+                if (pinnedPostId) {
+                    const pinnedPostDoc = await db.collection('groups').doc(groupId).collection('posts').doc(pinnedPostId).get();
+                    if (pinnedPostDoc.exists) {
+                        const pinnedPostEl = createPostElement(pinnedPostDoc.id, pinnedPostDoc.data(), true);
+                        feedContainer.appendChild(pinnedPostEl);
+                    }
+                }
+                
+                snapshot.forEach(doc => {
+                    if (doc.id !== pinnedPostId) {
+                        const postEl = createPostElement(doc.id, doc.data(), false);
+                        feedContainer.appendChild(postEl);
+                    }
+                });
+            }, error => {
+                console.error(`Error loading group feed for ${groupId}:`, error);
+                feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group posts. Check permissions.</p>';
             });
-        }, error => {
-            console.error(`Error loading group feed for ${groupId}:`, error);
-            feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group posts.</p>';
-        });
+        } catch (error) {
+            console.error("Error fetching group data:", error);
+            feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group data.</p>';
+        }
     };
 
     const createPostElement = (postId, postData, isPinned) => {
@@ -245,7 +264,7 @@ document.addEventListener('authReady', (e) => {
             if (!cards || cards.length === 0) return '<p class="text-xs italic text-gray-500">None</p>';
             return cards.map(card => `
                 <a href="card-view.html?name=${encodeURIComponent(card.name)}" target="_blank" class="flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded-md">
-                    <img src="${card.imageUrl}" class="w-8 h-11 rounded-sm object-cover">
+                    <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 rounded-sm object-cover">
                     <span class="text-sm dark:text-gray-300">${card.name}</span>
                 </a>
             `).join('');
@@ -376,6 +395,27 @@ document.addEventListener('authReady', (e) => {
             inviteUserResultsContainer.innerHTML = '';
             openModal(inviteMemberModal);
         });
+        
+        document.getElementById('submit-group-post-btn')?.addEventListener('click', async () => {
+            const content = document.getElementById('group-post-content').value;
+            if (!content.trim()) return;
+
+            const postData = {
+                authorId: user.uid,
+                author: user.displayName,
+                authorPhotoURL: user.photoURL,
+                content: content,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+
+            try {
+                await db.collection('groups').doc(groupId).collection('posts').add(postData);
+                document.getElementById('group-post-content').value = '';
+            } catch (error) {
+                console.error("Error creating post:", error);
+                alert("Could not create post. Check permissions.");
+            }
+        });
     };
 
     const handleAction = async (action, groupId, groupName) => {
@@ -386,24 +426,29 @@ document.addEventListener('authReady', (e) => {
 
         const groupRef = db.collection('groups').doc(groupId);
 
-        if (action === 'join') {
-            await groupRef.update({
-                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
-                participantCount: firebase.firestore.FieldValue.increment(1),
-                [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
-            });
-            alert(`Welcome to ${groupName}!`);
-        } else if (action === 'leave') {
-            if (confirm(`Are you sure you want to leave ${groupName}?`)) {
+        try {
+            if (action === 'join') {
                 await groupRef.update({
-                    participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
-                    participantCount: firebase.firestore.FieldValue.increment(-1),
-                    [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
+                    participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                    participantCount: firebase.firestore.FieldValue.increment(1),
+                    [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
                 });
-                alert(`You have left ${groupName}.`);
+                alert(`Welcome to ${groupName}!`);
+            } else if (action === 'leave') {
+                if (confirm(`Are you sure you want to leave ${groupName}?`)) {
+                    await groupRef.update({
+                        participants: firebase.firestore.FieldValue.arrayRemove(user.uid),
+                        participantCount: firebase.firestore.FieldValue.increment(-1),
+                        [`participantInfo.${user.uid}`]: firebase.firestore.FieldValue.delete()
+                    });
+                    alert(`You have left ${groupName}.`);
+                }
             }
+            viewGroup(groupId);
+        } catch (error) {
+            console.error(`Error performing action '${action}':`, error);
+            alert(`Could not ${action} the group. Please check your permissions and try again.`);
         }
-        viewGroup(groupId);
     };
 
     inviteUserSearchInput.addEventListener('keyup', async (e) => {
@@ -552,7 +597,7 @@ document.addEventListener('authReady', (e) => {
 
     tradePostForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const groupId = document.getElementById('group-detail-view').dataset.groupId;
+        const groupId = document.getElementById('invite-group-id').value; // Re-use this hidden input
         if (!groupId || !user) return;
         
         const postData = {
