@@ -27,7 +27,6 @@ document.addEventListener('authReady', (e) => {
     const requestCountBadge = document.getElementById('friend-request-count');
     const locationSearchInput = document.getElementById('location-search-input');
 
-    // --- Helper to generate a Firestore index creation link ---
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -60,7 +59,6 @@ document.addEventListener('authReady', (e) => {
             content.classList.toggle('hidden', content.id !== `tab-content-${tabId}`);
         });
 
-        // Load content for the selected tab
         if (tabId === 'all-friends') loadFriendsList();
         if (tabId === 'requests') loadFriendRequests();
         if (tabId === 'suggestions') loadFriendSuggestions();
@@ -172,7 +170,6 @@ document.addEventListener('authReady', (e) => {
 
         let suggestions = new Map();
 
-        // Suggest based on country
         if (currentUserData.country) {
             const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
             countrySnapshot.forEach(doc => {
