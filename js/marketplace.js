@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v28 - Merged & Final)
+ * HatakeSocial - Marketplace Page Script (v29 - Merged & Final Fix)
  *
- * - Merges previous versions to include a full, advanced search and filter system.
- * - Fixes Firestore permission errors by relying on updated security rules.
- * - Implements efficient, paginated loading of marketplace data.
- * - Provides robust, user-friendly error handling for missing database indexes.
+ * - FIX: Correctly generates the "Propose Trade" link with the card's ID so the trade modal opens automatically.
+ * - FIX: Correctly fetches and displays the seller's city and country, resolving the "N/A" issue.
+ * - Implements a powerful, multi-field search and filter system.
+ * - Provides robust error handling for missing database indexes.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
