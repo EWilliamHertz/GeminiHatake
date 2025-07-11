@@ -1,6 +1,8 @@
 /**
- * HatakeSocial - Groups Page Script (v10 - Trading Guilds)
+ * HatakeSocial - Groups Page Script (v11 - Pinned Posts)
  *
+ * - Adds a "Pin Post" option for group admins.
+ * - Renders pinned posts at the top of the group feed.
  * - NEW: Adds a "Group Type" selector during group creation.
  * - NEW: If a group is a "Trading Guild", it displays specialized post-creation buttons (WTS, WTB, WTT).
  * - NEW: Implements a modal for creating structured trade posts.
@@ -84,7 +86,8 @@ document.addEventListener('authReady', (e) => {
                 participantInfo: { [user.uid]: { displayName: user.displayName, photoURL: user.photoURL } },
                 moderators: [user.uid],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                participantCount: 1
+                participantCount: 1,
+                pinnedPost: null
             };
 
             await db.collection('groups').add(groupData);
@@ -136,33 +139,59 @@ document.addEventListener('authReady', (e) => {
         const feedContainer = document.getElementById('group-feed-container');
         if (!feedContainer) return;
         feedContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
+        
+        const groupDoc = await db.collection('groups').doc(groupId).get();
+        const groupData = groupDoc.data();
+        const pinnedPostId = groupData.pinnedPost;
 
         const postsRef = db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc');
         
-        postsRef.onSnapshot(snapshot => {
-            if (snapshot.empty) {
+        postsRef.onSnapshot(async snapshot => {
+            if (snapshot.empty && !pinnedPostId) {
                 feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No posts in this group yet. Be the first!</p>';
                 return;
             }
+
             feedContainer.innerHTML = '';
-            snapshot.forEach(doc => {
-                const post = doc.data();
-                const postEl = document.createElement('div');
-                postEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-                
-                // NEW: Check post type and render accordingly
-                if (post.postType && ['wts', 'wtb', 'wtt'].includes(post.postType)) {
-                    postEl.innerHTML = renderTradePost(post);
-                } else {
-                    postEl.innerHTML = renderStandardPost(post);
+
+            if (pinnedPostId) {
+                const pinnedPostDoc = await db.collection('groups').doc(groupId).collection('posts').doc(pinnedPostId).get();
+                if (pinnedPostDoc.exists) {
+                    const pinnedPostEl = createPostElement(pinnedPostDoc.id, pinnedPostDoc.data(), true);
+                    feedContainer.appendChild(pinnedPostEl);
                 }
-                feedContainer.appendChild(postEl);
+            }
+            
+            snapshot.forEach(doc => {
+                if (doc.id !== pinnedPostId) {
+                    const postEl = createPostElement(doc.id, doc.data(), false);
+                    feedContainer.appendChild(postEl);
+                }
             });
         }, error => {
             console.error(`Error loading group feed for ${groupId}:`, error);
             feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group posts.</p>';
         });
     };
+
+    const createPostElement = (postId, postData, isPinned) => {
+        const postEl = document.createElement('div');
+        postEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+        
+        if (postData.postType && ['wts', 'wtb', 'wtt'].includes(postData.postType)) {
+            postEl.innerHTML = renderTradePost(postData);
+        } else {
+            postEl.innerHTML = renderStandardPost(postData);
+        }
+
+        if (isPinned) {
+            const pinIcon = document.createElement('div');
+            pinIcon.innerHTML = `<i class="fas fa-thumbtack text-yellow-500 absolute top-2 right-2"></i>`;
+            postEl.prepend(pinIcon);
+        }
+
+        return postEl;
+    }
 
     const renderStandardPost = (post) => {
         return `
@@ -242,7 +271,10 @@ document.addEventListener('authReady', (e) => {
         let actionButtonsHTML = '';
         if (user) {
             if (isMember) {
-                if (isAdmin) actionButtonsHTML += `<button id="invite-member-action-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full text-sm">Invite Member</button>`;
+                if (isAdmin) {
+                    actionButtonsHTML += `<button id="invite-member-action-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full text-sm">Invite Member</button>`;
+                    actionButtonsHTML += `<button id="pin-post-action-btn" class="ml-2 px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full text-sm">Pin Post</button>`;
+                }
                 actionButtonsHTML += `<button id="leave-group-action-btn" class="ml-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-full text-sm">Leave Group</button>`;
             } else if (groupData.isPublic) {
                 actionButtonsHTML = `<button id="join-group-action-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full text-sm">Join Group</button>`;
