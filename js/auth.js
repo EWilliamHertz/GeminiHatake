@@ -1,14 +1,8 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v18 - Correct Storage & Intl Merged)
+ * HatakeSocial - Core Authentication & UI Script (v19 - UX Improvements)
  *
- * This script is included on EVERY page. It handles:
- * - All Login/Register Modal and Form logic.
- * - The main auth state listener that correctly updates the header UI.
- * - Firing a custom 'authReady' event that all other page-specific scripts listen for.
- * - FIX: Uses the correct `firebasestorage.app` URL for the storageBucket.
- * - NEW: Manages global currency selection and conversion.
- * - NEW: Injects a currency selector into the header.
- * - NEW: Adds City and Country to the registration form.
+ * - Replaces alert() with inline error messages for a better UX.
+ * - Adds a "Scroll to Top" button for easier navigation.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -17,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
         projectId: "hatakesocial-88b5e",
-        storageBucket: "hatakesocial-88b5e.firebasestorage.app", // <-- CORRECTED
+        storageBucket: "hatakesocial-88b5e.firebasestorage.app",
         messagingSenderId: "1091697032506",
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
@@ -33,46 +27,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
-        // In a real app, these rates would be fetched from an API daily.
-        // Rates are relative to SEK (Swedish Krona).
-        conversionRates: {
-            SEK: 1,
-            USD: 0.095,
-            EUR: 0.088,
-        },
-        // Get user's preferred currency from localStorage or default to SEK
+        conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
         currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
-
-        /**
-         * Converts a price from a source currency to the user's currently selected currency.
-         * @param {number} amount - The price amount.
-         * @param {string} fromCurrency - The currency the price is stored in (e.g., 'USD').
-         * @returns {string} - The formatted price string in the user's currency.
-         */
+        currentUserData: null, // To store logged-in user's data
         convertAndFormatPrice(amount, fromCurrency = 'SEK') {
             const toCurrency = this.currentCurrency;
             if (amount === undefined || amount === null || isNaN(amount)) {
                 return `0.00 ${toCurrency}`;
             }
-
-            // Find the SEK rate for the 'from' currency.
             const fromRate = this.conversionRates[fromCurrency];
             if (fromRate === undefined) {
-                 console.error(`Unknown currency to convert from: ${fromCurrency}`);
                  return `N/A`;
             }
-
-            // Convert the amount from its source currency to SEK first.
             const amountInSEK = amount / fromRate;
-            
-            // Now convert from SEK to the target currency.
             const toRate = this.conversionRates[toCurrency];
              if (toRate === undefined) {
-                 console.error(`Unknown currency to convert to: ${toCurrency}`);
                  return `N/A`;
             }
             const convertedAmount = amountInSEK * toRate;
-
             return `${convertedAmount.toFixed(2)} ${toCurrency}`;
         }
     };
@@ -94,14 +66,20 @@ document.addEventListener('DOMContentLoaded', () => {
         selector.addEventListener('change', (e) => {
             window.HatakeSocial.currentCurrency = e.target.value;
             localStorage.setItem('hatakeCurrency', e.target.value);
-            // Reload the page to apply the new currency everywhere.
             window.location.reload();
         });
     };
 
-
-    // --- Global UI & Auth Logic ---
-    window.openModal = (modal) => { if (modal) modal.classList.add('open'); };
+    window.openModal = (modal) => { 
+        if (modal) {
+            modal.classList.add('open');
+            const errorMsg = modal.querySelector('[id$="-error-message"]');
+            if (errorMsg) {
+                errorMsg.classList.add('hidden');
+                errorMsg.textContent = '';
+            }
+        }
+    };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
     const setupGlobalListeners = () => {
@@ -125,7 +103,16 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            auth.signInWithEmailAndPassword(email, password).then(() => closeModal(loginModal)).catch(err => alert(err.message));
+            const errorMessageEl = document.getElementById('login-error-message');
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    closeModal(loginModal);
+                })
+                .catch(err => {
+                    errorMessageEl.textContent = err.message;
+                    errorMessageEl.classList.remove('hidden');
+                });
         });
 
         document.getElementById('registerForm')?.addEventListener('submit', (e) => {
@@ -137,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || '';
             const displayName = email.split('@')[0];
             const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
+            const errorMessageEl = document.getElementById('register-error-message');
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
@@ -150,11 +138,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
                         isAdmin: false,
-                        primaryCurrency: 'SEK' // Default currency for new users
+                        primaryCurrency: 'SEK'
                     });
                 })
                 .then(() => closeModal(registerModal))
-                .catch(err => alert(err.message));
+                .catch(err => {
+                    if(errorMessageEl) {
+                        errorMessageEl.textContent = err.message;
+                        errorMessageEl.classList.remove('hidden');
+                    } else {
+                        alert(err.message);
+                    }
+                });
         });
 
         const handleGoogleAuth = () => {
@@ -195,6 +190,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+        
+        const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+        if (scrollToTopBtn) {
+            window.addEventListener('scroll', () => {
+                if (window.pageYOffset > 200) {
+                    scrollToTopBtn.classList.remove('hidden');
+                } else {
+                    scrollToTopBtn.classList.add('hidden');
+                }
+            });
+
+            scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
     };
 
     auth.onAuthStateChanged(async (user) => {
@@ -216,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
+                    window.HatakeSocial.currentUserData = userData; // Store user data globally
                     const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
                     const name = userData.displayName || 'User';
                     const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
@@ -245,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Error fetching user data:", error);
             }
         } else {
+            window.HatakeSocial.currentUserData = null;
             loginButton?.classList.remove('hidden');
             registerButton?.classList.remove('hidden');
             userAvatar?.classList.add('hidden');
