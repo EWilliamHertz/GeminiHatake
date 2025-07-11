@@ -97,8 +97,8 @@
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="create-post-section">
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Create New Post</h2>
                 <div class="relative">
-                    <textarea id="postContent" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y text-gray-900 dark:text-gray-200" rows="4" placeholder="What's on your mind? Use @ to mention a user, or # to add a tag."></textarea>
-                    <div id="card-suggestions" class="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                    <textarea id="postContent" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y text-gray-900 dark:text-gray-200" rows="4" placeholder="What's on your mind? Use @ to mention a user, # for a tag, or [Card Name] to tag a card."></textarea>
+                    <div id="autocomplete-suggestions" class="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
                 </div>
                 <input type="file" id="postImageUpload" accept="image/*,video/*" class="hidden">
                 <div class="flex justify-between items-center mt-4">
@@ -136,7 +136,7 @@
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Trending Hashtags</h2>
                 <ul id="trending-hashtags-list" class="space-y-3">
-                    </ul>
+                </ul>
             </div>
 
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
