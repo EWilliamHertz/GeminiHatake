@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v10 - Multi-Feed Interaction Fix)
+ * HatakeSocial - Index Page (Feed) Script (v11 - Unified Interaction Fix)
  *
  * This script handles all logic for the main feed on index.html.
- * - FIX: Correctly handles likes and comments on posts from the "Groups" feed
- * by dynamically determining the post's location in the database.
- * - Implements a tabbed interface to switch between "For You" (public), "Friends", and "Groups" feeds.
- * - Contains all logic for post creation, liking, commenting, reporting, and deleting.
- * - Contains logic for real-time card name suggestions in the post editor.
+ * - FIX: Correctly handles all interactions (like, comment, delete, report) on posts from all feeds
+ * by dynamically determining the post's correct location in the database (root 'posts' or 'groups/{id}/posts').
+ * - FIX: Improves UI responsiveness by updating the like button immediately, without reloading the entire feed.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -162,7 +160,7 @@ document.addEventListener('authReady', (e) => {
                     <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${content}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
                     <div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400">
-                        <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}" data-post-id="${post.id}">
+                        <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i> 
                             <span class="likes-count-display cursor-pointer hover:underline">${likesCount}</span>
                         </button>
@@ -351,9 +349,8 @@ document.addEventListener('authReady', (e) => {
             const postElement = e.target.closest('.post-container');
             if (!postElement) return;
             const postId = postElement.dataset.id;
-            const groupId = postElement.dataset.groupId; // Get groupId from dataset
+            const groupId = postElement.dataset.groupId;
 
-            // Dynamically create the post reference
             const postRef = groupId 
                 ? db.collection('groups').doc(groupId).collection('posts').doc(postId)
                 : db.collection('posts').doc(postId);
@@ -369,24 +366,48 @@ document.addEventListener('authReady', (e) => {
                 if (confirm('Are you sure you want to delete this post?')) {
                     try {
                         await postRef.delete();
-                        renderPosts(activeFeedType);
+                        postElement.remove(); // Remove from UI immediately
                     } catch (error) {
                         console.error("Error deleting post: ", error);
                         alert("Could not delete post.");
                     }
                 }
             } else if (e.target.closest('.like-btn')) {
-                await db.runTransaction(async t => {
-                    const doc = await t.get(postRef);
-                    if (!doc.exists) return;
-                    const data = doc.data();
-                    const likes = Array.isArray(data.likes) ? data.likes : [];
-                    const userIndex = likes.indexOf(user.uid);
-                    if (userIndex === -1) likes.push(user.uid);
-                    else likes.splice(userIndex, 1);
-                    t.update(postRef, { likes });
-                });
-                renderPosts(activeFeedType);
+                const likeBtn = e.target.closest('.like-btn');
+                const icon = likeBtn.querySelector('i');
+                const countSpan = likeBtn.querySelector('.likes-count-display');
+                const currentLikes = parseInt(countSpan.textContent, 10);
+                const isCurrentlyLiked = icon.classList.contains('fas');
+
+                // Optimistically update UI
+                likeBtn.classList.toggle('text-red-500', !isCurrentlyLiked);
+                icon.classList.toggle('fas', !isCurrentlyLiked);
+                icon.classList.toggle('far', isCurrentlyLiked);
+                countSpan.textContent = isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1;
+
+                try {
+                    await db.runTransaction(async t => {
+                        const doc = await t.get(postRef);
+                        if (!doc.exists) throw new Error("Post not found.");
+                        const likes = doc.data().likes || [];
+                        const userIndex = likes.indexOf(user.uid);
+                        if (userIndex === -1) {
+                            likes.push(user.uid);
+                        } else {
+                            likes.splice(userIndex, 1);
+                        }
+                        t.update(postRef, { likes });
+                    });
+                } catch (error) {
+                    // Revert UI on failure
+                    console.error("Error updating like:", error);
+                    likeBtn.classList.toggle('text-red-500', isCurrentlyLiked);
+                    icon.classList.toggle('fas', isCurrentlyLiked);
+                    icon.classList.toggle('far', !isCurrentlyLiked);
+                    countSpan.textContent = currentLikes;
+                    alert("Failed to update like. Please try again.");
+                }
+
             } else if (e.target.closest('.comment-btn')) {
                 const commentsSection = postElement.querySelector('.comments-section');
                 const wasHidden = commentsSection.classList.toggle('hidden');
@@ -410,11 +431,11 @@ document.addEventListener('authReady', (e) => {
                 const input = e.target.querySelector('input');
                 const content = input.value.trim();
                 if (!content) return;
+
                 const postElement = e.target.closest('.post-container');
                 const postId = postElement.dataset.id;
-                const groupId = postElement.dataset.groupId; // Get groupId from dataset
+                const groupId = postElement.dataset.groupId;
 
-                // Dynamically create the post reference
                 const postRef = groupId 
                     ? db.collection('groups').doc(groupId).collection('posts').doc(postId)
                     : db.collection('posts').doc(postId);
@@ -428,11 +449,18 @@ document.addEventListener('authReady', (e) => {
                     content: content, 
                     timestamp: new Date()
                 };
-                await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
-                input.value = '';
-                const updatedPostDoc = await postRef.get();
-                renderComments(postElement.querySelector('.comments-list'), updatedPostDoc.data().comments);
-                postElement.querySelector('.comments-count').textContent = updatedPostDoc.data().comments.length;
+
+                input.value = ''; // Clear input immediately
+                try {
+                    await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
+                    const updatedPostDoc = await postRef.get();
+                    renderComments(postElement.querySelector('.comments-list'), updatedPostDoc.data().comments);
+                    postElement.querySelector('.comments-count').textContent = updatedPostDoc.data().comments.length;
+                } catch(error) {
+                    console.error("Error submitting comment:", error);
+                    alert("Could not post comment.");
+                    input.value = content; // Restore content on failure
+                }
             }
         });
 
