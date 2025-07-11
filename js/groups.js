@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Groups Page Script (v15 - Notification Link Fix)
+ * HatakeSocial - Groups Page Script (v16 - Invitations & Permissions Fix)
  *
- * - FIX: Corrects the group invitation notification to include a direct link to the specific group.
- * - FIX: Adds logic to check for a groupId in the URL, allowing direct navigation to a group from a notification.
- * - All other existing functionalities (real-time updates, trade posts, etc.) are preserved.
+ * - NEW: Adds a "Pending Invitations" section to the main groups page.
+ * - NEW: Creates a dedicated `groupInvitations` collection for better management.
+ * - FIX: Ensures users can join public groups and post in groups they are members of.
+ * - FIX: Correctly links notifications to the specific group page.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -29,6 +30,8 @@ document.addEventListener('authReady', (e) => {
     const closeInviteModalBtn = document.getElementById('close-invite-modal');
     const inviteUserSearchInput = document.getElementById('invite-user-search');
     const inviteUserResultsContainer = document.getElementById('invite-user-results');
+    const pendingInvitesSection = document.getElementById('pending-invitations-section');
+    const pendingInvitesList = document.getElementById('pending-invitations-list');
     
     // Trade Post Modal Elements
     const tradePostModal = document.getElementById('trade-post-modal');
@@ -173,6 +176,39 @@ document.addEventListener('authReady', (e) => {
             });
     };
     
+    // --- NEW: Load Pending Invitations ---
+    const loadPendingInvitations = async () => {
+        if (!user) return;
+        
+        const invitesRef = db.collection('groupInvitations').where('inviteeId', '==', user.uid).where('status', '==', 'pending');
+        
+        invitesRef.onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                pendingInvitesSection.classList.add('hidden');
+                return;
+            }
+            
+            pendingInvitesSection.classList.remove('hidden');
+            pendingInvitesList.innerHTML = '';
+
+            snapshot.forEach(doc => {
+                const invite = doc.data();
+                const inviteCard = document.createElement('div');
+                inviteCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+                inviteCard.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-gray-800 dark:text-white">${invite.inviterName} invited you to join "${invite.groupName}"</p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="accept-invite-btn bg-green-500 text-white px-3 py-1 text-sm rounded-full" data-invite-id="${doc.id}" data-group-id="${invite.groupId}">Accept</button>
+                        <button class="decline-invite-btn bg-red-500 text-white px-3 py-1 text-sm rounded-full" data-invite-id="${doc.id}">Decline</button>
+                    </div>
+                `;
+                pendingInvitesList.appendChild(inviteCard);
+            });
+        });
+    };
+
     const loadGroupFeed = async (groupId) => {
         const feedContainer = document.getElementById('group-feed-container');
         if (!feedContainer) return;
@@ -310,7 +346,6 @@ document.addEventListener('authReady', (e) => {
             return;
         }
         
-        // Store the current group ID in the container for later access
         groupDetailView.dataset.groupId = groupId;
 
         const groupData = groupDoc.data();
@@ -500,17 +535,18 @@ document.addEventListener('authReady', (e) => {
     const inviteUserToGroup = async (userIdToInvite, userDataToInvite, groupId, groupName) => {
         if (!user) return;
         
-        // ** THE FIX IS HERE **
-        // The link now includes the groupId so the user is taken directly to the group page.
-        const notificationData = {
-            message: `${user.displayName} invited you to join the group "${groupName}".`,
-            link: `groups.html?groupId=${groupId}`,
-            isRead: false,
-            timestamp: new Date()
+        const invitationData = {
+            groupId: groupId,
+            groupName: groupName,
+            inviterId: user.uid,
+            inviterName: user.displayName,
+            inviteeId: userIdToInvite,
+            status: 'pending',
+            createdAt: new Date()
         };
 
         try {
-            await db.collection('users').doc(userIdToInvite).collection('notifications').add(notificationData);
+            await db.collection('groupInvitations').add(invitationData);
             alert(`Invitation sent to ${userDataToInvite.displayName}.`);
         } catch (error) {
             console.error("Error sending invitation:", error);
@@ -634,7 +670,34 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // ** NEW ** Function to check for URL parameters on page load
+    // --- NEW: Event delegation for invitation actions ---
+    pendingInvitesList?.addEventListener('click', async (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+
+        const inviteId = button.dataset.inviteId;
+        const groupId = button.dataset.groupId;
+
+        if (button.classList.contains('accept-invite-btn')) {
+            const groupRef = db.collection('groups').doc(groupId);
+            const inviteRef = db.collection('groupInvitations').doc(inviteId);
+            
+            const batch = db.batch();
+            batch.update(groupRef, {
+                participants: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                participantCount: firebase.firestore.FieldValue.increment(1),
+                [`participantInfo.${user.uid}`]: { displayName: user.displayName, photoURL: user.photoURL }
+            });
+            batch.delete(inviteRef);
+            await batch.commit();
+
+            alert("Group joined!");
+        } else if (button.classList.contains('decline-invite-btn')) {
+            await db.collection('groupInvitations').doc(inviteId).delete();
+            alert("Invitation declined.");
+        }
+    });
+
     const checkForUrlParams = () => {
         const params = new URLSearchParams(window.location.search);
         const groupId = params.get('groupId');
@@ -646,5 +709,6 @@ document.addEventListener('authReady', (e) => {
     // Initial Load
     loadMyGroups();
     loadDiscoverGroups();
-    checkForUrlParams(); // Check for a direct link to a group
+    loadPendingInvitations(); // NEW
+    checkForUrlParams();
 });
