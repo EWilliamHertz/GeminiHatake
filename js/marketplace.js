@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Marketplace Page Script (v29 - Merged & Final Fix)
+ * HatakeSocial - Marketplace Page Script (v30 - Final Merge & Fix)
  *
- * - FIX: Correctly generates the "Propose Trade" link with the card's ID so the trade modal opens automatically.
- * - FIX: Correctly fetches and displays the seller's city and country, resolving the "N/A" issue.
- * - Implements a powerful, multi-field search and filter system.
- * - Provides robust error handling for missing database indexes.
+ * This version provides a complete, merged script to fix all outstanding marketplace issues.
+ * - FIX: Correctly fetches and displays seller city and country, resolving the "from N/A" bug.
+ * - FIX: Ensures the "Propose Trade" button link is correctly generated so the trade modal opens automatically.
+ * - Retains all advanced search and filtering functionality.
+ * - Includes robust error handling for missing database indexes.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
