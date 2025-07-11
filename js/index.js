@@ -1,7 +1,9 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v11 - Unified Interaction Fix)
+ * HatakeSocial - Index Page (Feed) Script (v12 - Polls & Hashtags)
  *
  * This script handles all logic for the main feed on index.html.
+ * - Adds support for creating and displaying polls.
+ * - Implements hashtag creation and rendering.
  * - FIX: Correctly handles all interactions (like, comment, delete, report) on posts from all feeds
  * by dynamically determining the post's correct location in the database (root 'posts' or 'groups/{id}/posts').
  * - FIX: Improves UI responsiveness by updating the like button immediately, without reloading the entire feed.
@@ -139,6 +141,9 @@ document.addEventListener('authReady', (e) => {
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`);
                 content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
                 
+                const hashtags = post.hashtags ? post.hashtags.map(tag => `<a href="search.html?query=${tag}" class="text-blue-500 hover:underline">#${tag}</a>`).join(' ') : '';
+                const pollHTML = post.poll ? createPollHTML(post.poll, post.id) : '';
+
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
                 const canDelete = user && (post.authorId === user.uid || currentUserIsAdmin);
@@ -158,6 +163,8 @@ document.addEventListener('authReady', (e) => {
                         <div class="flex">${deleteButtonHTML}${reportButtonHTML}</div>
                     </div>
                     <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${content}</p>
+                    <div class="mb-2">${hashtags}</div>
+                    ${pollHTML}
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
                     <div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400">
                         <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
@@ -272,6 +279,30 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    const createPollHTML = (poll, postId) => {
+        const totalVotes = Object.values(poll.options).reduce((sum, option) => sum + option.votes.length, 0);
+        let pollOptionsHTML = '';
+
+        for (const [optionText, optionData] of Object.entries(poll.options)) {
+            const percentage = totalVotes > 0 ? (optionData.votes.length / totalVotes) * 100 : 0;
+            const hasVoted = user && optionData.votes.includes(user.uid);
+            pollOptionsHTML += `
+                <div class="poll-option-wrapper mt-2">
+                    <button class="poll-option-btn w-full text-left p-2 border rounded-md ${hasVoted ? 'bg-blue-200' : 'bg-gray-200'}" data-post-id="${postId}" data-option="${optionText}">
+                        <div class="flex justify-between">
+                            <span>${optionText}</span>
+                            <span>${percentage.toFixed(0)}%</span>
+                        </div>
+                        <div class="w-full bg-gray-300 rounded-full h-2.5 mt-1">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${percentage}%"></div>
+                        </div>
+                    </button>
+                </div>
+            `;
+        }
+        return `<div class="poll-container my-4"><h3 class="font-bold">${poll.question}</h3>${pollOptionsHTML}</div>`;
+    };
+
     const setupEventListeners = () => {
         const feedTabs = document.getElementById('feed-tabs');
         const postContentInput = document.getElementById('postContent');
@@ -281,6 +312,10 @@ document.addEventListener('authReady', (e) => {
         const postImageUpload = document.getElementById('postImageUpload');
         const uploadImageBtn = document.getElementById('uploadImageBtn');
         const uploadVideoBtn = document.getElementById('uploadVideoBtn');
+        const createPollBtn = document.getElementById('create-poll-btn');
+        const pollCreationArea = document.getElementById('poll-creation-area');
+        const addPollOptionBtn = document.getElementById('add-poll-option');
+        const postHashtagsInput = document.getElementById('postHashtags');
         let selectedFile = null;
 
         feedTabs.addEventListener('click', (e) => {
@@ -296,11 +331,26 @@ document.addEventListener('authReady', (e) => {
         postContentInput?.addEventListener('input', () => handleCardSuggestions(postContentInput, cardSuggestionsContainer));
         postContentInput?.addEventListener('blur', () => setTimeout(() => cardSuggestionsContainer.classList.add('hidden'), 200));
 
+        createPollBtn?.addEventListener('click', () => {
+            pollCreationArea.classList.toggle('hidden');
+        });
+
+        addPollOptionBtn?.addEventListener('click', () => {
+            const newOption = document.createElement('input');
+            newOption.type = 'text';
+            newOption.className = 'w-full p-2 border rounded-md mt-2 poll-option';
+            newOption.placeholder = `Option ${pollCreationArea.querySelectorAll('.poll-option').length + 1}`;
+            document.getElementById('poll-options').appendChild(newOption);
+        });
+
         if (user) {
             submitPostBtn?.addEventListener('click', async () => {
                 const content = postContentInput.value;
-                if (!content.trim() && !selectedFile) {
-                    postStatusMessage.textContent = 'Please write something or select a file.';
+                const hashtags = postHashtagsInput.value.split(' ').map(s => s.replace(/#/g, '')).filter(Boolean);
+                const pollQuestion = document.getElementById('poll-question').value;
+
+                if (!content.trim() && !selectedFile && !pollQuestion) {
+                    postStatusMessage.textContent = 'Please write something, select a file, or create a poll.';
                     return;
                 }
                 submitPostBtn.disabled = true;
@@ -317,10 +367,21 @@ document.addEventListener('authReady', (e) => {
                         mediaUrl = await uploadTask.ref.getDownloadURL();
                         mediaType = selectedFile.type;
                     }
+                    
+                    let pollData = null;
+                    if (pollQuestion) {
+                        pollData = { question: pollQuestion, options: {} };
+                        document.querySelectorAll('.poll-option').forEach(optionInput => {
+                            if (optionInput.value) {
+                                pollData.options[optionInput.value] = { votes: [] };
+                            }
+                        });
+                    }
+
                     await db.collection('posts').add({
                         author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
                         content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType
+                        likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags, poll: pollData
                     });
                     postContentInput.value = '';
                     postImageUpload.value = '';
@@ -356,7 +417,7 @@ document.addEventListener('authReady', (e) => {
                 : db.collection('posts').doc(postId);
 
             if (!user) {
-                if (e.target.closest('.like-btn') || e.target.closest('.comment-btn') || e.target.closest('.report-post-btn')) {
+                if (e.target.closest('.like-btn') || e.target.closest('.comment-btn') || e.target.closest('.report-post-btn') || e.target.closest('.poll-option-btn')) {
                     alert("Please log in to interact with posts.");
                 }
                 return;
@@ -421,6 +482,27 @@ document.addEventListener('authReady', (e) => {
                 const reportModal = document.getElementById('reportPostModal');
                 document.getElementById('report-post-id').value = postId;
                 openModal(reportModal);
+            } else if (e.target.closest('.poll-option-btn')) {
+                const optionText = e.target.closest('.poll-option-btn').dataset.option;
+                const postRef = db.collection('posts').doc(postId);
+
+                await db.runTransaction(async (transaction) => {
+                    const postDoc = await transaction.get(postRef);
+                    const poll = postDoc.data().poll;
+
+                    // Remove user's previous vote
+                    for (const option in poll.options) {
+                        const index = poll.options[option].votes.indexOf(user.uid);
+                        if (index > -1) {
+                            poll.options[option].votes.splice(index, 1);
+                        }
+                    }
+
+                    // Add new vote
+                    poll.options[optionText].votes.push(user.uid);
+                    transaction.update(postRef, { poll });
+                });
+                renderPosts(activeFeedType);
             }
         });
 
