@@ -1,12 +1,12 @@
 /**
- * HatakeSocial - Marketplace Page Script (v25 - Index Creation Link)
+ * HatakeSocial - Marketplace Page Script (v26 - Improved Index Error Handling)
  *
  * This version completely reworks the marketplace for a professional experience.
  * - Removes the non-functional analytics dashboard.
  * - Implements a powerful, multi-field search and filter system.
  * - Redesigns the card listings to show seller reputation, city, and country.
  * - Ensures efficient, paginated loading of marketplace data.
- * - NEW: Generates a direct link to create missing Firestore indexes on error.
+ * - NEW: Provides a more robust and user-friendly error message when a Firestore index is missing, including the direct link to create it.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -54,7 +54,8 @@ document.addEventListener('authReady', (e) => {
         isLoading = true;
         loader.style.display = 'block';
         
-        let indexFields = [{ name: 'forSale', order: 'asc' }]; // Base field for the query
+        // This array helps build the index creation link if the query fails.
+        let indexFields = [{ name: 'forSale', order: 'asc' }]; 
 
         try {
             // Build the query based on filters
@@ -65,11 +66,6 @@ document.addEventListener('authReady', (e) => {
             const condition = document.getElementById('filter-condition').value;
             const country = document.getElementById('filter-location').value.trim().toLowerCase();
             const sortBy = sortByEl.value;
-
-            // NOTE: Firestore does not support combining inequality filters on different fields.
-            // A truly advanced search would require a dedicated search service like Algolia or Elasticsearch.
-            // For now, we will filter client-side after a basic query. This is less efficient for large datasets
-            // but works for this implementation. The primary sort will be on the database.
 
             if (sortBy === 'price-asc') {
                 query = query.orderBy('salePrice', 'asc');
@@ -128,23 +124,26 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading marketplace:", error);
+            let errorMessage = '';
+            // Check if the error is a missing index
             if (error.code === 'failed-precondition') {
                  const indexLink = generateIndexCreationLink(indexFields);
-                 const errorMessage = `
+                 errorMessage = `
                     <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
+                        <p class="font-bold text-red-700 dark:text-red-300">Database Error: Missing Index</p>
+                        <p class="text-red-600 dark:text-red-400 mt-2">To sort and filter the marketplace, a database index is required.</p>
                         <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
                            class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
                            Click Here to Create the Index
                         </a>
-                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build. Afterwards, refresh this page.</p>
                     </div>
                  `;
-                 marketplaceGrid.innerHTML = errorMessage;
             } else {
-                marketplaceGrid.innerHTML = `<p class="text-red-500 p-4 text-center col-span-full">An unknown error occurred.</p>`;
+                // Display the actual error for better debugging
+                errorMessage = `<p class="text-red-500 p-4 text-center col-span-full">An error occurred: ${error.message}</p>`;
             }
+            marketplaceGrid.innerHTML = errorMessage;
         } finally {
             isLoading = false;
             loader.style.display = 'none';
