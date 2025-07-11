@@ -1,7 +1,9 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v9 - Tabbed Feeds & Merged Logic)
+ * HatakeSocial - Index Page (Feed) Script (v10 - Multi-Feed Interaction Fix)
  *
  * This script handles all logic for the main feed on index.html.
+ * - FIX: Correctly handles likes and comments on posts from the "Groups" feed
+ * by dynamically determining the post's location in the database.
  * - Implements a tabbed interface to switch between "For You" (public), "Friends", and "Groups" feeds.
  * - Contains all logic for post creation, liking, commenting, reporting, and deleting.
  * - Contains logic for real-time card name suggestions in the post editor.
@@ -90,7 +92,8 @@ document.addEventListener('authReady', (e) => {
         for (const groupId of groupIds) {
             const postsSnapshot = await db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc').limit(10).get();
             postsSnapshot.forEach(doc => {
-                groupPosts.push({ id: doc.id, ...doc.data() });
+                // Add groupId to each post object to identify its origin
+                groupPosts.push({ id: doc.id, groupId: groupId, ...doc.data() });
             });
         }
 
@@ -121,7 +124,6 @@ document.addEventListener('authReady', (e) => {
                  postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">No posts yet. Be the first to share something!</p>';
                  return;
             } else if (posts.length === 0) {
-                // The specific messages for empty friends/groups feeds are handled in their fetch functions.
                 return;
             }
 
@@ -130,6 +132,10 @@ document.addEventListener('authReady', (e) => {
                 const postElement = document.createElement('div');
                 postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md post-container';
                 postElement.dataset.id = post.id;
+                // Add groupId to dataset if it exists
+                if (post.groupId) {
+                    postElement.dataset.groupId = post.groupId;
+                }
                 
                 let content = post.content || '';
                 content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`);
@@ -180,13 +186,17 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const showLikesModal = async (postId) => {
+    const showLikesModal = async (postId, groupId) => {
         const likesListEl = document.getElementById('likesList');
         likesListEl.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Loading...</p>';
         openModal(document.getElementById('likesModal'));
 
         try {
-            const postDoc = await db.collection('posts').doc(postId).get();
+            const postRef = groupId 
+                ? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+                : db.collection('posts').doc(postId);
+            const postDoc = await postRef.get();
+
             if (!postDoc.exists) {
                 likesListEl.innerHTML = '<p class="text-center text-red-500">Post not found.</p>';
                 return;
@@ -341,7 +351,12 @@ document.addEventListener('authReady', (e) => {
             const postElement = e.target.closest('.post-container');
             if (!postElement) return;
             const postId = postElement.dataset.id;
-            const postRef = db.collection('posts').doc(postId);
+            const groupId = postElement.dataset.groupId; // Get groupId from dataset
+
+            // Dynamically create the post reference
+            const postRef = groupId 
+                ? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+                : db.collection('posts').doc(postId);
 
             if (!user) {
                 if (e.target.closest('.like-btn') || e.target.closest('.comment-btn') || e.target.closest('.report-post-btn')) {
@@ -363,6 +378,7 @@ document.addEventListener('authReady', (e) => {
             } else if (e.target.closest('.like-btn')) {
                 await db.runTransaction(async t => {
                     const doc = await t.get(postRef);
+                    if (!doc.exists) return;
                     const data = doc.data();
                     const likes = Array.isArray(data.likes) ? data.likes : [];
                     const userIndex = likes.indexOf(user.uid);
@@ -379,7 +395,7 @@ document.addEventListener('authReady', (e) => {
                     renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
                 }
             } else if (e.target.closest('.likes-count-display')) {
-                showLikesModal(postId);
+                showLikesModal(postId, groupId);
             } else if (e.target.closest('.report-post-btn')) {
                 const reportModal = document.getElementById('reportPostModal');
                 document.getElementById('report-post-id').value = postId;
@@ -396,7 +412,13 @@ document.addEventListener('authReady', (e) => {
                 if (!content) return;
                 const postElement = e.target.closest('.post-container');
                 const postId = postElement.dataset.id;
-                const postRef = db.collection('posts').doc(postId);
+                const groupId = postElement.dataset.groupId; // Get groupId from dataset
+
+                // Dynamically create the post reference
+                const postRef = groupId 
+                    ? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+                    : db.collection('posts').doc(postId);
+                    
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 const userData = userDoc.data();
                 const newComment = { 
