@@ -96,9 +96,21 @@
         <section class="md:col-span-2 space-y-6">
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="create-post-section">
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Create New Post</h2>
+                <div id="rich-text-editor"></div>
                 <div class="relative">
                     <textarea id="postContent" class="w-full p-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y text-gray-900 dark:text-gray-200" rows="4" placeholder="What's on your mind? Use [Card Name] to tag a card."></textarea>
                     <div id="card-suggestions" class="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+                </div>
+                <div class="mt-2">
+                    <input type="text" id="postHashtags" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Add hashtags, e.g., #MTG #Commander">
+                </div>
+                <div id="poll-creation-area" class="hidden mt-4 space-y-2">
+                    <input type="text" id="poll-question" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Poll Question">
+                    <div id="poll-options">
+                        <input type="text" class="w-full p-2 border rounded-md mb-2 poll-option" placeholder="Option 1">
+                        <input type="text" class="w-full p-2 border rounded-md mb-2 poll-option" placeholder="Option 2">
+                    </div>
+                    <button type="button" id="add-poll-option" class="text-sm text-blue-500 hover:underline">Add Option</button>
                 </div>
                 <input type="file" id="postImageUpload" accept="image/*,video/*" class="hidden">
                 <div class="flex justify-between items-center mt-4">
@@ -109,6 +121,9 @@
                         <button id="uploadVideoBtn" class="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-300">
                             <i class="fas fa-video mr-2"></i> Video
                         </button>
+                        <button id="create-poll-btn" class="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-300">
+                            <i class="fas fa-poll mr-2"></i> Poll
+                        </button>
                     </div>
                     <button id="submitPostBtn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">
                         Post
@@ -117,7 +132,6 @@
                 <div id="postStatusMessage" class="text-center mt-2 text-sm text-gray-600 dark:text-gray-400"></div>
             </div>
 
-            <!-- NEW: Feed Type Tabs -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
                 <div class="border-b border-gray-200 dark:border-gray-700">
                     <nav id="feed-tabs" class="flex -mb-px" aria-label="Tabs">
