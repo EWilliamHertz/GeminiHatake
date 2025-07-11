@@ -1,14 +1,22 @@
 /**
- * HatakeSocial - Profile Page Script (v18 - Final)
+ * HatakeSocial - Profile Page Script (v19 - Robust Error Handling)
  *
  * This script handles all logic for the user profile page.
- * It is now fully compatible with the corrected Firestore security rules.
+ * - FIX: Wraps all database queries in try/catch blocks to prevent the page from getting stuck on loading.
+ * - FIX: Displays user-friendly error messages with links to create missing Firestore indexes if a query fails.
+ * - This version is fully compatible with the latest auth.js and Firestore security rules.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
 
+    /**
+     * Generates a direct link to the Firebase console to create a missing composite index.
+     * @param {string} collection - The name of the collection needing the index.
+     * @param {Array<object>} fields - An array of field objects, e.g., [{ name: 'fieldName', order: 'asc' }]
+     * @returns {string} The generated URL.
+     */
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -18,6 +26,11 @@ document.addEventListener('authReady', (e) => {
         return url;
     };
     
+    /**
+     * Displays a standardized error message for missing Firestore indexes.
+     * @param {HTMLElement} container - The DOM element to display the error in.
+     * @param {string} link - The pre-generated link to create the index.
+     */
     const displayIndexError = (container, link) => {
         const errorMessage = `
             <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
@@ -33,6 +46,7 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = errorMessage;
     };
 
+    // Definitions for all achievable badges and the logic to check for them.
     const badgeDefinitions = {
         pioneer: { name: 'Pioneer', description: 'One of the first 100 users to join HatakeSocial!', icon: 'fa-rocket', color: 'text-purple-500', async check(userData, userId) { const pioneerDate = new Date('2025-07-01'); return userData.createdAt.toDate() < pioneerDate; } },
         collector: { name: 'Collector', description: 'Has over 100 cards in their collection.', icon: 'fa-box-open', color: 'text-blue-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get(); return snapshot.size > 100; } },
@@ -44,10 +58,15 @@ document.addEventListener('authReady', (e) => {
         guild_founder: { name: 'Guild Founder', description: 'Founded your first Trading Guild.', icon: 'fa-shield-alt', color: 'text-indigo-500', async check(userData, userId) { const groupQuery = await db.collection('groups').where('creatorId', '==', userId).where('groupType', '==', 'trading_guild').limit(1).get(); return !groupQuery.empty; } }
     };
 
+    /**
+     * Main function to set up the entire profile page.
+     * It now includes robust error handling to prevent the page from getting stuck.
+     */
     const setupProfilePage = async () => {
         profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
 
         try {
+            // Determine which user's profile to load
             const params = new URLSearchParams(window.location.search);
             let userDoc;
             const username = params.get('user');
@@ -60,6 +79,10 @@ document.addEventListener('authReady', (e) => {
                 userDoc = await db.collection('users').doc(userIdParam).get();
             } else if (currentUser) {
                 userDoc = await db.collection('users').doc(currentUser.uid).get();
+            } else {
+                // No user specified and no one logged in
+                profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold text-gray-800 dark:text-white">No Profile to Display</h1><p class="mt-2 text-gray-600 dark:text-gray-400">Please log in to see your profile or specify a user in the URL.</p></div>`;
+                return;
             }
 
             if (!userDoc || !userDoc.exists) {
@@ -70,6 +93,7 @@ document.addEventListener('authReady', (e) => {
             const profileUserData = userDoc.data();
             const isOwnProfile = currentUser && currentUser.uid === profileUserId;
 
+            // Determine friend status between current user and profile owner
             let friendStatus = 'none';
             if (currentUser && !isOwnProfile) {
                 if (profileUserData.friends && profileUserData.friends.includes(currentUser.uid)) {
@@ -82,6 +106,7 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
+            // Generate action buttons based on friend status
             let actionButtonHTML = '';
             if (!isOwnProfile && currentUser) {
                 actionButtonHTML += `<button id="start-trade-btn" class="px-4 py-2 bg-green-600 text-white rounded-full text-sm" data-uid="${profileUserId}">Start Trade</button>`;
@@ -94,6 +119,7 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
+            // Generate reputation/rating stars
             const ratingCount = profileUserData.ratingCount || 0;
             const avgAccuracy = profileUserData.averageAccuracy || 0;
             const avgPackaging = profileUserData.averagePackaging || 0;
@@ -116,6 +142,7 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
 
+            // Build the main profile HTML structure
             profileContainer.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
@@ -145,11 +172,8 @@ document.addEventListener('authReady', (e) => {
                             <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
-
                             <div id="mutual-connections-section" class="mt-4 text-sm text-gray-500 dark:text-gray-400"></div>
-                            
                             <div id="featured-items-section" class="mt-6"></div>
-
                             <div id="profile-badges-container" class="mt-4">
                                 <h3 class="font-bold text-lg mb-2 dark:text-white">Achievements</h3>
                                 <div id="badges-list" class="flex flex-wrap gap-4"></div>
@@ -184,6 +208,7 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
             
+            // Add event listeners to the newly created buttons
             document.getElementById('start-trade-btn')?.addEventListener('click', (e) => { window.location.href = `trades.html?with=${e.currentTarget.dataset.uid}`; });
             document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
             const addFriendBtn = document.getElementById('add-friend-btn');
@@ -202,6 +227,7 @@ document.addEventListener('authReady', (e) => {
                 });
             }
 
+            // Set up tab switching
             document.querySelectorAll('.profile-tab-button').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
@@ -212,11 +238,13 @@ document.addEventListener('authReady', (e) => {
                 });
             });
 
+            // Handle hash links for tabs
             if(window.location.hash) {
                 const targetTab = document.querySelector(`.profile-tab-button[data-tab="${window.location.hash.substring(1)}"]`);
                 if(targetTab) targetTab.click();
             }
 
+            // Asynchronously load all the dynamic content for the profile
             if (currentUser && !isOwnProfile) {
                 loadMutualConnections(profileUserId, profileUserData);
             }
@@ -237,10 +265,15 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading profile:", error);
-            profileContainer.innerHTML = `<div class="text-center p-8 bg-white rounded-lg shadow-md"><h1 class="text-2xl font-bold text-red-600">Error</h1><p class="mt-2">${error.message}</p></div>`;
+            profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold text-red-600">Error</h1><p class="mt-2 text-gray-600 dark:text-gray-400">${error.message}</p></div>`;
         }
     };
     
+    /**
+     * Checks if a user has earned any new badges and awards them.
+     * @param {string} userId - The ID of the user to check.
+     * @param {object} userData - The user's document data.
+     */
     const evaluateAndAwardBadges = async (userId, userData) => {
         const userBadgesRef = db.collection('users').doc(userId).collection('badges');
         const existingBadgesSnapshot = await userBadgesRef.get();
@@ -249,50 +282,68 @@ document.addEventListener('authReady', (e) => {
         for (const badgeId in badgeDefinitions) {
             if (!existingBadgeIds.includes(badgeId)) {
                 const definition = badgeDefinitions[badgeId];
-                const hasBadge = await definition.check(userData, userId);
-                if (hasBadge) {
-                    await userBadgesRef.doc(badgeId).set({
-                        awardedAt: new Date(),
-                        name: definition.name,
-                        description: definition.description,
-                        icon: definition.icon,
-                        color: definition.color
-                    });
+                try {
+                    const hasBadge = await definition.check(userData, userId);
+                    if (hasBadge) {
+                        await userBadgesRef.doc(badgeId).set({
+                            awardedAt: new Date(),
+                            name: definition.name,
+                            description: definition.description,
+                            icon: definition.icon,
+                            color: definition.color
+                        });
+                    }
+                } catch (error) {
+                    // This is likely an index error for a specific badge check.
+                    // We can ignore it here so the rest of the page loads, 
+                    // and the specific tab will show the index error if visited.
+                    console.warn(`Could not check for badge "${badgeId}":`, error.message);
                 }
             }
         }
     };
 
+    /**
+     * Loads and displays the user's earned badges.
+     * @param {string} userId - The ID of the user whose badges to load.
+     */
     const loadAndDisplayBadges = async (userId) => {
         const badgesListContainer = document.getElementById('badges-list');
         badgesListContainer.innerHTML = '';
-        const snapshot = await db.collection('users').doc(userId).collection('badges').get();
+        try {
+            const snapshot = await db.collection('users').doc(userId).collection('badges').get();
 
-        if (snapshot.empty) {
-            badgesListContainer.innerHTML = '<p class="text-sm text-gray-500">No achievements yet.</p>';
-            return;
+            if (snapshot.empty) {
+                badgesListContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No achievements yet.</p>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const badge = doc.data();
+                const badgeEl = document.createElement('div');
+                badgeEl.className = 'badge-item';
+                badgeEl.title = badge.description;
+                badgeEl.innerHTML = `
+                    <i class="fas ${badge.icon} ${badge.color} badge-icon"></i>
+                    <span class="badge-name">${badge.name}</span>
+                `;
+                badgesListContainer.appendChild(badgeEl);
+            });
+        } catch (error) {
+            console.error("Error loading badges:", error);
+            badgesListContainer.innerHTML = '<p class="text-sm text-red-500">Could not load achievements.</p>';
         }
-
-        snapshot.forEach(doc => {
-            const badge = doc.data();
-            const badgeEl = document.createElement('div');
-            badgeEl.className = 'badge-item';
-            badgeEl.title = badge.description;
-            badgeEl.innerHTML = `
-                <i class="fas ${badge.icon} ${badge.color} badge-icon"></i>
-                <span class="badge-name">${badge.name}</span>
-            `;
-            badgesListContainer.appendChild(badgeEl);
-        });
     };
+
+    // ... (The rest of the load... functions remain the same, but with added try/catch blocks)
 
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
-        container.innerHTML = '<p class="text-gray-500">Loading feed...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading feed...</p>';
         try {
             const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
             if(snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500">This user hasn\\'t posted anything yet.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user hasn\'t posted anything yet.</p>';
                 return;
             }
             container.innerHTML = '';
@@ -319,18 +370,18 @@ document.addEventListener('authReady', (e) => {
                 const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
                 displayIndexError(container, indexLink);
             } else {
-                container.innerHTML = `<p class="text-center text-red-500">Could not load feed.</p>`;
+                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load feed.</p>`;
             }
         }
     };
 
     const loadProfileDecks = async (userId, isOwnProfile) => {
         const container = document.getElementById('tab-content-decks');
-        container.innerHTML = '<p class="text-gray-500">Loading decks...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading decks...</p>';
         try {
             const snapshot = await db.collection('users').doc(userId).collection('decks').orderBy('createdAt', 'desc').get();
             if (snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500">This user has no public decks.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no public decks.</p>';
                 return;
             }
             container.innerHTML = '';
@@ -359,18 +410,18 @@ document.addEventListener('authReady', (e) => {
                 const indexLink = generateIndexCreationLink('decks', [{ name: 'createdAt', order: 'desc' }]);
                 displayIndexError(container, indexLink);
             } else {
-                container.innerHTML = `<p class="text-center text-red-500">Could not load decks.</p>`;
+                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load decks.</p>`;
             }
         }
     };
     
     const loadProfileCollection = async (userId, listType, isOwnProfile = false) => {
         const container = document.getElementById(`tab-content-${listType}`);
-        container.innerHTML = '<p class="text-gray-500">Loading...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading...</p>';
         try {
-            const snapshot = await db.collection('users').doc(userId).collection(listType).limit(32).get();
+            const snapshot = await db.collection('users').doc(userId).collection(listType).orderBy('name').limit(32).get();
             if (snapshot.empty) {
-                container.innerHTML = `<p class="text-center text-gray-500">This user's ${listType} is empty or private.</p>`;
+                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user's ${listType} is empty or private.</p>`;
                 return;
             }
             container.innerHTML = '';
@@ -386,7 +437,7 @@ document.addEventListener('authReady', (e) => {
 
                 cardEl.innerHTML = `
                     <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block">
-                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${card.forSale ? 'border-4 border-green-500' : ''}">
+                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${card.forSale ? 'border-4 border-green-500' : ''}" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
                     </a>
                     <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
                         ${pinButtonHTML}
@@ -395,18 +446,18 @@ document.addEventListener('authReady', (e) => {
                 container.appendChild(cardEl);
             });
         } catch (error) {
-            console.error("Error loading collection/wishlist: ", error);
-            container.innerHTML = `<p class="text-center text-red-500">Could not load this section. This is likely a Firestore Security Rules issue.</p>`;
+            console.error(`Error loading ${listType}:`, error);
+            container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load this section. This is likely a Firestore Security Rules issue.</p>`;
         }
     };
 
     const loadTradeBinder = async (userId) => {
         const container = document.getElementById('tab-content-trade-binder');
-        container.innerHTML = '<p class="text-gray-500">Loading trade binder...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading trade binder...</p>';
         try {
             const snapshot = await db.collection('users').doc(userId).collection('collection').where('forSale', '==', true).get();
             if (snapshot.empty) {
-                container.innerHTML = `<p class="text-center text-gray-500">This user has no cards listed for trade.</p>`;
+                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no cards listed for trade.</p>`;
                 return;
             }
             container.innerHTML = '';
@@ -415,7 +466,7 @@ document.addEventListener('authReady', (e) => {
                 const cardEl = document.createElement('a');
                 cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
                 cardEl.className = 'block relative';
-                cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full">`;
+                cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">`;
                 container.appendChild(cardEl);
             });
         } catch (error) {
@@ -424,11 +475,11 @@ document.addEventListener('authReady', (e) => {
                 const indexLink = generateIndexCreationLink('collection', [{ name: 'forSale', order: 'asc' }]);
                 displayIndexError(container, indexLink);
             } else {
-                container.innerHTML = `<p class="text-center text-red-500">Could not load trade binder.</p>`;
+                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load trade binder.</p>`;
             }
         }
     };
-    
+
     const loadFeaturedItems = async (userId, userData) => {
         const container = document.getElementById('featured-items-section');
         container.innerHTML = '';
@@ -458,7 +509,7 @@ document.addEventListener('authReady', (e) => {
                 const cardDoc = await db.collection('users').doc(userId).collection('collection').doc(cardId).get();
                 if (cardDoc.exists) {
                     const card = cardDoc.data();
-                    contentHTML += `<a href="card-view.html?name=${encodeURIComponent(card.name)}"><img src="${card.imageUrl}" alt="${card.name}" class="w-20 rounded-md hover:scale-105 transition-transform"></a>`;
+                    contentHTML += `<a href="card-view.html?name=${encodeURIComponent(card.name)}"><img src="${card.imageUrl}" alt="${card.name}" class="w-20 rounded-md hover:scale-105 transition-transform" onerror="this.onerror=null;this.src='https://placehold.co/80x112';"></a>`;
                 }
              }
              contentHTML += `</div>`;
@@ -487,7 +538,7 @@ document.addEventListener('authReady', (e) => {
 
     const loadProfileTradeHistory = async (userId) => {
         const container = document.getElementById('tab-content-trade-history');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading trade history...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading trade history...</p>';
 
         try {
             const snapshot = await db.collection('trades')
@@ -497,7 +548,7 @@ document.addEventListener('authReady', (e) => {
                 .get();
 
             if (snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">This user has no trade history.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no trade history.</p>';
                 return;
             }
 
@@ -519,19 +570,19 @@ document.addEventListener('authReady', (e) => {
                 const indexLink = generateIndexCreationLink('trades', [{ name: 'participants', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
                 displayIndexError(container, indexLink);
             } else {
-                container.innerHTML = `<p class="text-center text-red-500">Could not load trade history.</p>`;
+                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load trade history.</p>`;
             }
         }
     };
 
     const loadProfileFeedback = async (userId) => {
         const container = document.getElementById('tab-content-feedback');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading feedback...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading feedback...</p>';
         try {
             const feedbackSnapshot = await db.collection('feedback').where('forUserId', '==', userId).orderBy('createdAt', 'desc').get();
 
             if (feedbackSnapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">This user has not received any feedback yet.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has not received any feedback yet.</p>';
                 return;
             }
 
@@ -562,7 +613,7 @@ document.addEventListener('authReady', (e) => {
                 const indexLink = generateIndexCreationLink('feedback', [{ name: 'forUserId', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
                 displayIndexError(container, indexLink);
             } else {
-                container.innerHTML = `<p class="text-center text-red-500">Could not load feedback.</p>`;
+                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load feedback.</p>`;
             }
         }
     };
@@ -571,7 +622,7 @@ document.addEventListener('authReady', (e) => {
         const container = document.getElementById('tab-content-friends');
         if (!container) return;
 
-        container.innerHTML = '<p class="text-gray-500">Loading friends...</p>';
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading friends...</p>';
 
         try {
             const userDoc = await db.collection('users').doc(userId).get();
@@ -616,7 +667,7 @@ document.addEventListener('authReady', (e) => {
 
             friendsHTML += `<h3 class="text-xl font-bold mb-4 dark:text-white">All Friends (${friendIds.length})</h3>`;
             if (friendIds.length === 0) {
-                friendsHTML += '<p class="text-gray-500">No friends to display.</p>';
+                friendsHTML += '<p class="text-gray-500 dark:text-gray-400 p-4">No friends to display.</p>';
             } else {
                 friendsHTML += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
                 for (const friendId of friendIds) {
@@ -640,10 +691,11 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading friends:", error);
-            container.innerHTML = '<p class="text-red-500">Could not load friends list.</p>';
+            container.innerHTML = '<p class="text-red-500 p-4">Could not load friends list.</p>';
         }
     };
     
+    // Event delegation for actions on the profile page
     document.body.addEventListener('click', async (event) => {
         const acceptButton = event.target.closest('.accept-friend-btn');
         const rejectButton = event.target.closest('.reject-friend-btn');
@@ -663,8 +715,6 @@ document.addEventListener('authReady', (e) => {
             batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
             batch.delete(requestRef);
             
-            const senderDoc = await senderRef.get();
-            const senderData = senderDoc.data();
             const notificationData = {
                 message: `${currentUser.displayName} accepted your friend request.`,
                 link: `/profile.html?uid=${currentUser.uid}`,
@@ -710,5 +760,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
+    // Initial call to start loading the page content
     setupProfilePage();
 });
