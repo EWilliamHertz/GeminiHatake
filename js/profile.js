@@ -1,13 +1,8 @@
 /**
- * HatakeSocial - Profile Page Script (v17 - Permission Fix)
+ * HatakeSocial - Profile Page Script (v18 - Final)
  *
  * This script handles all logic for the user profile page.
- * - FIX: Correctly loads profile data for all users, not just the current user.
- * - NEW: Adds a "Trade Binder" tab to show only cards marked "forSale".
- * - NEW: Adds a "Featured Items" section for users to pin a deck and cards.
- * - NEW: Adds "Pin" buttons on user's own decks and cards.
- * - NEW: Adds a section to show mutual friends and groups.
- * - All previous functionalities are preserved and merged.
+ * It is now fully compatible with the corrected Firestore security rules.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
