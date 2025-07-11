@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Friends Hub Script (v4 - Corrected Accept Logic)
+ * HatakeSocial - Friends Hub Script (v5 - Location Search)
  *
  * This script handles all logic for the friends.html page.
- * FIX: Implements a secure, two-part process for accepting friend requests
+ * - Adds a location search feature.
+ * - FIX: Implements a secure, two-part process for accepting friend requests
  * that is compliant with Firestore security rules.
  * - Manages friend requests directly on the page.
  * - Provides friend suggestions based on shared groups and location.
@@ -25,6 +26,7 @@ document.addEventListener('authReady', (e) => {
     const suggestionsListEl = document.getElementById('friend-suggestions-list');
     const activityFeedEl = document.getElementById('friend-activity-feed');
     const requestCountBadge = document.getElementById('friend-request-count');
+    const locationSearchInput = document.getElementById('location-search-input');
 
     // --- Helper to generate a Firestore index creation link ---
     const generateIndexCreationLink = (collection, fields) => {
@@ -112,33 +114,54 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    const loadFriendsList = async () => {
+    const loadFriendsList = async (locationQuery = '') => {
         friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friends...</p>';
         const userDoc = await db.collection('users').doc(currentUser.uid).get();
         const friendIds = userDoc.data()?.friends || [];
 
         if (friendIds.length === 0) {
-            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\'t added any friends yet.</p>';
+            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\\'t added any friends yet.</p>';
             return;
         }
 
-        friendsListEl.innerHTML = '';
+        let friends = [];
         for (const friendId of friendIds) {
             const friendDoc = await db.collection('users').doc(friendId).get();
             if (friendDoc.exists) {
-                const friend = friendDoc.data();
-                const friendCard = document.createElement('a');
-                friendCard.href = `profile.html?uid=${friendId}`;
-                friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
-                friendCard.innerHTML = `
-                    <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
-                    <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
-                `;
-                friendsListEl.appendChild(friendCard);
+                friends.push({ id: friendDoc.id, ...friendDoc.data() });
             }
         }
+
+        if (locationQuery) {
+            friends = friends.filter(friend => {
+                const city = friend.city || '';
+                const country = friend.country || '';
+                return city.toLowerCase().includes(locationQuery) || country.toLowerCase().includes(locationQuery);
+            });
+        }
+
+        if (friends.length === 0) {
+            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No friends found for this location.</p>';
+            return;
+        }
+        
+        friendsListEl.innerHTML = '';
+        for (const friend of friends) {
+            const friendCard = document.createElement('a');
+            friendCard.href = `profile.html?uid=${friend.id}`;
+            friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
+            friendCard.innerHTML = `
+                <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
+                <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
+            `;
+            friendsListEl.appendChild(friendCard);
+        }
     };
+
+    locationSearchInput.addEventListener('input', (e) => {
+        loadFriendsList(e.target.value.toLowerCase());
+    });
 
     const loadFriendSuggestions = async () => {
         suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Finding potential friends...</p>';
@@ -201,7 +224,7 @@ document.addEventListener('authReady', (e) => {
             activities.sort((a, b) => b.timestamp - a.timestamp);
 
             if (activities.length === 0) {
-                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
+                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\\'t been active recently.</p>';
                 return;
             }
 
