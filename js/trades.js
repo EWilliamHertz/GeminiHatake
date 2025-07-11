@@ -189,8 +189,6 @@ document.addEventListener('authReady', (e) => {
                         <button data-id="${tradeId}" data-action="counter" class="trade-action-btn px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600 text-sm">Counter</button>
                         <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700 text-sm">Accept</button>
                     `;
-                } else {
-                     actionButtons = `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn px-4 py-2 bg-gray-500 text-white font-semibold rounded-full hover:bg-gray-600 text-sm">Cancel Offer</button>`;
                 }
                 break;
             case 'accepted':
@@ -290,7 +288,6 @@ document.addEventListener('authReady', (e) => {
         return itemsHtml || '<p class="text-sm text-gray-500 italic">No items</p>';
     };
 
-    // --- Propose/Counter Trade Modal Logic ---
     const openProposeTradeModal = async (options = {}) => {
         const { counterOfTrade = null, initialCard = null, initialPartner = null } = options;
 
