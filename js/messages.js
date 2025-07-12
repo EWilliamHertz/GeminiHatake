@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Messages Page Script (v15 - Clean Implementation)
+ * HatakeSocial - Messages Page Script (v16 - Enhanced Error Handling & UI)
  *
  * This script handles all logic for the messages.html page.
  * It provides a clean, well-commented, and fully functional implementation
@@ -8,10 +8,11 @@
  * Key Features:
  * - Fixes the "Could not start conversation" error by explicitly setting `isGroupChat: false`
  * when creating new one-on-one chats, satisfying Firestore index requirements.
+ * - Adds more detailed error logging to the catch block to better diagnose Firestore issues.
+ * - Highlights the currently active conversation in the list for better UX.
  * - Robust real-time listeners for conversations and messages.
  * - User search functionality to initiate new chats.
  * - Handles URL parameters to open a chat directly (e.g., `messages.html?with=USER_ID`).
- * - Clear separation of concerns for loading data, rendering UI, and handling user actions.
  * - Generates a direct link to create missing Firestore indexes on error, simplifying debugging.
  */
 document.addEventListener('authReady', (e) => {
@@ -130,6 +131,10 @@ document.addEventListener('authReady', (e) => {
                 const item = document.createElement('div');
                 item.className = 'conversation-item flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600';
                 item.dataset.convoId = convoId;
+                if (convoId === currentConversationId) {
+                    item.classList.add('bg-blue-50', 'dark:bg-blue-900/50');
+                }
+
                 item.innerHTML = `
                     <img src="${imageUrl}" class="h-12 w-12 rounded-full mr-3 object-cover flex-shrink-0">
                     <div class="flex-grow overflow-hidden">
@@ -174,27 +179,29 @@ document.addEventListener('authReady', (e) => {
      * @param {object} conversationData - The full data object for the conversation.
      */
     const openChat = (conversationId, title, imageUrl, conversationData) => {
-        // Unsubscribe from any previous chat listener to prevent memory leaks
         if (currentChatListener) currentChatListener();
 
         currentConversationId = conversationId;
         currentConversationData = conversationData;
 
-        // Update UI to show the chat view
+        // Highlight the selected conversation in the list
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.classList.toggle('bg-blue-50', item.dataset.convoId === conversationId);
+            item.classList.toggle('dark:bg-blue-900/50', item.dataset.convoId === conversationId);
+        });
+
         chatWelcomeScreen.classList.add('hidden');
         chatView.classList.remove('hidden');
         chatView.classList.add('flex');
 
-        // Update chat header
         document.getElementById('chat-header-avatar').src = imageUrl;
         document.getElementById('chat-header-name').textContent = title;
 
         const conversationRef = db.collection('conversations').doc(conversationId);
         const messagesContainer = document.getElementById('messages-container');
 
-        // Attach a new real-time listener for messages in this conversation
         currentChatListener = conversationRef.onSnapshot(doc => {
-            messagesContainer.innerHTML = ''; // Clear previous messages
+            messagesContainer.innerHTML = '';
             if (doc.exists) {
                 const conversation = doc.data();
                 const messages = conversation.messages || [];
@@ -212,7 +219,6 @@ document.addEventListener('authReady', (e) => {
                     messagesContainer.appendChild(messageEl);
                 });
             }
-            // Automatically scroll to the latest message
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
     };
@@ -231,28 +237,26 @@ document.addEventListener('authReady', (e) => {
             timestamp: new Date()
         };
         
-        messageInput.value = ''; // Clear input immediately for better UX
+        messageInput.value = '';
         try {
-            // Atomically update the conversation document
             await conversationRef.update({
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
                 lastMessage: content,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // Send notifications to all other participants in the chat
             const recipients = currentConversationData.participants.filter(id => id !== currentUser.uid);
             for (const recipientId of recipients) {
                 await createNotification(
                     recipientId,
                     `New message from ${currentUser.displayName}`,
-                    `/messages.html?with=${currentUser.uid}` // Link back to the chat
+                    `/messages.html?with=${currentUser.uid}`
                 );
             }
         } catch (error) {
             console.error("Error sending message:", error);
             alert("Could not send message. Please try again.");
-            messageInput.value = content; // Restore content on failure
+            messageInput.value = content;
         }
     };
 
@@ -262,50 +266,47 @@ document.addEventListener('authReady', (e) => {
      * @param {object} userData - The data object of the user.
      */
     const startConversationWithUser = async (userId, userData) => {
-        // Create a consistent, predictable ID for one-on-one chats
         const conversationId = [currentUser.uid, userId].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
 
         try {
             const convoDoc = await conversationRef.get();
             
-            // If the conversation doesn't exist, create it
             if (!convoDoc.exists) {
                 const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (!currentUserDoc.exists) throw new Error("Could not find current user's profile data.");
                 const currentUserData = currentUserDoc.data();
                 
-                // ** THE FIX IS HERE **
-                // Explicitly set `isGroupChat: false` when creating the new conversation document.
-                // This is crucial for the Firestore index to work correctly.
-                await conversationRef.set({
+                // This data structure must match the Firestore index and rules.
+                const newConversationData = {
                     participants: [currentUser.uid, userId],
                     participantInfo: {
                         [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
                         [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
                     },
-                    isGroupChat: false, // This line is the fix
+                    isGroupChat: false, // CRITICAL: This field is required by the Firestore index.
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessage: 'Conversation started.'
-                });
+                    lastMessage: 'Conversation started.',
+                    messages: [] // Initialize with an empty array
+                };
+                await conversationRef.set(newConversationData);
             }
             
-            // Switch to the 'Users' tab to ensure the new conversation appears
             document.querySelector('.message-tab-button[data-tab="users"]').click();
             
-            // Get the newly created or existing conversation data to open the chat
-            const newConvoData = (await conversationRef.get()).data();
-            openChat(conversationId, userData.displayName, userData.photoURL, newConvoData);
+            const finalConvoData = (await conversationRef.get()).data();
+            openChat(conversationId, userData.displayName, userData.photoURL, finalConvoData);
 
         } catch (error) {
+            // Provide more detailed error feedback
             console.error("Error starting conversation:", error);
-            alert("Could not start conversation. " + error.message);
+            alert(`Could not start conversation. Error: ${error.message}. Please check console for details.`);
         }
     };
 
     // --- EVENT LISTENERS ---
 
-    // Handle tab switching between Users and Groups
     messageTabs.forEach(button => {
         button.addEventListener('click', () => {
             messageTabs.forEach(btn => btn.classList.remove('active'));
@@ -315,13 +316,11 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // Handle message form submission
     messageForm.addEventListener('submit', (e) => {
         e.preventDefault();
         sendMessage();
     });
 
-    // Handle user search input
     userSearchInput.addEventListener('keyup', async (e) => {
         const searchTerm = e.target.value.toLowerCase().trim();
         if (searchTerm.length < 2) {
@@ -332,7 +331,6 @@ document.addEventListener('authReady', (e) => {
         userSearchResultsEl.classList.remove('hidden');
         userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">Searching...</div>';
         
-        // Search by both display name and handle for better results
         const usersRef = db.collection('users');
         const queryByDisplayName = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
         const queryByHandle = usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
@@ -340,7 +338,7 @@ document.addEventListener('authReady', (e) => {
         try {
             const [displayNameSnapshot, handleSnapshot] = await Promise.all([queryByDisplayName, queryByHandle]);
             
-            const results = new Map(); // Use a Map to avoid duplicate users
+            const results = new Map();
             displayNameSnapshot.forEach(doc => {
                 if (doc.id !== currentUser.uid) results.set(doc.id, doc.data());
             });
@@ -374,16 +372,12 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // Hide search results when clicking outside
     document.addEventListener('click', (e) => {
         if (!userSearchInput.contains(e.target) && !userSearchResultsEl.contains(e.target)) {
             userSearchResultsEl.classList.add('hidden');
         }
     });
 
-    /**
-     * Checks for URL parameters to deeplink into a conversation.
-     */
     const checkForUrlParams = async () => {
         const params = new URLSearchParams(window.location.search);
         const userIdToMessage = params.get('with');
