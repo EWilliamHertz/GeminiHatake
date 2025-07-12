@@ -1,11 +1,9 @@
 /**
- * HatakeSocial - Profile Page Script (v20 - Enhanced Trade Binder)
+ * HatakeSocial - Profile Page Script (v21 - Layout Fix)
  *
  * This script handles all logic for the user profile page.
- * - NEW: The "Trade Binder" tab now displays prices directly on the cards.
- * - NEW: Adds a "Start Trade" button to each card in the trade binder for one-click trade initiation.
- * - FIX: Wraps all database queries in try/catch blocks to prevent the page from getting stuck on loading.
- * - FIX: Displays user-friendly error messages with links to create missing Firestore indexes if a query fails.
+ * - FIX: Corrects the profile header layout to ensure the banner image is behind the avatar and action buttons.
+ * - Uses a single relative container with absolute positioning for overlapping elements.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -143,32 +141,34 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
 
-            // Build the main profile HTML structure
+            // *** NEW HTML STRUCTURE FOR PROFILE HEADER ***
             profileContainer.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
                         <img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner'}" alt="Profile banner">
+                        
                         <div class="absolute top-4 right-4">
-                            ${isOwnProfile ? `<a href="settings.html" class="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm">Edit Profile</a>` : ''}
+                            ${isOwnProfile ? `<a href="settings.html" class="px-4 py-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 text-sm font-semibold">Edit Profile</a>` : ''}
+                        </div>
+                        
+                        <div class="absolute bottom-0 left-6 transform translate-y-1/2 flex items-center space-x-4">
+                            <img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar">
                         </div>
                     </div>
-                    <div class="p-6">
-                        <div class="flex items-end -mt-24">
-                            <img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar">
-                            <div class="ml-4 flex-grow">
-                                <div class="flex justify-between items-center">
-                                     <div>
-                                        <h1 id="profile-displayName" class="text-3xl font-bold text-gray-800 dark:text-white">${profileUserData.displayName || 'No Name'}</h1>
-                                        <p id="profile-handle" class="text-gray-600 dark:text-gray-400">@${profileUserData.handle || 'no-handle'}</p>
-                                        ${reputationHTML}
-                                    </div>
-                                    <div id="profile-action-buttons" class="flex space-x-2">
-                                        ${actionButtonHTML}
-                                    </div>
-                                </div>
+            
+                    <div class="pt-20 px-6 pb-6">
+                         <div class="flex justify-between items-center">
+                            <div>
+                                <h1 id="profile-displayName" class="text-3xl font-bold text-gray-800 dark:text-white">${profileUserData.displayName || 'No Name'}</h1>
+                                <p id="profile-handle" class="text-gray-600 dark:text-gray-400">@${profileUserData.handle || 'no-handle'}</p>
+                                ${reputationHTML}
+                            </div>
+                            <div id="profile-action-buttons" class="flex space-x-2">
+                                ${actionButtonHTML}
                             </div>
                         </div>
-                        <div class="mt-4 border-t dark:border-gray-700 pt-4">
+
+                        <div class="mt-6 border-t dark:border-gray-700 pt-4">
                             <p id="profile-bio" class="text-gray-700 dark:text-gray-300 mt-2">${profileUserData.bio || 'No bio yet.'}</p>
                             <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
@@ -186,7 +186,7 @@ document.addEventListener('authReady', (e) => {
                 <div class="mt-6">
                     <div class="border-b border-gray-200 dark:border-gray-700">
                         <nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs">
-                            <button data-tab="feed" class="profile-tab-button active">Feed</button>
+                             <button data-tab="feed" class="profile-tab-button active">Feed</button>
                             <button data-tab="decks" class="profile-tab-button">Decks</button>
                             <button data-tab="trade-binder" class="profile-tab-button">Trade Binder</button>
                             <button data-tab="collection" class="profile-tab-button">Collection</button>
@@ -270,11 +270,8 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    /**
-     * Checks if a user has earned any new badges and awards them.
-     * @param {string} userId - The ID of the user to check.
-     * @param {object} userData - The user's document data.
-     */
+    // ... (The rest of the profile.js functions remain the same) ...
+
     const evaluateAndAwardBadges = async (userId, userData) => {
         const userBadgesRef = db.collection('users').doc(userId).collection('badges');
         const existingBadgesSnapshot = await userBadgesRef.get();
@@ -295,19 +292,12 @@ document.addEventListener('authReady', (e) => {
                         });
                     }
                 } catch (error) {
-                    // This is likely an index error for a specific badge check.
-                    // We can ignore it here so the rest of the page loads, 
-                    // and the specific tab will show the index error if visited.
                     console.warn(`Could not check for badge "${badgeId}":`, error.message);
                 }
             }
         }
     };
 
-    /**
-     * Loads and displays the user's earned badges.
-     * @param {string} userId - The ID of the user whose badges to load.
-     */
     const loadAndDisplayBadges = async (userId) => {
         const badgesListContainer = document.getElementById('badges-list');
         badgesListContainer.innerHTML = '';
@@ -466,19 +456,20 @@ document.addEventListener('authReady', (e) => {
                 cardEl.className = 'relative group';
                 
                 const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                const sellerCurrency = userData.primaryCurrency || 'SEK';
                 const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
                 const priceTagHTML = formattedPrice 
-                    ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
+                    ? `<div class="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                     : '';
 
                 let tradeButtonHTML = '';
                 if (currentUser && currentUser.uid !== userId) {
-                    tradeButtonHTML = `<a href="trades.html?propose_to_card=${doc.id}" class="block w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">Start Trade</a>`;
+                    tradeButtonHTML = `<a href="trades.html?propose_to_card=${doc.id}" class="absolute bottom-0 left-0 right-0 block w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">Start Trade</a>`;
                 }
 
                 cardEl.innerHTML = `
                     <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block">
-                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-t-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
                     </a>
                     ${priceTagHTML}
                     ${tradeButtonHTML}
