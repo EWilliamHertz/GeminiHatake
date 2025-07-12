@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Deck Page Script (v20 - Deck Primers)
+ * HatakeSocial - Deck Page Script (v21 - AI Deck Advisor)
  *
- * - NEW: Adds a "Deck Primer / Guide" textarea to the deck builder.
- * - NEW: Saves the primer content to Firestore along with the rest of the deck data.
- * - NEW: Displays the formatted primer on the deck view page.
- * - FIX: Resolves "Missing or insufficient permissions" error by creating and querying a
- * dedicated `publicDecks` collection instead of using a collectionGroup query.
+ * - NEW: Implements an AI-powered Deck Advisor using the Gemini API.
+ * - NEW: Fetches synergistic cards from Scryfall and sends them to the Gemini API for categorization.
+ * - NEW: Displays categorized suggestions in an accordion format.
+ * - Adds a "Deck Primer / Guide" textarea to the deck builder.
+ * - Saves the primer content to Firestore along with the rest of the deck data.
+ * - Displays the formatted primer on the deck view page.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -35,7 +36,7 @@ document.addEventListener('authReady', (e) => {
     const deckNameInput = document.getElementById('deck-name-input');
     const deckBioInput = document.getElementById('deck-bio-input');
     const decklistInput = document.getElementById('decklist-input');
-    const deckPrimerInput = document.getElementById('deck-primer-input'); // NEW
+    const deckPrimerInput = document.getElementById('deck-primer-input');
     const shareDeckBtn = document.getElementById('share-deck-to-feed-btn');
     const collectionSearchInput = document.getElementById('deck-builder-collection-search');
     const collectionListContainer = document.getElementById('deck-builder-collection-list');
@@ -204,7 +205,7 @@ document.addEventListener('authReady', (e) => {
             name: deckNameInput.value,
             name_lower: deckNameInput.value.toLowerCase(),
             bio: deckBioInput.value,
-            primer: deckPrimerInput.value.trim(), // NEW: Save the primer content
+            primer: deckPrimerInput.value.trim(),
             tcg: deckTcgSelect.value,
             format: deckFormatSelect.value,
             authorId: user.uid,
@@ -353,8 +354,7 @@ document.addEventListener('authReady', (e) => {
         } else {
             bioEl.classList.add('hidden');
         }
-
-        // NEW: Display the primer
+        
         const primerSection = document.getElementById('deck-primer-display-section');
         const primerContent = document.getElementById('deck-view-primer');
         if (deck.primer && deck.primer.trim() !== '') {
@@ -507,9 +507,9 @@ document.addEventListener('authReady', (e) => {
 
         deckNameInput.value = deck.name;
         deckBioInput.value = deck.bio || '';
-        deckPrimerInput.value = deck.primer || ''; // NEW: Load primer content
+        deckPrimerInput.value = deck.primer || '';
         deckTcgSelect.value = deck.tcg;
-        deckPublicCheckbox.checked = deck.isPublic !== false; // Default to checked if undefined
+        deckPublicCheckbox.checked = deck.isPublic !== false;
         
         deckTcgSelect.dispatchEvent(new Event('change'));
         deckFormatSelect.value = deck.format;
@@ -850,55 +850,99 @@ document.addEventListener('authReady', (e) => {
         }
 
         suggestionsContainer.classList.remove('hidden');
-        suggestionsOutput.innerHTML = '<p class="text-gray-400">Fetching suggestions...</p>';
+        suggestionsOutput.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
 
         try {
-            let suggestionsHTML = '';
-
-            if (format === 'Commander') {
-                const commanderLine = lines[0];
-                const commanderNameMatch = commanderLine.match(/^\d*\s*(.*)/);
-                if (commanderNameMatch && commanderNameMatch[1]) {
-                    const commanderName = commanderNameMatch[1].trim();
-                    
-                    const scryfallResponse = await fetch(`https://api.scryfall.com/cards/search?q=edhrec%3A"${encodeURIComponent(commanderName)}"`);
-                    if (!scryfallResponse.ok) {
-                        throw new Error('Could not find commander on Scryfall or no suggestions available.');
-                    }
-                    const scryfallData = await scryfallResponse.json();
-                    
-                    if (scryfallData && scryfallData.data) {
-                        suggestionsHTML += '<h3 class="font-bold text-lg mb-2 dark:text-white">Top Synergy Cards</h3>';
-                        suggestionsHTML += '<div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-2">';
-                        scryfallData.data.slice(0, 16).forEach(card => {
-                            const safeCardName = card.name.replace(/'/g, "\\'");
-                            suggestionsHTML += `<img src="${card.image_uris.small}" alt="${card.name}" class="rounded-lg cursor-pointer transition-transform hover:scale-105" onclick="addCardToDecklist('${safeCardName}')" title="Click to add ${card.name}">`;
-                        });
-                        suggestionsHTML += '</div>';
-                    } else {
-                        throw new Error('No suggestions found.');
-                    }
-                } else {
-                    suggestionsHTML = '<p class="text-yellow-500">Could not determine the Commander from your decklist. Make sure it is the first card listed.</p>';
-                }
-            } else {
-                suggestionsHTML = `<p class="text-gray-400">Card suggestions are currently optimized for the Commander format.</p>`;
+            if (format !== 'Commander') {
+                suggestionsOutput.innerHTML = `<p class="text-gray-400">The AI Deck Advisor is currently optimized for the Commander format.</p>`;
+                return;
             }
+
+            const commanderLine = lines[0];
+            const commanderNameMatch = commanderLine.match(/^\d*\s*(.*)/);
+            if (!commanderNameMatch || !commanderNameMatch[1]) {
+                throw new Error('Could not determine the Commander from your decklist. Make sure it is the first card listed.');
+            }
+            const commanderName = commanderNameMatch[1].trim();
             
-            suggestionsOutput.innerHTML = suggestionsHTML;
+            // Step 1: Fetch synergistic cards from Scryfall
+            const scryfallResponse = await fetch(`https://api.scryfall.com/cards/search?q=edhrec%3A"${encodeURIComponent(commanderName)}"`);
+            if (!scryfallResponse.ok) {
+                throw new Error('Could not find commander on Scryfall or no suggestions available.');
+            }
+            const scryfallData = await scryfallResponse.json();
+            const suggestionNames = scryfallData.data.slice(0, 20).map(c => c.name);
+
+            // Step 2: Call Gemini API to categorize the cards
+            const prompt = `You are a Magic: The Gathering deck building expert. Given the commander "${commanderName}" and this list of synergistic cards: ${suggestionNames.join(', ')}. Please categorize these cards into strategic roles for a Commander deck. The categories should be things like "Ramp", "Card Draw", "Removal", "Threats", "Board Wipes", or "Synergy Pieces". Provide your response as a JSON object where keys are the category names and values are an array of the card names that fit that category.`;
+
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { 
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                }
+            };
+            const apiKey = ""; // API key will be injected by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const apiResponse = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!apiResponse.ok) {
+                throw new Error(`Gemini API request failed with status: ${apiResponse.status}`);
+            }
+
+            const result = await apiResponse.json();
+            
+            if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
+                const jsonText = result.candidates[0].content.parts[0].text;
+                const categorizedSuggestions = JSON.parse(jsonText);
+                renderCategorizedSuggestions(categorizedSuggestions);
+            } else {
+                throw new Error('Unexpected response structure from Gemini API.');
+            }
 
         } catch (error) {
-            console.error("Error fetching suggestions:", error);
+            console.error("Error fetching AI suggestions:", error);
             suggestionsOutput.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
     });
+
+    const renderCategorizedSuggestions = (categories) => {
+        suggestionsOutput.innerHTML = '';
+        for (const category in categories) {
+            const details = document.createElement('details');
+            details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg';
+            
+            const summary = document.createElement('summary');
+            summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white';
+            summary.textContent = `${category} (${categories[category].length})`;
+            
+            const cardGrid = document.createElement('div');
+            cardGrid.className = 'p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2';
+            
+            categories[category].forEach(cardName => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
+                cardEl.textContent = cardName;
+                cardEl.onclick = () => addCardToDecklist(cardName);
+                cardGrid.appendChild(cardEl);
+            });
+            
+            details.appendChild(summary);
+            details.appendChild(cardGrid);
+            suggestionsOutput.appendChild(details);
+        }
+    };
 
     // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
     const deckId = urlParams.get('deckId');
     if (deckId) {
-        // Since we now have a dedicated public collection, we can't assume the deck is in the user's list.
-        // We need to check both locations. This is a simple way to do it.
         const userDeckRef = user ? db.collection('users').doc(user.uid).collection('decks').doc(deckId) : null;
         const publicDeckRef = db.collection('publicDecks').doc(deckId);
 
