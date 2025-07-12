@@ -10,10 +10,8 @@
 </head>
 <body class="bg-gray-100">
 
-     <!-- Header Section -->
- <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
+   <header class="bg-white shadow-sm py-3 sticky top-0 z-50">
     <div class="container mx-auto px-4 flex justify-between items-center">
-        <!-- Logo and Site Name -->
         <div class="flex items-center">
             <a href="index.html" class="flex items-center">
                 <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -21,7 +19,6 @@
             </a>
         </div>
 
-        <!-- Search Bar -->
         <div class="hidden md:flex flex-grow justify-center mx-4">
             <div class="relative w-full max-w-md">
                 <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -29,7 +26,6 @@
             </div>
         </div>
 
-        <!-- Main Navigation and User Menu -->
         <div class="flex items-center space-x-6">
             <nav class="hidden md:block">
                 <ul class="flex space-x-6">
@@ -57,22 +53,9 @@
                 </ul>
             </nav>
             <div class="relative flex items-center">
-                <div id="notification-container" class="relative">
-    <button id="notification-bell-btn" class="text-gray-600 hover:text-blue-600 text-xl relative">
-        <i class="fas fa-bell"></i>
-        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
-    </button>
-    <div id="notification-dropdown" class="absolute right-0 top-full mt-2 w-80 bg-white rounded-md shadow-lg border z-20 hidden">
-        <div class="p-3 font-bold text-lg border-b">Notifications</div>
-        <div id="notification-list" class="max-h-96 overflow-y-auto">
-            </div>
-    </div>
-</div>
-                <!-- Login/Register Buttons (Visible when logged out) -->
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300">Login</button>
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 transition duration-300 ml-2">Register</button>
                 
-                <!-- User Avatar & Dropdown (Visible when logged in) -->
                 <img src="https://placehold.co/40x40?text=U" onerror="this.onerror=null;this.src='https://placehold.co/40x40?text=User';" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
                 <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
                     <a href="profile.html" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">Profile</a>
@@ -84,6 +67,7 @@
         </div>
     </div>
 </header>
+
 
 
     <!-- Login Modal -->
