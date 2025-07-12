@@ -5,7 +5,7 @@
  * - Fetches a comprehensive list of sets from MTGJSON to populate the simulator dropdown.
  * - Generates a simulated booster pack based on the selected set's data.
  * - Displays the generated cards.
- * - FIX: Changed listener to 'authReady' to ensure consistent script initialization across the site.
+ * - FIX: Added more detailed error logging to help diagnose network/CORS issues.
  */
 document.addEventListener('authReady', () => {
     const boosterPageContainer = document.getElementById('generate-booster-btn');
@@ -26,7 +26,11 @@ document.addEventListener('authReady', () => {
         statusEl.textContent = 'Fetching set list...';
         try {
             const response = await fetch('https://mtgjson.com/api/v5/SetList.json');
-            if (!response.ok) throw new Error('Could not fetch set list from MTGJSON.');
+            
+            // Check if the request was successful
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+            }
             
             const setListData = await response.json();
             
@@ -46,7 +50,7 @@ document.addEventListener('authReady', () => {
             statusEl.textContent = 'Select a set and generate a booster pack!';
         } catch (error) {
             console.error("Error populating set list:", error);
-            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.innerHTML = `<strong>Error: Load failed.</strong> Could not fetch the list of sets. This is likely a network or CORS issue. <br>Please open the browser console (F12) to see more details.`;
             setSelect.innerHTML = '<option>Could not load sets</option>';
         }
     };
@@ -86,7 +90,7 @@ document.addEventListener('authReady', () => {
         
         try {
             const response = await fetch(`https://mtgjson.com/api/v5/${setCode}.json`);
-            if (!response.ok) throw new Error(`Could not fetch data for ${setCode}.`);
+            if (!response.ok) throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
             
             const setData = await response.json();
             
@@ -94,17 +98,14 @@ document.addEventListener('authReady', () => {
                 throw new Error(`Booster data not available for ${setCode}. Try a different set.`);
             }
             
-            // Use the 'default' booster configuration
             const boosterConfig = setData.data.booster.default;
             if (!boosterConfig || !boosterConfig.boosters || boosterConfig.boosters.length === 0) {
                  throw new Error(`Default booster configuration not found for ${setCode}.`);
             }
 
-            // We'll use the first configuration in the `boosters` array
             const boosterContents = boosterConfig.boosters[0].contents;
             const sheets = boosterConfig.sheets;
             
-            // Create a map of cards by their UUID for quick lookup
             const cardsByUuid = setData.data.cards.reduce((acc, card) => {
                 acc[card.uuid] = card;
                 return acc;
@@ -112,9 +113,8 @@ document.addEventListener('authReady', () => {
 
             let generatedPack = [];
 
-            // Iterate through the booster slots (e.g., 'rare', 'common', 'uncommon')
             for (const slot in boosterContents) {
-                const count = boosterContents[slot]; // How many cards to pick from this slot
+                const count = boosterContents[slot];
                 for (let i = 0; i < count; i++) {
                     const sheet = sheets[slot];
                      if (sheet && sheet.cards) {
@@ -127,10 +127,8 @@ document.addEventListener('authReady', () => {
                 }
             }
             
-            // Display the generated cards
             generatedPack.forEach(card => {
                 const imgEl = document.createElement('img');
-                // Use Scryfall for high-quality images, linking via the Scryfall ID
                 imgEl.src = `https://api.scryfall.com/cards/${card.identifiers.scryfallId}?format=image&version=normal`;
                 imgEl.alt = card.name;
                 imgEl.title = `${card.name} (${card.rarity})`;
