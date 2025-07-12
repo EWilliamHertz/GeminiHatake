@@ -11,6 +11,7 @@
  * - Adds advanced bulk-pricing options.
  * - All bulk and quick-edit changes are saved in a single, efficient Firestore batch write.
  */
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const collectionPageContainer = document.getElementById('content-collection');
