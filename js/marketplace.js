@@ -54,7 +54,7 @@ document.addEventListener('authReady', (e) => {
 
     const renderCard = (card) => {
         const seller = card.sellerData;
-        if (!seller) return null; // Don't render if seller data is missing
+        if (!seller) return null;
 
         const overallRating = (((seller.averageAccuracy || 0) + (seller.averagePackaging || 0)) / 2).toFixed(1);
         const priceDisplay = card.salePrice > 0 
@@ -64,8 +64,7 @@ document.addEventListener('authReady', (e) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
         
-        // Disable trade button if the user is the seller
-        const tradeButtonDisabled = user.uid === card.sellerData.uid ? 'disabled' : '';
+        const tradeButtonDisabled = user.uid === seller.uid ? 'disabled' : '';
         const tradeButtonClasses = tradeButtonDisabled
             ? 'bg-gray-400 cursor-not-allowed'
             : 'bg-green-600 hover:bg-green-700';
@@ -99,7 +98,6 @@ document.addEventListener('authReady', (e) => {
         return cardEl;
     };
 
-    // --- Main Data Fetching Function ---
     const loadMarketplaceCards = async (isNewSearch = false) => {
         if (isLoading) return;
         isLoading = true;
@@ -114,47 +112,29 @@ document.addEventListener('authReady', (e) => {
         renderSkeletonLoader();
 
         try {
-            // 1. Build the base query
             let query = db.collectionGroup('collection').where('forSale', '==', true);
             let indexFields = [{ name: 'forSale', order: 'asc' }];
             
-            // 2. Add filters
-            const tcgFilter = document.getElementById('filter-tcg').value;
-            if (tcgFilter !== 'all') {
-                query = query.where('tcg', '==', tcgFilter);
-                indexFields.push({ name: 'tcg', order: 'asc' });
-            }
-            
-            // 3. Add sorting
             const [sortField, sortDirection] = sortByEl.value.split('_');
             query = query.orderBy(sortField, sortDirection);
             indexFields.push({ name: sortField, order: sortDirection });
 
-            // 4. Add pagination
             if (lastVisible) {
                 query = query.startAfter(lastVisible);
             }
             
             query = query.limit(PAGE_SIZE);
-
-            // 5. Execute the query
             const snapshot = await query.get();
             lastVisible = snapshot.docs[snapshot.docs.length - 1];
             
-            // On first load, clear the skeleton loader
-            if (isNewSearch) {
-                marketplaceGrid.innerHTML = '';
-            } else {
-                // Remove skeleton loaders from subsequent loads
-                document.querySelectorAll('.skeleton').forEach(el => el.parentElement.remove());
-            }
+            if (isNewSearch) marketplaceGrid.innerHTML = '';
+             else document.querySelectorAll('.skeleton').forEach(el => el.parentElement.remove());
 
             if (snapshot.empty && isNewSearch) {
-                showMessage('<p class="text-gray-500 dark:text-gray-400">No cards found for the current filters.</p>');
+                showMessage('<p class="text-gray-500 dark:text-gray-400">No cards found that match your search.</p>');
                 return;
             }
 
-            // 6. Fetch seller data efficiently
             const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
             if (sellerIds.length === 0) {
                  if (isNewSearch) showMessage('<p class="text-gray-500 dark:text-gray-400">No cards found.</p>');
@@ -168,21 +148,27 @@ document.addEventListener('authReady', (e) => {
             sellerDocs.forEach(doc => {
                 if (doc.exists) sellers.set(doc.id, { uid: doc.id, ...doc.data() });
             });
+            
+            let cards = snapshot.docs.map(doc => ({
+                id: doc.id,
+                sellerData: sellers.get(doc.ref.parent.parent.id) || null,
+                ...doc.data()
+            }));
 
-            // 7. Combine data and render cards
-            snapshot.docs.forEach(doc => {
-                const cardData = {
-                    id: doc.id,
-                    sellerData: sellers.get(doc.ref.parent.parent.id) || null,
-                    ...doc.data()
-                };
+            const cardNameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
+            if (cardNameFilter) {
+                cards = cards.filter(c => c.name.toLowerCase().includes(cardNameFilter));
+            }
+            
+            cards.forEach(cardData => {
                 const cardElement = renderCard(cardData);
-                if (cardElement) {
-                    marketplaceGrid.appendChild(cardElement);
-                }
+                if (cardElement) marketplaceGrid.appendChild(cardElement);
             });
 
-            // 8. Add "Load More" button if needed
+            if (cards.length === 0 && isNewSearch) {
+                showMessage('<p class="text-gray-500 dark:text-gray-400">No cards found that match your search.</p>');
+            }
+
             if (snapshot.docs.length === PAGE_SIZE) {
                 const newLoadMoreBtn = document.createElement('button');
                 newLoadMoreBtn.id = 'load-more-btn';
@@ -195,52 +181,32 @@ document.addEventListener('authReady', (e) => {
             console.error("Error loading marketplace:", error);
             let errorMessage;
             if (error.code === 'failed-precondition') {
-                 // Missing Index Error
                  const indexLink = generateIndexLink(indexFields);
-                 errorMessage = `
-                    <div class="col-span-full text-center p-4 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">
-                        <p class="font-bold text-yellow-800 dark:text-yellow-200">Database Index Required</p>
-                        <p class="text-yellow-700 dark:text-yellow-300 mt-2">To sort and filter this way, a new database index must be created. This is a one-time setup for this specific query.</p>
-                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
-                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                           Click Here to Create the Index
-                        </a>
-                        <p class="text-xs text-gray-500 mt-2">This link opens the Firebase console. Click "Save", wait a few minutes for the index to build, then refresh this page.</p>
-                    </div>`;
+                 errorMessage = `<div class="col-span-full text-center p-4 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg"><p class="font-bold text-yellow-800 dark:text-yellow-200">Database Index Required</p><p class="text-yellow-700 dark:text-yellow-300 mt-2">To sort and filter this way, a new database index must be created.</p><a href="${indexLink}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Click Here to Create the Index</a><p class="text-xs text-gray-500 mt-2">This link opens the Firebase console. Click "Save", wait a few minutes, then refresh this page.</p></div>`;
             } else {
-                // Permissions or other errors
-                errorMessage = `
-                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                        <p class="font-bold text-red-700 dark:text-red-300">An Error Occurred</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2">Error: ${error.message}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-4">This is likely due to a security rule preventing access. Please ensure your Firestore rules allow public reads on cards for sale.</p>
-                    </div>`;
+                errorMessage = `<div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg"><p class="font-bold text-red-700 dark:text-red-300">An Error Occurred</p><p class="text-red-600 dark:text-red-400 mt-2">Error: ${error.message}</p><p class="text-sm text-gray-600 dark:text-gray-400 mt-4">This is likely due to a security rule preventing access. Please ensure your Firestore rules allow public reads on cards for sale and that you have published the rules to the correct Firebase project.</p></div>`;
             }
             showMessage(errorMessage);
         } finally {
             isLoading = false;
-             // Ensure any remaining skeletons are removed
             document.querySelectorAll('.skeleton').forEach(el => el.parentElement.remove());
         }
     };
     
-    // --- Event Listeners ---
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        loadMarketplaceCards(true); // isNewSearch = true
+        loadMarketplaceCards(true);
     });
     
     sortByEl.addEventListener('change', () => loadMarketplaceCards(true));
     
-    // Use event delegation for the "Load More" button
     document.body.addEventListener('click', (e) => {
         if (e.target.id === 'load-more-btn') {
             e.target.disabled = true;
             e.target.textContent = 'Loading...';
-            loadMarketplaceCards(false); // isNewSearch = false
+            loadMarketplaceCards(false);
         }
     });
     
-    // --- Initial Load ---
     loadMarketplaceCards(true);
 });
