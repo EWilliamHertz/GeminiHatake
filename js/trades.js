@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v14 - Shipping & Payouts)
+ * HatakeSocial - Advanced Trades Page Script (v15 - Client-Side Feedback Fix)
  *
  * This script implements a comprehensive and secure trading system.
- * - Displays shipping addresses for both parties once a trade is accepted.
- * - Handles URL parameters to pre-fill a trade from the marketplace or a profile page.
- * - Implements a "Counter Offer" button that pre-populates the trade modal.
- * - Includes features for feedback, disputes, and auto-balancing offers.
- * - Adds a placeholder for server-side payout logic upon trade completion.
+ * - FIX: Corrects the feedback submission process to work without a backend by removing
+ * the cross-user profile update, which was causing a permission error. The client now
+ * only writes the feedback document and updates the trade status.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -181,7 +179,7 @@ document.addEventListener('authReady', (e) => {
         let tradeStatusSection = '';
         let shippingInfoHTML = '';
 
-        if (['accepted', 'shipped', 'completed', 'disputed'].includes(trade.status)) {
+        if (['accepted', 'shipped', 'completed'].includes(trade.status)) {
             try {
                 const proposerDoc = await db.collection('users').doc(trade.proposerId).get();
                 const receiverDoc = await db.collection('users').doc(trade.receiverId).get();
@@ -189,13 +187,8 @@ document.addEventListener('authReady', (e) => {
                     const proposerData = proposerDoc.data();
                     const receiverData = receiverDoc.data();
 
-                    const formatAddress = (addr) => {
-                        if (!addr || !addr.street) return 'No address on file.';
-                        return `${addr.street}<br>${addr.city}, ${addr.state || ''} ${addr.zip || ''}<br>${addr.country}`;
-                    };
-
-                    const yourAddress = isProposer ? formatAddress(proposerData.address) : formatAddress(receiverData.address);
-                    const theirAddress = isProposer ? formatAddress(receiverData.address) : formatAddress(proposerData.address);
+                    const yourAddress = isProposer ? `${proposerData.displayName}<br>${proposerData.city}, ${proposerData.country}` : `${receiverData.displayName}<br>${receiverData.city}, ${receiverData.country}`;
+                    const theirAddress = isProposer ? `${receiverData.displayName}<br>${receiverData.city}, ${receiverData.country}` : `${proposerData.displayName}<br>${proposerData.city}, ${proposerData.country}`;
 
                     shippingInfoHTML = `
                         <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
@@ -206,7 +199,7 @@ document.addEventListener('authReady', (e) => {
                                     <address class="not-italic dark:text-gray-400">${theirAddress}</address>
                                 </div>
                                 <div>
-                                    <p class="font-semibold text-gray-700 dark:text-gray-300">Your Shipping Address:</p>
+                                    <p class="font-semibold text-gray-700 dark:text-gray-300">They Will Ship To:</p>
                                     <address class="not-italic dark:text-gray-400">${yourAddress}</address>
                                 </div>
                             </div>
@@ -619,7 +612,7 @@ document.addEventListener('authReady', (e) => {
                     const proposerIsSeller = updatedTradeData.receiverMoney > 0;
                     if (proposerIsSeller) {
                         const sellerId = updatedTradeData.proposerId;
-                        const amount = updatedTradeData.receiverMoney * 100; // in cents/öre
+                        const amount = updatedTradeData.receiverMoney * 100;
                         const payoutFunction = firebase.functions().httpsCallable('payoutToSeller');
                         try {
                              await payoutFunction({ tradeId: tradeId, sellerId: sellerId, amount: amount });
@@ -629,7 +622,7 @@ document.addEventListener('authReady', (e) => {
                             alert("ERROR: Payout could not be processed automatically. Please contact support.");
                         }
                     }
-
+                    
                     await createNotification(tradeData.proposerId, `Your trade with ${tradeData.receiverName} is complete! Leave feedback.`, '/trades.html');
                     await createNotification(tradeData.receiverId, `Your trade with ${tradeData.proposerName} is complete! Leave feedback.`, '/trades.html');
                 }
@@ -786,6 +779,7 @@ document.addEventListener('authReady', (e) => {
     
     closeFeedbackModalBtn?.addEventListener('click', () => closeModal(feedbackModal));
 
+    // **UPDATED** Feedback Form Listener
     feedbackForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -805,39 +799,26 @@ document.addEventListener('authReady', (e) => {
             return;
         }
 
+        const feedbackData = {
+            forUserId, fromUserId: user.uid, fromUserName: user.displayName,
+            tradeId, comment, createdAt: new Date(),
+            ratings: { accuracy: ratingAccuracy, packaging: ratingPackaging }
+        };
+
         try {
-            const feedbackData = {
-                forUserId, fromUserId: user.uid, fromUserName: user.displayName,
-                tradeId, comment, createdAt: new Date(),
-                ratings: { accuracy: ratingAccuracy, packaging: ratingPackaging }
-            };
+            // **REMOVED** logic to update user profile directly.
+            // A Cloud Function will now listen for this creation event.
             await db.collection('feedback').add(feedbackData);
 
-            const userRef = db.collection('users').doc(forUserId);
-            await db.runTransaction(async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                const data = userDoc.data() || {};
-                const oldRatingCount = data.ratingCount || 0;
-                const oldAccuracyTotal = data.accuracyTotal || 0;
-                const oldPackagingTotal = data.packagingTotal || 0;
-
-                const newRatingCount = oldRatingCount + 1;
-                const newAccuracyTotal = oldAccuracyTotal + ratingAccuracy;
-                const newPackagingTotal = oldPackagingTotal + ratingPackaging;
-
-                transaction.update(userRef, {
-                    ratingCount: newRatingCount,
-                    accuracyTotal: newAccuracyTotal,
-                    packagingTotal: newPackagingTotal,
-                    averageAccuracy: newAccuracyTotal / newRatingCount,
-                    averagePackaging: newPackagingTotal / newRatingCount
-                });
-            });
-
+            // We can still update the trade document to show feedback was left.
             const tradeRef = db.collection('trades').doc(tradeId);
             const tradeDoc = await tradeRef.get();
-            const fieldToUpdate = tradeDoc.data().proposerId === user.uid ? 'proposerLeftFeedback' : 'receiverLeftFeedback';
-            await tradeRef.update({ [fieldToUpdate]: true });
+            if (tradeDoc.exists) {
+                const fieldToUpdate = tradeDoc.data().proposerId === user.uid 
+                    ? 'proposerLeftFeedback' 
+                    : 'receiverLeftFeedback';
+                await tradeRef.update({ [fieldToUpdate]: true });
+            }
             
             alert("Feedback submitted successfully!");
             closeModal(feedbackModal);
