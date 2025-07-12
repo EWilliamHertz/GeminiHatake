@@ -10,7 +10,8 @@
  * - Updates sorting logic to include new options like Rarity.
  * - All filtering is performed client-side on the initially fetched data
  * for a fast and responsive user experience.
- */
+ 
+ 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
