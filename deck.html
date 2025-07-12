@@ -124,7 +124,14 @@
                                     <textarea id="deck-bio-input" class="w-full p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" rows="3" placeholder="Enter a short description for your deck..."></textarea>
                                 </div>
                                 <textarea id="decklist-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y mb-4 dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="Paste your decklist here...&#10;Example:&#10;4 Sol Ring&#10;1 Black Lotus"></textarea>
-                                <div class="flex space-x-2 mt-4">
+                           <div class="my-4">
+    <label class="flex items-center space-x-2 cursor-pointer">
+        <input type="checkbox" id="deck-public-checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" checked>
+        <span class="text-gray-700 dark:text-gray-300">Make this deck public for the community to see</span>
+    </label>
+</div>
+
+                               <div class="flex space-x-2 mt-4">
                                     <button type="submit" id="build-deck-btn" class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build & Price Deck</button>
                                     <button type="button" id="suggest-cards-btn" class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700">
                                         <i class="fas fa-magic mr-2"></i> Suggest Cards
