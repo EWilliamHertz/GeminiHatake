@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Profile Page Script (v19 - Robust Error Handling)
+ * HatakeSocial - Profile Page Script (v20 - Enhanced Trade Binder)
  *
  * This script handles all logic for the user profile page.
+ * - NEW: The "Trade Binder" tab now displays prices directly on the cards.
+ * - NEW: Adds a "Start Trade" button to each card in the trade binder for one-click trade initiation.
  * - FIX: Wraps all database queries in try/catch blocks to prevent the page from getting stuck on loading.
  * - FIX: Displays user-friendly error messages with links to create missing Firestore indexes if a query fails.
- * - This version is fully compatible with the latest auth.js and Firestore security rules.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -253,7 +254,7 @@ document.addEventListener('authReady', (e) => {
             loadProfileDecks(profileUserId, isOwnProfile);
             loadProfileCollection(profileUserId, 'collection', isOwnProfile);
             loadProfileCollection(profileUserId, 'wishlist');
-            loadTradeBinder(profileUserId);
+            loadTradeBinder(profileUserId, profileUserData);
             loadProfileTradeHistory(profileUserId);
             loadProfileFeedback(profileUserId);
             if (window.location.hash === '#friends') loadProfileFriends(profileUserId);
@@ -334,8 +335,6 @@ document.addEventListener('authReady', (e) => {
             badgesListContainer.innerHTML = '<p class="text-sm text-red-500">Could not load achievements.</p>';
         }
     };
-
-    // ... (The rest of the load... functions remain the same, but with added try/catch blocks)
 
     const loadProfileFeed = async (userId) => {
         const container = document.getElementById('tab-content-feed');
@@ -451,7 +450,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const loadTradeBinder = async (userId) => {
+    const loadTradeBinder = async (userId, userData) => {
         const container = document.getElementById('tab-content-trade-binder');
         container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading trade binder...</p>';
         try {
@@ -463,10 +462,27 @@ document.addEventListener('authReady', (e) => {
             container.innerHTML = '';
             snapshot.forEach(doc => {
                 const card = doc.data();
-                const cardEl = document.createElement('a');
-                cardEl.href = `card-view.html?name=${encodeURIComponent(card.name)}`;
-                cardEl.className = 'block relative';
-                cardEl.innerHTML = `<img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">`;
+                const cardEl = document.createElement('div');
+                cardEl.className = 'relative group';
+                
+                const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
+                const priceTagHTML = formattedPrice 
+                    ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
+                    : '';
+
+                let tradeButtonHTML = '';
+                if (currentUser && currentUser.uid !== userId) {
+                    tradeButtonHTML = `<a href="trades.html?propose_to_card=${doc.id}" class="block w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">Start Trade</a>`;
+                }
+
+                cardEl.innerHTML = `
+                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block">
+                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-t-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                    </a>
+                    ${priceTagHTML}
+                    ${tradeButtonHTML}
+                `;
                 container.appendChild(cardEl);
             });
         } catch (error) {
