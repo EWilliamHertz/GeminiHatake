@@ -5,9 +5,9 @@
  * - Fetches a comprehensive list of sets from MTGJSON to populate the simulator dropdown.
  * - Generates a simulated booster pack based on the selected set's data.
  * - Displays the generated cards.
+ * - FIX: Changed listener to 'authReady' to ensure consistent script initialization across the site.
  */
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('authReady', () => {
     const boosterPageContainer = document.getElementById('generate-booster-btn');
     if (!boosterPageContainer) return; // Exit if not on the booster page
 
@@ -74,7 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const generateBooster = async () => {
         const setCode = setSelect.value;
-        if (!setCode) return;
+        if (!setCode || setCode === 'Could not load sets') {
+            statusEl.textContent = 'Please wait for sets to load or select a valid set.';
+            return;
+        };
 
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
