@@ -129,10 +129,89 @@
         </div>
     </main>
 
-    <div id="create-group-modal" class="modal-overlay"> </div>
-    <div id="trade-post-modal" class="modal-overlay"> </div>
-    <div id="invite-member-modal" class="modal-overlay"> </div>
-   <div id="loginModal" class="modal-overlay">
+    <!-- Modals -->
+    <div id="create-group-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-lg dark:bg-gray-800">
+            <button id="close-group-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Create a New Group</h2>
+            <form id="create-group-form" class="space-y-4">
+                <div>
+                    <label for="groupName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Name</label>
+                    <input type="text" id="groupName" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" required>
+                </div>
+                <div>
+                    <label for="groupDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                    <textarea id="groupDescription" rows="3" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" required></textarea>
+                </div>
+                <div>
+                    <label for="groupType" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Group Type</label>
+                    <select id="groupType" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+                        <option value="general">General</option>
+                        <option value="trading_guild">Trading Guild</option>
+                        <option value="strategy_lab">Strategy Lab</option>
+                        <option value="regional_hub">Regional Hub</option>
+                    </select>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="groupPublic" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" checked>
+                    <label for="groupPublic" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">Public (Anyone can see and join)</label>
+                </div>
+                <div class="text-right pt-4">
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="invite-member-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md dark:bg-gray-800">
+            <button id="close-invite-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Invite Members</h2>
+            <input type="hidden" id="invite-group-id">
+            <div class="relative">
+                <input type="text" id="invite-user-search" placeholder="Search for users by handle..." class="w-full p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600">
+                <div id="invite-user-results" class="mt-2 space-y-2 max-h-60 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="trade-post-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-3xl dark:bg-gray-800">
+            <button id="close-trade-post-modal" class="close-button">&times;</button>
+            <h2 id="trade-post-modal-title" class="text-2xl font-bold mb-4 dark:text-white">Create Trade Post</h2>
+            <form id="trade-post-form" class="space-y-4">
+                <input type="hidden" id="trade-post-type">
+                <div>
+                    <label for="trade-post-title-input" class="block text-sm font-medium dark:text-gray-300">Title</label>
+                    <input type="text" id="trade-post-title-input" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                </div>
+                <div>
+                    <label for="trade-post-body-input" class="block text-sm font-medium dark:text-gray-300">Body</label>
+                    <textarea id="trade-post-body-input" rows="3" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="trade-post-haves-section">
+                        <label class="block text-sm font-medium dark:text-gray-300">Cards you HAVE:</label>
+                        <input type="text" id="trade-post-haves-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600 mt-1">
+                        <div id="trade-post-haves-results" class="relative"></div>
+                        <div id="trade-post-haves-list" class="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded-md min-h-[100px] space-y-1"></div>
+                    </div>
+                    <div id="trade-post-wants-section">
+                        <label class="block text-sm font-medium dark:text-gray-300">Cards you WANT:</label>
+                        <input type="text" id="trade-post-wants-search" placeholder="Search your wishlist..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600 mt-1">
+                        <div id="trade-post-wants-results" class="relative"></div>
+                        <div id="trade-post-wants-list" class="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded-md min-h-[100px] space-y-1"></div>
+                    </div>
+                </div>
+                <div class="text-right pt-4">
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Create Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+ <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
@@ -201,6 +280,7 @@
     </div>
 </div>
 
+
     
   <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
         <div class="container mx-auto py-8 px-4">
@@ -247,5 +327,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/community.js"></script> </body>
+    <script src="js/community.js"></script> 
+</body>
 </html>
