@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Community Page Script (v4 - Secure Client-Side Handshake)
+ * HatakeSocial - Community Page Script (v5 - Group Member List Fix)
  *
- * This script handles all logic for the community.html page, merging the
- * functionality of the previous friends.js and groups.js files.
- * - FIX: Implements a secure, client-side "handshake" for friend requests to work without server-side code.
+ * This script handles all logic for the community.html page.
+ * - FIX: Adds the missing logic to render the member list within the group detail view.
+ * - Implements a secure, client-side "handshake" for friend requests.
  * - Adds robust error handling to notify the user if an action fails.
  */
 document.addEventListener('authReady', (e) => {
@@ -764,6 +764,22 @@ document.addEventListener('authReady', (e) => {
             };
             
             const populateMembersAndSetupListeners = (groupId, groupData) => {
+                // FIX: Added member list rendering logic
+                const memberListContainer = document.getElementById('group-member-list');
+                memberListContainer.innerHTML = '';
+                const participants = groupData.participantInfo || {};
+                for (const memberId in participants) {
+                    const member = participants[memberId];
+                    const memberEl = document.createElement('a');
+                    memberEl.href = `profile.html?uid=${memberId}`;
+                    memberEl.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+                    memberEl.innerHTML = `
+                        <img src="${member.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-10 h-10 rounded-full object-cover">
+                        <span class="font-semibold text-gray-800 dark:text-white">${member.displayName}</span>
+                    `;
+                    memberListContainer.appendChild(memberEl);
+                }
+
                 document.getElementById('back-to-groups-list')?.addEventListener('click', () => {
                     groupDetailView.classList.add('hidden');
                     groupsPage.classList.remove('hidden');
