@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Shop Page Script (v3 - Checkout Error Handling)
+ * HatakeSocial - Shop Page Script (v4 - Updated Stripe Key)
  *
  * This script is responsible for the shop page functionality.
- * FIX: Corrected image extensions in the product data to match actual filenames (.jpeg, .jpg).
- * NEW: Adds robust error handling to the Stripe checkout process.
+ * - Updates the Stripe publishable key to the one provided.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -16,7 +15,7 @@ document.addEventListener('authReady', (e) => {
     const checkoutBtn = document.getElementById('checkout-btn');
     const cartButton = document.getElementById('cart-button'); // Assuming you have a cart button in the header
 
-    // --- Product Data with CORRECTED image extensions ---
+    // --- Product Data ---
     const products = [
         { id: 'matte-sleeves', name: 'Matte Sleeves', price: 89, availability: 'Pre-order Releasing 15 October', sku: '0.01', category: 'Sleeves', unitsAvailable: 1000, description: 'Hatake TCG Matte Sleeves offer premium protection with a sophisticated matte finish that reduces glare and enhances the handling experience. Each pack contains 100 high-quality black sleeves (66x91mm) designed to fit standard TCG cards perfectly.', features: ['Premium matte finish for reduced glare and improved shuffling', 'Acid-free and archival safe materials', 'Perfect clarity on the card face side', 'Consistent sizing for tournament play', 'Durable construction that resists splitting and peeling', 'Compatible with all standard TCG cards'], specifications: { Dimensions: '66x91mm', Quantity: '100 sleeves per pack', Color: 'Black backing with clear front', Material: 'Acid-free polypropylene', Finish: 'Matte' }, images: ['IMG_9962.jpg', 'IMG_9958.jpg', 'IMG_9966.jpg', 'IMG_9967.jpg', 'IMG_9965.jpg', 'IMG_9963.jpg', 'IMG_9969.jpg', 'IMG_9956.jpg'] },
         { id: '480-slot-binder', name: '480-Slot Binder', price: 360, availability: 'Pre-order Releasing 15 October', sku: '0.02', category: 'Binder', unitsAvailable: 100, description: 'The Hatake TCG 480-Slot Binder is the ultimate storage solution for serious collectors. This premium zippered binder features side-loading pockets to keep your valuable cards secure and protected while showcasing your collection in style.', features: ['Premium zippered closure for maximum security', 'Side-loading pockets to prevent cards from falling out', '480 card capacity (60 double-sided pages with 4 cards per side)', 'Acid-free, PVC-free, and archival safe materials', 'Reinforced spine and corners for durability', 'Elegant Nordic-inspired design with embossed Hatake logo'], specifications: { Capacity: '480 standard-sized cards', Material: 'Premium PU leather exterior, acid-free polypropylene pages', Color: 'Black with blue interior', Closure: 'Heavy-duty zipper', 'Page Configuration': '60 double-sided pages with 4 card slots per side' }, images: ['IMG_9839.jpg', 'IMG_9814.jpg', 'IMG_9818.jpg', 'IMG_9816.jpg', 'IMG_9819.jpg', 'IMG_9820.jpg', 'IMG_9823.jpg', 'IMG_9824.jpg', 'IMG_9825.jpg', 'IMG_9826.jpg', 'IMG_9827.jpg'] },
@@ -29,7 +28,8 @@ document.addEventListener('authReady', (e) => {
 
     // --- State ---
     let cart = JSON.parse(localStorage.getItem('hatakeCart')) || [];
-    // This is a placeholder key. Replace with your actual Stripe publishable key.
+    
+    // **UPDATED** Stripe publishable key
     const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
 
     // --- Functions ---
