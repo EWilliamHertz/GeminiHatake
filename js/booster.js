@@ -6,6 +6,7 @@
  * - Generates a simulated booster pack based on the selected set's data.
  * - Displays the generated cards.
  */
+
 document.addEventListener('DOMContentLoaded', () => {
     const boosterPageContainer = document.getElementById('generate-booster-btn');
     if (!boosterPageContainer) return; // Exit if not on the booster page
