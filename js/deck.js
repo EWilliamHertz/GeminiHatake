@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - Deck Page Script (v18 - Scryfall-Powered Suggestions)
+ * HatakeSocial - Deck Page Script (v19 - Public Decks Collection)
  *
- * This version adds an AI-like "Suggest Cards" feature.
- * - Adds a "Suggest Cards" button and a suggestions container.
- * - When clicked, it analyzes the current decklist (primarily for Commander).
- * - It fetches synergistic card recommendations from the Scryfall API.
- * - Displays the suggestions as clickable images to easily add them to the deck.
+ * - FIX: Resolves "Missing or insufficient permissions" error by creating and querying a
+ * dedicated `publicDecks` collection instead of using a collectionGroup query.
+ * - Adds a "Make Public" checkbox to the deck builder.
+ * - Updates save logic to write to two locations if a deck is public.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -58,10 +57,11 @@ document.addEventListener('authReady', (e) => {
     const importDeckFileInput = document.getElementById('import-deck-file-input');
     const processImportBtn = document.getElementById('process-import-btn');
 
-    // **NEW** Suggestion Elements
+    // Suggestion Elements
     const suggestCardsBtn = document.getElementById('suggest-cards-btn');
     const suggestionsContainer = document.getElementById('suggestions-container');
     const suggestionsOutput = document.getElementById('suggestions-output');
+    const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
 
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
@@ -70,7 +70,6 @@ document.addEventListener('authReady', (e) => {
         "Yu-Gi-Oh!": ["Advanced", "Traditional"]
     };
 
-    // --- Helper to generate a Firestore index creation link ---
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -197,15 +196,18 @@ document.addEventListener('authReady', (e) => {
         buildDeckBtn.disabled = true;
         buildDeckBtn.textContent = 'Processing...';
 
+        const isPublic = deckPublicCheckbox.checked;
+
         const deckData = {
             name: deckNameInput.value,
-            name_lower: deckNameInput.value.toLowerCase(), // For searching
+            name_lower: deckNameInput.value.toLowerCase(),
             bio: deckBioInput.value,
             tcg: deckTcgSelect.value,
             format: deckFormatSelect.value,
             authorId: user.uid,
             authorName: user.displayName || 'Anonymous',
             createdAt: new Date(),
+            isPublic: isPublic,
             cards: []
         };
 
@@ -233,15 +235,25 @@ document.addEventListener('authReady', (e) => {
 
         const editingId = editingDeckIdInput.value;
         try {
-            if (editingId) {
-                await db.collection('users').doc(user.uid).collection('decks').doc(editingId).update(deckData);
-                alert("Deck updated successfully!");
-                viewDeck(deckData, editingId);
-            } else {
-                const docRef = await db.collection('users').doc(user.uid).collection('decks').add(deckData);
-                alert("Deck saved successfully!");
-                viewDeck(deckData, docRef.id);
+            const userDeckRef = editingId 
+                ? db.collection('users').doc(user.uid).collection('decks').doc(editingId)
+                : db.collection('users').doc(user.uid).collection('decks').doc();
+            
+            const publicDeckRef = db.collection('publicDecks').doc(userDeckRef.id);
+            const batch = db.batch();
+
+            batch.set(userDeckRef, deckData);
+
+            if (isPublic) {
+                batch.set(publicDeckRef, deckData);
+            } else if (editingId) {
+                batch.delete(publicDeckRef);
             }
+
+            await batch.commit();
+            alert("Deck saved successfully!");
+            viewDeck(deckData, userDeckRef.id);
+
         } catch(error) {
             alert("Error saving deck: " + error.message);
         } finally {
@@ -464,6 +476,8 @@ document.addEventListener('authReady', (e) => {
             deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
                 if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
                     await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
+                    // Also delete from public collection if it exists
+                    await db.collection('publicDecks').doc(doc.id).delete();
                     alert('Deck deleted successfully.');
                     loadMyDecks();
                 }
@@ -481,6 +495,7 @@ document.addEventListener('authReady', (e) => {
         deckNameInput.value = deck.name;
         deckBioInput.value = deck.bio || '';
         deckTcgSelect.value = deck.tcg;
+        deckPublicCheckbox.checked = deck.isPublic !== false; // Default to checked if undefined
         
         deckTcgSelect.dispatchEvent(new Event('change'));
         deckFormatSelect.value = deck.format;
@@ -492,20 +507,17 @@ document.addEventListener('authReady', (e) => {
         const communityDecksList = document.getElementById('community-decks-list');
         communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
         
-        let indexFields = [{ name: 'createdAt', order: 'desc' }];
-        if (tcg !== 'all') indexFields.unshift({ name: 'tcg', order: 'asc' });
-        if (format !== 'all') indexFields.unshift({ name: 'format', order: 'asc' });
-
         try {
-            let query = db.collectionGroup('decks');
-            if(tcg !== 'all') query = query.where('tcg', '==', tcg);
-            if(format !== 'all') query = query.where('format', '==', format);
+            let query = db.collection('publicDecks');
+            
+            if (tcg !== 'all') query = query.where('tcg', '==', tcg);
+            if (format !== 'all') query = query.where('format', '==', format);
             query = query.orderBy('createdAt', 'desc');
 
             const snapshot = await query.limit(50).get();
 
             if (snapshot.empty) {
-                communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No decks found for the selected filters.</p>';
+                communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No community decks found for the selected filters.</p>';
                 return;
             }
 
@@ -514,23 +526,7 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading community decks:", error);
-            if (error.code === 'failed-precondition') {
-                 const indexLink = generateIndexCreationLink('decks', indexFields);
-                 const errorMessage = `
-                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
-                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                           Click Here to Create the Index
-                        </a>
-                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
-                    </div>
-                 `;
-                 communityDecksList.innerHTML = errorMessage;
-            } else {
-                communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred while loading decks.</p>`;
-            }
+            communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An error occurred while loading decks. A database index might be required for this filter combination.</p>`;
         }
     };
     
@@ -785,7 +781,6 @@ document.addEventListener('authReady', (e) => {
 
     checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
     
-    // --- Import Modal Logic ---
     importDeckBtn.addEventListener('click', () => {
         openModal(importDeckModal);
     });
@@ -817,7 +812,6 @@ document.addEventListener('authReady', (e) => {
         const lines = content.split('\n').filter(line => line.trim() !== '');
         let parsedList = '';
         lines.forEach(line => {
-            // Regex to match formats like "4 Card Name", "4x Card Name", "1 [SET] Card Name"
             const match = line.match(/^(?:(\d+)x?\s+)?(.*?)(?:\s+\/\/.*|\s+\([A-Z0-9]+\))?$/);
             if (match) {
                 const quantity = match[1] || '1';
@@ -831,7 +825,6 @@ document.addEventListener('authReady', (e) => {
         alert("Decklist imported successfully!");
     };
     
-    // **NEW** Card Suggestion Logic
     suggestCardsBtn.addEventListener('click', async () => {
         const decklist = document.getElementById('decklist-input').value;
         const format = document.getElementById('deck-format-select').value;
@@ -849,7 +842,7 @@ document.addEventListener('authReady', (e) => {
             let suggestionsHTML = '';
 
             if (format === 'Commander') {
-                const commanderLine = lines[0]; // Assume first card is commander
+                const commanderLine = lines[0];
                 const commanderNameMatch = commanderLine.match(/^\d*\s*(.*)/);
                 if (commanderNameMatch && commanderNameMatch[1]) {
                     const commanderName = commanderNameMatch[1].trim();
@@ -864,7 +857,6 @@ document.addEventListener('authReady', (e) => {
                         suggestionsHTML += '<h3 class="font-bold text-lg mb-2 dark:text-white">Top Synergy Cards</h3>';
                         suggestionsHTML += '<div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-2">';
                         scryfallData.data.slice(0, 16).forEach(card => {
-                            // Escape single quotes in the card name for the onclick function
                             const safeCardName = card.name.replace(/'/g, "\\'");
                             suggestionsHTML += `<img src="${card.image_uris.small}" alt="${card.name}" class="rounded-lg cursor-pointer transition-transform hover:scale-105" onclick="addCardToDecklist('${safeCardName}')" title="Click to add ${card.name}">`;
                         });
@@ -887,18 +879,26 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-
     // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
     const deckId = urlParams.get('deckId');
     if (deckId) {
-        db.collectionGroup('decks').where(firebase.firestore.FieldPath.documentId(), '==', deckId).limit(1).get()
-            .then(snapshot => {
-                if (!snapshot.empty) {
-                    const doc = snapshot.docs[0];
-                    viewDeck(doc.data(), doc.id);
-                }
-            });
+        // Since we now have a dedicated public collection, we can't assume the deck is in the user's list.
+        // We need to check both locations. This is a simple way to do it.
+        const userDeckRef = user ? db.collection('users').doc(user.uid).collection('decks').doc(deckId) : null;
+        const publicDeckRef = db.collection('publicDecks').doc(deckId);
+
+        publicDeckRef.get().then(doc => {
+            if (doc.exists) {
+                viewDeck(doc.data(), doc.id);
+            } else if (userDeckRef) {
+                userDeckRef.get().then(userDoc => {
+                    if (userDoc.exists) {
+                        viewDeck(userDoc.data(), userDoc.id);
+                    }
+                });
+            }
+        });
     }
 
     if (user) {
