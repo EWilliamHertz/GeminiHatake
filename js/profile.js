@@ -1,21 +1,15 @@
 /**
- * HatakeSocial - Profile Page Script (v21 - Layout Fix)
+ * HatakeSocial - Profile Page Script (v22 - Player Personality Display)
  *
- * This script handles all logic for the user profile page.
+ * - NEW: Displays the new player personality fields (Playstyle, Format, Pet/Nemesis Cards) on the profile.
+ * - Makes the Pet and Nemesis card names clickable links to their card view pages.
  * - FIX: Corrects the profile header layout to ensure the banner image is behind the avatar and action buttons.
- * - Uses a single relative container with absolute positioning for overlapping elements.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
 
-    /**
-     * Generates a direct link to the Firebase console to create a missing composite index.
-     * @param {string} collection - The name of the collection needing the index.
-     * @param {Array<object>} fields - An array of field objects, e.g., [{ name: 'fieldName', order: 'asc' }]
-     * @returns {string} The generated URL.
-     */
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -25,11 +19,6 @@ document.addEventListener('authReady', (e) => {
         return url;
     };
     
-    /**
-     * Displays a standardized error message for missing Firestore indexes.
-     * @param {HTMLElement} container - The DOM element to display the error in.
-     * @param {string} link - The pre-generated link to create the index.
-     */
     const displayIndexError = (container, link) => {
         const errorMessage = `
             <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
@@ -45,7 +34,6 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = errorMessage;
     };
 
-    // Definitions for all achievable badges and the logic to check for them.
     const badgeDefinitions = {
         pioneer: { name: 'Pioneer', description: 'One of the first 100 users to join HatakeSocial!', icon: 'fa-rocket', color: 'text-purple-500', async check(userData, userId) { const pioneerDate = new Date('2025-07-01'); return userData.createdAt.toDate() < pioneerDate; } },
         collector: { name: 'Collector', description: 'Has over 100 cards in their collection.', icon: 'fa-box-open', color: 'text-blue-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get(); return snapshot.size > 100; } },
@@ -57,15 +45,10 @@ document.addEventListener('authReady', (e) => {
         guild_founder: { name: 'Guild Founder', description: 'Founded your first Trading Guild.', icon: 'fa-shield-alt', color: 'text-indigo-500', async check(userData, userId) { const groupQuery = await db.collection('groups').where('creatorId', '==', userId).where('groupType', '==', 'trading_guild').limit(1).get(); return !groupQuery.empty; } }
     };
 
-    /**
-     * Main function to set up the entire profile page.
-     * It now includes robust error handling to prevent the page from getting stuck.
-     */
     const setupProfilePage = async () => {
         profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
 
         try {
-            // Determine which user's profile to load
             const params = new URLSearchParams(window.location.search);
             let userDoc;
             const username = params.get('user');
@@ -79,7 +62,6 @@ document.addEventListener('authReady', (e) => {
             } else if (currentUser) {
                 userDoc = await db.collection('users').doc(currentUser.uid).get();
             } else {
-                // No user specified and no one logged in
                 profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold text-gray-800 dark:text-white">No Profile to Display</h1><p class="mt-2 text-gray-600 dark:text-gray-400">Please log in to see your profile or specify a user in the URL.</p></div>`;
                 return;
             }
@@ -92,7 +74,6 @@ document.addEventListener('authReady', (e) => {
             const profileUserData = userDoc.data();
             const isOwnProfile = currentUser && currentUser.uid === profileUserId;
 
-            // Determine friend status between current user and profile owner
             let friendStatus = 'none';
             if (currentUser && !isOwnProfile) {
                 if (profileUserData.friends && profileUserData.friends.includes(currentUser.uid)) {
@@ -105,7 +86,6 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
-            // Generate action buttons based on friend status
             let actionButtonHTML = '';
             if (!isOwnProfile && currentUser) {
                 actionButtonHTML += `<button id="start-trade-btn" class="px-4 py-2 bg-green-600 text-white rounded-full text-sm" data-uid="${profileUserId}">Start Trade</button>`;
@@ -118,7 +98,6 @@ document.addEventListener('authReady', (e) => {
                 }
             }
 
-            // Generate reputation/rating stars
             const ratingCount = profileUserData.ratingCount || 0;
             const avgAccuracy = profileUserData.averageAccuracy || 0;
             const avgPackaging = profileUserData.averagePackaging || 0;
@@ -141,16 +120,31 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
 
-            // *** NEW HTML STRUCTURE FOR PROFILE HEADER ***
+            let personalityHTML = '';
+            if (profileUserData.playstyle || profileUserData.favoriteFormat || profileUserData.petCard || profileUserData.nemesisCard) {
+                personalityHTML += '<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">';
+                if (profileUserData.playstyle) {
+                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Playstyle</p><p class="text-gray-800 dark:text-white">${profileUserData.playstyle}</p></div>`;
+                }
+                if (profileUserData.favoriteFormat) {
+                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Favorite Format</p><p class="text-gray-800 dark:text-white">${profileUserData.favoriteFormat}</p></div>`;
+                }
+                if (profileUserData.petCard) {
+                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Pet Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.petCard)}" class="text-blue-600 hover:underline">${profileUserData.petCard}</a></div>`;
+                }
+                if (profileUserData.nemesisCard) {
+                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Nemesis Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.nemesisCard)}" class="text-red-500 hover:underline">${profileUserData.nemesisCard}</a></div>`;
+                }
+                personalityHTML += '</div>';
+            }
+
             profileContainer.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
                         <img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner'}" alt="Profile banner">
-                        
                         <div class="absolute top-4 right-4">
                             ${isOwnProfile ? `<a href="settings.html" class="px-4 py-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 text-sm font-semibold">Edit Profile</a>` : ''}
                         </div>
-                        
                         <div class="absolute bottom-0 left-6 transform translate-y-1/2 flex items-center space-x-4">
                             <img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar">
                         </div>
@@ -173,6 +167,7 @@ document.addEventListener('authReady', (e) => {
                             <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
+                            ${personalityHTML}
                             <div id="mutual-connections-section" class="mt-4 text-sm text-gray-500 dark:text-gray-400"></div>
                             <div id="featured-items-section" class="mt-6"></div>
                             <div id="profile-badges-container" class="mt-4">
@@ -186,7 +181,7 @@ document.addEventListener('authReady', (e) => {
                 <div class="mt-6">
                     <div class="border-b border-gray-200 dark:border-gray-700">
                         <nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs">
-                             <button data-tab="feed" class="profile-tab-button active">Feed</button>
+                            <button data-tab="feed" class="profile-tab-button active">Feed</button>
                             <button data-tab="decks" class="profile-tab-button">Decks</button>
                             <button data-tab="trade-binder" class="profile-tab-button">Trade Binder</button>
                             <button data-tab="collection" class="profile-tab-button">Collection</button>
@@ -209,7 +204,6 @@ document.addEventListener('authReady', (e) => {
                 </div>
             `;
             
-            // Add event listeners to the newly created buttons
             document.getElementById('start-trade-btn')?.addEventListener('click', (e) => { window.location.href = `trades.html?with=${e.currentTarget.dataset.uid}`; });
             document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
             const addFriendBtn = document.getElementById('add-friend-btn');
@@ -228,7 +222,6 @@ document.addEventListener('authReady', (e) => {
                 });
             }
 
-            // Set up tab switching
             document.querySelectorAll('.profile-tab-button').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
@@ -239,13 +232,11 @@ document.addEventListener('authReady', (e) => {
                 });
             });
 
-            // Handle hash links for tabs
             if(window.location.hash) {
                 const targetTab = document.querySelector(`.profile-tab-button[data-tab="${window.location.hash.substring(1)}"]`);
                 if(targetTab) targetTab.click();
             }
 
-            // Asynchronously load all the dynamic content for the profile
             if (currentUser && !isOwnProfile) {
                 loadMutualConnections(profileUserId, profileUserData);
             }
@@ -270,8 +261,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // ... (The rest of the profile.js functions remain the same) ...
-
     const evaluateAndAwardBadges = async (userId, userData) => {
         const userBadgesRef = db.collection('users').doc(userId).collection('badges');
         const existingBadgesSnapshot = await userBadgesRef.get();
@@ -702,7 +691,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // Event delegation for actions on the profile page
     document.body.addEventListener('click', async (event) => {
         const acceptButton = event.target.closest('.accept-friend-btn');
         const rejectButton = event.target.closest('.reject-friend-btn');
@@ -745,7 +733,7 @@ document.addEventListener('authReady', (e) => {
             const deckId = pinDeckBtn.dataset.deckId;
             await db.collection('users').doc(currentUser.uid).update({ featuredDeck: deckId });
             alert('Deck pinned to your profile!');
-            setupProfilePage(); // Reload profile to show changes
+            setupProfilePage();
         }
 
         if (pinCardBtn) {
@@ -756,9 +744,9 @@ document.addEventListener('authReady', (e) => {
                 let featured = userDoc.data().featuredCards || [];
                 if (!featured.includes(cardId)) {
                     featured.push(cardId);
-                    if (featured.length > 4) featured.shift(); // Keep only the last 4
+                    if (featured.length > 4) featured.shift();
                 } else {
-                    featured = featured.filter(id => id !== cardId); // Unpin if already pinned
+                    featured = featured.filter(id => id !== cardId);
                 }
                 transaction.update(userRef, { featuredCards: featured });
             });
@@ -767,6 +755,5 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // Initial call to start loading the page content
     setupProfilePage();
 });
