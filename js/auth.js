@@ -1,6 +1,7 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v20 - Mobile Header)
+ * HatakeSocial - Core Authentication & UI Script (v21 - Friend Request Handshake)
  *
+ * - **NEW**: Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
  * - Adds logic to toggle the mobile navigation menu.
  * - Replaces alert() with inline error messages for a better UX.
  * - Adds a "Scroll to Top" button for easier navigation.
@@ -30,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.HatakeSocial = {
         conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
         currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
-        currentUserData: null, // To store logged-in user's data
+        currentUserData: null,
         convertAndFormatPrice(amount, fromCurrency = 'SEK') {
             const toCurrency = this.currentCurrency;
             if (amount === undefined || amount === null || isNaN(amount)) {
@@ -216,6 +217,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // **NEW**: Listener for sent friend requests
+    let friendRequestHandshakeListener = null;
+    function listenForAcceptedRequests(user) {
+        if (friendRequestHandshakeListener) {
+            friendRequestHandshakeListener();
+        }
+
+        const sentRequestsRef = db.collection('friendRequests')
+            .where('senderId', '==', user.uid)
+            .where('status', '==', 'accepted');
+
+        friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
+            if (snapshot.empty) {
+                return;
+            }
+
+            const batch = db.batch();
+            const currentUserRef = db.collection('users').doc(user.uid);
+
+            for (const doc of snapshot.docs) {
+                const request = doc.data();
+                const newFriendId = request.receiverId;
+
+                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(newFriendId) });
+                batch.delete(doc.ref);
+                
+                const notificationData = {
+                    message: `You are now friends with ${request.receiverName || 'a new user'}.`,
+                    link: `/profile.html?uid=${newFriendId}`,
+                    isRead: false,
+                    timestamp: new Date()
+                };
+                const notificationRef = db.collection('users').doc(user.uid).collection('notifications').doc();
+                batch.set(notificationRef, notificationData);
+            }
+
+            try {
+                await batch.commit();
+                console.log('Friend handshake complete for', snapshot.size, 'requests.');
+            } catch (error) {
+                console.error("Error completing friend handshake:", error);
+            }
+        }, error => {
+            console.error("Error listening for accepted friend requests:", error);
+        });
+    }
+
     auth.onAuthStateChanged(async (user) => {
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
@@ -230,12 +278,15 @@ document.addEventListener('DOMContentLoaded', () => {
             loginButton?.classList.add('hidden');
             registerButton?.classList.add('hidden');
             userAvatar?.classList.remove('hidden');
+            
+            // **NEW**: Start listening for accepted requests
+            listenForAcceptedRequests(user);
 
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    window.HatakeSocial.currentUserData = userData; // Store user data globally
+                    window.HatakeSocial.currentUserData = userData;
                     const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
                     const name = userData.displayName || 'User';
                     const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
@@ -266,6 +317,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             window.HatakeSocial.currentUserData = null;
+            // **NEW**: Stop listening if user logs out
+            if (friendRequestHandshakeListener) {
+                friendRequestHandshakeListener();
+            }
             loginButton?.classList.remove('hidden');
             registerButton?.classList.remove('hidden');
             userAvatar?.classList.add('hidden');
