@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Deck Page Script (v19 - Public Decks Collection)
+ * HatakeSocial - Deck Page Script (v20 - Deck Primers)
  *
+ * - NEW: Adds a "Deck Primer / Guide" textarea to the deck builder.
+ * - NEW: Saves the primer content to Firestore along with the rest of the deck data.
+ * - NEW: Displays the formatted primer on the deck view page.
  * - FIX: Resolves "Missing or insufficient permissions" error by creating and querying a
  * dedicated `publicDecks` collection instead of using a collectionGroup query.
- * - Adds a "Make Public" checkbox to the deck builder.
- * - Updates save logic to write to two locations if a deck is public.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -34,6 +35,7 @@ document.addEventListener('authReady', (e) => {
     const deckNameInput = document.getElementById('deck-name-input');
     const deckBioInput = document.getElementById('deck-bio-input');
     const decklistInput = document.getElementById('decklist-input');
+    const deckPrimerInput = document.getElementById('deck-primer-input'); // NEW
     const shareDeckBtn = document.getElementById('share-deck-to-feed-btn');
     const collectionSearchInput = document.getElementById('deck-builder-collection-search');
     const collectionListContainer = document.getElementById('deck-builder-collection-list');
@@ -202,6 +204,7 @@ document.addEventListener('authReady', (e) => {
             name: deckNameInput.value,
             name_lower: deckNameInput.value.toLowerCase(),
             bio: deckBioInput.value,
+            primer: deckPrimerInput.value.trim(), // NEW: Save the primer content
             tcg: deckTcgSelect.value,
             format: deckFormatSelect.value,
             authorId: user.uid,
@@ -350,6 +353,16 @@ document.addEventListener('authReady', (e) => {
         } else {
             bioEl.classList.add('hidden');
         }
+
+        // NEW: Display the primer
+        const primerSection = document.getElementById('deck-primer-display-section');
+        const primerContent = document.getElementById('deck-view-primer');
+        if (deck.primer && deck.primer.trim() !== '') {
+            primerContent.textContent = deck.primer;
+            primerSection.classList.remove('hidden');
+        } else {
+            primerSection.classList.add('hidden');
+        }
         
         const listEl = document.getElementById('deck-view-list');
         const featuredCardImg = document.getElementById('deck-view-featured-card');
@@ -494,6 +507,7 @@ document.addEventListener('authReady', (e) => {
 
         deckNameInput.value = deck.name;
         deckBioInput.value = deck.bio || '';
+        deckPrimerInput.value = deck.primer || ''; // NEW: Load primer content
         deckTcgSelect.value = deck.tcg;
         deckPublicCheckbox.checked = deck.isPublic !== false; // Default to checked if undefined
         
