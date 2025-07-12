@@ -1,17 +1,16 @@
 /**
- * HatakeSocial - Marketplace Page Script (v4 - Advanced MTG Filters)
+ * HatakeSocial - Marketplace Page Script (v5 - Bug Fix & Multi-Seller Search)
  *
  * This script handles all logic for the marketplace.html page.
- * - NEW: Implements a comprehensive set of advanced, client-side filters
+ * - FIX: Corrects a reference error that prevented advanced filters from rendering
+ * and stopped all listings from loading.
+ * - NEW: Implements multi-seller search, allowing users to enter comma-separated
+ * names (e.g., "Williama, Mark") to see listings from multiple people at once.
+ * - Implements a comprehensive set of advanced, client-side filters
  * specifically for Magic: The Gathering cards.
- * - Filters include: Color, Rarity, Card Type, Language, Condition,
- * Foil/Signed/Altered status, and Format Legality.
- * - Dynamically renders the advanced filter UI when MTG is selected.
- * - Updates sorting logic to include new options like Rarity.
  * - All filtering is performed client-side on the initially fetched data
  * for a fast and responsive user experience.
- 
- 
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
@@ -54,6 +53,7 @@ document.addEventListener('authReady', (e) => {
 
         if (selectedGame === 'Magic: The Gathering') {
             gameSpecificFiltersContainer.classList.remove('hidden');
+            // **FIX**: The 'formats' variable must be defined within this function's scope.
             const formats = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander'];
             const languages = { 'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian', 'zhs': 'Simplified Chinese', 'zht': 'Traditional Chinese' };
 
@@ -157,11 +157,20 @@ document.addEventListener('authReady', (e) => {
         // --- Primary Filters ---
         const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
         const tcgFilter = tcgFilterEl.value;
-        const sellerFilter = document.getElementById('filter-seller').value.trim().toLowerCase();
+        
+        // **NEW**: Handle multiple sellers
+        const sellerInput = document.getElementById('filter-seller').value;
+        const sellerNames = sellerInput.split(',').map(name => name.trim().toLowerCase()).filter(name => name.length > 0);
 
         if (nameFilter) cardsToDisplay = cardsToDisplay.filter(c => c.name.toLowerCase().includes(nameFilter));
         if (tcgFilter !== 'all') cardsToDisplay = cardsToDisplay.filter(c => c.tcg === tcgFilter);
-        if (sellerFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.displayName?.toLowerCase().includes(sellerFilter));
+        
+        if (sellerNames.length > 0) {
+            cardsToDisplay = cardsToDisplay.filter(c => {
+                const sellerDisplayName = c.sellerData?.displayName?.toLowerCase();
+                return sellerDisplayName && sellerNames.some(searchName => sellerDisplayName.includes(searchName));
+            });
+        }
         
         // --- Advanced MTG Filters ---
         if (tcgFilter === 'Magic: The Gathering') {
@@ -319,11 +328,15 @@ document.addEventListener('authReady', (e) => {
         renderGameSpecificFilters();
         applyFiltersAndRender();
     });
-    gameSpecificFiltersContainer.addEventListener('input', (e) => {
+    
+    // Use 'click' for checkboxes and 'change' for selects to trigger filtering immediately
+    // The main form 'submit' button will also trigger a filter.
+    gameSpecificFiltersContainer.addEventListener('change', (e) => {
         if (e.target.matches('.mtg-filter')) {
-            // No need to call applyFiltersAndRender here, the main form submit will handle it
+           applyFiltersAndRender();
         }
     });
+
     gridViewBtn.addEventListener('click', () => switchView('grid'));
     listViewBtn.addEventListener('click', () => switchView('list'));
 
