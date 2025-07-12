@@ -1,10 +1,8 @@
 /**
- * HatakeSocial - Settings Page Script (v4 - Internationalization)
+ * HatakeSocial - Settings Page Script (v5 - Address & Payouts)
  *
- * This version adds the full UI and logic for managing international settings.
- * NEW: Users can set their City and Country.
- * NEW: Users can select a primary currency for their listings.
- * NEW: Users can define a shipping profile with costs for different regions.
+ * This version adds a full shipping address form and the client-side
+ * logic to begin the Stripe Connect onboarding process for sellers.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -22,7 +20,7 @@ document.addEventListener('authReady', (e) => {
     const sections = document.querySelectorAll('.settings-section');
     const profileForm = document.getElementById('profile-settings-form');
     
-    // Profile Section
+    // Profile & Address Section
     const profilePicPreview = document.getElementById('profile-pic-preview');
     const profilePicUpload = document.getElementById('profile-pic-upload');
     const bannerPicPreview = document.getElementById('banner-pic-preview');
@@ -31,10 +29,15 @@ document.addEventListener('authReady', (e) => {
     let newBannerPicFile = null;
     const displayNameInput = document.getElementById('displayName');
     const handleInput = document.getElementById('handle');
-    const cityInput = document.getElementById('city');
-    const countryInput = document.getElementById('country');
     const bioInput = document.getElementById('bio');
     const favoriteTcgInput = document.getElementById('favoriteTcg');
+    // **NEW** Address Fields
+    const streetInput = document.getElementById('address-street');
+    const cityInput = document.getElementById('address-city');
+    const stateInput = document.getElementById('address-state');
+    const zipInput = document.getElementById('address-zip');
+    const countryInput = document.getElementById('address-country');
+
 
     // Account Section
     const accountEmailEl = document.getElementById('account-email');
@@ -66,6 +69,10 @@ document.addEventListener('authReady', (e) => {
             sections.forEach(section => {
                 section.id === sectionId ? section.classList.remove('hidden') : section.classList.add('hidden');
             });
+            // **NEW** Load Stripe Status when switching to payouts tab
+            if (button.dataset.section === 'payouts') {
+                loadStripeStatus();
+            }
         });
     });
 
@@ -76,14 +83,21 @@ document.addEventListener('authReady', (e) => {
             const data = userDoc.data();
             displayNameInput.value = data.displayName || '';
             handleInput.value = data.handle || '';
-            cityInput.value = data.city || '';
-            countryInput.value = data.country || '';
             bioInput.value = data.bio || '';
             favoriteTcgInput.value = data.favoriteTcg || '';
             profilePicPreview.src = data.photoURL || 'https://placehold.co/96x96';
             bannerPicPreview.src = data.bannerURL || 'https://placehold.co/600x200';
             accountEmailEl.textContent = user.email;
             primaryCurrencySelect.value = data.primaryCurrency || 'SEK';
+
+            // **NEW** Load address data
+            if (data.address) {
+                streetInput.value = data.address.street || '';
+                cityInput.value = data.address.city || '';
+                stateInput.value = data.address.state || '';
+                zipInput.value = data.address.zip || '';
+                countryInput.value = data.address.country || '';
+            }
             
             // Load shipping profile
             if (data.shippingProfile) {
@@ -96,6 +110,73 @@ document.addEventListener('authReady', (e) => {
         }
         loadMfaStatus();
     };
+
+    // **NEW** Stripe Payouts Logic
+    const loadStripeStatus = async () => {
+        const stripeStatusContainer = document.getElementById('stripe-status');
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userData = userDoc.data();
+        const stripeAccountId = userData.stripeAccountId;
+        const detailsSubmitted = userData.stripeDetailsSubmitted;
+
+        if (stripeAccountId && detailsSubmitted) {
+            stripeStatusContainer.className = 'p-4 rounded-md bg-green-100 text-green-800';
+            stripeStatusContainer.innerHTML = `
+                <p class="font-bold"><i class="fas fa-check-circle mr-2"></i>Stripe Account Connected</p>
+                <p>Your account is ready to receive payouts.</p>
+                <button id="stripe-dashboard-btn" class="mt-2 text-sm text-green-900 font-semibold underline">Go to Stripe Dashboard</button>
+            `;
+            document.getElementById('stripe-dashboard-btn').addEventListener('click', redirectToStripeDashboard);
+        } else if (stripeAccountId && !detailsSubmitted) {
+             stripeStatusContainer.className = 'p-4 rounded-md bg-yellow-100 text-yellow-800';
+             stripeStatusContainer.innerHTML = `
+                <p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Finish Stripe Onboarding</p>
+                <p>Your Stripe account is not yet active. Please complete the onboarding process to enable payouts.</p>
+                <button id="stripe-onboarding-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Continue Onboarding</button>
+            `;
+            document.getElementById('stripe-onboarding-btn').addEventListener('click', getStripeOnboardingLink);
+        } else {
+             stripeStatusContainer.className = 'p-4 rounded-md bg-gray-100 text-gray-800';
+             stripeStatusContainer.innerHTML = `
+                <p class="font-bold">Not Connected</p>
+                <p>Connect a Stripe account to start selling and receive payouts.</p>
+                <button id="stripe-onboarding-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Connect with Stripe</button>
+            `;
+            document.getElementById('stripe-onboarding-btn').addEventListener('click', getStripeOnboardingLink);
+        }
+    };
+    
+    // **NEW** Function to call your Firebase Cloud Function
+    const getStripeOnboardingLink = async () => {
+        const button = document.getElementById('stripe-onboarding-btn');
+        button.disabled = true;
+        button.textContent = 'Redirecting...';
+        
+        // This function would call your backend to get an onboarding link from Stripe
+        const createStripeAccountLink = firebase.functions().httpsCallable('createStripeAccountLink');
+        try {
+            const result = await createStripeAccountLink();
+            window.location.href = result.data.url;
+        } catch (error) {
+            console.error("Error getting Stripe onboarding link:", error);
+            alert("Could not connect to Stripe. Please try again later.");
+            button.disabled = false;
+            button.textContent = 'Connect with Stripe';
+        }
+    };
+    
+    // **NEW** Redirect to Stripe Dashboard
+    const redirectToStripeDashboard = async () => {
+        // This function would call your backend to get a dashboard link
+        const createStripeLoginLink = firebase.functions().httpsCallable('createStripeLoginLink');
+        try {
+            const result = await createStripeLoginLink();
+            window.open(result.data.url, '_blank');
+        } catch (error) {
+            alert("Could not open Stripe dashboard.");
+        }
+    };
+
 
     // --- Event Listeners ---
     profilePicUpload.addEventListener('change', (e) => {
@@ -134,11 +215,16 @@ document.addEventListener('authReady', (e) => {
             const updatedData = {
                 displayName: displayNameInput.value,
                 handle: handleInput.value.toLowerCase(),
-                city: cityInput.value,
-                country: countryInput.value,
                 bio: bioInput.value,
                 favoriteTcg: favoriteTcgInput.value,
                 primaryCurrency: primaryCurrencySelect.value,
+                address: { // **NEW** Address object
+                    street: streetInput.value,
+                    city: cityInput.value,
+                    state: stateInput.value,
+                    zip: zipInput.value,
+                    country: countryInput.value
+                },
                 shippingProfile: {
                     domestic: parseFloat(shippingDomesticInput.value) || 0,
                     europe: parseFloat(shippingEuropeInput.value) || 0,
@@ -166,7 +252,7 @@ document.addEventListener('authReady', (e) => {
                 await user.updateProfile({ displayName: updatedData.displayName });
             }
 
-            await db.collection('users').doc(user.uid).update(updatedData);
+            await db.collection('users').doc(user.uid).set(updatedData, { merge: true });
 
             alert("Settings saved successfully!");
             newProfilePicFile = null;
@@ -177,7 +263,7 @@ document.addEventListener('authReady', (e) => {
             alert("Could not save settings. " + error.message);
         } finally {
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Save Profile';
+            saveBtn.textContent = 'Save Profile & Address';
         }
     });
 
