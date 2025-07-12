@@ -1,14 +1,26 @@
 /**
- * HatakeSocial - Profile Page Script (v22 - Player Personality Display)
+ * HatakeSocial - Profile Page Script (v23 - Merged)
  *
- * - NEW: Displays the new player personality fields (Playstyle, Format, Pet/Nemesis Cards) on the profile.
- * - Makes the Pet and Nemesis card names clickable links to their card view pages.
- * - FIX: Corrects the profile header layout to ensure the banner image is behind the avatar and action buttons.
+ * - Displays player personality fields (Playstyle, Format, Pet/Nemesis Cards).
+ * - Adds a "Trade History" tab with a visual map of completed trades ("Trade Routes").
+ * - Fetches completed trades and uses Leaflet.js to display the map.
+ * - Includes a hardcoded list of city coordinates for client-side geocoding.
+ * - Enhances the user reputation display to include the total number of completed trades.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
+
+    // --- Geocoding Data (Client-Side) ---
+    // A simplified list for demonstration. A real application might use a more extensive list or a geocoding service.
+    const cityCoordinates = {
+        "stockholm": [59.3293, 18.0686], "gothenburg": [57.7089, 11.9746], "malmö": [55.6050, 13.0038],
+        "oslo": [59.9139, 10.7522], "copenhagen": [55.6761, 12.5683], "helsinki": [60.1699, 24.9384],
+        "london": [51.5074, -0.1278], "paris": [48.8566, 2.3522], "berlin": [52.5200, 13.4050],
+        "new york": [40.7128, -74.0060], "los angeles": [34.0522, -118.2437], "chicago": [41.8781, -87.6298],
+        "tokyo": [35.6895, 139.6917], "sydney": [-33.8688, 151.2093]
+    };
 
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
@@ -99,6 +111,7 @@ document.addEventListener('authReady', (e) => {
             }
 
             const ratingCount = profileUserData.ratingCount || 0;
+            const completedTrades = profileUserData.completedTrades || 0;
             const avgAccuracy = profileUserData.averageAccuracy || 0;
             const avgPackaging = profileUserData.averagePackaging || 0;
             const overallAvg = ratingCount > 0 ? (avgAccuracy + avgPackaging) / 2 : 0;
@@ -112,7 +125,9 @@ document.addEventListener('authReady', (e) => {
                 <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mt-1"> 
                     <span class="flex">${starsHTML}</span> 
                     <span class="font-semibold">${overallAvg.toFixed(1)}</span> 
-                    <span>(${ratingCount} ratings)</span> 
+                    <span>(${ratingCount} ratings)</span>
+                    <span class="font-bold text-gray-800 dark:text-white">|</span>
+                    <span title="Completed Trades"><i class="fas fa-handshake text-green-500"></i> ${completedTrades}</span>
                 </div>
                 <div class="text-xs space-x-3 mt-1">
                     <span>Accuracy: <strong class="dark:text-gray-200">${avgAccuracy.toFixed(1)}</strong></span>
@@ -229,6 +244,7 @@ document.addEventListener('authReady', (e) => {
                     document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
                     document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
                     if(tab.dataset.tab === 'friends') loadProfileFriends(profileUserId);
+                    if(tab.dataset.tab === 'trade-history') loadTradeHistoryAndMap(profileUserId);
                 });
             });
 
@@ -246,9 +262,9 @@ document.addEventListener('authReady', (e) => {
             loadProfileCollection(profileUserId, 'collection', isOwnProfile);
             loadProfileCollection(profileUserId, 'wishlist');
             loadTradeBinder(profileUserId, profileUserData);
-            loadProfileTradeHistory(profileUserId);
             loadProfileFeedback(profileUserId);
             if (window.location.hash === '#friends') loadProfileFriends(profileUserId);
+            if (window.location.hash === '#trade-history') loadTradeHistoryAndMap(profileUserId);
             
             if (isOwnProfile) {
                 await evaluateAndAwardBadges(profileUserId, profileUserData);
@@ -532,42 +548,84 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const loadProfileTradeHistory = async (userId) => {
+    const loadTradeHistoryAndMap = async (userId) => {
         const container = document.getElementById('tab-content-trade-history');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading trade history...</p>';
+        if (!container) return;
+
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">Loading Trade Routes...</p>';
 
         try {
-            const snapshot = await db.collection('trades')
+            const tradesSnapshot = await db.collection('trades')
                 .where('participants', 'array-contains', userId)
-                .orderBy('createdAt', 'desc')
-                .limit(20)
+                .where('status', '==', 'completed')
                 .get();
 
-            if (snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no trade history.</p>';
+            const tradeCount = tradesSnapshot.size;
+            
+            const tradeCountSpan = document.querySelector('span[title="Completed Trades"]');
+            if (tradeCountSpan) tradeCountSpan.innerHTML = `<i class="fas fa-handshake text-green-500"></i> ${tradeCount}`;
+
+            if (tradesSnapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no completed trades.</p>';
                 return;
             }
 
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const trade = doc.data();
-                const isProposer = trade.proposerId === userId;
-                const otherPartyName = isProposer ? trade.receiverName : trade.proposerName;
-                const otherPartyId = isProposer ? trade.receiverId : trade.proposerId;
-                const statusClasses = { pending: 'bg-yellow-100 text-yellow-800', accepted: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-800', };
-                const statusClass = statusClasses[trade.status] || 'bg-gray-100';
-                const tradeCard = `<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"><div class="flex justify-between items-center mb-2"><p class="font-semibold dark:text-white">Trade with <a href="profile.html?uid=${otherPartyId}" class="text-blue-600 hover:underline">${otherPartyName}</a></p><span class="px-3 py-1 text-sm font-semibold rounded-full ${statusClass}">${trade.status}</span></div><p class="text-xs text-gray-400 text-left">${new Date(trade.createdAt.toDate()).toLocaleDateString()}</p></div>`;
-                container.innerHTML += tradeCard;
+            container.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold mb-2 dark:text-white">Trade Routes (${tradeCount} Completed)</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Visualizing all successful trades across the globe.</p>
+                    <div id="trade-map" style="height: 450px; border-radius: 0.5rem; background-color: #374151;"></div>
+                </div>
+            `;
+
+            const map = L.map('trade-map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            const userIds = new Set();
+            tradesSnapshot.docs.forEach(doc => {
+                doc.data().participants.forEach(id => userIds.add(id));
             });
 
-        } catch (error) {
-            console.error("Error loading trade history:", error);
-            if (error.code === 'failed-precondition') {
-                const indexLink = generateIndexCreationLink('trades', [{ name: 'participants', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
-                displayIndexError(container, indexLink);
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load trade history.</p>`;
-            }
+            const userPromises = Array.from(userIds).map(id => db.collection('users').doc(id).get());
+            const userDocs = await Promise.all(userPromises);
+            const usersData = new Map(userDocs.map(doc => [doc.id, doc.data()]));
+
+            const locations = new Map();
+            const tradeRoutes = [];
+
+            tradesSnapshot.docs.forEach(doc => {
+                const trade = doc.data();
+                const proposer = usersData.get(trade.proposerId);
+                const receiver = usersData.get(trade.receiverId);
+
+                if (proposer?.city && receiver?.city) {
+                    const proposerCity = proposer.city.toLowerCase();
+                    const receiverCity = receiver.city.toLowerCase();
+
+                    if (cityCoordinates[proposerCity] && cityCoordinates[receiverCity]) {
+                        locations.set(proposerCity, { coords: cityCoordinates[proposerCity], name: proposer.city });
+                        locations.set(receiverCity, { coords: cityCoordinates[receiverCity], name: receiver.city });
+                        tradeRoutes.push([cityCoordinates[proposerCity], cityCoordinates[receiverCity]]);
+                    }
+                }
+            });
+
+            locations.forEach((loc, key) => {
+                L.marker(loc.coords).addTo(map)
+                    .bindPopup(`<b>${loc.name}</b>`);
+            });
+
+            tradeRoutes.forEach(route => {
+                L.polyline(route, { color: '#2563eb', weight: 2, opacity: 0.7 }).addTo(map);
+            });
+
+        } catch(error) {
+            console.error("Error loading trade history map:", error);
+            container.innerHTML = '<p class="text-center text-red-500 p-4">Could not load Trade Routes.</p>';
         }
     };
 
