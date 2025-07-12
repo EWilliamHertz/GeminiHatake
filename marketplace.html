@@ -10,6 +10,7 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
 
+   <!-- Header Section -->
    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
        <div class="container mx-auto px-4 flex justify-between items-center">
            <a href="index.html" class="flex items-center">
@@ -67,8 +68,10 @@
             <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Marketplace</h1>
         </div>
 
+        <!-- Search Form -->
         <div id="search-form-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
             <form id="marketplace-search-form" class="space-y-4">
+                <!-- Primary Filters -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="search-card-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Name</label>
@@ -83,7 +86,24 @@
                         </select>
                     </div>
                 </div>
-                 <div id="game-specific-filters-container" class="pt-4 mt-4 border-t dark:border-gray-700 hidden"></div>
+                
+                <!-- Advanced Filters -->
+                <details id="advanced-filters-details">
+                    <summary class="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Advanced Filters</summary>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+                         <div>
+                            <label for="filter-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's Country</label>
+                            <input type="text" id="filter-country" placeholder="e.g., Sweden" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                         <div>
+                            <label for="filter-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's City</label>
+                            <input type="text" id="filter-city" placeholder="e.g., Gothenburg" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                    </div>
+                    <!-- Game Specific Filters will be injected here by JS -->
+                    <div id="game-specific-filters-container" class="pt-4 mt-4 border-t dark:border-gray-700 hidden"></div>
+                </details>
+                
                 <div class="flex justify-end pt-2">
                     <button type="submit" class="px-8 py-2 bg-blue-700 text-white font-bold rounded-full hover:bg-blue-800">Apply Filters</button>
                 </div>
@@ -107,13 +127,17 @@
         </div>
         
         <div id="marketplace-results">
+            <!-- Grid View Container -->
             <div id="marketplace-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+            <!-- List View Container -->
             <div id="marketplace-list-view" class="space-y-3 hidden"></div>
+            <!-- Message Container for errors or no results -->
             <div id="marketplace-message" class="col-span-full text-center p-8"></div>
         </div>
     </main>
     
-        <div id="loginModal" class="modal-overlay">
+    <!-- Modals and Footer -->
+    <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
