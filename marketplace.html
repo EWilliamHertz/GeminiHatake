@@ -69,22 +69,36 @@
 
         <div id="search-form-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
             <form id="marketplace-search-form" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="md:col-span-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                         <label for="search-card-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Name</label>
-                        <input type="text" id="search-card-name" placeholder="e.g., Sol Ring" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-200">
+                        <input type="text" id="search-card-name" placeholder="e.g., Sol Ring" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
                     </div>
                     <div>
                         <label for="filter-tcg" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Game</label>
-                        <select id="filter-tcg" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-200">
+                        <select id="filter-tcg" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
                             <option value="all">All Games</option>
                             <option value="Magic: The Gathering">Magic: The Gathering</option>
                             <option value="Pokémon">Pokémon</option>
-                            <option value="Flesh and Blood">Flesh and Blood</option>
-                            <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
                         </select>
                     </div>
                 </div>
+                
+                <details id="advanced-filters-details">
+                    <summary class="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Advanced Filters</summary>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+                         <div>
+                            <label for="filter-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's Country</label>
+                            <input type="text" id="filter-country" placeholder="e.g., Sweden" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                         <div>
+                            <label for="filter-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's City</label>
+                            <input type="text" id="filter-city" placeholder="e.g., Gothenburg" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                    </div>
+                    <div id="game-specific-filters-container" class="pt-4 mt-4 border-t dark:border-gray-700 hidden"></div>
+                </details>
+                
                 <div class="flex justify-end pt-2">
                     <button type="submit" class="px-8 py-2 bg-blue-700 text-white font-bold rounded-full hover:bg-blue-800">Search</button>
                 </div>
@@ -100,54 +114,118 @@
         </div>
 
         <div id="marketplace-results">
-            <div id="marketplace-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div id="marketplace-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             </div>
              <div id="marketplace-message" class="col-span-full text-center p-8"></div>
         </div>
         <div id="load-more-container" class="text-center mt-8"></div>
     </main>
     
-   <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-       <div class="container mx-auto py-8 px-4">
-           <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-               <div>
-                   <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
-                   <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
-               </div>
-               <div>
-                   <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
-                   <ul class="space-y-2 text-sm">
-                       <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
-                       <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
-                       <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
-                   </ul>
-               </div>
-               <div>
-                   <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-                   <ul class="space-y-2 text-sm">
-                       <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
-                       <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
-                   </ul>
-               </div>
-               <div>
-                   <h3 class="font-bold text-gray-900 dark:text-white mb-4">Theme</h3>
-                   <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
-                       <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
-                       <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
-                   </button>
-               </div>
-           </div>
-           <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-               <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-               <div class="flex space-x-6 mt-4 md:mt-0">
-                   <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
-                   <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
-                   <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
-               </div>
-           </div>
-       </div>
-   </footer>
-
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
+            <button class="close-button" id="closeLoginModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
+                    <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
+                    <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
+                <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
+                </button>
+            </form>
+        </div>
+    </div>
+    <div id="registerModal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
+            <button class="close-button" id="closeRegisterModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Register for HatakeSocial</h2>
+            <form id="registerForm" class="space-y-4">
+                <div>
+                    <label for="registerEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
+                    <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
+                </div>
+                <div>
+                    <label for="registerPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
+                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
+                </div>
+                 <div>
+                    <label for="registerCity" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">City:</label>
+                    <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
+                </div>
+                <div>
+                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
+                    <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
+                </div>
+                <div>
+                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
+                    <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
+            </form>
+        </div>
+    </div>
+    <div id="messenger-widget-container" class="minimized">
+        <div id="messenger-open-btn">
+            <i class="fas fa-comments"></i>
+        </div>
+        <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
+            <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
+                <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
+                <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
+            </div>
+            <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
+                <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+        <div class="container mx-auto py-8 px-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
+                        <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
+                        <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Theme</h3>
+                    <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                        <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
+                        <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                <p>&copy; 2025 Hatake. All Rights Reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
