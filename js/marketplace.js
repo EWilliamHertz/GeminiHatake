@@ -2,6 +2,7 @@ document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
     const marketplaceGrid = document.getElementById('marketplace-grid');
+    const marketplaceListView = document.getElementById('marketplace-list-view');
 
     if (!marketplaceGrid) return;
 
@@ -15,27 +16,26 @@ document.addEventListener('authReady', (e) => {
     const tcgFilterEl = document.getElementById('filter-tcg');
     const gameSpecificFiltersContainer = document.getElementById('game-specific-filters-container');
     const messageContainer = document.getElementById('marketplace-message');
+    const gridViewBtn = document.getElementById('grid-view-btn');
+    const listViewBtn = document.getElementById('list-view-btn');
     
     let allFetchedCards = [];
-    let initialLoad = true;
+    let currentView = localStorage.getItem('marketplaceView') || 'grid';
 
-    // --- Filter Rendering ---
     const renderGameSpecificFilters = () => {
+        // This function remains the same as the previous version
         const selectedGame = tcgFilterEl.value;
         gameSpecificFiltersContainer.innerHTML = '';
+        gameSpecificFiltersContainer.classList.add('hidden');
+
         if (selectedGame === 'Magic: The Gathering') {
             gameSpecificFiltersContainer.classList.remove('hidden');
-            gameSpecificFiltersContainer.innerHTML = `
-                <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white">Magic Filters</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            gameSpecificFiltersContainer.innerHTML = `<h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Magic Filters</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
                         <div id="mtg-color-filters" class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                            ${['W', 'U', 'B', 'R', 'G', 'C'].map(c => `
-                                <label class="flex items-center space-x-1">
-                                    <input type="checkbox" value="${c}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-color-filter">
-                                    <span class="dark:text-gray-200">${c === 'C' ? 'Colorless' : c}</span>
-                                </label>`).join('')}
+                            ${['W', 'U', 'B', 'R', 'G', 'C'].map(c => `<label class="flex items-center space-x-1"><input type="checkbox" value="${c}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-color-filter"><span class="dark:text-gray-200">${c}</span></label>`).join('')}
                         </div>
                     </div>
                     <div>
@@ -44,40 +44,28 @@ document.addEventListener('authReady', (e) => {
                     </div>
                 </div>`;
         } else if (selectedGame === 'Pokémon') {
-            gameSpecificFiltersContainer.classList.remove('hidden');
+             gameSpecificFiltersContainer.classList.remove('hidden');
             const pokemonTypes = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal', 'Fairy', 'Dragon', 'Colorless'];
-            gameSpecificFiltersContainer.innerHTML = `
-                <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white">Pokémon Filters</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Types</label>
-                        <div id="pokemon-type-filters" class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                             ${pokemonTypes.map(t => `
-                                <label class="flex items-center space-x-1">
-                                    <input type="checkbox" value="${t}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 pokemon-type-filter">
-                                    <span class="dark:text-gray-200">${t}</span>
-                                </label>`).join('')}
-                        </div>
+            gameSpecificFiltersContainer.innerHTML = `<h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Pokémon Filters</h4>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Types</label>
+                    <div id="pokemon-type-filters" class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                         ${pokemonTypes.map(t => `<label class="flex items-center space-x-1"><input type="checkbox" value="${t}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 pokemon-type-filter"><span class="dark:text-gray-200">${t}</span></label>`).join('')}
                     </div>
                 </div>`;
-        } else {
-            gameSpecificFiltersContainer.classList.add('hidden');
         }
     };
 
-    // --- Data Fetching and Rendering ---
     const fetchAllListings = async () => {
-        showMessage('<p class="text-gray-500 dark:text-gray-400">Fetching all listings from the marketplace...</p>');
+        showMessage('<p class="text-gray-500 dark:text-gray-400">Fetching all listings...</p>');
         try {
             const query = db.collectionGroup('collection').where('forSale', '==', true);
             const snapshot = await query.get();
-
-            if (snapshot.empty) {
+            const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
+            if (sellerIds.length === 0) {
                 allFetchedCards = [];
                 return;
             }
-
-            const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
             const sellers = new Map(sellerDocs.map(doc => [doc.id, { uid: doc.id, ...doc.data() }]));
@@ -87,7 +75,6 @@ document.addEventListener('authReady', (e) => {
                 sellerData: sellers.get(doc.ref.parent.parent.id) || null,
                 ...doc.data()
             }));
-            
         } catch (error) {
             console.error("Fatal error fetching listings:", error);
             showMessage('<p class="text-red-500">Could not fetch listings. There might be a problem with the database configuration.</p>');
@@ -97,46 +84,27 @@ document.addEventListener('authReady', (e) => {
     const applyFiltersAndRender = () => {
         let cardsToDisplay = [...allFetchedCards];
 
-        // Primary Filters
         const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
-        const tcgFilter = tcgFilterEl.value;
-        const countryFilter = document.getElementById('filter-country').value.trim().toLowerCase();
-        const cityFilter = document.getElementById('filter-city').value.trim().toLowerCase();
-
         if (nameFilter) cardsToDisplay = cardsToDisplay.filter(c => c.name.toLowerCase().includes(nameFilter));
-        if (tcgFilter !== 'all') cardsToDisplay = cardsToDisplay.filter(c => c.tcg === tcgFilter);
-        if (countryFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.country?.toLowerCase().includes(countryFilter));
-        if (cityFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.city?.toLowerCase().includes(cityFilter));
 
-        // Advanced Game-Specific Filters
-        if (tcgFilter === 'Magic: The Gathering') {
-            const selectedColors = Array.from(document.querySelectorAll('.mtg-color-filter:checked')).map(cb => cb.value);
-            const typeFilter = document.getElementById('mtg-type-filter').value.trim().toLowerCase();
-
-            if (selectedColors.length > 0) {
-                cardsToDisplay = cardsToDisplay.filter(c => c.colors && selectedColors.every(color => c.colors.includes(color)));
+        const tcgFilter = tcgFilterEl.value;
+        if (tcgFilter !== 'all') {
+             cardsToDisplay = cardsToDisplay.filter(c => c.tcg === tcgFilter);
+             if (tcgFilter === 'Magic: The Gathering') {
+                const selectedColors = Array.from(document.querySelectorAll('.mtg-color-filter:checked')).map(cb => cb.value);
+                const typeFilter = document.getElementById('mtg-type-filter').value.trim().toLowerCase();
+                if (selectedColors.length > 0) cardsToDisplay = cardsToDisplay.filter(c => c.colors && selectedColors.every(color => c.colors.includes(color)));
+                if (typeFilter) cardsToDisplay = cardsToDisplay.filter(c => c.type_line && c.type_line.toLowerCase().includes(typeFilter));
+            } else if (tcgFilter === 'Pokémon') {
+                const selectedTypes = Array.from(document.querySelectorAll('.pokemon-type-filter:checked')).map(cb => cb.value);
+                if (selectedTypes.length > 0) cardsToDisplay = cardsToDisplay.filter(c => c.types && selectedTypes.every(type => c.types.includes(type)));
             }
-            if (typeFilter) {
-                cardsToDisplay = cardsToDisplay.filter(c => c.type_line && c.type_line.toLowerCase().includes(typeFilter));
-            }
-        } else if (tcgFilter === 'Pokémon') {
-             const selectedTypes = Array.from(document.querySelectorAll('.pokemon-type-filter:checked')).map(cb => cb.value);
-             if (selectedTypes.length > 0) {
-                cardsToDisplay = cardsToDisplay.filter(c => c.types && selectedTypes.every(type => c.types.includes(type)));
-             }
         }
-
-        // Sorting
+        
         const [sortField, sortDirection] = sortByEl.value.split('_');
         cardsToDisplay.sort((a, b) => {
-            let valA, valB;
-            if (sortField === 'salePrice') {
-                valA = a.salePrice || 0;
-                valB = b.salePrice || 0;
-            } else { // addedAt
-                valA = a.addedAt?.seconds || 0;
-                valB = b.addedAt?.seconds || 0;
-            }
+            let valA = a[sortField] || (sortField === 'salePrice' ? 0 : a.addedAt?.seconds || 0);
+            let valB = b[sortField] || (sortField === 'salePrice' ? 0 : b.addedAt?.seconds || 0);
             return sortDirection === 'asc' ? valA - valB : valB - valA;
         });
 
@@ -145,6 +113,7 @@ document.addEventListener('authReady', (e) => {
 
     const renderResults = (cards) => {
         marketplaceGrid.innerHTML = '';
+        marketplaceListView.innerHTML = '';
         messageContainer.innerHTML = '';
 
         if (cards.length === 0) {
@@ -152,45 +121,77 @@ document.addEventListener('authReady', (e) => {
             return;
         }
 
-        cards.forEach(card => {
-            const seller = card.sellerData;
-            if (!seller) return;
+        if (currentView === 'grid') {
+            cards.forEach(card => marketplaceGrid.appendChild(renderGridViewCard(card)));
+        } else {
+            cards.forEach(card => marketplaceListView.appendChild(renderListViewItem(card)));
+        }
+    };
 
-            const priceDisplay = (card.salePrice && card.salePrice > 0)
-                ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK')
-                : 'For Trade';
-            
-            const cardEl = document.createElement('div');
-            cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
-            
-            const tradeButtonDisabled = user.uid === seller.uid;
-            const tradeButtonClasses = tradeButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700';
+    const renderGridViewCard = (card) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
+        const seller = card.sellerData;
+        const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
+        const tradeButtonDisabled = user.uid === seller.uid;
+        cardEl.innerHTML = `
+            <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block h-full flex flex-col">
+                <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                <div class="flex-grow flex flex-col p-1">
+                    <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
+                    <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}">
+                        from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}
+                    </div>
+                </div>
+            </a>`;
+        return cardEl;
+    };
 
-            cardEl.innerHTML = `
-                <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block h-full flex flex-col">
-                    <div class="relative w-full">
-                        <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
-                    </div>
-                    <div class="flex-grow flex flex-col p-1">
-                        <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
-                        <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                             <a href="profile.html?uid=${seller.uid}" class="hover:underline" title="from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}">
-                                 from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}
-                             </a>
-                        </div>
-                    </div>
-                </a>
-                <a href="trades.html?propose_to_card=${card.id}" class="propose-trade-btn mt-2 w-full text-center text-white text-xs font-bold py-1 rounded-full ${tradeButtonClasses}" ${tradeButtonDisabled ? 'disabled' : ''}>
-                    ${tradeButtonDisabled ? 'Your Listing' : 'Propose Trade'}
-                </a>
-            `;
-            marketplaceGrid.appendChild(cardEl);
-        });
+    const renderListViewItem = (card) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center gap-4';
+        const seller = card.sellerData;
+        const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
+        const tradeButtonDisabled = user.uid === seller.uid;
+        itemEl.innerHTML = `
+            <img src="${card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
+            <div class="flex-grow">
+                <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline">${card.name}</a>
+                <p class="text-sm text-gray-500 dark:text-gray-400">${card.setName || ''}</p>
+            </div>
+            <div class="w-1/4 text-sm text-gray-600 dark:text-gray-300">
+                <p class="font-semibold">${seller.displayName}</p>
+                <p>from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</p>
+            </div>
+            <div class="w-1/6 font-semibold text-lg text-blue-600 dark:text-blue-400">${priceDisplay}</div>
+            <a href="trades.html?propose_to_card=${card.id}" class="px-4 py-2 text-white text-sm font-bold rounded-full ${tradeButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}" ${tradeButtonDisabled ? 'disabled' : ''}>
+                ${tradeButtonDisabled ? 'Your Listing' : 'Propose Trade'}
+            </a>
+        `;
+        return itemEl;
+    };
+    
+    const switchView = (view) => {
+        currentView = view;
+        localStorage.setItem('marketplaceView', view);
+        if (view === 'grid') {
+            marketplaceGrid.classList.remove('hidden');
+            marketplaceListView.classList.add('hidden');
+            gridViewBtn.classList.add('active-view');
+            listViewBtn.classList.remove('active-view');
+        } else {
+            marketplaceGrid.classList.add('hidden');
+            marketplaceListView.classList.remove('hidden');
+            gridViewBtn.classList.remove('active-view');
+            listViewBtn.classList.add('active-view');
+        }
+        applyFiltersAndRender();
     };
 
     const showMessage = (html) => {
         marketplaceGrid.innerHTML = '';
+        marketplaceListView.innerHTML = '';
         messageContainer.innerHTML = html;
     };
 
@@ -199,25 +200,25 @@ document.addEventListener('authReady', (e) => {
         e.preventDefault();
         applyFiltersAndRender();
     });
-    
     sortByEl.addEventListener('change', applyFiltersAndRender);
     tcgFilterEl.addEventListener('change', () => {
         renderGameSpecificFilters();
-        if (!initialLoad) applyFiltersAndRender();
+        applyFiltersAndRender();
     });
-    
-    // Use event delegation for dynamic filters
     gameSpecificFiltersContainer.addEventListener('change', (e) => {
-        if (e.target.matches('.mtg-color-filter, #mtg-type-filter, .pokemon-type-filter')) {
+        if (e.target.matches('input')) {
             applyFiltersAndRender();
         }
     });
+    gridViewBtn.addEventListener('click', () => switchView('grid'));
+    listViewBtn.addEventListener('click', () => switchView('list'));
 
     // --- Initial Load ---
     const initializeMarketplace = async () => {
+        switchView(currentView); // Set initial view state from localStorage
+        renderGameSpecificFilters();
         await fetchAllListings();
         applyFiltersAndRender();
-        initialLoad = false;
     };
 
     initializeMarketplace();
