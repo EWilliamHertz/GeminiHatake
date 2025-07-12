@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v12 - Merged & Final)
+ * HatakeSocial - Advanced Trades Page Script (v13 - Shipping Info & Full Logic)
  *
  * This script implements a comprehensive and secure trading system.
- * - FIX: Handles URL parameters to pre-fill a trade from the marketplace or a profile page.
- * - FIX: Implements a "Counter Offer" button that pre-populates the trade modal.
- * - All original functionalities (auto-balance, feedback, disputes, etc.) are preserved.
+ * - Displays shipping addresses for both parties once a trade is accepted.
+ * - Handles URL parameters to pre-fill a trade from the marketplace or a profile page.
+ * - Implements a "Counter Offer" button that pre-populates the trade modal.
+ * - Includes features for feedback, disputes, and auto-balancing offers.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -47,7 +48,6 @@ document.addEventListener('authReady', (e) => {
     const autoBalanceForm = document.getElementById('auto-balance-form');
     const balanceTargetSideInput = document.getElementById('balance-target-side');
 
-
     // Feedback Modal Elements
     const feedbackForm = document.getElementById('feedback-form');
     const closeFeedbackModalBtn = document.getElementById('close-feedback-modal');
@@ -56,7 +56,6 @@ document.addEventListener('authReady', (e) => {
     // Dispute Modal Elements
     const disputeForm = document.getElementById('dispute-form');
     const closeDisputeModalBtn = document.getElementById('close-dispute-modal');
-
 
     // --- State Variables ---
     let myCollectionForTrade = [];
@@ -68,9 +67,9 @@ document.addEventListener('authReady', (e) => {
         receiverMoney: 0,
         receiver: null
     };
-    const USD_TO_SEK_RATE = 10.5;
+    const USD_TO_SEK_RATE = 10.5; // Example rate
 
-    // --- Helper to generate a Firestore index creation link ---
+    // --- Helper Functions ---
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -106,11 +105,11 @@ document.addEventListener('authReady', (e) => {
         });
     });
 
-    // --- Main Loading Function ---
+    // --- Main Loading Functions ---
     const loadAllTrades = () => {
         const tradesRef = db.collection('trades').where('participants', 'array-contains', user.uid).orderBy('createdAt', 'desc');
 
-        tradesRef.onSnapshot(snapshot => {
+        tradesRef.onSnapshot(async (snapshot) => {
             incomingContainer.innerHTML = '';
             outgoingContainer.innerHTML = '';
             historyContainer.innerHTML = '';
@@ -125,9 +124,9 @@ document.addEventListener('authReady', (e) => {
 
             let hasIncoming = false, hasOutgoing = false, hasHistory = false;
 
-            snapshot.forEach(doc => {
+            for (const doc of snapshot.docs) {
                 const trade = doc.data();
-                const tradeCard = createTradeCard(trade, doc.id);
+                const tradeCard = await createTradeCard(trade, doc.id);
 
                 if (['pending', 'accepted', 'shipped', 'disputed'].includes(trade.status) && trade.receiverId === user.uid) {
                     incomingContainer.appendChild(tradeCard);
@@ -139,7 +138,7 @@ document.addEventListener('authReady', (e) => {
                     historyContainer.appendChild(tradeCard);
                     hasHistory = true;
                 }
-            });
+            }
 
             if (!hasIncoming) incomingContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No active incoming offers.</p>';
             if (!hasOutgoing) outgoingContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No active outgoing offers.</p>';
@@ -158,7 +157,7 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    const createTradeCard = (trade, tradeId) => {
+    const createTradeCard = async (trade, tradeId) => {
         const tradeCard = document.createElement('div');
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
         const isProposer = trade.proposerId === user.uid;
@@ -179,8 +178,41 @@ document.addEventListener('authReady', (e) => {
 
         let actionButtons = '';
         let tradeStatusSection = '';
+        let shippingInfoHTML = '';
 
-        // Determine which buttons and status info to show based on the trade state
+        if (['accepted', 'shipped', 'completed'].includes(trade.status)) {
+            try {
+                const proposerDoc = await db.collection('users').doc(trade.proposerId).get();
+                const receiverDoc = await db.collection('users').doc(trade.receiverId).get();
+                if (proposerDoc.exists && receiverDoc.exists) {
+                    const proposerData = proposerDoc.data();
+                    const receiverData = receiverDoc.data();
+
+                    const yourAddress = isProposer ? `${proposerData.displayName}<br>${proposerData.city}, ${proposerData.country}` : `${receiverData.displayName}<br>${receiverData.city}, ${receiverData.country}`;
+                    const theirAddress = isProposer ? `${receiverData.displayName}<br>${receiverData.city}, ${receiverData.country}` : `${proposerData.displayName}<br>${proposerData.city}, ${proposerData.country}`;
+
+                    shippingInfoHTML = `
+                        <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
+                            <h4 class="font-bold text-lg mb-2 dark:text-white">Shipping Information</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p class="font-semibold text-gray-700 dark:text-gray-300">Ship Your Items To:</p>
+                                    <address class="not-italic dark:text-gray-400">${theirAddress}</address>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-700 dark:text-gray-300">They Will Ship To:</p>
+                                    <address class="not-italic dark:text-gray-400">${yourAddress}</address>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error("Error fetching user addresses for trade card:", err);
+                shippingInfoHTML = '<p class="text-xs text-red-500">Could not load shipping addresses.</p>';
+            }
+        }
+
         switch(trade.status) {
             case 'pending':
                 if (!isProposer) {
@@ -216,7 +248,6 @@ document.addEventListener('authReady', (e) => {
                 break;
         }
 
-        // Add a "Report Problem" button for any active trade
         if (['accepted', 'shipped', 'disputed'].includes(trade.status)) {
             actionButtons += `<button data-id="${tradeId}" class="report-problem-btn text-xs text-gray-500 hover:text-red-500 ml-2">Report Problem</button>`;
         }
@@ -241,6 +272,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="space-y-2">${theirItemsHtml}</div>
                 </div>
             </div>
+            ${shippingInfoHTML}
             ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
             ${tradeStatusSection}
             <div class="mt-4 text-right space-x-2">${actionButtons}</div>
@@ -583,7 +615,62 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- Event Listeners Setup ---
+    const openFeedbackModal = async (tradeId) => {
+        const tradeDoc = await db.collection('trades').doc(tradeId).get();
+        const trade = tradeDoc.data();
+        const isProposer = trade.proposerId === user.uid;
+        const otherUserId = isProposer ? trade.receiverId : trade.proposerId;
+        const otherUserName = isProposer ? trade.receiverName : trade.proposerName;
+        
+        document.getElementById('feedback-trade-id').value = tradeId;
+        document.getElementById('feedback-for-user-id').value = otherUserId;
+        document.getElementById('feedback-for-user-name').textContent = otherUserName;
+        
+        feedbackForm.reset();
+        starRatingContainers.forEach(container => {
+            container.querySelectorAll('.star-icon').forEach(s => {
+                s.classList.remove('fas', 'text-yellow-400');
+                s.classList.add('far', 'text-gray-300');
+            });
+            container.nextElementSibling.value = 0;
+        });
+        openModal(feedbackModal);
+    };
+
+    const openDisputeModal = (tradeId) => {
+        document.getElementById('dispute-trade-id').value = tradeId;
+        disputeForm.reset();
+        openModal(disputeModal);
+    };
+
+    const checkForUrlParams = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const cardToProposeId = params.get('propose_to_card');
+        const userToTradeWith = params.get('with');
+
+        if (cardToProposeId) {
+            const cardQuery = await db.collectionGroup('collection').where(firebase.firestore.FieldPath.documentId(), '==', cardToProposeId).limit(1).get();
+            if (!cardQuery.empty) {
+                const cardDoc = cardQuery.docs[0];
+                const cardData = { id: cardDoc.id, ...cardDoc.data() };
+                const sellerId = cardDoc.ref.parent.parent.id;
+                
+                const userDoc = await db.collection('users').doc(sellerId).get();
+                if (userDoc.exists) {
+                    const partnerData = { id: userDoc.id, ...userDoc.data() };
+                    openProposeTradeModal({ initialCard: cardData, initialPartner: partnerData });
+                }
+            }
+        } else if (userToTradeWith) {
+             const userDoc = await db.collection('users').doc(userToTradeWith).get();
+             if (userDoc.exists) {
+                const partnerData = { id: userDoc.id, ...userDoc.data() };
+                openProposeTradeModal({ initialPartner: partnerData });
+             }
+        }
+    };
+
+    // --- EVENT LISTENERS ---
     proposeNewTradeBtn?.addEventListener('click', () => openProposeTradeModal());
     closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
     sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
@@ -675,60 +762,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
     
-    const openFeedbackModal = async (tradeId) => {
-        const tradeDoc = await db.collection('trades').doc(tradeId).get();
-        const trade = tradeDoc.data();
-        const isProposer = trade.proposerId === user.uid;
-        const otherUserId = isProposer ? trade.receiverId : trade.proposerId;
-        const otherUserName = isProposer ? trade.receiverName : trade.proposerName;
-        
-        document.getElementById('feedback-trade-id').value = tradeId;
-        document.getElementById('feedback-for-user-id').value = otherUserId;
-        document.getElementById('feedback-for-user-name').textContent = otherUserName;
-        
-        feedbackForm.reset();
-        starRatingContainers.forEach(container => {
-            container.querySelectorAll('.star-icon').forEach(s => {
-                s.classList.remove('fas', 'text-yellow-400');
-                s.classList.add('far', 'text-gray-300');
-            });
-            container.nextElementSibling.value = 0;
-        });
-        openModal(feedbackModal);
-    };
-
-    starRatingContainers.forEach(container => {
-        container.addEventListener('mouseover', e => {
-            if (e.target.classList.contains('star-icon')) {
-                const hoverValue = parseInt(e.target.dataset.value, 10);
-                container.querySelectorAll('.star-icon').forEach(star => {
-                    const starValue = parseInt(star.dataset.value, 10);
-                    star.classList.toggle('fas', starValue <= hoverValue);
-                    star.classList.toggle('far', starValue > hoverValue);
-                    star.classList.toggle('text-yellow-400', starValue <= hoverValue);
-                    star.classList.toggle('text-gray-300', starValue > hoverValue);
-                });
-            }
-        });
-
-        container.addEventListener('mouseout', () => {
-            const selectedRating = parseInt(container.nextElementSibling.value, 10);
-            container.querySelectorAll('.star-icon').forEach(star => {
-                const starValue = parseInt(star.dataset.value, 10);
-                 star.classList.toggle('fas', starValue <= selectedRating);
-                 star.classList.toggle('far', starValue > selectedRating);
-                 star.classList.toggle('text-yellow-400', starValue <= selectedRating);
-                 star.classList.toggle('text-gray-300', starValue > selectedRating);
-            });
-        });
-
-        container.addEventListener('click', e => {
-            if (e.target.classList.contains('star-icon')) {
-                container.nextElementSibling.value = e.target.dataset.value;
-            }
-        });
-    });
-
     closeFeedbackModalBtn?.addEventListener('click', () => closeModal(feedbackModal));
 
     feedbackForm?.addEventListener('submit', async (e) => {
@@ -796,12 +829,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    const openDisputeModal = (tradeId) => {
-        document.getElementById('dispute-trade-id').value = tradeId;
-        disputeForm.reset();
-        openModal(disputeModal);
-    };
-
     closeDisputeModalBtn?.addEventListener('click', () => closeModal(disputeModal));
 
     disputeForm?.addEventListener('submit', async (e) => {
@@ -831,34 +858,39 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    const checkForUrlParams = async () => {
-        const params = new URLSearchParams(window.location.search);
-        const cardToProposeId = params.get('propose_to_card');
-        const userToTradeWith = params.get('with');
-
-        if (cardToProposeId) {
-            const cardQuery = await db.collectionGroup('collection').where(firebase.firestore.FieldPath.documentId(), '==', cardToProposeId).limit(1).get();
-            if (!cardQuery.empty) {
-                const cardDoc = cardQuery.docs[0];
-                const cardData = { id: cardDoc.id, ...cardDoc.data() };
-                const sellerId = cardDoc.ref.parent.parent.id;
-                
-                const userDoc = await db.collection('users').doc(sellerId).get();
-                if (userDoc.exists) {
-                    const partnerData = { id: userDoc.id, ...userDoc.data() };
-                    openProposeTradeModal({ initialCard: cardData, initialPartner: partnerData });
-                }
+    starRatingContainers.forEach(container => {
+        container.addEventListener('mouseover', e => {
+            if (e.target.classList.contains('star-icon')) {
+                const hoverValue = parseInt(e.target.dataset.value, 10);
+                container.querySelectorAll('.star-icon').forEach(star => {
+                    const starValue = parseInt(star.dataset.value, 10);
+                    star.classList.toggle('fas', starValue <= hoverValue);
+                    star.classList.toggle('far', starValue > hoverValue);
+                    star.classList.toggle('text-yellow-400', starValue <= hoverValue);
+                    star.classList.toggle('text-gray-300', starValue > hoverValue);
+                });
             }
-        } else if (userToTradeWith) {
-             const userDoc = await db.collection('users').doc(userToTradeWith).get();
-             if (userDoc.exists) {
-                const partnerData = { id: userDoc.id, ...userDoc.data() };
-                openProposeTradeModal({ initialPartner: partnerData });
-             }
-        }
-    };
-    
-    // --- Initial Load ---
+        });
+
+        container.addEventListener('mouseout', () => {
+            const selectedRating = parseInt(container.nextElementSibling.value, 10);
+            container.querySelectorAll('.star-icon').forEach(star => {
+                const starValue = parseInt(star.dataset.value, 10);
+                 star.classList.toggle('fas', starValue <= selectedRating);
+                 star.classList.toggle('far', starValue > selectedRating);
+                 star.classList.toggle('text-yellow-400', starValue <= selectedRating);
+                 star.classList.toggle('text-gray-300', starValue > selectedRating);
+            });
+        });
+
+        container.addEventListener('click', e => {
+            if (e.target.classList.contains('star-icon')) {
+                container.nextElementSibling.value = e.target.dataset.value;
+            }
+        });
+    });
+
+    // --- INITIAL LOAD ---
     loadAllTrades();
     checkForUrlParams();
 });
