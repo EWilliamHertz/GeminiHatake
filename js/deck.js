@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Deck Page Script (v17 - Advanced Import)
+ * HatakeSocial - Deck Page Script (v18 - Scryfall-Powered Suggestions)
  *
- * This version adds a robust deck import feature.
- * - Adds an "Import Deck List" button and modal.
- * - Parses decklists from pasted text or uploaded files (.txt, .csv, .dek).
- * - Handles various formats like "4 Card Name" and "1x Card Name".
+ * This version adds an AI-like "Suggest Cards" feature.
+ * - Adds a "Suggest Cards" button and a suggestions container.
+ * - When clicked, it analyzes the current decklist (primarily for Commander).
+ * - It fetches synergistic card recommendations from the Scryfall API.
+ * - Displays the suggestions as clickable images to easily add them to the deck.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -56,6 +57,11 @@ document.addEventListener('authReady', (e) => {
     const importDeckTextarea = document.getElementById('import-deck-textarea');
     const importDeckFileInput = document.getElementById('import-deck-file-input');
     const processImportBtn = document.getElementById('process-import-btn');
+
+    // **NEW** Suggestion Elements
+    const suggestCardsBtn = document.getElementById('suggest-cards-btn');
+    const suggestionsContainer = document.getElementById('suggestions-container');
+    const suggestionsOutput = document.getElementById('suggestions-output');
 
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
@@ -824,6 +830,62 @@ document.addEventListener('authReady', (e) => {
         decklistInput.value = parsedList;
         alert("Decklist imported successfully!");
     };
+    
+    // **NEW** Card Suggestion Logic
+    suggestCardsBtn.addEventListener('click', async () => {
+        const decklist = document.getElementById('decklist-input').value;
+        const format = document.getElementById('deck-format-select').value;
+        const lines = decklist.split('\n').filter(line => line.trim() !== '');
+
+        if (lines.length === 0) {
+            alert("Please add some cards to your deck first!");
+            return;
+        }
+
+        suggestionsContainer.classList.remove('hidden');
+        suggestionsOutput.innerHTML = '<p class="text-gray-400">Fetching suggestions...</p>';
+
+        try {
+            let suggestionsHTML = '';
+
+            if (format === 'Commander') {
+                const commanderLine = lines[0]; // Assume first card is commander
+                const commanderNameMatch = commanderLine.match(/^\d*\s*(.*)/);
+                if (commanderNameMatch && commanderNameMatch[1]) {
+                    const commanderName = commanderNameMatch[1].trim();
+                    
+                    const scryfallResponse = await fetch(`https://api.scryfall.com/cards/search?q=edhrec%3A"${encodeURIComponent(commanderName)}"`);
+                    if (!scryfallResponse.ok) {
+                        throw new Error('Could not find commander on Scryfall or no suggestions available.');
+                    }
+                    const scryfallData = await scryfallResponse.json();
+                    
+                    if (scryfallData && scryfallData.data) {
+                        suggestionsHTML += '<h3 class="font-bold text-lg mb-2 dark:text-white">Top Synergy Cards</h3>';
+                        suggestionsHTML += '<div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-2">';
+                        scryfallData.data.slice(0, 16).forEach(card => {
+                            // Escape single quotes in the card name for the onclick function
+                            const safeCardName = card.name.replace(/'/g, "\\'");
+                            suggestionsHTML += `<img src="${card.image_uris.small}" alt="${card.name}" class="rounded-lg cursor-pointer transition-transform hover:scale-105" onclick="addCardToDecklist('${safeCardName}')" title="Click to add ${card.name}">`;
+                        });
+                        suggestionsHTML += '</div>';
+                    } else {
+                        throw new Error('No suggestions found.');
+                    }
+                } else {
+                    suggestionsHTML = '<p class="text-yellow-500">Could not determine the Commander from your decklist. Make sure it is the first card listed.</p>';
+                }
+            } else {
+                suggestionsHTML = `<p class="text-gray-400">Card suggestions are currently optimized for the Commander format.</p>`;
+            }
+            
+            suggestionsOutput.innerHTML = suggestionsHTML;
+
+        } catch (error) {
+            console.error("Error fetching suggestions:", error);
+            suggestionsOutput.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+        }
+    });
 
 
     // --- Initial Load ---
