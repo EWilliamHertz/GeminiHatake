@@ -1,15 +1,15 @@
 /**
- * HatakeSocial - Messages Page Script (v16 - Enhanced Error Handling & UI)
+ * HatakeSocial - Messages Page Script (v17 - UI Enhancements)
  *
  * This script handles all logic for the messages.html page.
  * It provides a clean, well-commented, and fully functional implementation
- * for real-time messaging, including the critical fix for conversation creation.
+ * for real-time messaging.
  *
  * Key Features:
+ * - Adds timestamps and sender avatars to messages for a better chat experience.
+ * - Highlights the currently active conversation in the list for better UX.
  * - Fixes the "Could not start conversation" error by explicitly setting `isGroupChat: false`
  * when creating new one-on-one chats, satisfying Firestore index requirements.
- * - Adds more detailed error logging to the catch block to better diagnose Firestore issues.
- * - Highlights the currently active conversation in the list for better UX.
  * - Robust real-time listeners for conversations and messages.
  * - User search functionality to initiate new chats.
  * - Handles URL parameters to open a chat directly (e.g., `messages.html?with=USER_ID`).
@@ -20,7 +20,6 @@ document.addEventListener('authReady', (e) => {
     const chatArea = document.getElementById('chat-area');
     if (!chatArea) return; // Exit if not on the messages page
 
-    // If the user is not logged in, display a message and stop.
     if (!currentUser) {
         const mainContent = document.querySelector('main.container');
         if(mainContent) {
@@ -30,10 +29,10 @@ document.addEventListener('authReady', (e) => {
     }
 
     // --- STATE MANAGEMENT ---
-    let currentChatListener = null; // Holds the active Firestore listener for messages
-    let currentConversationId = null; // ID of the currently viewed conversation
-    let currentConversationData = null; // Full data object of the current conversation
-    let activeTab = 'users'; // To toggle between 'users' and 'groups'
+    let currentChatListener = null;
+    let currentConversationId = null;
+    let currentConversationData = null;
+    let activeTab = 'users';
 
     // --- DOM ELEMENT REFERENCES ---
     const conversationsListEl = document.getElementById('conversations-list');
@@ -46,14 +45,6 @@ document.addEventListener('authReady', (e) => {
     const messageTabs = document.querySelectorAll('.message-tab-button');
 
     // --- HELPER FUNCTIONS ---
-
-    /**
-     * Generates a direct link to the Firebase console to create a missing index.
-     * This is a powerful debugging tool for Firestore query errors.
-     * @param {string} collection - The name of the collection needing the index.
-     * @param {Array<Object>} fields - An array of objects describing the fields for the index.
-     * @returns {string} The generated URL.
-     */
     const generateIndexCreationLink = (collection, fields) => {
         const projectId = db.app.options.projectId;
         let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
@@ -63,12 +54,6 @@ document.addEventListener('authReady', (e) => {
         return url;
     };
 
-    /**
-     * Creates a notification document for a specific user.
-     * @param {string} userId - The ID of the user to notify.
-     * @param {string} message - The notification message content.
-     * @param {string} link - The URL the notification should link to.
-     */
     const createNotification = async (userId, message, link) => {
         if (!userId || !message) return;
         const notificationData = {
@@ -85,11 +70,6 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- CORE MESSAGING LOGIC ---
-
-    /**
-     * Loads and displays the list of conversations (both user and group chats).
-     * Attaches a real-time listener to keep the list updated.
-     */
     const loadConversations = () => {
         conversationsListEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
         
@@ -105,13 +85,11 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
             
-            conversationsListEl.innerHTML = ''; // Clear previous list
+            conversationsListEl.innerHTML = '';
             snapshot.forEach(doc => {
                 const conversation = doc.data();
                 const convoId = doc.id;
-                let title = '';
-                let imageUrl = '';
-                let otherUserId = null;
+                let title = '', imageUrl = '', otherUserId = null;
 
                 if (conversation.isGroupChat) {
                     title = conversation.groupName || 'Group Chat';
@@ -122,10 +100,7 @@ document.addEventListener('authReady', (e) => {
                         const remoteUserInfo = conversation.participantInfo[otherUserId];
                         title = remoteUserInfo.displayName || 'Unknown User';
                         imageUrl = remoteUserInfo.photoURL || 'https://placehold.co/40x40/cccccc/969696?text=U';
-                    } else {
-                        // Skip rendering if participant info is missing for a 1-on-1 chat
-                        return;
-                    }
+                    } else { return; }
                 }
                 
                 const item = document.createElement('div');
@@ -148,22 +123,9 @@ document.addEventListener('authReady', (e) => {
         }, error => {
             console.error(`Error loading ${activeTab} conversations:`, error);
             if (error.code === 'failed-precondition') {
-                const indexFields = [
-                    { name: 'participants', order: 'asc' },
-                    { name: 'isGroupChat', order: 'asc' },
-                    { name: 'updatedAt', order: 'desc' }
-                ];
+                const indexFields = [{ name: 'participants', order: 'asc' }, { name: 'isGroupChat', order: 'asc' }, { name: 'updatedAt', order: 'desc' }];
                 const indexLink = generateIndexCreationLink('conversations', indexFields);
-                const errorMessage = `
-                    <div class="p-4 bg-red-100 dark:bg-red-900/50 rounded-lg text-center">
-                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2 text-sm">A required database index is missing.</p>
-                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
-                           class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 text-sm">
-                           Click Here to Create the Index
-                        </a>
-                        <p class="text-xs text-gray-500 mt-2">This opens Firebase. Click "Save" to create the index. It may take a few minutes.</p>
-                    </div>`;
+                const errorMessage = `<div class="p-4 bg-red-100 dark:bg-red-900/50 rounded-lg text-center"><p class="font-bold text-red-700 dark:text-red-300">Database Error</p><p class="text-red-600 dark:text-red-400 mt-2 text-sm">A required database index is missing.</p><a href="${indexLink}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 text-sm">Click Here to Create the Index</a><p class="text-xs text-gray-500 mt-2">This opens Firebase. Click "Save" to create the index. It may take a few minutes.</p></div>`;
                 conversationsListEl.innerHTML = errorMessage;
             } else {
                 conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load conversations.</p>`;
@@ -171,20 +133,12 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Opens a specific chat conversation, displaying its messages and setting up a real-time listener.
-     * @param {string} conversationId - The ID of the conversation document.
-     * @param {string} title - The title for the chat header.
-     * @param {string} imageUrl - The avatar/image for the chat header.
-     * @param {object} conversationData - The full data object for the conversation.
-     */
     const openChat = (conversationId, title, imageUrl, conversationData) => {
         if (currentChatListener) currentChatListener();
 
         currentConversationId = conversationId;
         currentConversationData = conversationData;
 
-        // Highlight the selected conversation in the list
         document.querySelectorAll('.conversation-item').forEach(item => {
             item.classList.toggle('bg-blue-50', item.dataset.convoId === conversationId);
             item.classList.toggle('dark:bg-blue-900/50', item.dataset.convoId === conversationId);
@@ -209,12 +163,19 @@ document.addEventListener('authReady', (e) => {
                 messages.forEach(msg => {
                     const messageEl = document.createElement('div');
                     const isSentByCurrentUser = msg.senderId === currentUser.uid;
+                    const senderInfo = conversation.participantInfo[msg.senderId];
+                    const timestamp = msg.timestamp ? new Date(msg.timestamp.toDate()) : new Date();
+                    const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    messageEl.className = `message-group flex flex-col ${isSentByCurrentUser ? 'items-end' : 'items-start'}`;
                     
-                    messageEl.className = `message-group flex items-start gap-2.5 ${isSentByCurrentUser ? 'justify-end' : 'justify-start'}`;
                     messageEl.innerHTML = `
-                        <div class="flex flex-col w-full max-w-[320px] leading-1.5 p-4 border-gray-200 rounded-e-xl rounded-es-xl ${isSentByCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}">
-                            <p class="text-sm font-normal">${msg.content}</p>
+                        <div class="flex items-end gap-2 ${isSentByCurrentUser ? 'flex-row-reverse' : ''}">
+                            <div class="message-bubble">
+                                <p class="text-sm font-normal">${msg.content}</p>
+                            </div>
                         </div>
+                        <p class="message-timestamp">${formattedTime}</p>
                     `;
                     messagesContainer.appendChild(messageEl);
                 });
@@ -223,9 +184,6 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    /**
-     * Sends a new message to the currently open conversation.
-     */
     const sendMessage = async () => {
         const content = messageInput.value.trim();
         if (!content || !currentConversationId || !currentConversationData) return;
@@ -260,11 +218,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    /**
-     * Finds or creates a one-on-one conversation with a selected user.
-     * @param {string} userId - The ID of the user to start a chat with.
-     * @param {object} userData - The data object of the user.
-     */
     const startConversationWithUser = async (userId, userData) => {
         const conversationId = [currentUser.uid, userId].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
@@ -277,18 +230,17 @@ document.addEventListener('authReady', (e) => {
                 if (!currentUserDoc.exists) throw new Error("Could not find current user's profile data.");
                 const currentUserData = currentUserDoc.data();
                 
-                // This data structure must match the Firestore index and rules.
                 const newConversationData = {
                     participants: [currentUser.uid, userId],
                     participantInfo: {
                         [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
                         [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
                     },
-                    isGroupChat: false, // CRITICAL: This field is required by the Firestore index.
+                    isGroupChat: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastMessage: 'Conversation started.',
-                    messages: [] // Initialize with an empty array
+                    messages: []
                 };
                 await conversationRef.set(newConversationData);
             }
@@ -299,14 +251,12 @@ document.addEventListener('authReady', (e) => {
             openChat(conversationId, userData.displayName, userData.photoURL, finalConvoData);
 
         } catch (error) {
-            // Provide more detailed error feedback
             console.error("Error starting conversation:", error);
             alert(`Could not start conversation. Error: ${error.message}. Please check console for details.`);
         }
     };
 
     // --- EVENT LISTENERS ---
-
     messageTabs.forEach(button => {
         button.addEventListener('click', () => {
             messageTabs.forEach(btn => btn.classList.remove('active'));
@@ -339,12 +289,8 @@ document.addEventListener('authReady', (e) => {
             const [displayNameSnapshot, handleSnapshot] = await Promise.all([queryByDisplayName, queryByHandle]);
             
             const results = new Map();
-            displayNameSnapshot.forEach(doc => {
-                if (doc.id !== currentUser.uid) results.set(doc.id, doc.data());
-            });
-            handleSnapshot.forEach(doc => {
-                if (doc.id !== currentUser.uid) results.set(doc.id, doc.data());
-            });
+            displayNameSnapshot.forEach(doc => { if (doc.id !== currentUser.uid) results.set(doc.id, doc.data()); });
+            handleSnapshot.forEach(doc => { if (doc.id !== currentUser.uid) results.set(doc.id, doc.data()); });
 
             userSearchResultsEl.innerHTML = '';
             if (results.size === 0) {
@@ -355,10 +301,7 @@ document.addEventListener('authReady', (e) => {
             results.forEach((userData, userId) => {
                 const resultItem = document.createElement('div');
                 resultItem.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
-                resultItem.innerHTML = `
-                    <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-8 w-8 rounded-full mr-2 object-cover">
-                    <span class="text-sm dark:text-gray-200">${userData.displayName} (@${userData.handle})</span>
-                `;
+                resultItem.innerHTML = `<img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-8 w-8 rounded-full mr-2 object-cover"><span class="text-sm dark:text-gray-200">${userData.displayName} (@${userData.handle})</span>`;
                 resultItem.addEventListener('click', () => {
                     userSearchInput.value = '';
                     userSearchResultsEl.classList.add('hidden');
@@ -381,7 +324,6 @@ document.addEventListener('authReady', (e) => {
     const checkForUrlParams = async () => {
         const params = new URLSearchParams(window.location.search);
         const userIdToMessage = params.get('with');
-
         if (userIdToMessage) {
             try {
                 const userDoc = await db.collection('users').doc(userIdToMessage).get();
