@@ -1,10 +1,12 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v25.2 - Final URL Fix)
+ * HatakeSocial - Core Authentication & UI Script (v21 - Friend Request Handshake)
  *
- * - FIX: Corrects the Firebase Storage URL to point to the correct AllPrices.json file.
- * - Fetches the price guide directly from Firebase Storage on page load.
+ * - **NEW**: Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
+ * - Adds logic to toggle the mobile navigation menu.
+ * - Replaces alert() with inline error messages for a better UX.
+ * - Adds a "Scroll to Top" button for easier navigation.
  */
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
     const firebaseConfig = {
@@ -24,30 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    
-    // --- Price Guide will be loaded here ---
-    window.HatakePriceGuide = {};
 
-    // --- Function to fetch the price guide from Firebase Storage ---
-    const loadPriceGuide = async () => {
-        try {
-            // !!! THIS IS THE CORRECTED URL !!!
-            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrices.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
-
-            const response = await fetch(priceFileURL);
-            if (!response.ok) {
-                throw new Error('Could not download price file. Check the URL and Firebase Storage rules.');
-            }
-            const priceData = await response.json();
-            window.HatakePriceGuide = priceData.data || {}; // Assign the inner 'data' object
-            console.log("Price guide loaded successfully!");
-        } catch (error) {
-            console.error("Error loading price guide:", error);
-            // Fallback to an empty object if loading fails
-            window.HatakePriceGuide = {};
-        }
-    };
-    
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
         conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
@@ -71,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return `${convertedAmount.toFixed(2)} ${toCurrency}`;
         }
     };
-    
+
     const setupCurrencySelector = () => {
         const container = document.getElementById('currency-selector-container');
         if (!container) return;
@@ -238,6 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // **NEW**: Listener for sent friend requests
     let friendRequestHandshakeListener = null;
     function listenForAcceptedRequests(user) {
         if (friendRequestHandshakeListener) {
@@ -285,9 +265,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     auth.onAuthStateChanged(async (user) => {
-        // Load the price guide first
-        await loadPriceGuide();
-
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const userAvatar = document.getElementById('userAvatar');
@@ -302,6 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             registerButton?.classList.add('hidden');
             userAvatar?.classList.remove('hidden');
             
+            // **NEW**: Start listening for accepted requests
             listenForAcceptedRequests(user);
 
             try {
@@ -339,6 +317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             window.HatakeSocial.currentUserData = null;
+            // **NEW**: Stop listening if user logs out
             if (friendRequestHandshakeListener) {
                 friendRequestHandshakeListener();
             }
