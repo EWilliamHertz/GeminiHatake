@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v17 - Internal Pricing)
+ * HatakeSocial - Advanced Trades Page Script (v18 - Robust Internal Pricing)
  *
- * This script implements a comprehensive and secure trading system.
- * - FIX: All pricing logic now uses the internal HatakePriceGuide.
+ * - FIX: All pricing logic now safely checks for the existence of a price in HatakePriceGuide before using it.
  * - FIX: Adds a "Cancel" button for the proposer on pending trades.
- * - FIX: Corrects the feedback submission process to work without a backend.
+ * - FIX: Corrects the display logic to correctly show "Proposer Offers" and "Receiver Offers".
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -387,7 +386,6 @@ document.addEventListener('authReady', (e) => {
             const cardEl = document.createElement('div');
             cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer';
             
-            // UPDATED: Use internal price guide
             const priceData = window.HatakePriceGuide[card.scryfallId];
             const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
             const localPrice = window.HatakeSocial.convertAndFormatPrice(price, 'USD');
@@ -444,7 +442,6 @@ document.addEventListener('authReady', (e) => {
     const updateTotalValueUI = () => {
         let proposerValue = 0;
         tradeOffer.proposerCards.forEach(card => {
-            // UPDATED: Use internal price guide
             const priceData = window.HatakePriceGuide[card.scryfallId];
             const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
             proposerValue += price || 0;
@@ -454,7 +451,6 @@ document.addEventListener('authReady', (e) => {
 
         let receiverValue = 0;
         tradeOffer.receiverCards.forEach(card => {
-            // UPDATED: Use internal price guide
             const priceData = window.HatakePriceGuide[card.scryfallId];
             const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
             receiverValue += price || 0;
