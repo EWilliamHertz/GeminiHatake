@@ -10,6 +10,7 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
 
+    
    <!-- Header Section -->
    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
        <div class="container mx-auto px-4 flex justify-between items-center">
@@ -32,7 +33,7 @@
                        <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
                        <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
                        <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                       <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                       <li><a href="marketplace.html" class="text-blue-600 dark:text-blue-400 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
                        <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
                        <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
                        <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
@@ -72,8 +73,8 @@
         <div id="search-form-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
             <form id="marketplace-search-form" class="space-y-4">
                 <!-- Primary Filters -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="lg:col-span-2">
                         <label for="search-card-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Name</label>
                         <input type="text" id="search-card-name" placeholder="e.g., Sol Ring" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
                     </div>
@@ -85,27 +86,19 @@
                             <option value="Pokémon">Pokémon</option>
                         </select>
                     </div>
+                     <div>
+                        <label for="filter-seller" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller Name</label>
+                        <input type="text" id="filter-seller" placeholder="e.g., Hatake" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
                 </div>
                 
-                <!-- Advanced Filters -->
-                <details id="advanced-filters-details">
-                    <summary class="cursor-pointer text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Advanced Filters</summary>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-                         <div>
-                            <label for="filter-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's Country</label>
-                            <input type="text" id="filter-country" placeholder="e.g., Sweden" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                        </div>
-                         <div>
-                            <label for="filter-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's City</label>
-                            <input type="text" id="filter-city" placeholder="e.g., Gothenburg" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                        </div>
-                    </div>
-                    <!-- Game Specific Filters will be injected here by JS -->
-                    <div id="game-specific-filters-container" class="pt-4 mt-4 border-t dark:border-gray-700 hidden"></div>
-                </details>
+                <!-- Game Specific Filters will be injected here by JS -->
+                <div id="game-specific-filters-container" class="pt-4 mt-4 border-t dark:border-gray-700 hidden"></div>
                 
                 <div class="flex justify-end pt-2">
-                    <button type="submit" class="px-8 py-2 bg-blue-700 text-white font-bold rounded-full hover:bg-blue-800">Apply Filters</button>
+                    <button type="submit" class="px-8 py-2 bg-blue-700 text-white font-bold rounded-full hover:bg-blue-800">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </button>
                 </div>
             </form>
         </div>
@@ -121,8 +114,10 @@
             </div>
             <select id="sort-by" class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="addedAt_desc">Sort by: Newest</option>
-                <option value="salePrice_asc">Sort by: Price Low to High</option>
-                <option value="salePrice_desc">Sort by: Price High to Low</option>
+                <option value="price_asc">Sort by: Price Low to High</option>
+                <option value="price_desc">Sort by: Price High to Low</option>
+                <option value="name_asc">Sort by: Name A-Z</option>
+                <option value="rarity_desc">Sort by: Rarity</option>
             </select>
         </div>
         
