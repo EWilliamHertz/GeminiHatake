@@ -1,11 +1,8 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v22 - Internal Price Guide)
+ * HatakeSocial - Core Authentication & UI Script (v23 - Reverted to Scryfall/MTGJSON Pricing)
  *
- * - **NEW**: Adds a window.HatakePriceGuide object to simulate a local price database based on the Cardmarket download.
- * - **NEW**: All price display functions will now reference this internal guide instead of live APIs.
- * - Adds a listener for sent friend requests to complete the client-side "handshake".
- * - Adds logic to toggle the mobile navigation menu.
- * - Replaces alert() with inline error messages for a better UX.
+ * - All pricing logic has been reverted to use external APIs.
+ * - The internal price guide has been removed.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -28,23 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-    // --- NEW: Internal Price Guide ---
-    // This simulates the data you would parse from the Cardmarket price guide CSV.
-    // The key is the Scryfall Card ID.
-    window.HatakePriceGuide = {
-        "ae9c1471-ae6f-4b66-9842-46f1a74e93b5": { price: 1.34, price_foil: 5.50 }, // Garna, the Bloodflame
-        "d9849b22-1fba-4f6a-bd94-df1bc1764e6b": { price: 0.25, price_foil: 4.14 }, // Snakeskin Veil (STA)
-        "76cf42b4-f767-48b7-b38c-b98306909f06": { price: 3.13, price_foil: 10.00 }, // Aven Mindcensor (TSR)
-        "96e7194c-e91e-4816-928c-01912d10e751": { price: 2.68, price_foil: 8.50 }  // O-Naginata
-        // ... you would add all other card prices here
-    };
-
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
         conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
         currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
         currentUserData: null,
-        // UPDATED: This function now uses the internal price guide.
         convertAndFormatPrice(amount, fromCurrency = 'SEK') {
             const toCurrency = this.currentCurrency;
             if (amount === undefined || amount === null || isNaN(amount)) {
@@ -230,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // **NEW**: Listener for sent friend requests
     let friendRequestHandshakeListener = null;
     function listenForAcceptedRequests(user) {
         if (friendRequestHandshakeListener) {
@@ -292,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
             registerButton?.classList.add('hidden');
             userAvatar?.classList.remove('hidden');
             
-            // **NEW**: Start listening for accepted requests
             listenForAcceptedRequests(user);
 
             try {
@@ -330,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             window.HatakeSocial.currentUserData = null;
-            // **NEW**: Stop listening if user logs out
             if (friendRequestHandshakeListener) {
                 friendRequestHandshakeListener();
             }
