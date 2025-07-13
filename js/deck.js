@@ -6,16 +6,6 @@
  * - NEW: Displays categorized suggestions in an accordion format.
  * - Adds a "Deck Primer / Guide" textarea to the deck builder.
  */
-// ... (The rest of the file remains the same, but the pricing logic inside will now work correctly)
-// ... I will provide the complete file below for you to copy and paste.
-/**
- * HatakeSocial - Deck Page Script (v22 - Internal Pricing)
- *
- * - FIX: All pricing logic now uses the internal HatakePriceGuide.
- * - NEW: Implements an AI-powered Deck Advisor using the Gemini API.
- * - NEW: Displays categorized suggestions in an accordion format.
- * - Adds a "Deck Primer / Guide" textarea to the deck builder.
- */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
@@ -391,7 +381,6 @@ document.addEventListener('authReady', (e) => {
             if (!categorizedCards[category]) categorizedCards[category] = [];
             categorizedCards[category].push(card);
 
-            // UPDATED: Use internal price guide
             const priceData = window.HatakePriceGuide[card.id];
             const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
             totalPrice += (price || 0) * card.quantity;
@@ -481,7 +470,6 @@ document.addEventListener('authReady', (e) => {
         snapshot.forEach(doc => {
             const deck = doc.data();
             const totalPrice = deck.cards.reduce((acc, card) => {
-                // UPDATED: Use internal price guide
                 const priceData = window.HatakePriceGuide[card.id];
                 const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
                 return acc + (price || 0) * card.quantity;
@@ -570,12 +558,10 @@ document.addEventListener('authReady', (e) => {
         }
         decks.forEach(deckData => {
             const totalPrice = deckData.cards.reduce((acc, card) => {
-                // UPDATED: Use internal price guide
                 const priceData = window.HatakePriceGuide[card.id];
                 const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
                 return acc + (price || 0) * card.quantity;
             }, 0);
-            
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
             deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deckData.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: ${window.HatakeSocial.convertAndFormatPrice(totalPrice, 'USD')}</p>`;
