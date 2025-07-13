@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Card View Page Script (v5 - Merged Internationalization)
+ * HatakeSocial - Card View Page Script (v6 - Internal Pricing)
  *
  * This script is a complete, working version for the card-view.html page.
- * - Restores the full original code structure from the repository.
- * - Integrates the internationalization features for currency and shipping.
+ * - All pricing logic is now based on the internal HatakePriceGuide.
  * - Displays all prices in the user's selected currency.
  * - Shows seller's location and estimated shipping costs for each listing.
  */
@@ -247,8 +246,8 @@ document.addEventListener('authReady', (e) => {
     };
 
     /**
-     * Generates a plausible 90-day price history and renders it using Chart.js.
-     * @param {object} cardData - The card object from Scryfall, used to get the current price.
+     * Renders a simplified price display using the internal price guide.
+     * @param {object} cardData - The card object from Scryfall.
      */
     const renderPriceChart = (cardData) => {
         if (!chartCtx) return;
@@ -256,74 +255,23 @@ document.addEventListener('authReady', (e) => {
             priceChart.destroy(); // Destroy old chart instance
         }
 
-        const priceUSD = parseFloat(cardData?.prices?.usd || 0);
+        const priceData = window.HatakePriceGuide[cardData.id];
+        const priceUSD = priceData?.paper?.cardmarket?.retail?.normal || 0;
+        
         if (priceUSD === 0) {
             chartCtx.canvas.parentNode.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 flex items-center justify-center h-full">Price data is not available for this card.</p>';
             return;
         }
-
-        // --- Simulate 90 days of historical data ---
-        const history = [];
-        const labels = [];
-        let price = priceUSD * (0.8 + Math.random() * 0.4); // Start price between 80% and 120% of current
-
-        for (let i = 90; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
-            
-            const volatility = price * 0.05; // 5% volatility
-            price += (Math.random() - 0.5) * volatility;
-            price += (priceUSD - price) * 0.02; 
-            price = Math.max(price, priceUSD * 0.2); 
-
-            history.push(price);
-        }
-        history[history.length - 1] = priceUSD;
         
-        const convertedHistory = history.map(p => parseFloat(window.HatakeSocial.convertAndFormatPrice(p, 'USD').split(' ')[0]));
-        const currencyLabel = window.HatakeSocial.currentCurrency;
+        const convertedPrice = window.HatakeSocial.convertAndFormatPrice(priceUSD, 'USD');
 
-        priceChart = new Chart(chartCtx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: `Price (${currencyLabel})`,
-                    data: convertedHistory,
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    pointRadius: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { ticks: { maxTicksLimit: 8, color: '#6b7280' }, grid: { display: false } },
-                    y: { beginAtZero: false, ticks: { color: '#6b7280' } }
-                },
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += `${context.parsed.y.toFixed(2)} ${currencyLabel}`;
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        chartCtx.canvas.parentNode.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full">
+                <p class="text-gray-500 dark:text-gray-400">Current Market Price</p>
+                <p class="text-4xl font-bold text-blue-600 dark:text-blue-400">${convertedPrice}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Based on HatakeSocial Price Guide</p>
+            </div>
+        `;
     };
 
     // --- Event Listeners for Controls ---
