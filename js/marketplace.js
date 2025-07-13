@@ -1,15 +1,12 @@
 /**
- * HatakeSocial - Marketplace Page Script (v6 - Bug Fix & Multi-Seller Search)
+ * HatakeSocial - Marketplace Page Script (v7 - Final Fix)
  *
  * This script handles all logic for the marketplace.html page.
- * - FIX: Corrects a reference error that prevented advanced filters from rendering
- * and stopped all listings from loading.
- * - NEW: Implements multi-seller search, allowing users to enter comma-separated
- * names (e.g., "Williama, Mark") to see listings from multiple people at once.
+ * - Works with the corrected Firestore security rules for collection group queries.
+ * - Implements multi-seller search (comma-separated).
  * - Implements a comprehensive set of advanced, client-side filters
- * specifically for Magic: The Gathering cards.
- * - All filtering is performed client-side on the initially fetched data
- * for a fast and responsive user experience.
+ * for Magic: The Gathering cards.
+ * - All filtering is performed client-side for a fast and responsive user experience.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -57,8 +54,6 @@ document.addEventListener('authReady', (e) => {
             const languages = { 'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian', 'zhs': 'Simplified Chinese', 'zht': 'Traditional Chinese' };
 
             gameSpecificFiltersContainer.innerHTML = `
-                <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Magic: The Gathering Filters</h4>
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
@@ -67,19 +62,16 @@ document.addEventListener('authReady', (e) => {
                             <label class="flex items-center space-x-1"><input type="checkbox" value="C" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Colorless</span></label>
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rarity</label>
                         <div id="mtg-rarity-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
                             ${['common', 'uncommon', 'rare', 'mythic'].map(r => `<label class="flex items-center space-x-1"><input type="checkbox" value="${r}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${r}</span></label>`).join('')}
                         </div>
                     </div>
-
                     <div>
                         <label for="mtg-type-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Type</label>
                         <input type="text" id="mtg-type-filter" placeholder="e.g. Creature, Instant" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
                     </div>
-
                     <div>
                         <label for="mtg-lang-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
                         <select id="mtg-lang-filter" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
@@ -94,7 +86,6 @@ document.addEventListener('authReady', (e) => {
                             <option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Attributes</label>
                         <div id="mtg-attr-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
@@ -102,7 +93,6 @@ document.addEventListener('authReady', (e) => {
                         </div>
                     </div>
                 </div>
-                
                 <div class="mt-4 pt-4 border-t dark:border-gray-600">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format Legality</label>
                      <div id="mtg-format-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
@@ -145,7 +135,6 @@ document.addEventListener('authReady', (e) => {
     const applyFiltersAndRender = () => {
         let cardsToDisplay = [...allFetchedCards];
 
-        // --- Primary Filters ---
         const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
         const tcgFilter = tcgFilterEl.value;
         const sellerInput = document.getElementById('filter-seller').value;
@@ -161,7 +150,6 @@ document.addEventListener('authReady', (e) => {
             });
         }
         
-        // --- Advanced MTG Filters ---
         if (tcgFilter === 'Magic: The Gathering' && document.getElementById('mtg-color-filters')) {
             const selectedColors = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
             const selectedRarities = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
@@ -188,7 +176,6 @@ document.addEventListener('authReady', (e) => {
             }
         }
         
-        // --- Sorting ---
         const [sortField, sortDirection] = sortByEl.value.split('_');
         cardsToDisplay.sort((a, b) => {
             let valA, valB;
