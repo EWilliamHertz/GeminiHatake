@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v24 - MTGJSON Pricing)
+ * HatakeSocial - Core Authentication & UI Script (v25 - Fetching Prices from Firebase Storage)
  *
- * - **NEW**: Implements window.HatakePriceGuide to simulate a local price database based on MTGJSON data.
- * - All price display functions now reference this internal guide.
+ * - **NEW**: Fetches the AllPrices.json file directly from Firebase Storage on page load.
+ * - This creates the HatakePriceGuide object dynamically, keeping the auth.js file clean.
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     document.body.style.opacity = '0';
 
     const firebaseConfig = {
@@ -24,16 +24,30 @@ document.addEventListener('DOMContentLoaded', () => {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
+    
+    // --- Price Guide will be loaded here ---
+    window.HatakePriceGuide = {};
 
-    // --- NEW: Internal Price Guide (Simulating MTGJSON data) ---
-    // Key is the Scryfall Card ID, which is available in MTGJSON.
-    window.HatakePriceGuide = {
-        "b9c03336-a321-4c06-94d1-809f328fabd8": { "paper": { "cardmarket": { "retail": { "normal": 19.34 } } } }, // Leyline Axe
-        "ae9c1471-ae6f-4b66-9842-46f1a74e93b5": { "paper": { "cardmarket": { "retail": { "normal": 1.34, "foil": 5.50 } } } }, // Garna, the Bloodflame
-        "d9849b22-1fba-4f6a-bd94-df1bc1764e6b": { "paper": { "cardmarket": { "retail": { "normal": 0.25, "foil": 4.14 } } } } // Snakeskin Veil
-        // You will populate this with more data from the MTGJSON file.
+    // --- Function to fetch the price guide from Firebase Storage ---
+    const loadPriceGuide = async () => {
+        try {
+            // !!! THIS IS THE UPDATED URL !!!
+            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrintings.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
+
+            const response = await fetch(priceFileURL);
+            if (!response.ok) {
+                throw new Error('Could not download price file.');
+            }
+            const priceData = await response.json();
+            window.HatakePriceGuide = priceData.data || {}; // Assign the inner 'data' object
+            console.log("Price guide loaded successfully!");
+        } catch (error) {
+            console.error("Error loading price guide:", error);
+            // Fallback to an empty object if loading fails
+            window.HatakePriceGuide = {};
+        }
     };
-
+    
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
         conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
@@ -57,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${convertedAmount.toFixed(2)} ${toCurrency}`;
         }
     };
-
+    
     const setupCurrencySelector = () => {
         const container = document.getElementById('currency-selector-container');
         if (!container) return;
@@ -271,6 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     auth.onAuthStateChanged(async (user) => {
+        // Load the price guide first
+        await loadPriceGuide();
+
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const userAvatar = document.getElementById('userAvatar');
