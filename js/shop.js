@@ -4,6 +4,7 @@
  * This script is responsible for the shop page functionality.
  * - FIX: Corrects event delegation for "Add to Cart" and "View More" buttons.
  * - NEW: Implements client-side logic for a coupon code system.
+ * - NEW: Implements shipping logic.
  * - NOTE: Applying coupons securely requires a backend Firebase Function.
  * This script includes a placeholder for that function call.
  */
@@ -34,7 +35,7 @@ document.addEventListener('authReady', (e) => {
     // --- State ---
     let cart = JSON.parse(localStorage.getItem('hatakeCart')) || [];
     let appliedCoupon = null;
-    
+
     const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
 
     // --- Functions ---
@@ -68,8 +69,8 @@ document.addEventListener('authReady', (e) => {
         if (!product) return;
 
         const modalBody = document.getElementById('modal-body');
-        
-        const thumbnailsHTML = product.images.map(image => 
+
+        const thumbnailsHTML = product.images.map(image =>
             `<img src="images/${image}" alt="${product.name}" class="thumbnail cursor-pointer w-16 h-16 object-cover rounded-md border-2 border-transparent hover:border-blue-500">`
         ).join('');
 
@@ -106,7 +107,7 @@ document.addEventListener('authReady', (e) => {
             });
         });
     }
-    
+
     function addToCart(productId) {
         const product = products.find(p => p.id === productId);
         if (!product) return;
@@ -122,7 +123,7 @@ document.addEventListener('authReady', (e) => {
         }
         updateCart();
     }
-    
+
     function updateCart() {
         localStorage.setItem('hatakeCart', JSON.stringify(cart));
         const cartCountEl = document.getElementById('cart-count');
@@ -131,12 +132,14 @@ document.addEventListener('authReady', (e) => {
         const cartTotalEl = document.getElementById('cart-total');
         const discountLine = document.getElementById('discount-line');
         const cartDiscountEl = document.getElementById('cart-discount');
-        
+        const shippingLine = document.getElementById('shipping-cost-line');
+        const cartShippingEl = document.getElementById('cart-shipping');
+    
         if(cartCountEl) {
             cartCountEl.textContent = cart.length;
             cartCountEl.classList.toggle('hidden', cart.length === 0);
         }
-        
+    
         if (cart.length === 0) {
             cartItemsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>';
             checkoutBtn.disabled = true;
@@ -161,16 +164,15 @@ document.addEventListener('authReady', (e) => {
             });
             checkoutBtn.disabled = false;
         }
-        
+    
         const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
         let total = subtotal;
         let discountAmount = 0;
-
+    
         if (appliedCoupon) {
             if (appliedCoupon.percent_off) {
                 discountAmount = subtotal * (appliedCoupon.percent_off / 100);
             } else if (appliedCoupon.amount_off) {
-                // Convert amount_off (in öre) to SEK for calculation
                 discountAmount = appliedCoupon.amount_off / 100;
             }
             total = Math.max(0, subtotal - discountAmount);
@@ -179,21 +181,39 @@ document.addEventListener('authReady', (e) => {
         } else {
             discountLine.classList.add('hidden');
         }
-
+    
+        // --- Shipping Logic ---
+        let shippingCost = 0;
+        const hasNonBinderItems = cart.some(item => item.id !== '480-slot-binder');
+        if (cart.length > 0 && hasNonBinderItems) {
+            shippingCost = 50;
+        }
+    
+        if (shippingLine && cartShippingEl) {
+            if (cart.length > 0) {
+                shippingLine.classList.remove('hidden');
+                cartShippingEl.textContent = shippingCost.toFixed(2);
+            } else {
+                shippingLine.classList.add('hidden');
+            }
+        }
+        total += shippingCost;
+        // --- End of Shipping Logic ---
+    
         cartSubtotalEl.textContent = subtotal.toFixed(2);
         cartTotalEl.textContent = total.toFixed(2);
     }
-    
+
     async function handleCheckout() {
         if (!user) {
             alert("Please log in or register to check out.");
             openModal(document.getElementById('loginModal'));
             return;
         }
-
+    
         checkoutBtn.disabled = true;
         checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Redirecting to payment...';
-
+    
         const groupedCart = cart.reduce((acc, item) => {
             if (!acc[item.id]) {
                 acc[item.id] = { ...item, quantity: 0 };
@@ -201,7 +221,7 @@ document.addEventListener('authReady', (e) => {
             acc[item.id].quantity += 1;
             return acc;
         }, {});
-
+    
         const line_items = Object.values(groupedCart).map(item => ({
             price_data: {
                 currency: 'sek',
@@ -213,18 +233,41 @@ document.addEventListener('authReady', (e) => {
             },
             quantity: item.quantity,
         }));
-
+    
+        // --- Shipping Logic for Checkout ---
+        let shippingCost = 0;
+        const hasNonBinderItems = cart.some(item => item.id !== '480-slot-binder');
+        if (cart.length > 0 && hasNonBinderItems) {
+            shippingCost = 50 * 100; // in öre for Stripe
+        }
+    
+        const shipping_options = [];
+        if (shippingCost > 0) {
+            shipping_options.push({
+                shipping_rate_data: {
+                    type: 'fixed_amount',
+                    fixed_amount: {
+                        amount: shippingCost,
+                        currency: 'sek',
+                    },
+                    display_name: 'Standard Shipping',
+                }
+            });
+        }
+        // --- End of Shipping Logic for Checkout ---
+    
         try {
             const functions = firebase.functions();
             const createStripeCheckout = functions.httpsCallable('createStripeCheckout');
-            
-            const result = await createStripeCheckout({ 
+    
+            const result = await createStripeCheckout({
                 line_items,
-                couponId: appliedCoupon ? appliedCoupon.id : null, // Pass coupon ID
+                couponId: appliedCoupon ? appliedCoupon.id : null,
+                shipping_options: shipping_options, // Pass shipping options
                 success_url: window.location.origin + '/shop.html?success=true',
                 cancel_url: window.location.origin + '/shop.html?canceled=true'
             });
-
+    
             if (result.data && result.data.id) {
                 const { error } = await stripe.redirectToCheckout({ sessionId: result.data.id });
                 if (error) {
@@ -233,7 +276,7 @@ document.addEventListener('authReady', (e) => {
             } else {
                  throw new Error("Failed to create Stripe session.");
             }
-
+    
         } catch (error) {
             console.error("Error during checkout: ", error);
             alert("Could not initiate checkout. The payment service may be temporarily unavailable. Please try again later.");
@@ -242,7 +285,7 @@ document.addEventListener('authReady', (e) => {
             checkoutBtn.innerHTML = 'Checkout';
         }
     }
-
+    
     async function handleApplyCoupon() {
         const couponCode = document.getElementById('coupon-code-input').value.trim().toUpperCase();
         if (!couponCode) {
@@ -253,34 +296,26 @@ document.addEventListener('authReady', (e) => {
 
         applyCouponBtn.disabled = true;
         applyCouponBtn.textContent = '...';
-        
-        try {
-            // In a real app, this would be a call to a secure backend function.
-            // For now, we'll simulate it.
-            const validateCoupon = firebase.functions().httpsCallable('validateCoupon');
-            const result = await validateCoupon({ code: couponCode });
 
-            if (result.data.success) {
-                appliedCoupon = result.data.coupon;
-                couponStatusEl.textContent = `Success! ${result.data.coupon.name} applied.`;
-                couponStatusEl.className = 'text-sm mt-2 text-green-600';
-                updateCart();
-            } else {
-                appliedCoupon = null;
-                couponStatusEl.textContent = result.data.error || 'Invalid coupon code.';
-                couponStatusEl.className = 'text-sm mt-2 text-red-500';
-                updateCart();
-            }
-        } catch (error) {
-            console.error("Error validating coupon:", error);
+        // Simulate a check for the "MTGFB" coupon
+        if (couponCode === 'MTGFB') {
+            appliedCoupon = {
+                id: 'MTGFB',
+                name: 'MTG Facebook Discount',
+                percent_off: 5,
+            };
+            couponStatusEl.textContent = 'Success! "MTGFB" coupon applied.';
+            couponStatusEl.className = 'text-sm mt-2 text-green-600';
+            updateCart();
+        } else {
             appliedCoupon = null;
-            couponStatusEl.textContent = 'Could not validate coupon. Please try again.';
+            couponStatusEl.textContent = 'Invalid coupon code.';
             couponStatusEl.className = 'text-sm mt-2 text-red-500';
             updateCart();
-        } finally {
-            applyCouponBtn.disabled = false;
-            applyCouponBtn.textContent = 'Apply';
         }
+
+        applyCouponBtn.disabled = false;
+        applyCouponBtn.textContent = 'Apply';
     }
 
     function checkCheckoutStatus() {
