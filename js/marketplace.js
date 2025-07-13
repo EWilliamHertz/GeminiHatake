@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v6 - Seller Data Fix)
+ * HatakeSocial - Marketplace Page Script (v7 - Firestore Query Fix)
  *
- * Fixes issue where cards disappeared when seller data was missing
- * - Adds fallback seller data for missing user documents
- * - Ensures all listings are shown even if seller profile is incomplete
- * - Removed unnecessary sellerData check in rendering
+ * Fixes issue where cards weren't loading due to Firestore query problems
+ * - Ensures proper initialization of Firestore
+ * - Adds debug logging to track data flow
+ * - Includes fallback for missing seller data
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -119,40 +119,67 @@ document.addEventListener('authReady', (e) => {
     // --- Data Fetching and Rendering ---
     const fetchAllListings = async () => {
         showMessage('<p class="text-gray-500 dark:text-gray-400 flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching all listings from the marketplace...</p>');
+        
+        // Ensure Firestore is properly initialized
+        if (!db) {
+            console.error("Firestore not initialized!");
+            showMessage('<p class="text-red-500">Database connection error. Please try refreshing.</p>');
+            return;
+        }
+        
         try {
+            // Get reference to Firestore
+            const db = firebase.firestore();
+            
             const query = db.collectionGroup('collection').where('forSale', '==', true);
             const snapshot = await query.get();
 
+            console.log(`Found ${snapshot.size} listings in Firestore`);
+
             if (snapshot.empty) {
+                console.log("No listings found in Firestore");
                 allFetchedCards = [];
+                showMessage('<p class="text-gray-500 dark:text-gray-400">There are currently no cards for sale in the marketplace.</p>');
                 return;
             }
 
             const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
+            console.log(`Found ${sellerIds.length} unique sellers`);
+            
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
             
             // Create fallback seller data for missing documents
-            const sellers = new Map(sellerDocs.map(doc => {
+            const sellers = new Map();
+            sellerDocs.forEach(doc => {
                 if (doc.exists) {
-                    return [doc.id, { uid: doc.id, ...doc.data() }];
+                    sellers.set(doc.id, { uid: doc.id, ...doc.data() });
                 } else {
                     // Create minimal seller object with placeholder data
-                    return [doc.id, {
+                    sellers.set(doc.id, {
                         uid: doc.id,
                         displayName: 'Unknown Seller',
                         primaryCurrency: 'USD',
                         city: 'Unknown',
                         country: 'Unknown'
-                    }];
+                    });
                 }
-            }));
+            });
 
-            allFetchedCards = snapshot.docs.map(doc => ({
-                id: doc.id,
-                sellerData: sellers.get(doc.ref.parent.parent.id),
-                ...doc.data()
-            }));
+            allFetchedCards = snapshot.docs.map(doc => {
+                const sellerId = doc.ref.parent.parent.id;
+                return {
+                    id: doc.id,
+                    sellerData: sellers.get(sellerId) || {
+                        uid: sellerId,
+                        displayName: 'Unknown Seller',
+                        primaryCurrency: 'USD'
+                    },
+                    ...doc.data()
+                };
+            });
+            
+            console.log(`Processed ${allFetchedCards.length} cards for display`);
             
         } catch (error) {
             console.error("Fatal error fetching listings:", error);
@@ -161,6 +188,12 @@ document.addEventListener('authReady', (e) => {
     };
 
     const applyFiltersAndRender = () => {
+        // If no cards were fetched, show appropriate message
+        if (allFetchedCards.length === 0) {
+            showMessage('<p class="text-gray-500 dark:text-gray-400">There are currently no cards for sale in the marketplace.</p>');
+            return;
+        }
+
         let cardsToDisplay = [...allFetchedCards];
 
         // --- Primary Filters ---
