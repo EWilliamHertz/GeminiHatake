@@ -24,7 +24,7 @@ document.addEventListener('authReady', (e) => {
     let bulkEditMode = false;
     let quickEditMode = false;
     let selectedCards = new Set();
-    let fullCollection = []; 
+    let fullCollection = [];
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -89,7 +89,7 @@ document.addEventListener('authReady', (e) => {
             container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your ${listType}.</p>`;
         }
     };
-    
+
     const renderWishlist = (wishlistItems) => {
         if (!wishlistListContainer) return;
         if (wishlistItems.length === 0) {
@@ -118,7 +118,7 @@ document.addEventListener('authReady', (e) => {
             container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">Your collection is empty.</p>`;
             return;
         }
-    
+
         container.innerHTML = '';
         fullCollection.forEach(card => {
             const cardEl = document.createElement('div');
@@ -131,7 +131,7 @@ document.addEventListener('authReady', (e) => {
 
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
             const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
-            const priceTagHTML = formattedPrice 
+            const priceTagHTML = formattedPrice
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
 
@@ -158,7 +158,7 @@ document.addEventListener('authReady', (e) => {
         collectionData.forEach(card => {
             const quantity = card.quantity || 1;
             totalCards += quantity;
-            
+
             const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
             totalValue += price * quantity;
 
@@ -177,7 +177,7 @@ document.addEventListener('authReady', (e) => {
         if(totalCardsEl) totalCardsEl.textContent = totalCards;
         if(uniqueCardsEl) uniqueCardsEl.textContent = uniqueCards;
         if(totalValueEl) totalValueEl.textContent = window.HatakeSocial.convertAndFormatPrice(totalValue, 'USD');
-        
+
         if (rarityContainer) {
             rarityContainer.innerHTML = `
                 <span title="Common" class="flex items-center"><i class="fas fa-circle text-gray-400 mr-1"></i>${rarityCounts.common}</span>
@@ -192,7 +192,7 @@ document.addEventListener('authReady', (e) => {
         bulkEditMode = !bulkEditMode;
         selectedCards.clear();
         if (selectAllCheckbox) selectAllCheckbox.checked = false;
-        
+
         if (bulkEditMode) {
             bulkEditBtn.textContent = 'Cancel Bulk Edit';
             bulkEditBtn.classList.add('bg-red-600', 'hover:bg-red-700');
@@ -276,7 +276,7 @@ document.addEventListener('authReady', (e) => {
 
         const batch = db.batch();
         const rows = document.querySelectorAll('.quick-edit-row');
-        
+
         rows.forEach(row => {
             const docId = row.dataset.id;
             const docRef = db.collection('users').doc(user.uid).collection('collection').doc(docId);
@@ -329,7 +329,7 @@ document.addEventListener('authReady', (e) => {
             selectAllCheckbox.checked = selectedCards.size === allCollectionIds.length && allCollectionIds.length > 0;
         }
     };
-    
+
     const handleSelectAll = (e) => {
         const allCollectionIds = fullCollection.map(c => c.id);
         if (e.target.checked) {
@@ -345,7 +345,7 @@ document.addEventListener('authReady', (e) => {
         const batch = db.batch();
         const collectionRef = db.collection('users').doc(user.uid).collection('collection');
         const userCurrency = window.HatakeSocial.currentUserData?.primaryCurrency || 'SEK';
-        
+
         selectedCards.forEach(cardId => {
             const card = fullCollection.find(c => c.id === cardId);
             if (card) {
@@ -368,7 +368,7 @@ document.addEventListener('authReady', (e) => {
             alert("An error occurred. Please try again.");
         }
     };
-    
+
     const listCardsWithUndercut = async (undercutAmount) => {
         alert("Pricing with undercut is a complex feature that requires fetching competitor prices. This functionality will be implemented in a future update!");
     };
@@ -383,9 +383,9 @@ document.addEventListener('authReady', (e) => {
             tab.classList.add('text-blue-600', 'border-blue-600');
             tab.classList.remove('text-gray-500', 'hover:border-gray-300');
             tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tab.id.split('-')[1]}`));
-            
-            if (tab.id === 'tab-collection') loadList('collection');
-            if (tab.id === 'tab-wishlist') loadList('wishlist');
+
+            if (tab.id === 'tab-collection') loadCardList('collection');
+            if (tab.id === 'tab-wishlist') loadCardList('wishlist');
         });
     });
 
@@ -498,7 +498,7 @@ document.addEventListener('authReady', (e) => {
             await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
             alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
             closeModal(addVersionModal);
-            loadList(listType);
+            loadCardList(listType);
         } catch (error) {
             console.error("Error adding card version:", error);
             alert("Could not add card to collection.");
@@ -510,7 +510,7 @@ document.addEventListener('authReady', (e) => {
             alert("Please select a CSV file to upload.");
             return;
         }
-        
+
         Papa.parse(csvUploadInput.files[0], {
             header: true,
             skipEmptyLines: true,
@@ -530,24 +530,24 @@ document.addEventListener('authReady', (e) => {
 
                 csvStatus.textContent = `Found ${rows.length} cards. Fetching data... This may take a moment.`;
                 csvUploadBtn.disabled = true;
-                
+
                 let processedCount = 0;
                 let errorCount = 0;
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
-                
+
                 for (const row of rows) {
                     if (!row || !row[nameKey]) {
                         errorCount++;
-                        continue; 
+                        continue;
                     }
                     const cardName = row[nameKey];
 
                     try {
                         await new Promise(resolve => setTimeout(resolve, 100));
-                        
+
                         const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
                         if (!response.ok) throw new Error(`Scryfall API error`);
-                        
+
                         const cardData = await response.json();
                         const cardDoc = {
                             name: cardData.name, tcg: "Magic: The Gathering", scryfallId: cardData.id,
@@ -559,7 +559,7 @@ document.addEventListener('authReady', (e) => {
                             condition: row['Condition'] || 'Near Mint',
                             addedAt: new Date(), forSale: false
                         };
-                        
+
                         await collectionRef.add(cardDoc);
                         processedCount++;
                     } catch (error) {
@@ -568,11 +568,11 @@ document.addEventListener('authReady', (e) => {
                     }
                     csvStatus.textContent = `Processing... ${processedCount + errorCount} / ${rows.length}`;
                 }
-                
+
                 csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                 csvUploadBtn.disabled = false;
                 setTimeout(() => {
-                    loadList('collection');
+                    loadCardList('collection');
                     csvStatus.textContent = '';
                 }, 3000);
             }
@@ -608,7 +608,7 @@ document.addEventListener('authReady', (e) => {
     if (quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
     if (saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
     if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', handleSelectAll);
-    
+
     if (listSelectedBtn) {
         listSelectedBtn.addEventListener('click', () => {
             if (selectedCards.size === 0) {
@@ -665,7 +665,7 @@ document.addEventListener('authReady', (e) => {
 
     const deleteCard = async (cardId, listType) => {
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
-        loadList(listType);
+        loadCardList(listType);
     };
 
     editCardForm.addEventListener('submit', async (e) => {
@@ -679,9 +679,9 @@ document.addEventListener('authReady', (e) => {
         };
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
         closeModal(editCardModal);
-        loadList(listType);
+        loadCardList(listType);
     });
-    
+
     document.getElementById('manage-listing-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const cardId = document.getElementById('listing-card-id').value;
@@ -693,7 +693,7 @@ document.addEventListener('authReady', (e) => {
         };
         await db.collection('users').doc(user.uid).collection('collection').doc(cardId).update(updatedData);
         closeModal(manageListingModal);
-        loadList('collection');
+        loadCardList('collection');
     });
 
     percentagePriceForm?.addEventListener('submit', (e) => {
@@ -716,5 +716,5 @@ document.addEventListener('authReady', (e) => {
     });
 
     // --- Initial Load ---
-    loadList('collection');
+    loadCardList('collection');
 });
