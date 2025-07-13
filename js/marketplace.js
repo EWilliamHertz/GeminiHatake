@@ -1,3 +1,16 @@
+/**
+ * HatakeSocial - Marketplace Page Script (v5 - Bug Fix & Multi-Seller Search)
+ *
+ * This script handles all logic for the marketplace.html page.
+ * - FIX: Corrects a reference error that prevented advanced filters from rendering
+ * and stopped all listings from loading.
+ * - NEW: Implements multi-seller search, allowing users to enter comma-separated
+ * names (e.g., "Williama, Mark") to see listings from multiple people at once.
+ * - Implements a comprehensive set of advanced, client-side filters
+ * specifically for Magic: The Gathering cards.
+ * - All filtering is performed client-side on the initially fetched data
+ * for a fast and responsive user experience.
+ */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
@@ -23,6 +36,7 @@ document.addEventListener('authReady', (e) => {
     // --- State ---
     let allFetchedCards = [];
     let currentView = localStorage.getItem('marketplaceView') || 'grid';
+    const rarityOrder = { 'mythic': 4, 'rare': 3, 'uncommon': 2, 'common': 1 };
 
     // --- Helper Functions ---
     const showMessage = (html) => {
@@ -39,31 +53,72 @@ document.addEventListener('authReady', (e) => {
 
         if (selectedGame === 'Magic: The Gathering') {
             gameSpecificFiltersContainer.classList.remove('hidden');
+            // **FIX**: The 'formats' variable must be defined within this function's scope.
+            const formats = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander'];
+            const languages = { 'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian', 'zhs': 'Simplified Chinese', 'zht': 'Traditional Chinese' };
+
             gameSpecificFiltersContainer.innerHTML = `
-                <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Magic Filters</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
-                        <div id="mtg-color-filters" class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                            ${['W', 'U', 'B', 'R', 'G', 'C'].map(c => `<label class="flex items-center space-x-1"><input type="checkbox" value="${c}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-color-filter"><span class="dark:text-gray-200">${c === 'C' ? 'Colorless' : c}</span></label>`).join('')}
-                        </div>
-                    </div>
-                    <div>
-                        <label for="mtg-type-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Type</label>
-                         <input type="text" id="mtg-type-filter" placeholder="e.g. Creature" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                    </div>
-                </div>`;
-        } else if (selectedGame === 'Pokémon') {
-             gameSpecificFiltersContainer.classList.remove('hidden');
-            const pokemonTypes = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal', 'Fairy', 'Dragon', 'Colorless'];
-            gameSpecificFiltersContainer.innerHTML = `
-                <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Pokémon Filters</h4>
+                <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Magic: The Gathering Filters</h4>
+                
+                <!-- Colors -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Types</label>
-                    <div id="pokemon-type-filters" class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                         ${pokemonTypes.map(t => `<label class="flex items-center space-x-1"><input type="checkbox" value="${t}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 pokemon-type-filter"><span class="dark:text-gray-200">${t}</span></label>`).join('')}
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
+                    <div id="mtg-color-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                        ${['W', 'U', 'B', 'R', 'G'].map(c => `<label class="flex items-center space-x-1"><input type="checkbox" value="${c}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">${c}</span></label>`).join('')}
+                        <label class="flex items-center space-x-1"><input type="checkbox" value="C" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Colorless</span></label>
                     </div>
-                </div>`;
+                </div>
+
+                <!-- Rarity -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rarity</label>
+                    <div id="mtg-rarity-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                        ${['common', 'uncommon', 'rare', 'mythic'].map(r => `<label class="flex items-center space-x-1"><input type="checkbox" value="${r}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${r}</span></label>`).join('')}
+                    </div>
+                </div>
+
+                <!-- Card Type -->
+                <div>
+                    <label for="mtg-type-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Type</label>
+                    <input type="text" id="mtg-type-filter" placeholder="e.g. Creature, Instant" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
+                </div>
+
+                <!-- Language & Condition -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="mtg-lang-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
+                        <select id="mtg-lang-filter" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
+                            <option value="">Any</option>
+                            ${Object.entries(languages).map(([code, name]) => `<option value="${code}">${name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="mtg-condition-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Condition</label>
+                        <select id="mtg-condition-filter" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
+                            <option value="">Any</option>
+                            <option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Other Attributes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Attributes</label>
+                    <div id="mtg-attr-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                        <label class="flex items-center space-x-1"><input type="checkbox" id="mtg-foil-filter" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Foil</span></label>
+                    </div>
+                </div>
+
+                <!-- Format Legality -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format Legality</label>
+                     <div id="mtg-format-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                        ${formats.map(f => `<label class="flex items-center space-x-1"><input type="checkbox" value="${f}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${f}</span></label>`).join('')}
+                    </div>
+                </div>
+            `;
+        } else if (selectedGame === 'Pokémon') {
+            // Placeholder for Pokémon filters
         }
     };
 
@@ -99,32 +154,79 @@ document.addEventListener('authReady', (e) => {
     const applyFiltersAndRender = () => {
         let cardsToDisplay = [...allFetchedCards];
 
-        // --- All filters are now client-side for speed and simplicity ---
+        // --- Primary Filters ---
         const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
         const tcgFilter = tcgFilterEl.value;
-        const countryFilter = document.getElementById('filter-country').value.trim().toLowerCase();
-        const cityFilter = document.getElementById('filter-city').value.trim().toLowerCase();
+        
+        // **NEW**: Handle multiple sellers
+        const sellerInput = document.getElementById('filter-seller').value;
+        const sellerNames = sellerInput.split(',').map(name => name.trim().toLowerCase()).filter(name => name.length > 0);
 
         if (nameFilter) cardsToDisplay = cardsToDisplay.filter(c => c.name.toLowerCase().includes(nameFilter));
         if (tcgFilter !== 'all') cardsToDisplay = cardsToDisplay.filter(c => c.tcg === tcgFilter);
-        if (countryFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.country?.toLowerCase().includes(countryFilter));
-        if (cityFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.city?.toLowerCase().includes(cityFilter));
-
-        if (tcgFilter === 'Magic: The Gathering') {
-            const selectedColors = Array.from(document.querySelectorAll('.mtg-color-filter:checked')).map(cb => cb.value);
-            const typeFilter = document.getElementById('mtg-type-filter').value.trim().toLowerCase();
-            if (selectedColors.length > 0) cardsToDisplay = cardsToDisplay.filter(c => c.colors && selectedColors.every(color => c.colors.includes(color)));
-            if (typeFilter) cardsToDisplay = cardsToDisplay.filter(c => c.type_line && c.type_line.toLowerCase().includes(typeFilter));
-        } else if (tcgFilter === 'Pokémon') {
-             const selectedTypes = Array.from(document.querySelectorAll('.pokemon-type-filter:checked')).map(cb => cb.value);
-             if (selectedTypes.length > 0) cardsToDisplay = cardsToDisplay.filter(c => c.types && selectedTypes.every(type => c.types.includes(type)));
+        
+        if (sellerNames.length > 0) {
+            cardsToDisplay = cardsToDisplay.filter(c => {
+                const sellerDisplayName = c.sellerData?.displayName?.toLowerCase();
+                return sellerDisplayName && sellerNames.some(searchName => sellerDisplayName.includes(searchName));
+            });
         }
         
+        // --- Advanced MTG Filters ---
+        if (tcgFilter === 'Magic: The Gathering') {
+            const selectedColors = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
+            const selectedRarities = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
+            const typeFilter = document.getElementById('mtg-type-filter').value.trim().toLowerCase();
+            const langFilter = document.getElementById('mtg-lang-filter').value;
+            const conditionFilter = document.getElementById('mtg-condition-filter').value;
+            const isFoil = document.getElementById('mtg-foil-filter').checked;
+            const selectedFormats = Array.from(document.querySelectorAll('#mtg-format-filters input:checked')).map(cb => cb.value);
+
+            if (selectedColors.length > 0) {
+                cardsToDisplay = cardsToDisplay.filter(c => {
+                    const cardColors = c.colors || (c.color_identity || []);
+                    if(selectedColors.includes('C') && cardColors.length === 0) return true;
+                    return selectedColors.every(color => cardColors.includes(color));
+                });
+            }
+            if (selectedRarities.length > 0) cardsToDisplay = cardsToDisplay.filter(c => c.rarity && selectedRarities.includes(c.rarity));
+            if (typeFilter) cardsToDisplay = cardsToDisplay.filter(c => c.type_line && c.type_line.toLowerCase().includes(typeFilter));
+            if (langFilter) cardsToDisplay = cardsToDisplay.filter(c => c.lang === langFilter);
+            if (conditionFilter) cardsToDisplay = cardsToDisplay.filter(c => c.condition === conditionFilter);
+            if (isFoil) cardsToDisplay = cardsToDisplay.filter(c => c.isFoil === true);
+            if (selectedFormats.length > 0) {
+                cardsToDisplay = cardsToDisplay.filter(c => c.legalities && selectedFormats.every(format => c.legalities[format] === 'legal'));
+            }
+        }
+        
+        // --- Sorting ---
         const [sortField, sortDirection] = sortByEl.value.split('_');
         cardsToDisplay.sort((a, b) => {
-            let valA = (sortField === 'salePrice') ? (a.salePrice || 0) : (a.addedAt?.seconds || 0);
-            let valB = (sortField === 'salePrice') ? (b.salePrice || 0) : (b.addedAt?.seconds || 0);
-            return sortDirection === 'asc' ? valA - valB : valB - valA;
+            let valA, valB;
+            switch(sortField) {
+                case 'price':
+                    valA = a.salePrice || 0;
+                    valB = b.salePrice || 0;
+                    break;
+                case 'name':
+                    valA = a.name.toLowerCase();
+                    valB = b.name.toLowerCase();
+                    break;
+                case 'rarity':
+                    valA = rarityOrder[a.rarity] || 0;
+                    valB = rarityOrder[b.rarity] || 0;
+                    break;
+                default: // addedAt
+                    valA = a.addedAt?.seconds || 0;
+                    valB = b.addedAt?.seconds || 0;
+                    break;
+            }
+
+            if (typeof valA === 'string') {
+                return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else {
+                return sortDirection === 'asc' ? valA - valB : valB - valA;
+            }
         });
 
         renderResults(cardsToDisplay);
@@ -160,8 +262,8 @@ document.addEventListener('authReady', (e) => {
                 <div class="flex-grow flex flex-col p-1">
                     <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
                     <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}">
-                        from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="from ${seller.displayName}">
+                        Seller: ${seller.displayName}
                     </div>
                 </div>
             </a>`;
@@ -185,7 +287,7 @@ document.addEventListener('authReady', (e) => {
                 <p class="truncate">from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</p>
             </div>
             <div class="w-1/6 font-semibold text-lg text-blue-600 dark:text-blue-400 flex-shrink-0">${priceDisplay}</div>
-            <a href="trades.html?propose_to_card=${card.id}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 ${tradeButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}" ${tradeButtonDisabled ? 'disabled' : ''}>
+            <a href="trades.html?propose_to_card=${card.id}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 ${tradeButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}" ${tradeButtonDisabled ? 'aria-disabled="true" tabindex="-1"' : ''}>
                 ${tradeButtonDisabled ? 'Your Listing' : 'Propose Trade'}
             </a>
         `;
@@ -226,11 +328,15 @@ document.addEventListener('authReady', (e) => {
         renderGameSpecificFilters();
         applyFiltersAndRender();
     });
-    gameSpecificFiltersContainer.addEventListener('input', (e) => {
-        if (e.target.matches('input')) {
-            applyFiltersAndRender();
+    
+    // Use 'click' for checkboxes and 'change' for selects to trigger filtering immediately
+    // The main form 'submit' button will also trigger a filter.
+    gameSpecificFiltersContainer.addEventListener('change', (e) => {
+        if (e.target.matches('.mtg-filter')) {
+           applyFiltersAndRender();
         }
     });
+
     gridViewBtn.addEventListener('click', () => switchView('grid'));
     listViewBtn.addEventListener('click', () => switchView('list'));
 
