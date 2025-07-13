@@ -1,9 +1,14 @@
 /**
- * HatakeSocial - My Collection Page Script (v17 - Reverted to Scryfall Pricing)
+ * HatakeSocial - My Collection Page Script (v16 - Function Name Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - All pricing logic is now based on Scryfall API data.
- * - The CSV import logic now correctly uses the "Set code" to fetch the exact card version.
+ * - FIX: Corrects all instances of the function call 'loadList' to the correct 'loadCardList'.
+ * - FIX: The CSV import logic now checks for a "Set code" column to fetch the
+ * correct printing of a card from Scryfall, resolving data mismatches.
+ * - Displays a price tag in the user's selected currency over each card image.
+ * - Implements an advanced manual add feature.
+ * - Adds a "Quick Edit" mode to rapidly update card details.
+ * - All bulk and quick-edit changes are saved in a single batch write.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
