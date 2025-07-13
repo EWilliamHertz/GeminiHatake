@@ -1,17 +1,14 @@
 /**
- * HatakeSocial - My Collection Page Script (v13 - Price Tags)
+ * HatakeSocial - My Collection Page Script (v14 - Wishlist Fix Merged)
  *
  * This script handles all logic for the my_collection.html page.
- * - NEW: Displays a price tag in the user's selected currency over each card image in the grid view.
- * - Implements an advanced manual add feature allowing users to select a game,
- * search for a card, and see all available printings before adding.
- * - Utilizes Scryfall API for Magic and Pokémon TCG API for Pokémon.
- * - Fixes a bug in the CSV importer that caused an error on malformed rows.
- * - Adds a "Quick Edit" mode to rapidly update quantity, condition, and price in a table view.
- * - Adds advanced bulk-pricing options.
- * - All bulk and quick-edit changes are saved in a single, efficient Firestore batch write.
+ * - FIX: Corrects the logic for rendering the wishlist, which was causing an
+ * infinite loading state.
+ * - Displays a price tag in the user's selected currency over each card image.
+ * - Implements an advanced manual add feature.
+ * - Adds a "Quick Edit" mode to rapidly update card details.
+ * - All bulk and quick-edit changes are saved in a single batch write.
  */
-
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const collectionPageContainer = document.getElementById('content-collection');
@@ -53,8 +50,6 @@ document.addEventListener('authReady', (e) => {
     const saveQuickEditsBtn = document.getElementById('save-quick-edits-btn');
     const percentagePriceForm = document.getElementById('percentage-price-form');
     const fixedUndercutForm = document.getElementById('fixed-undercut-form');
-
-    // Advanced Manual Add Elements
     const manualGameSelect = document.getElementById('manual-game-select');
     const searchCardVersionsBtn = document.getElementById('search-card-versions-btn');
     const manualAddResultsContainer = document.getElementById('manual-add-results');
@@ -64,33 +59,58 @@ document.addEventListener('authReady', (e) => {
 
 
     // --- Main Display Functions ---
-    const loadCardList = async (listType = 'collection') => {
+    const loadList = async (listType = 'collection') => {
         const container = listType === 'collection' ? collectionGridView : wishlistListContainer;
+        if (!container) return; // Ensure container exists before proceeding
+
         if (!user) {
             container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4">Please log in to view your ${listType}.</p>`;
             return;
         }
-        container.innerHTML = '<p class="text-center p-4">Loading...</p>';
+        container.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</p>';
 
         try {
             const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
-            
+            const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
             if (listType === 'collection') {
-                fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                fullCollection = items;
                 calculateAndDisplayStats(fullCollection);
                 if (quickEditMode) {
                     renderQuickEditView();
                 } else {
                     renderGridView();
                 }
-            } else {
-                // Wishlist logic can be expanded here
+            } else if (listType === 'wishlist') {
+                renderWishlist(items);
             }
         } catch (error) {
             console.error(`Error loading ${listType}:`, error);
             container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your ${listType}.</p>`;
         }
     };
+    
+    const renderWishlist = (wishlistItems) => {
+        if (!wishlistListContainer) return;
+        if (wishlistItems.length === 0) {
+            wishlistListContainer.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">Your wishlist is empty.</p>`;
+            return;
+        }
+        wishlistListContainer.innerHTML = '';
+        wishlistItems.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'relative group cursor-pointer';
+            cardEl.dataset.id = card.id;
+            cardEl.innerHTML = `
+                <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="edit-card-btn text-white text-xs" data-list="wishlist"><i class="fas fa-edit"></i></button>
+                    <button class="delete-card-btn text-white text-xs ml-1" data-list="wishlist"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            wishlistListContainer.appendChild(cardEl);
+        });
+    }
 
     const renderGridView = () => {
         const container = collectionGridView;
@@ -109,13 +129,11 @@ document.addEventListener('authReady', (e) => {
             const isSelected = selectedCards.has(card.id);
             const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
-            // --- NEW: Price Tag Logic ---
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
             const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
             const priceTagHTML = formattedPrice 
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
-            // --- End of Price Tag Logic ---
 
             cardEl.innerHTML = `
                 <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
@@ -366,8 +384,8 @@ document.addEventListener('authReady', (e) => {
             tab.classList.remove('text-gray-500', 'hover:border-gray-300');
             tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tab.id.split('-')[1]}`));
             
-            if (tab.id === 'tab-collection') loadCardList('collection');
-            if (tab.id === 'tab-wishlist') loadCardList('wishlist');
+            if (tab.id === 'tab-collection') loadList('collection');
+            if (tab.id === 'tab-wishlist') loadList('wishlist');
         });
     });
 
@@ -464,30 +482,28 @@ document.addEventListener('authReady', (e) => {
     addVersionForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const cardData = JSON.parse(document.getElementById('add-version-data').value);
+        const listType = document.getElementById('add-to-list-select').value;
         const cardDoc = {
             ...cardData,
-            scryfallId: cardData.id, // Keep a consistent ID field
+            scryfallId: cardData.id,
             quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
             condition: document.getElementById('add-version-condition').value,
             isFoil: document.getElementById('add-version-foil').checked,
             addedAt: new Date(),
             forSale: false
         };
-        delete cardDoc.id; // Remove the original API id if it conflicts
+        delete cardDoc.id;
 
         try {
-            await db.collection('users').doc(user.uid).collection('collection').add(cardDoc);
-            alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added!`);
+            await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
+            alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
             closeModal(addVersionModal);
-            loadCardList('collection');
+            loadList(listType);
         } catch (error) {
             console.error("Error adding card version:", error);
             alert("Could not add card to collection.");
         }
     });
-
-    // --- End of Advanced Manual Add Logic ---
-
 
     csvUploadBtn.addEventListener('click', () => {
         if (csvUploadInput.files.length === 0) {
@@ -556,7 +572,7 @@ document.addEventListener('authReady', (e) => {
                 csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                 csvUploadBtn.disabled = false;
                 setTimeout(() => {
-                    loadCardList('collection');
+                    loadList('collection');
                     csvStatus.textContent = '';
                 }, 3000);
             }
@@ -649,7 +665,7 @@ document.addEventListener('authReady', (e) => {
 
     const deleteCard = async (cardId, listType) => {
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
-        loadCardList(listType);
+        loadList(listType);
     };
 
     editCardForm.addEventListener('submit', async (e) => {
@@ -663,7 +679,7 @@ document.addEventListener('authReady', (e) => {
         };
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
         closeModal(editCardModal);
-        loadCardList(listType);
+        loadList(listType);
     });
     
     document.getElementById('manage-listing-form').addEventListener('submit', async (e) => {
@@ -677,7 +693,7 @@ document.addEventListener('authReady', (e) => {
         };
         await db.collection('users').doc(user.uid).collection('collection').doc(cardId).update(updatedData);
         closeModal(manageListingModal);
-        loadCardList('collection');
+        loadList('collection');
     });
 
     percentagePriceForm?.addEventListener('submit', (e) => {
@@ -700,5 +716,5 @@ document.addEventListener('authReady', (e) => {
     });
 
     // --- Initial Load ---
-    loadCardList('collection');
+    loadList('collection');
 });
