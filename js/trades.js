@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v15 - Client-Side Feedback Fix)
+ * HatakeSocial - Advanced Trades Page Script (v16 - Cancel & Display Fix)
  *
  * This script implements a comprehensive and secure trading system.
- * - FIX: Corrects the feedback submission process to work without a backend by removing
- * the cross-user profile update, which was causing a permission error. The client now
- * only writes the feedback document and updates the trade status.
+ * - FIX: Corrects the display logic to correctly show "Proposer Offers" and "Receiver Offers" on both sides of the trade.
+ * - FIX: Adds a "Cancel" button for the proposer on pending trades.
+ * - FIX: Corrects the feedback submission process to work without a backend.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -161,8 +161,9 @@ document.addEventListener('authReady', (e) => {
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
         const isProposer = trade.proposerId === user.uid;
 
-        const yourItemsHtml = renderTradeItems(isProposer ? trade.proposerCards : trade.receiverCards, isProposer ? trade.proposerMoney : trade.receiverMoney);
-        const theirItemsHtml = renderTradeItems(isProposer ? trade.receiverCards : trade.proposerCards, isProposer ? trade.receiverMoney : trade.proposerMoney);
+        // **FIX:** Use proposer and receiver names directly from the trade data.
+        const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
+        const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
         
         const statusColors = {
             pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -214,7 +215,10 @@ document.addEventListener('authReady', (e) => {
 
         switch(trade.status) {
             case 'pending':
-                if (!isProposer) {
+                if (isProposer) {
+                    // **FIX:** Added cancel button for outgoing trades.
+                    actionButtons = `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 text-sm">Cancel Offer</button>`;
+                } else {
                     actionButtons = `
                         <button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 text-sm">Decline</button>
                         <button data-id="${tradeId}" data-action="counter" class="trade-action-btn px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600 text-sm">Counter</button>
@@ -263,12 +267,12 @@ document.addEventListener('authReady', (e) => {
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="border dark:border-gray-600 p-4 rounded-md">
-                    <h4 class="font-bold mb-2 dark:text-white">${isProposer ? 'You Offer:' : 'They Offer:'}</h4>
-                    <div class="space-y-2">${yourItemsHtml}</div>
+                    <h4 class="font-bold mb-2 dark:text-white">${trade.proposerName} Offers:</h4>
+                    <div class="space-y-2">${proposerItemsHtml}</div>
                 </div>
                 <div class="border dark:border-gray-600 p-4 rounded-md">
-                    <h4 class="font-bold mb-2 dark:text-white">${isProposer ? 'They Offer:' : 'You Offer:'}</h4>
-                    <div class="space-y-2">${theirItemsHtml}</div>
+                    <h4 class="font-bold mb-2 dark:text-white">${trade.receiverName} Offers:</h4>
+                    <div class="space-y-2">${receiverItemsHtml}</div>
                 </div>
             </div>
             ${shippingInfoHTML}
@@ -578,18 +582,36 @@ document.addEventListener('authReady', (e) => {
         const tradeDoc = await tradeRef.get();
         if (!tradeDoc.exists) return;
         const tradeData = tradeDoc.data();
+        const isProposer = tradeData.proposerId === user.uid;
+
+        let confirmMessage;
+        switch (action) {
+            case 'rejected':
+                confirmMessage = isProposer ? 'Are you sure you want to cancel this offer?' : 'Are you sure you want to decline this trade?';
+                break;
+            case 'accepted':
+                confirmMessage = 'Are you sure you want to accept this trade?';
+                break;
+            default:
+                confirmMessage = 'Are you sure?';
+        }
 
         if (action === 'accepted' || action === 'rejected') {
-            if (confirm(`Are you sure you want to ${action} this trade?`)) {
+            if (confirm(confirmMessage)) {
                 await tradeRef.update({ status: action });
-                const message = action === 'accepted' ? `Your trade offer was accepted by ${user.displayName}.` : `Your trade offer was rejected by ${user.displayName}.`;
-                await createNotification(tradeData.proposerId, message, '/trades.html');
+                const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
+                let message;
+                if (action === 'accepted') {
+                    message = `Your trade offer was accepted by ${user.displayName}.`;
+                } else {
+                    message = isProposer ? `Your trade offer to ${tradeData.receiverName} was cancelled.` : `Your trade offer was rejected by ${user.displayName}.`;
+                }
+                await createNotification(otherPartyId, message, '/trades.html');
             }
         } else if (action === 'counter') {
             openProposeTradeModal({ counterOfTrade: { id: tradeId, ...tradeData } });
         } else if (action === 'confirm-shipment') {
             if (confirm('Please confirm that you have shipped your items.')) {
-                const isProposer = tradeData.proposerId === user.uid;
                 const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
                 await tradeRef.update({ [fieldToUpdate]: true });
 
@@ -600,7 +622,6 @@ document.addEventListener('authReady', (e) => {
             }
         } else if (action === 'confirm-receipt') {
             if (confirm('Please confirm you have received the items from your trade partner.')) {
-                const isProposer = tradeData.proposerId === user.uid;
                 const fieldToUpdate = isProposer ? 'proposerConfirmedReceipt' : 'receiverConfirmedReceipt';
                 await tradeRef.update({ [fieldToUpdate]: true });
 
