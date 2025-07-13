@@ -1,12 +1,9 @@
 /**
- * HatakeSocial - Marketplace Page Script (v7 - Final Fix Merged)
+ * HatakeSocial - Marketplace Page Script (v8 - Internal Pricing)
  *
  * This script handles all logic for the marketplace.html page.
- * - Works with the corrected Firestore security rules for collection group queries.
- * - Implements multi-seller search (comma-separated).
- * - Implements a comprehensive set of advanced, client-side filters
- * for Magic: The Gathering cards.
- * - All filtering is performed client-side for a fast and responsive user experience.
+ * - All pricing logic is now based on the internal HatakePriceGuide.
+ * - Implements multi-seller search and advanced client-side filtering.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
