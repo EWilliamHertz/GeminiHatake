@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Marketplace Page Script (v5 - Bug Fix & Multi-Seller Search)
+ * HatakeSocial - Marketplace Page Script (v6 - Bug Fix & Multi-Seller Search)
  *
  * This script handles all logic for the marketplace.html page.
  * - FIX: Corrects a reference error that prevented advanced filters from rendering
@@ -53,38 +53,33 @@ document.addEventListener('authReady', (e) => {
 
         if (selectedGame === 'Magic: The Gathering') {
             gameSpecificFiltersContainer.classList.remove('hidden');
-            // **FIX**: The 'formats' variable must be defined within this function's scope.
             const formats = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander'];
             const languages = { 'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian', 'zhs': 'Simplified Chinese', 'zht': 'Traditional Chinese' };
 
             gameSpecificFiltersContainer.innerHTML = `
                 <h4 class="text-md font-semibold mb-2 text-gray-800 dark:text-white col-span-full">Magic: The Gathering Filters</h4>
                 
-                <!-- Colors -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
-                    <div id="mtg-color-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                        ${['W', 'U', 'B', 'R', 'G'].map(c => `<label class="flex items-center space-x-1"><input type="checkbox" value="${c}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">${c}</span></label>`).join('')}
-                        <label class="flex items-center space-x-1"><input type="checkbox" value="C" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Colorless</span></label>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
+                        <div id="mtg-color-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                            ${['W', 'U', 'B', 'R', 'G'].map(c => `<label class="flex items-center space-x-1"><input type="checkbox" value="${c}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">${c}</span></label>`).join('')}
+                            <label class="flex items-center space-x-1"><input type="checkbox" value="C" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Colorless</span></label>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Rarity -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rarity</label>
-                    <div id="mtg-rarity-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                        ${['common', 'uncommon', 'rare', 'mythic'].map(r => `<label class="flex items-center space-x-1"><input type="checkbox" value="${r}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${r}</span></label>`).join('')}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rarity</label>
+                        <div id="mtg-rarity-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                            ${['common', 'uncommon', 'rare', 'mythic'].map(r => `<label class="flex items-center space-x-1"><input type="checkbox" value="${r}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${r}</span></label>`).join('')}
+                        </div>
                     </div>
-                </div>
 
-                <!-- Card Type -->
-                <div>
-                    <label for="mtg-type-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Type</label>
-                    <input type="text" id="mtg-type-filter" placeholder="e.g. Creature, Instant" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
-                </div>
+                    <div>
+                        <label for="mtg-type-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Type</label>
+                        <input type="text" id="mtg-type-filter" placeholder="e.g. Creature, Instant" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
+                    </div>
 
-                <!-- Language & Condition -->
-                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="mtg-lang-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Language</label>
                         <select id="mtg-lang-filter" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mtg-filter">
@@ -99,26 +94,22 @@ document.addEventListener('authReady', (e) => {
                             <option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
                         </select>
                     </div>
-                </div>
 
-                <!-- Other Attributes -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Attributes</label>
-                    <div id="mtg-attr-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                        <label class="flex items-center space-x-1"><input type="checkbox" id="mtg-foil-filter" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Foil</span></label>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Attributes</label>
+                        <div id="mtg-attr-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
+                            <label class="flex items-center space-x-1"><input type="checkbox" id="mtg-foil-filter" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Foil</span></label>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Format Legality -->
-                <div>
+                
+                <div class="mt-4 pt-4 border-t dark:border-gray-600">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format Legality</label>
                      <div id="mtg-format-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
                         ${formats.map(f => `<label class="flex items-center space-x-1"><input type="checkbox" value="${f}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${f}</span></label>`).join('')}
                     </div>
                 </div>
             `;
-        } else if (selectedGame === 'Pokémon') {
-            // Placeholder for Pokémon filters
         }
     };
 
@@ -147,7 +138,7 @@ document.addEventListener('authReady', (e) => {
             
         } catch (error) {
             console.error("Fatal error fetching listings:", error);
-            showMessage(`<p class="text-red-500">Could not fetch listings. Error: ${error.message}</p>`);
+            showMessage(`<p class="text-red-500">Could not fetch listings. This is likely a Firestore security rule issue. Please ensure your rules allow collection group queries on the 'collection' group. Error: ${error.message}</p>`);
         }
     };
 
@@ -157,8 +148,6 @@ document.addEventListener('authReady', (e) => {
         // --- Primary Filters ---
         const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
         const tcgFilter = tcgFilterEl.value;
-        
-        // **NEW**: Handle multiple sellers
         const sellerInput = document.getElementById('filter-seller').value;
         const sellerNames = sellerInput.split(',').map(name => name.trim().toLowerCase()).filter(name => name.length > 0);
 
@@ -173,7 +162,7 @@ document.addEventListener('authReady', (e) => {
         }
         
         // --- Advanced MTG Filters ---
-        if (tcgFilter === 'Magic: The Gathering') {
+        if (tcgFilter === 'Magic: The Gathering' && document.getElementById('mtg-color-filters')) {
             const selectedColors = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
             const selectedRarities = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
             const typeFilter = document.getElementById('mtg-type-filter').value.trim().toLowerCase();
@@ -329,7 +318,6 @@ document.addEventListener('authReady', (e) => {
         applyFiltersAndRender();
     });
     
-    // Use 'click' for checkboxes and 'input' for text fields to trigger filtering immediately
     gameSpecificFiltersContainer.addEventListener('input', (e) => {
         if (e.target.matches('.mtg-filter')) {
            applyFiltersAndRender();
