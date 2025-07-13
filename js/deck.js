@@ -1,10 +1,12 @@
 /**
- * HatakeSocial - Deck Page Script (v22 - Internal Pricing)
+ * HatakeSocial - Deck Page Script (v21 - AI Deck Advisor)
  *
- * - FIX: All pricing logic now uses the internal HatakePriceGuide.
  * - NEW: Implements an AI-powered Deck Advisor using the Gemini API.
+ * - NEW: Fetches synergistic cards from Scryfall and sends them to the Gemini API for categorization.
  * - NEW: Displays categorized suggestions in an accordion format.
  * - Adds a "Deck Primer / Guide" textarea to the deck builder.
+ * - Saves the primer content to Firestore along with the rest of the deck data.
+ * - Displays the formatted primer on the deck view page.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -380,13 +382,10 @@ document.addEventListener('authReady', (e) => {
             
             if (!categorizedCards[category]) categorizedCards[category] = [];
             categorizedCards[category].push(card);
-
-            const priceData = window.HatakePriceGuide[card.id];
-            const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
-            totalPrice += (price || 0) * card.quantity;
+            totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
         });
 
-        document.getElementById('deck-view-price').textContent = `${totalPrice.toFixed(2)} SEK`;
+        document.getElementById('deck-view-price').textContent = `$${totalPrice.toFixed(2)}`;
         if (deck.cards.length > 0) {
             featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
         }
@@ -469,12 +468,7 @@ document.addEventListener('authReady', (e) => {
         myDecksList.innerHTML = '';
         snapshot.forEach(doc => {
             const deck = doc.data();
-            const totalPrice = deck.cards.reduce((acc, card) => {
-                const priceData = window.HatakePriceGuide[card.id];
-                const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
-                return acc + (price || 0) * card.quantity;
-            }, 0);
-            
+            const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
             
@@ -482,7 +476,7 @@ document.addEventListener('authReady', (e) => {
                 <div class="cursor-pointer hover:opacity-80" data-deck-id="${doc.id}">
                     <h3 class="text-xl font-bold dark:text-white">${deck.name}</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
-                    <p class="text-blue-500 font-semibold mt-2">Value: ${window.HatakeSocial.convertAndFormatPrice(totalPrice, 'USD')}</p>
+                    <p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>
                 </div>
                 <div class="mt-2 flex space-x-2">
                     <button class="edit-deck-btn text-sm text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white" data-deck-id="${doc.id}">Edit</button>
@@ -495,6 +489,7 @@ document.addEventListener('authReady', (e) => {
             deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
                 if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
                     await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
+                    // Also delete from public collection if it exists
                     await db.collection('publicDecks').doc(doc.id).delete();
                     alert('Deck deleted successfully.');
                     loadMyDecks();
@@ -558,14 +553,12 @@ document.addEventListener('authReady', (e) => {
         }
         decks.forEach(deckData => {
             const totalPrice = deckData.cards.reduce((acc, card) => {
-                const priceData = window.HatakePriceGuide[card.id];
-                const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
-                return acc + (price || 0) * card.quantity;
+                const price = card.prices?.usd || 0;
+                return acc + (parseFloat(price) * card.quantity);
             }, 0);
-            
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
-            deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deckData.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: ${window.HatakeSocial.convertAndFormatPrice(totalPrice, 'USD')}</p>`;
+            deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deckData.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
             deckCard.addEventListener('click', () => viewDeck(deckData, deckData.id));
             communityDecksList.appendChild(deckCard);
         });
