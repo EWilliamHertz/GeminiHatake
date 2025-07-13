@@ -1,10 +1,15 @@
 /**
- * HatakeSocial - Marketplace Page Script (v7 - Firestore Query Fix)
+ * HatakeSocial - Marketplace Page Script (v5 - Bug Fix & Multi-Seller Search)
  *
- * Fixes issue where cards weren't loading due to Firestore query problems
- * - Ensures proper initialization of Firestore
- * - Adds debug logging to track data flow
- * - Includes fallback for missing seller data
+ * This script handles all logic for the marketplace.html page.
+ * - FIX: Corrects a reference error that prevented advanced filters from rendering
+ * and stopped all listings from loading.
+ * - NEW: Implements multi-seller search, allowing users to enter comma-separated
+ * names (e.g., "Williama, Mark") to see listings from multiple people at once.
+ * - Implements a comprehensive set of advanced, client-side filters
+ * specifically for Magic: The Gathering cards.
+ * - All filtering is performed client-side on the initially fetched data
+ * for a fast and responsive user experience.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -48,6 +53,7 @@ document.addEventListener('authReady', (e) => {
 
         if (selectedGame === 'Magic: The Gathering') {
             gameSpecificFiltersContainer.classList.remove('hidden');
+            // **FIX**: The 'formats' variable must be defined within this function's scope.
             const formats = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander'];
             const languages = { 'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian', 'zhs': 'Simplified Chinese', 'zht': 'Traditional Chinese' };
 
@@ -119,67 +125,25 @@ document.addEventListener('authReady', (e) => {
     // --- Data Fetching and Rendering ---
     const fetchAllListings = async () => {
         showMessage('<p class="text-gray-500 dark:text-gray-400 flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching all listings from the marketplace...</p>');
-        
-        // Ensure Firestore is properly initialized
-        if (!db) {
-            console.error("Firestore not initialized!");
-            showMessage('<p class="text-red-500">Database connection error. Please try refreshing.</p>');
-            return;
-        }
-        
         try {
-            // Get reference to Firestore
-            const db = firebase.firestore();
-            
             const query = db.collectionGroup('collection').where('forSale', '==', true);
             const snapshot = await query.get();
 
-            console.log(`Found ${snapshot.size} listings in Firestore`);
-
             if (snapshot.empty) {
-                console.log("No listings found in Firestore");
                 allFetchedCards = [];
-                showMessage('<p class="text-gray-500 dark:text-gray-400">There are currently no cards for sale in the marketplace.</p>');
                 return;
             }
 
             const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
-            console.log(`Found ${sellerIds.length} unique sellers`);
-            
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
-            
-            // Create fallback seller data for missing documents
-            const sellers = new Map();
-            sellerDocs.forEach(doc => {
-                if (doc.exists) {
-                    sellers.set(doc.id, { uid: doc.id, ...doc.data() });
-                } else {
-                    // Create minimal seller object with placeholder data
-                    sellers.set(doc.id, {
-                        uid: doc.id,
-                        displayName: 'Unknown Seller',
-                        primaryCurrency: 'USD',
-                        city: 'Unknown',
-                        country: 'Unknown'
-                    });
-                }
-            });
+            const sellers = new Map(sellerDocs.map(doc => [doc.id, { uid: doc.id, ...doc.data() }]));
 
-            allFetchedCards = snapshot.docs.map(doc => {
-                const sellerId = doc.ref.parent.parent.id;
-                return {
-                    id: doc.id,
-                    sellerData: sellers.get(sellerId) || {
-                        uid: sellerId,
-                        displayName: 'Unknown Seller',
-                        primaryCurrency: 'USD'
-                    },
-                    ...doc.data()
-                };
-            });
-            
-            console.log(`Processed ${allFetchedCards.length} cards for display`);
+            allFetchedCards = snapshot.docs.map(doc => ({
+                id: doc.id,
+                sellerData: sellers.get(doc.ref.parent.parent.id) || null,
+                ...doc.data()
+            }));
             
         } catch (error) {
             console.error("Fatal error fetching listings:", error);
@@ -188,19 +152,13 @@ document.addEventListener('authReady', (e) => {
     };
 
     const applyFiltersAndRender = () => {
-        // If no cards were fetched, show appropriate message
-        if (allFetchedCards.length === 0) {
-            showMessage('<p class="text-gray-500 dark:text-gray-400">There are currently no cards for sale in the marketplace.</p>');
-            return;
-        }
-
         let cardsToDisplay = [...allFetchedCards];
 
         // --- Primary Filters ---
         const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
         const tcgFilter = tcgFilterEl.value;
         
-        // Handle multiple sellers
+        // **NEW**: Handle multiple sellers
         const sellerInput = document.getElementById('filter-seller').value;
         const sellerNames = sellerInput.split(',').map(name => name.trim().toLowerCase()).filter(name => name.length > 0);
 
@@ -286,9 +244,10 @@ document.addEventListener('authReady', (e) => {
 
         const renderTarget = currentView === 'grid' ? marketplaceGrid : marketplaceListView;
         const renderFunction = currentView === 'grid' ? renderGridViewCard : renderListViewItem;
-        
         cards.forEach(card => {
-            renderTarget.appendChild(renderFunction(card));
+            if (card && card.sellerData) {
+                renderTarget.appendChild(renderFunction(card));
+            }
         });
     };
 
@@ -370,8 +329,8 @@ document.addEventListener('authReady', (e) => {
         applyFiltersAndRender();
     });
     
-    // Use 'click' for checkboxes and 'change' for selects to trigger filtering immediately
-    gameSpecificFiltersContainer.addEventListener('change', (e) => {
+    // Use 'click' for checkboxes and 'input' for text fields to trigger filtering immediately
+    gameSpecificFiltersContainer.addEventListener('input', (e) => {
         if (e.target.matches('.mtg-filter')) {
            applyFiltersAndRender();
         }
