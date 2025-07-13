@@ -59,7 +59,7 @@ document.addEventListener('authReady', (e) => {
 
 
     // --- Main Display Functions ---
-    const loadList = async (listType = 'collection') => {
+    const loadCardList = async (listType = 'collection') => {
         const container = listType === 'collection' ? collectionGridView : wishlistListContainer;
         if (!container) return; // Ensure container exists before proceeding
 
