@@ -1,7 +1,7 @@
 /**
  * HatakeSocial - Core Authentication & UI Script (v25.2 - Final URL Fix)
  *
- * - FIX: Corrects the Firebase Storage URL to point to the correct AllPrintings.json file.
+ * - FIX: Corrects the Firebase Storage URL to point to the correct AllPrices.json file.
  * - Fetches the price guide directly from Firebase Storage on page load.
  */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loadPriceGuide = async () => {
         try {
             // !!! THIS IS THE CORRECTED URL !!!
-            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrintings.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
+            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrices.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
 
             const response = await fetch(priceFileURL);
             if (!response.ok) {
