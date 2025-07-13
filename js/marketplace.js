@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Marketplace Page Script (v7 - Final Fix)
+ * HatakeSocial - Marketplace Page Script (v7 - Final Fix Merged)
  *
  * This script handles all logic for the marketplace.html page.
  * - Works with the corrected Firestore security rules for collection group queries.
@@ -139,6 +139,8 @@ document.addEventListener('authReady', (e) => {
         const tcgFilter = tcgFilterEl.value;
         const sellerInput = document.getElementById('filter-seller').value;
         const sellerNames = sellerInput.split(',').map(name => name.trim().toLowerCase()).filter(name => name.length > 0);
+        const cityFilter = document.getElementById('filter-city')?.value.trim().toLowerCase();
+        const countryFilter = document.getElementById('filter-country')?.value.trim().toLowerCase();
 
         if (nameFilter) cardsToDisplay = cardsToDisplay.filter(c => c.name.toLowerCase().includes(nameFilter));
         if (tcgFilter !== 'all') cardsToDisplay = cardsToDisplay.filter(c => c.tcg === tcgFilter);
@@ -149,6 +151,8 @@ document.addEventListener('authReady', (e) => {
                 return sellerDisplayName && sellerNames.some(searchName => sellerDisplayName.includes(searchName));
             });
         }
+        if (cityFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.city?.toLowerCase().includes(cityFilter));
+        if (countryFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.country?.toLowerCase().includes(countryFilter));
         
         if (tcgFilter === 'Magic: The Gathering' && document.getElementById('mtg-color-filters')) {
             const selectedColors = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
@@ -162,7 +166,9 @@ document.addEventListener('authReady', (e) => {
             if (selectedColors.length > 0) {
                 cardsToDisplay = cardsToDisplay.filter(c => {
                     const cardColors = c.colors || (c.color_identity || []);
-                    if(selectedColors.includes('C') && cardColors.length === 0) return true;
+                    if (selectedColors.includes('C')) {
+                        return cardColors.length === 0;
+                    }
                     return selectedColors.every(color => cardColors.includes(color));
                 });
             }
@@ -180,29 +186,13 @@ document.addEventListener('authReady', (e) => {
         cardsToDisplay.sort((a, b) => {
             let valA, valB;
             switch(sortField) {
-                case 'price':
-                    valA = a.salePrice || 0;
-                    valB = b.salePrice || 0;
-                    break;
-                case 'name':
-                    valA = a.name.toLowerCase();
-                    valB = b.name.toLowerCase();
-                    break;
-                case 'rarity':
-                    valA = rarityOrder[a.rarity] || 0;
-                    valB = rarityOrder[b.rarity] || 0;
-                    break;
-                default: // addedAt
-                    valA = a.addedAt?.seconds || 0;
-                    valB = b.addedAt?.seconds || 0;
-                    break;
+                case 'price': valA = a.salePrice || 0; valB = b.salePrice || 0; break;
+                case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
+                case 'rarity': valA = rarityOrder[a.rarity] || 0; valB = rarityOrder[b.rarity] || 0; break;
+                default: valA = a.addedAt?.seconds || 0; valB = b.addedAt?.seconds || 0; break;
             }
-
-            if (typeof valA === 'string') {
-                return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            } else {
-                return sortDirection === 'asc' ? valA - valB : valB - valA;
-            }
+            if (typeof valA === 'string') return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            return sortDirection === 'asc' ? valA - valB : valB - valA;
         });
 
         renderResults(cardsToDisplay);
@@ -226,7 +216,7 @@ document.addEventListener('authReady', (e) => {
             }
         });
     };
-
+    
     const renderGridViewCard = (card) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
