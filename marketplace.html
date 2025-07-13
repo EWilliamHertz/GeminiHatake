@@ -10,7 +10,6 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
 
-    
    <!-- Header Section -->
    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
        <div class="container mx-auto px-4 flex justify-between items-center">
@@ -73,8 +72,8 @@
         <div id="search-form-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
             <form id="marketplace-search-form" class="space-y-4">
                 <!-- Primary Filters -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="lg:col-span-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
                         <label for="search-card-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Card Name</label>
                         <input type="text" id="search-card-name" placeholder="e.g., Sol Ring" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
                     </div>
@@ -87,11 +86,23 @@
                         </select>
                     </div>
                      <div>
-                        <label for="filter-seller" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller Name</label>
-                        <input type="text" id="filter-seller" placeholder="e.g., Hatake" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        <label for="filter-seller" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller Name(s)</label>
+                        <input type="text" id="filter-seller" placeholder="e.g., Williama, Mark" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
                     </div>
                 </div>
                 
+                <!-- NEW: Location Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+                     <div>
+                        <label for="filter-country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's Country</label>
+                        <input type="text" id="filter-country" placeholder="e.g., Sweden" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                     <div>
+                        <label for="filter-city" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Seller's City</label>
+                        <input type="text" id="filter-city" placeholder="e.g., Gothenburg" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+
                 <!-- Game Specific Filters will be injected here by JS -->
                 <div id="game-specific-filters-container" class="pt-4 mt-4 border-t dark:border-gray-700 hidden"></div>
                 
@@ -146,9 +157,6 @@
                     <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
                 </div>
                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
-                </button>
             </form>
         </div>
     </div>
