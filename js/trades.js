@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v16 - Cancel & Display Fix)
+ * HatakeSocial - Advanced Trades Page Script (v17 - Internal Pricing)
  *
  * This script implements a comprehensive and secure trading system.
- * - FIX: Corrects the display logic to correctly show "Proposer Offers" and "Receiver Offers" on both sides of the trade.
+ * - FIX: All pricing logic now uses the internal HatakePriceGuide.
  * - FIX: Adds a "Cancel" button for the proposer on pending trades.
  * - FIX: Corrects the feedback submission process to work without a backend.
  */
@@ -161,7 +161,6 @@ document.addEventListener('authReady', (e) => {
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
         const isProposer = trade.proposerId === user.uid;
 
-        // **FIX:** Use proposer and receiver names directly from the trade data.
         const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
         const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
         
@@ -216,7 +215,6 @@ document.addEventListener('authReady', (e) => {
         switch(trade.status) {
             case 'pending':
                 if (isProposer) {
-                    // **FIX:** Added cancel button for outgoing trades.
                     actionButtons = `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 text-sm">Cancel Offer</button>`;
                 } else {
                     actionButtons = `
@@ -388,8 +386,12 @@ document.addEventListener('authReady', (e) => {
         cards.forEach(card => {
             const cardEl = document.createElement('div');
             cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer';
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            
+            // UPDATED: Use internal price guide
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
             const localPrice = window.HatakeSocial.convertAndFormatPrice(price, 'USD');
+            
             cardEl.innerHTML = `
                 <span class="text-sm truncate dark:text-gray-300">${card.name}</span>
                 <div class="flex items-center">
@@ -442,16 +444,20 @@ document.addEventListener('authReady', (e) => {
     const updateTotalValueUI = () => {
         let proposerValue = 0;
         tradeOffer.proposerCards.forEach(card => {
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            proposerValue += price;
+            // UPDATED: Use internal price guide
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+            proposerValue += price || 0;
         });
         proposerValue += parseFloat(proposerMoneyInput.value) / USD_TO_SEK_RATE || 0;
         proposerValueEl.textContent = `${(proposerValue * USD_TO_SEK_RATE).toFixed(2)} SEK`;
 
         let receiverValue = 0;
         tradeOffer.receiverCards.forEach(card => {
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            receiverValue += price;
+            // UPDATED: Use internal price guide
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+            receiverValue += price || 0;
         });
         receiverValue += parseFloat(receiverMoneyInput.value) / USD_TO_SEK_RATE || 0;
         receiverValueEl.textContent = `${(receiverValue * USD_TO_SEK_RATE).toFixed(2)} SEK`;
@@ -465,7 +471,8 @@ document.addEventListener('authReady', (e) => {
     
         let sourceValueUSD = 0;
         sourceCards.forEach(card => {
-            sourceValueUSD += parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            sourceValueUSD += priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
         });
         sourceValueUSD += parseFloat(sourceMoneyInput.value) / USD_TO_SEK_RATE || 0;
     
@@ -473,7 +480,8 @@ document.addEventListener('authReady', (e) => {
     
         let currentTargetValueUSD = 0;
         tradeOffer[`${targetSide}Cards`].forEach(card => {
-            currentTargetValueUSD += parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            currentTargetValueUSD += priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
         });
         currentTargetValueUSD += parseFloat(document.getElementById(`${targetSide}-money`).value) / USD_TO_SEK_RATE || 0;
     
@@ -485,10 +493,13 @@ document.addEventListener('authReady', (e) => {
     
         const availableCards = collectionToUse
             .filter(card => !tradeOffer[`${targetSide}Cards`].some(offerCard => offerCard.id === card.id))
-            .map(card => ({
-                ...card,
-                value: parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0
-            }))
+            .map(card => {
+                const priceData = window.HatakePriceGuide[card.scryfallId];
+                return {
+                    ...card,
+                    value: priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0,
+                };
+            })
             .filter(card => card.value > 0)
             .sort((a, b) => b.value - a.value);
     
@@ -539,8 +550,8 @@ document.addEventListener('authReady', (e) => {
             receiverId: tradeOffer.receiver.id,
             receiverName: tradeOffer.receiver.displayName,
             participants: [user.uid, tradeOffer.receiver.id],
-            proposerCards: tradeOffer.proposerCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil })),
-            receiverCards: tradeOffer.receiverCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil })),
+            proposerCards: tradeOffer.proposerCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, scryfallId: c.scryfallId, isFoil: c.isFoil })),
+            receiverCards: tradeOffer.receiverCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, scryfallId: c.scryfallId, isFoil: c.isFoil })),
             proposerMoney: parseFloat(proposerMoneyInput.value) || 0,
             receiverMoney: parseFloat(receiverMoneyInput.value) || 0,
             notes: document.getElementById('trade-notes').value,
@@ -800,7 +811,6 @@ document.addEventListener('authReady', (e) => {
     
     closeFeedbackModalBtn?.addEventListener('click', () => closeModal(feedbackModal));
 
-    // **UPDATED** Feedback Form Listener
     feedbackForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -827,11 +837,8 @@ document.addEventListener('authReady', (e) => {
         };
 
         try {
-            // **REMOVED** logic to update user profile directly.
-            // A Cloud Function will now listen for this creation event.
             await db.collection('feedback').add(feedbackData);
 
-            // We can still update the trade document to show feedback was left.
             const tradeRef = db.collection('trades').doc(tradeId);
             const tradeDoc = await tradeRef.get();
             if (tradeDoc.exists) {
