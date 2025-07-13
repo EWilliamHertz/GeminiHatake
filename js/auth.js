@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Function to fetch the price guide from Firebase Storage ---
     const loadPriceGuide = async () => {
         try {
-            // !!! THIS IS THE UPDATED URL !!!
-            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrintings.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
+            // !!! IMPORTANT: This is the URL from your Firebase Storage !!!
+            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrices.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
 
             const response = await fetch(priceFileURL);
             if (!response.ok) {
