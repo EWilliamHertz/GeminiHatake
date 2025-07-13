@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v25 - Fetching Prices from Firebase Storage)
+ * HatakeSocial - Core Authentication & UI Script (v25.2 - Final URL Fix)
  *
- * - **NEW**: Fetches the AllPrices.json file directly from Firebase Storage on page load.
- * - This creates the HatakePriceGuide object dynamically, keeping the auth.js file clean.
+ * - FIX: Corrects the Firebase Storage URL to point to the correct AllPrintings.json file.
+ * - Fetches the price guide directly from Firebase Storage on page load.
  */
 document.addEventListener('DOMContentLoaded', async () => {
     document.body.style.opacity = '0';
@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Function to fetch the price guide from Firebase Storage ---
     const loadPriceGuide = async () => {
         try {
-            // !!! IMPORTANT: This is the URL from your Firebase Storage !!!
-            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrices.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
+            // !!! THIS IS THE CORRECTED URL !!!
+            const priceFileURL = "https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/AllPrintings.json?alt=media&token=570261a2-6678-4aff-8949-5c460fe1b5bf"; 
 
             const response = await fetch(priceFileURL);
             if (!response.ok) {
-                throw new Error('Could not download price file.');
+                throw new Error('Could not download price file. Check the URL and Firebase Storage rules.');
             }
             const priceData = await response.json();
             window.HatakePriceGuide = priceData.data || {}; // Assign the inner 'data' object
