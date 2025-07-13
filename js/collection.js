@@ -1,14 +1,9 @@
 /**
- * HatakeSocial - My Collection Page Script (v16 - Function Name Fix)
+ * HatakeSocial - My Collection Page Script (v19 - Manual Search Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Corrects all instances of the function call 'loadList' to the correct 'loadCardList'.
- * - FIX: The CSV import logic now checks for a "Set code" column to fetch the
- * correct printing of a card from Scryfall, resolving data mismatches.
- * - Displays a price tag in the user's selected currency over each card image.
- * - Implements an advanced manual add feature.
- * - Adds a "Quick Edit" mode to rapidly update card details.
- * - All bulk and quick-edit changes are saved in a single batch write.
+ * - FIX: The manual card search now correctly handles partial names instead of requiring an exact match.
+ * - All pricing logic is based on Scryfall API data.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -406,7 +401,8 @@ document.addEventListener('authReady', (e) => {
         try {
             let versions = [];
             if (game === 'magic') {
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=!"${encodeURIComponent(cardName)}"&unique=prints&order=released`);
+                // **FIX:** Changed the query to be less strict for better search results.
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
                 if (!response.ok) throw new Error("Card not found on Scryfall.");
                 const result = await response.json();
                 versions = result.data.map(card => ({
@@ -524,7 +520,7 @@ document.addEventListener('authReady', (e) => {
 
                 const header = Object.keys(rows[0]);
                 const nameKey = header.find(h => h.toLowerCase().includes('name'));
-                const setKey = header.find(h => h.toLowerCase().includes('set code')); // Find set code column
+                const setKey = header.find(h => h.toLowerCase().includes('set code'));
 
                 if (!nameKey) {
                     csvStatus.textContent = 'Error: Could not find a "Name" column in your CSV.';
@@ -549,7 +545,6 @@ document.addEventListener('authReady', (e) => {
                     try {
                         await new Promise(resolve => setTimeout(resolve, 100));
                         
-                        // Construct API URL with set code if available
                         let apiUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
                         if (setCode) {
                             apiUrl += `&set=${encodeURIComponent(setCode)}`;
