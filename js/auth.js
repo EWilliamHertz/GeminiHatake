@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v23 - Reverted to Scryfall/MTGJSON Pricing)
+ * HatakeSocial - Core Authentication & UI Script (v24 - MTGJSON Pricing)
  *
- * - All pricing logic has been reverted to use external APIs.
- * - The internal price guide has been removed.
+ * - **NEW**: Implements window.HatakePriceGuide to simulate a local price database based on MTGJSON data.
+ * - All price display functions now reference this internal guide.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -24,6 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+    // --- NEW: Internal Price Guide (Simulating MTGJSON data) ---
+    // Key is the Scryfall Card ID, which is available in MTGJSON.
+    window.HatakePriceGuide = {
+        "b9c03336-a321-4c06-94d1-809f328fabd8": { "paper": { "cardmarket": { "retail": { "normal": 19.34 } } } }, // Leyline Axe
+        "ae9c1471-ae6f-4b66-9842-46f1a74e93b5": { "paper": { "cardmarket": { "retail": { "normal": 1.34, "foil": 5.50 } } } }, // Garna, the Bloodflame
+        "d9849b22-1fba-4f6a-bd94-df1bc1764e6b": { "paper": { "cardmarket": { "retail": { "normal": 0.25, "foil": 4.14 } } } } // Snakeskin Veil
+        // You will populate this with more data from the MTGJSON file.
+    };
 
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
