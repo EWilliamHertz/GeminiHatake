@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - My Collection Page Script (v15 - CSV Set-Aware Import)
+ * HatakeSocial - My Collection Page Script (v16 - Function Name Fix)
  *
  * This script handles all logic for the my_collection.html page.
+ * - FIX: Corrects all instances of the function call 'loadList' to the correct 'loadCardList'.
  * - FIX: The CSV import logic now checks for a "Set code" column to fetch the
  * correct printing of a card from Scryfall, resolving data mismatches.
  * - Displays a price tag in the user's selected currency over each card image.
