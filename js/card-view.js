@@ -1,8 +1,7 @@
 /**
- * HatakeSocial - Card View Page Script (v6 - Internal Pricing)
+ * HatakeSocial - Card View Page Script (v7 - Robust Internal Pricing)
  *
- * This script is a complete, working version for the card-view.html page.
- * - All pricing logic is now based on the internal HatakePriceGuide.
+ * - FIX: All pricing logic now safely checks for the existence of a price in HatakePriceGuide.
  * - Displays all prices in the user's selected currency.
  * - Shows seller's location and estimated shipping costs for each listing.
  */
@@ -32,7 +31,7 @@ document.addEventListener('authReady', (e) => {
     let allListings = [];
     let priceChart = null;
 
-    // --- NEW: Helper function to determine shipping region ---
+    // --- Helper function to determine shipping region ---
     const getShippingRegion = (sellerCountry, buyerCountry) => {
         const europeanCountries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "United Kingdom"];
         
@@ -52,11 +51,9 @@ document.addEventListener('authReady', (e) => {
             // 1. Fetch card data from Scryfall API
             const scryfallResponse = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
             if (!scryfallResponse.ok) {
-                // Try fuzzy search if exact fails
                 const fuzzyResponse = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
                 if (!fuzzyResponse.ok) throw new Error('Card not found on Scryfall.');
                 const cardData = await fuzzyResponse.json();
-                // Redirect to the correct URL with the exact name
                 window.location.search = `?name=${encodeURIComponent(cardData.name)}`;
                 return;
             }
@@ -65,7 +62,7 @@ document.addEventListener('authReady', (e) => {
             // 2. Update the page with Scryfall data
             updatePageWithCardData(cardData);
 
-            // 3. Render the price chart with simulated historical data
+            // 3. Render the price chart
             renderPriceChart(cardData);
 
             // 4. Fetch listings for this card from our Firestore database
@@ -115,7 +112,6 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
 
-            // Efficiently get all seller info in one batch
             const sellerIds = [...new Set(listingsSnapshot.docs.map(doc => doc.ref.parent.parent.id))];
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
@@ -252,7 +248,7 @@ document.addEventListener('authReady', (e) => {
     const renderPriceChart = (cardData) => {
         if (!chartCtx) return;
         if (priceChart) {
-            priceChart.destroy(); // Destroy old chart instance
+            priceChart.destroy();
         }
 
         const priceData = window.HatakePriceGuide[cardData.id];
