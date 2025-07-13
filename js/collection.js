@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - My Collection Page Script (v17 - Reverted to Scryfall Pricing)
+ * HatakeSocial - My Collection Page Script (v18 - Final Pricing Fix)
  *
- * This script handles all logic for the my_collection.html page.
- * - All pricing logic is now based on Scryfall API data.
- * - The CSV import logic now correctly uses the "Set code" to fetch the exact card version.
+ * - FIX: Corrects the pricing logic to use the internal HatakePriceGuide consistently.
+ * - FIX: The CSV import logic now correctly uses the "Set code" column.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -125,8 +124,9 @@ document.addEventListener('authReady', (e) => {
             const isSelected = selectedCards.has(card.id);
             const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
-            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+            const formattedPrice = price > 0 ? window.HatakeSocial.convertAndFormatPrice(price, 'USD') : '';
             const priceTagHTML = formattedPrice 
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
@@ -155,8 +155,9 @@ document.addEventListener('authReady', (e) => {
             const quantity = card.quantity || 1;
             totalCards += quantity;
             
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            totalValue += price * quantity;
+            const priceData = window.HatakePriceGuide[card.scryfallId];
+            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+            totalValue += (price || 0) * quantity;
 
             if (card.rarity) {
                 if (rarityCounts.hasOwnProperty(card.rarity.toLowerCase())) {
@@ -345,7 +346,9 @@ document.addEventListener('authReady', (e) => {
         selectedCards.forEach(cardId => {
             const card = fullCollection.find(c => c.id === cardId);
             if (card) {
-                const marketPriceUSD = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                const priceData = window.HatakePriceGuide[card.scryfallId];
+                const marketPriceUSD = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+                
                 if (marketPriceUSD > 0) {
                     const priceInUserCurrency = parseFloat(window.HatakeSocial.convertAndFormatPrice(marketPriceUSD, 'USD').split(' ')[0]);
                     const newPrice = priceInUserCurrency * (percentage / 100);
