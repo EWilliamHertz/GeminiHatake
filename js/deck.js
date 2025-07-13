@@ -562,6 +562,7 @@ document.addEventListener('authReady', (e) => {
                 const price = priceData ? (card.foil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
                 return acc + (price || 0) * card.quantity;
             }, 0);
+            
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
             deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deckData.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: ${window.HatakeSocial.convertAndFormatPrice(totalPrice, 'USD')}</p>`;
