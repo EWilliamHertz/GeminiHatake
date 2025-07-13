@@ -125,7 +125,7 @@ document.addEventListener('authReady', (e) => {
             const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
             const priceData = window.HatakePriceGuide[card.scryfallId];
-            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+            const price = priceData?.paper?.cardmarket?.retail?.[card.isFoil ? 'foil' : 'normal'] || 0;
             const formattedPrice = price > 0 ? window.HatakeSocial.convertAndFormatPrice(price, 'USD') : '';
             const priceTagHTML = formattedPrice 
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
@@ -156,7 +156,7 @@ document.addEventListener('authReady', (e) => {
             totalCards += quantity;
             
             const priceData = window.HatakePriceGuide[card.scryfallId];
-            const price = priceData ? (card.isFoil ? priceData.paper?.cardmarket?.retail?.foil : priceData.paper?.cardmarket?.retail?.normal) : 0;
+            const price = priceData?.paper?.cardmarket?.retail?.[card.isFoil ? 'foil' : 'normal'] || 0;
             totalValue += (price || 0) * quantity;
 
             if (card.rarity) {
