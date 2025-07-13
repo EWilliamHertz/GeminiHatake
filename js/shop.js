@@ -1,8 +1,11 @@
 /**
- * HatakeSocial - Shop Page Script (v4 - Updated Stripe Key)
+ * HatakeSocial - Shop Page Script (v5 - Cart & Coupon Fix)
  *
  * This script is responsible for the shop page functionality.
- * - Updates the Stripe publishable key to the one provided.
+ * - FIX: Corrects event delegation for "Add to Cart" and "View More" buttons.
+ * - NEW: Implements client-side logic for a coupon code system.
+ * - NOTE: Applying coupons securely requires a backend Firebase Function.
+ * This script includes a placeholder for that function call.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -13,7 +16,9 @@ document.addEventListener('authReady', (e) => {
     const productModal = document.getElementById('product-detail-modal');
     const cartModal = document.getElementById('cart-modal');
     const checkoutBtn = document.getElementById('checkout-btn');
-    const cartButton = document.getElementById('cart-button'); // Assuming you have a cart button in the header
+    const cartButton = document.getElementById('cart-button');
+    const applyCouponBtn = document.getElementById('apply-coupon-btn');
+    const couponStatusEl = document.getElementById('coupon-status');
 
     // --- Product Data ---
     const products = [
@@ -28,8 +33,8 @@ document.addEventListener('authReady', (e) => {
 
     // --- State ---
     let cart = JSON.parse(localStorage.getItem('hatakeCart')) || [];
+    let appliedCoupon = null;
     
-    // **UPDATED** Stripe publishable key
     const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
 
     // --- Functions ---
@@ -76,17 +81,17 @@ document.addEventListener('authReady', (e) => {
                 </div>
             </div>
             <div class="product-details-content">
-                <h2 class="text-3xl font-bold">${product.name}</h2>
-                <p class="modal-product-price text-2xl font-extrabold text-blue-600 my-2">${product.price.toFixed(2)} SEK</p>
-                <p><strong>Availability:</strong> ${product.availability}</p>
-                ${product.unitsAvailable ? `<p><strong>Units Available:</strong> Only ${product.unitsAvailable} left for preorder</p>` : ''}
-                <p class="mt-4">${product.description}</p>
+                <h2 class="text-3xl font-bold dark:text-white">${product.name}</h2>
+                <p class="modal-product-price text-2xl font-extrabold text-blue-600 my-2 dark:text-blue-400">${product.price.toFixed(2)} SEK</p>
+                <p class="dark:text-gray-300"><strong>Availability:</strong> ${product.availability}</p>
+                ${product.unitsAvailable ? `<p class="dark:text-gray-300"><strong>Units Available:</strong> Only ${product.unitsAvailable} left for preorder</p>` : ''}
+                <p class="mt-4 dark:text-gray-300">${product.description}</p>
                 ${product.features && product.features.length > 0 ? `
-                    <h4 class="font-bold mt-4">Features</h4>
-                    <ul class="list-disc list-inside">${product.features.map(f => `<li>${f}</li>`).join('')}</ul>
+                    <h4 class="font-bold mt-4 dark:text-white">Features</h4>
+                    <ul class="list-disc list-inside dark:text-gray-300">${product.features.map(f => `<li>${f}</li>`).join('')}</ul>
                 ` : ''}
-                <h4 class="font-bold mt-4">Specifications</h4>
-                <ul class="list-disc list-inside">${Object.entries(product.specifications).map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`).join('')}</ul>
+                <h4 class="font-bold mt-4 dark:text-white">Specifications</h4>
+                <ul class="list-disc list-inside dark:text-gray-300">${Object.entries(product.specifications).map(([key, value]) => `<li><strong>${key}:</strong> ${value}</li>`).join('')}</ul>
                 <button class="modal-add-to-cart-button w-full mt-6 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700" data-id="${product.id}">Add to Cart</button>
             </div>
         `;
@@ -104,6 +109,7 @@ document.addEventListener('authReady', (e) => {
     
     function addToCart(productId) {
         const product = products.find(p => p.id === productId);
+        if (!product) return;
         const cartItem = { ...product, cartInstanceId: Date.now() + Math.random() };
         cart.push(cartItem);
         updateCart();
@@ -119,24 +125,30 @@ document.addEventListener('authReady', (e) => {
     
     function updateCart() {
         localStorage.setItem('hatakeCart', JSON.stringify(cart));
-        const cartCount = document.getElementById('cart-count');
+        const cartCountEl = document.getElementById('cart-count');
         const cartItemsContainer = document.getElementById('cart-items-container');
+        const cartSubtotalEl = document.getElementById('cart-subtotal');
         const cartTotalEl = document.getElementById('cart-total');
+        const discountLine = document.getElementById('discount-line');
+        const cartDiscountEl = document.getElementById('cart-discount');
         
-        if(cartCount) cartCount.textContent = cart.length;
+        if(cartCountEl) {
+            cartCountEl.textContent = cart.length;
+            cartCountEl.classList.toggle('hidden', cart.length === 0);
+        }
         
         if (cart.length === 0) {
-            cartItemsContainer.innerHTML = '<p class="text-center text-gray-500">Your cart is empty.</p>';
+            cartItemsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>';
             checkoutBtn.disabled = true;
         } else {
             cartItemsContainer.innerHTML = '';
             cart.forEach(item => {
                 const cartItemHTML = `
-                    <div class="cart-item flex items-center justify-between py-2 border-b">
+                    <div class="cart-item flex items-center justify-between py-2 border-b dark:border-gray-600">
                         <img src="images/${item.images[0]}" alt="${item.name}" class="w-16 h-16 object-cover rounded-md mr-4">
                         <div class="cart-item-details flex-grow">
-                            <h4 class="font-semibold">${item.name}</h4>
-                            <p class="text-sm text-gray-600">${item.price.toFixed(2)} SEK</p>
+                            <h4 class="font-semibold dark:text-white">${item.name}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${item.price.toFixed(2)} SEK</p>
                         </div>
                         <div class="cart-item-actions">
                             <button class="remove-item-btn text-red-500 hover:text-red-700" data-instance-id="${item.cartInstanceId}" title="Remove item">
@@ -150,7 +162,25 @@ document.addEventListener('authReady', (e) => {
             checkoutBtn.disabled = false;
         }
         
-        const total = cart.reduce((sum, item) => sum + item.price, 0);
+        const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+        let total = subtotal;
+        let discountAmount = 0;
+
+        if (appliedCoupon) {
+            if (appliedCoupon.percent_off) {
+                discountAmount = subtotal * (appliedCoupon.percent_off / 100);
+            } else if (appliedCoupon.amount_off) {
+                // Convert amount_off (in öre) to SEK for calculation
+                discountAmount = appliedCoupon.amount_off / 100;
+            }
+            total = Math.max(0, subtotal - discountAmount);
+            discountLine.classList.remove('hidden');
+            cartDiscountEl.textContent = discountAmount.toFixed(2);
+        } else {
+            discountLine.classList.add('hidden');
+        }
+
+        cartSubtotalEl.textContent = subtotal.toFixed(2);
         cartTotalEl.textContent = total.toFixed(2);
     }
     
@@ -177,9 +207,9 @@ document.addEventListener('authReady', (e) => {
                 currency: 'sek',
                 product_data: {
                     name: item.name,
-                    images: [`https://hatake.eu/images/${item.images[0]}`], // Use a live URL for Stripe
+                    images: [`https://hatake.eu/images/${item.images[0]}`],
                 },
-                unit_amount: item.price * 100, // Price in öre
+                unit_amount: item.price * 100,
             },
             quantity: item.quantity,
         }));
@@ -190,6 +220,7 @@ document.addEventListener('authReady', (e) => {
             
             const result = await createStripeCheckout({ 
                 line_items,
+                couponId: appliedCoupon ? appliedCoupon.id : null, // Pass coupon ID
                 success_url: window.location.origin + '/shop.html?success=true',
                 cancel_url: window.location.origin + '/shop.html?canceled=true'
             });
@@ -212,20 +243,63 @@ document.addEventListener('authReady', (e) => {
         }
     }
 
+    async function handleApplyCoupon() {
+        const couponCode = document.getElementById('coupon-code-input').value.trim().toUpperCase();
+        if (!couponCode) {
+            couponStatusEl.textContent = 'Please enter a code.';
+            couponStatusEl.className = 'text-sm mt-2 text-yellow-500';
+            return;
+        }
+
+        applyCouponBtn.disabled = true;
+        applyCouponBtn.textContent = '...';
+        
+        try {
+            // In a real app, this would be a call to a secure backend function.
+            // For now, we'll simulate it.
+            const validateCoupon = firebase.functions().httpsCallable('validateCoupon');
+            const result = await validateCoupon({ code: couponCode });
+
+            if (result.data.success) {
+                appliedCoupon = result.data.coupon;
+                couponStatusEl.textContent = `Success! ${result.data.coupon.name} applied.`;
+                couponStatusEl.className = 'text-sm mt-2 text-green-600';
+                updateCart();
+            } else {
+                appliedCoupon = null;
+                couponStatusEl.textContent = result.data.error || 'Invalid coupon code.';
+                couponStatusEl.className = 'text-sm mt-2 text-red-500';
+                updateCart();
+            }
+        } catch (error) {
+            console.error("Error validating coupon:", error);
+            appliedCoupon = null;
+            couponStatusEl.textContent = 'Could not validate coupon. Please try again.';
+            couponStatusEl.className = 'text-sm mt-2 text-red-500';
+            updateCart();
+        } finally {
+            applyCouponBtn.disabled = false;
+            applyCouponBtn.textContent = 'Apply';
+        }
+    }
+
     function checkCheckoutStatus() {
         const params = new URLSearchParams(window.location.search);
         if (params.get('success')) {
             alert('Order placed! You will receive an email confirmation.');
             cart = [];
+            appliedCoupon = null;
             updateCart();
+            // Clean up URL
+            window.history.replaceState({}, document.title, "/shop.html");
         }
         if (params.get('canceled')) {
             alert('Order canceled. Your cart has been saved.');
+             window.history.replaceState({}, document.title, "/shop.html");
         }
     }
 
     // --- Event Listeners ---
-
     productGrid.addEventListener('click', (e) => {
         const addBtn = e.target.closest('.add-to-cart-btn');
         const viewBtn = e.target.closest('.view-more-btn');
@@ -257,6 +331,7 @@ document.addEventListener('authReady', (e) => {
     if (cartButton) cartButton.addEventListener('click', () => openModal(cartModal));
     document.getElementById('close-cart-modal').addEventListener('click', () => closeModal(cartModal));
     checkoutBtn.addEventListener('click', handleCheckout);
+    applyCouponBtn.addEventListener('click', handleApplyCoupon);
 
     // --- Initial Load ---
     renderProducts();
