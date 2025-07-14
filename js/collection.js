@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - My Collection Page Script (v22 - Final CSV Import Fix)
+ * HatakeSocial - My Collection Page Script (v24 - Filter & View Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FINAL FIX: The CSV import logic is now highly robust. It intelligently finds the set/edition
- * column using multiple common names and confirms with the user if the set column is missing,
- * preventing incorrect card versions from being imported.
+ * - FIX: The client-side filtering logic has been corrected and now works as intended.
+ * - RE-IMPLEMENTED: A "List View" toggle has been added back, allowing users to switch
+ * between the default grid view and a more detailed table view of their collection.
+ * - All previous functionality (CSV import, bulk edit, etc.) is preserved.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -21,7 +22,9 @@ document.addEventListener('authReady', (e) => {
     let bulkEditMode = false;
     let quickEditMode = false;
     let selectedCards = new Set();
-    let fullCollection = [];
+    let fullCollection = []; 
+    let filteredCollection = [];
+    let currentView = 'grid'; // 'grid' or 'list'
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -54,70 +57,115 @@ document.addEventListener('authReady', (e) => {
     const addVersionForm = document.getElementById('add-version-form');
     const closeAddVersionModalBtn = document.getElementById('close-add-version-modal');
 
+    // Filter Elements
+    const filterNameInput = document.getElementById('filter-name');
+    const filterSetSelect = document.getElementById('filter-set');
+    const filterRaritySelect = document.getElementById('filter-rarity');
+    const filterColorSelect = document.getElementById('filter-color');
+    const resetFiltersBtn = document.getElementById('reset-filters-btn');
+    
+    // View Toggle Elements
+    const gridViewBtn = document.getElementById('grid-view-btn');
+    const listViewBtn = document.getElementById('list-view-btn');
 
-    // --- Main Display Functions ---
-    const loadCardList = async (listType = 'collection') => {
-        const container = listType === 'collection' ? collectionGridView : wishlistListContainer;
-        if (!container) return; // Ensure container exists before proceeding
 
-        if (!user) {
-            container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4">Please log in to view your ${listType}.</p>`;
-            return;
-        }
-        container.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading...</p>';
-
+    const loadCollectionData = async () => {
+        const container = collectionGridView;
+        container.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading your collection...</p>';
         try {
-            const snapshot = await db.collection('users').doc(user.uid).collection(listType).orderBy('name').get();
-            const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            if (listType === 'collection') {
-                fullCollection = items;
-                calculateAndDisplayStats(fullCollection);
-                if (quickEditMode) {
-                    renderQuickEditView();
-                } else {
-                    renderGridView();
-                }
-            } else if (listType === 'wishlist') {
-                renderWishlist(items);
-            }
+            const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
+            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            filteredCollection = [...fullCollection];
+            
+            calculateAndDisplayStats(fullCollection);
+            populateFilters();
+            renderCurrentView();
         } catch (error) {
-            console.error(`Error loading ${listType}:`, error);
-            container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your ${listType}.</p>`;
+            console.error(`Error loading collection:`, error);
+            container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your collection.</p>`;
+        }
+    };
+
+    const loadWishlistData = async () => {
+        const container = wishlistListContainer;
+        container.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading wishlist...</p>';
+        try {
+            const snapshot = await db.collection('users').doc(user.uid).collection('wishlist').orderBy('name').get();
+            const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderWishlist(items);
+        } catch (error) {
+            console.error(`Error loading wishlist:`, error);
+            container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your wishlist.</p>`;
         }
     };
     
-    const renderWishlist = (wishlistItems) => {
-        if (!wishlistListContainer) return;
-        if (wishlistItems.length === 0) {
-            wishlistListContainer.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">Your wishlist is empty.</p>`;
-            return;
-        }
-        wishlistListContainer.innerHTML = '';
-        wishlistItems.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'relative group cursor-pointer';
-            cardEl.dataset.id = card.id;
-            cardEl.innerHTML = `
-                <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
-                <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button class="edit-card-btn text-white text-xs" data-list="wishlist"><i class="fas fa-edit"></i></button>
-                    <button class="delete-card-btn text-white text-xs ml-1" data-list="wishlist"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            wishlistListContainer.appendChild(cardEl);
+    const populateFilters = () => {
+        const sets = new Set();
+        fullCollection.forEach(card => {
+            if (card.setName) sets.add(card.setName);
         });
-    }
+        
+        filterSetSelect.innerHTML = '<option value="all">All Sets</option>';
+        [...sets].sort().forEach(setName => {
+            const option = document.createElement('option');
+            option.value = setName;
+            option.textContent = setName;
+            filterSetSelect.appendChild(option);
+        });
+    };
+
+    const applyFilters = () => {
+        const nameFilter = filterNameInput.value.toLowerCase();
+        const setFilter = filterSetSelect.value;
+        const rarityFilter = filterRaritySelect.value;
+        const colorFilter = filterColorSelect.value;
+
+        filteredCollection = fullCollection.filter(card => {
+            const cardColors = card.colors || [];
+            
+            const nameMatch = card.name.toLowerCase().includes(nameFilter);
+            const setMatch = setFilter === 'all' || card.setName === setFilter;
+            const rarityMatch = rarityFilter === 'all' || card.rarity === rarityFilter;
+            
+            let colorMatch = true;
+            if (colorFilter !== 'all') {
+                if (colorFilter === 'M') {
+                    colorMatch = cardColors.length > 1;
+                } else if (colorFilter === 'C') {
+                    colorMatch = cardColors.length === 0;
+                } else {
+                    colorMatch = cardColors.includes(colorFilter);
+                }
+            }
+            
+            return nameMatch && setMatch && rarityMatch && colorMatch;
+        });
+        
+        renderCurrentView();
+    };
+    
+    const renderCurrentView = () => {
+        if (currentView === 'grid') {
+            renderGridView();
+        } else {
+            renderListView();
+        }
+    };
 
     const renderGridView = () => {
         const container = collectionGridView;
-        if (fullCollection.length === 0) {
-            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">Your collection is empty.</p>`;
+        const collectionToRender = filteredCollection;
+
+        if (collectionTableView) collectionTableView.classList.add('hidden');
+        if(container) container.classList.remove('hidden');
+
+        if (collectionToRender.length === 0) {
+            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
             return;
         }
     
         container.innerHTML = '';
-        fullCollection.forEach(card => {
+        collectionToRender.forEach(card => {
             const cardEl = document.createElement('div');
             cardEl.className = 'relative group cursor-pointer';
             cardEl.dataset.id = card.id;
@@ -146,11 +194,80 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    const renderListView = () => {
+        const container = collectionTableView;
+        const collectionToRender = filteredCollection;
+
+        if(collectionGridView) collectionGridView.classList.add('hidden');
+        if(container) container.classList.remove('hidden');
+
+        if (collectionToRender.length === 0) {
+            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
+            return;
+        }
+
+        let tableHTML = `
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Value</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+        `;
+        collectionToRender.forEach(card => {
+            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : 'N/A';
+            tableHTML += `
+                <tr class="group">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.setName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.condition}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formattedPrice}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 space-x-2">
+                        <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
+                        <button class="delete-card-btn text-red-500 hover:text-red-700" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+        tableHTML += `</tbody></table>`;
+        container.innerHTML = tableHTML;
+    };
+    
+    const renderWishlist = (wishlistItems) => {
+        if (!wishlistListContainer) return;
+        if (wishlistItems.length === 0) {
+            wishlistListContainer.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">Your wishlist is empty.</p>`;
+            return;
+        }
+        wishlistListContainer.innerHTML = '';
+        wishlistItems.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'relative group cursor-pointer';
+            cardEl.dataset.id = card.id;
+            cardEl.innerHTML = `
+                <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="edit-card-btn text-white text-xs" data-list="wishlist"><i class="fas fa-edit"></i></button>
+                    <button class="delete-card-btn text-white text-xs ml-1" data-list="wishlist"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            wishlistListContainer.appendChild(cardEl);
+        });
+    };
+
     const calculateAndDisplayStats = (collectionData) => {
         let totalCards = 0;
         let totalValue = 0;
         const rarityCounts = { common: 0, uncommon: 0, rare: 0, mythic: 0 };
-        const uniqueCards = collectionData.length;
+        const uniqueCards = new Set(collectionData.map(c => c.name)).size;
 
         collectionData.forEach(card => {
             const quantity = card.quantity || 1;
@@ -166,15 +283,11 @@ document.addEventListener('authReady', (e) => {
             }
         });
 
-        const totalCardsEl = document.getElementById('stats-total-cards');
-        const uniqueCardsEl = document.getElementById('stats-unique-cards');
-        const totalValueEl = document.getElementById('stats-total-value');
-        const rarityContainer = document.getElementById('stats-rarity-breakdown');
-
-        if(totalCardsEl) totalCardsEl.textContent = totalCards;
-        if(uniqueCardsEl) uniqueCardsEl.textContent = uniqueCards;
-        if(totalValueEl) totalValueEl.textContent = window.HatakeSocial.convertAndFormatPrice(totalValue, 'USD');
+        document.getElementById('stats-total-cards').textContent = totalCards;
+        document.getElementById('stats-unique-cards').textContent = uniqueCards;
+        document.getElementById('stats-total-value').textContent = window.HatakeSocial.convertAndFormatPrice(totalValue, 'USD');
         
+        const rarityContainer = document.getElementById('stats-rarity-breakdown');
         if (rarityContainer) {
             rarityContainer.innerHTML = `
                 <span title="Common" class="flex items-center"><i class="fas fa-circle text-gray-400 mr-1"></i>${rarityCounts.common}</span>
@@ -370,23 +483,107 @@ document.addEventListener('authReady', (e) => {
         alert("Pricing with undercut is a complex feature that requires fetching competitor prices. This functionality will be implemented in a future update!");
     };
 
-    // --- Event Handlers ---
+    const displayCardVersions = (versions) => {
+        manualAddResultsContainer.innerHTML = '';
+        if (versions.length === 0) {
+            manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
+            return;
+        }
+        versions.forEach(card => {
+            const versionEl = document.createElement('div');
+            versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+            versionEl.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm">
+                    <div>
+                        <p class="text-sm font-semibold dark:text-white">${card.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
+                    </div>
+                </div>
+                <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
+            `;
+            versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
+                openAddVersionModal(card);
+            });
+            manualAddResultsContainer.appendChild(versionEl);
+        });
+    };
+
+    const openAddVersionModal = (cardData) => {
+        document.getElementById('add-version-name').textContent = cardData.name;
+        document.getElementById('add-version-set').textContent = cardData.setName;
+        document.getElementById('add-version-image').src = cardData.imageUrl;
+        document.getElementById('add-version-data').value = JSON.stringify(cardData);
+        addVersionForm.reset();
+        openModal(addVersionModal);
+    };
+
+    const openModalHandler = async (modal, cardId, listType) => {
+        const docRef = db.collection('users').doc(user.uid).collection(listType).doc(cardId);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists) return;
+        const card = docSnap.data();
+
+        if (modal === editCardModal) {
+            document.getElementById('edit-card-id').value = cardId;
+            document.getElementById('edit-card-list-type').value = listType;
+            document.getElementById('edit-card-quantity').value = card.quantity;
+            document.getElementById('edit-card-condition').value = card.condition;
+            document.getElementById('edit-card-foil').checked = card.isFoil;
+        } else if (modal === manageListingModal) {
+            document.getElementById('listing-card-id').value = cardId;
+            document.getElementById('listing-card-image').src = card.imageUrl;
+            document.getElementById('listing-card-name').textContent = card.name;
+            document.getElementById('listing-card-set').textContent = card.setName;
+            const forSaleToggle = document.getElementById('forSale');
+            forSaleToggle.checked = card.forSale || false;
+            document.getElementById('salePrice').value = card.salePrice || '';
+            document.getElementById('price-input-container').classList.toggle('hidden', !forSaleToggle.checked);
+        }
+        openModal(modal);
+    };
+
+    const deleteCard = async (cardId, listType) => {
+        await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
+        if (listType === 'collection') {
+            loadCollectionData();
+        } else {
+            loadWishlistData();
+        }
+    };
+
+    // --- Event Listeners ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            tabs.forEach(item => {
-                item.classList.remove('text-blue-600', 'border-blue-600');
-                item.classList.add('text-gray-500', 'hover:border-gray-300');
-            });
+            tabs.forEach(item => item.classList.remove('text-blue-600', 'border-blue-600'));
             tab.classList.add('text-blue-600', 'border-blue-600');
-            tab.classList.remove('text-gray-500', 'hover:border-gray-300');
             tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tab.id.split('-')[1]}`));
             
-            if (tab.id === 'tab-collection') loadCardList('collection');
-            if (tab.id === 'tab-wishlist') loadCardList('wishlist');
+            if (tab.id === 'tab-collection') loadCollectionData();
+            if (tab.id === 'tab-wishlist') loadWishlistData();
         });
     });
 
-    // --- Advanced Manual Add Logic ---
+    filterNameInput.addEventListener('input', applyFilters);
+    filterSetSelect.addEventListener('change', applyFilters);
+    filterRaritySelect.addEventListener('change', applyFilters);
+    filterColorSelect.addEventListener('change', applyFilters);
+    resetFiltersBtn.addEventListener('click', () => {
+        filterNameInput.value = '';
+        filterSetSelect.value = 'all';
+        filterRaritySelect.value = 'all';
+        filterColorSelect.value = 'all';
+        applyFilters();
+    });
+
+    const switchView = (view) => {
+        currentView = view;
+        renderCurrentView();
+    };
+
+    gridViewBtn?.addEventListener('click', () => switchView('grid'));
+    listViewBtn?.addEventListener('click', () => switchView('list'));
+
     searchCardVersionsBtn.addEventListener('click', async () => {
         const cardName = document.getElementById('manual-card-name').value;
         const game = manualGameSelect.value;
@@ -441,41 +638,6 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    const displayCardVersions = (versions) => {
-        manualAddResultsContainer.innerHTML = '';
-        if (versions.length === 0) {
-            manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
-            return;
-        }
-        versions.forEach(card => {
-            const versionEl = document.createElement('div');
-            versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
-            versionEl.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm">
-                    <div>
-                        <p class="text-sm font-semibold dark:text-white">${card.name}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
-                    </div>
-                </div>
-                <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
-            `;
-            versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
-                openAddVersionModal(card);
-            });
-            manualAddResultsContainer.appendChild(versionEl);
-        });
-    };
-
-    const openAddVersionModal = (cardData) => {
-        document.getElementById('add-version-name').textContent = cardData.name;
-        document.getElementById('add-version-set').textContent = cardData.setName;
-        document.getElementById('add-version-image').src = cardData.imageUrl;
-        document.getElementById('add-version-data').value = JSON.stringify(cardData);
-        addVersionForm.reset();
-        openModal(addVersionModal);
-    };
-
     addVersionForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const cardData = JSON.parse(document.getElementById('add-version-data').value);
@@ -495,7 +657,11 @@ document.addEventListener('authReady', (e) => {
             await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
             alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
             closeModal(addVersionModal);
-            loadCardList(listType);
+            if (listType === 'collection') {
+                loadCollectionData();
+            } else {
+                loadWishlistData();
+            }
         } catch (error) {
             console.error("Error adding card version:", error);
             alert("Could not add card to collection.");
@@ -518,7 +684,7 @@ document.addEventListener('authReady', (e) => {
                     return;
                 }
 
-                const header = Object.keys(rows[0]).map(h => h.toLowerCase()); // Standardize headers
+                const header = Object.keys(rows[0]).map(h => h.toLowerCase());
 
                 const findKey = (possibleKeys) => header.find(h => possibleKeys.includes(h.toLowerCase()));
     
@@ -557,7 +723,6 @@ document.addEventListener('authReady', (e) => {
                 const originalConditionHeader = conditionKey ? originalHeaders.find(h => h.toLowerCase() === conditionKey) : null;
                 const originalFoilHeader = foilKey ? originalHeaders.find(h => h.toLowerCase() === foilKey) : null;
 
-
                 for (const row of rows) {
                     if (!row || !row[originalNameHeader]) {
                         errorCount++;
@@ -570,7 +735,7 @@ document.addEventListener('authReady', (e) => {
                     const isFoil = originalFoilHeader ? (String(row[originalFoilHeader]).toLowerCase() === 'foil' || String(row[originalFoilHeader]).toLowerCase() === 'true' || row[originalFoilHeader] === '1') : false;
 
                     try {
-                        await new Promise(resolve => setTimeout(resolve, 100)); // Rate limit to avoid overwhelming Scryfall API
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         
                         let apiUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
                         if (setCode) {
@@ -617,7 +782,7 @@ document.addEventListener('authReady', (e) => {
                 csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                 csvUploadBtn.disabled = false;
                 setTimeout(() => {
-                    loadCardList('collection');
+                    loadCollectionData();
                     csvStatus.textContent = '';
                 }, 3000);
             }
@@ -648,71 +813,34 @@ document.addEventListener('authReady', (e) => {
     };
     setupActionListeners(collectionGridView);
     setupActionListeners(wishlistListContainer);
-
     if (bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
     if (quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
     if (saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
     if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', handleSelectAll);
-    
-    if (listSelectedBtn) {
-        listSelectedBtn.addEventListener('click', () => {
-            if (selectedCards.size === 0) {
-                alert("Please select at least one card to list.");
-                return;
-            }
-            document.getElementById('list-sale-count').textContent = selectedCards.size;
-            openModal(listForSaleModal);
-        });
-    }
-
-    if (deleteSelectedBtn) {
-        deleteSelectedBtn.addEventListener('click', async () => {
-            if (selectedCards.size === 0) {
-                alert("Please select cards to delete.");
-                return;
-            }
-            if (confirm(`Are you sure you want to delete ${selectedCards.size} cards? This cannot be undone.`)) {
-                const batch = db.batch();
-                selectedCards.forEach(cardId => {
-                    batch.delete(db.collection('users').doc(user.uid).collection('collection').doc(cardId));
-                });
-                await batch.commit();
-                alert(`${selectedCards.size} cards deleted.`);
-                toggleBulkEditMode();
-            }
-        });
-    }
-
-    const openModalHandler = async (modal, cardId, listType) => {
-        const docRef = db.collection('users').doc(user.uid).collection(listType).doc(cardId);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) return;
-        const card = docSnap.data();
-
-        if (modal === editCardModal) {
-            document.getElementById('edit-card-id').value = cardId;
-            document.getElementById('edit-card-list-type').value = listType;
-            document.getElementById('edit-card-quantity').value = card.quantity;
-            document.getElementById('edit-card-condition').value = card.condition;
-            document.getElementById('edit-card-foil').checked = card.isFoil;
-        } else if (modal === manageListingModal) {
-            document.getElementById('listing-card-id').value = cardId;
-            document.getElementById('listing-card-image').src = card.imageUrl;
-            document.getElementById('listing-card-name').textContent = card.name;
-            document.getElementById('listing-card-set').textContent = card.setName;
-            const forSaleToggle = document.getElementById('forSale');
-            forSaleToggle.checked = card.forSale || false;
-            document.getElementById('salePrice').value = card.salePrice || '';
-            document.getElementById('price-input-container').classList.toggle('hidden', !forSaleToggle.checked);
+    if (listSelectedBtn) listSelectedBtn.addEventListener('click', () => {
+        if (selectedCards.size === 0) {
+            alert("Please select at least one card to list.");
+            return;
         }
-        openModal(modal);
-    };
-
-    const deleteCard = async (cardId, listType) => {
-        await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
-        loadCardList(listType);
-    };
-
+        document.getElementById('list-sale-count').textContent = selectedCards.size;
+        openModal(listForSaleModal);
+    });
+    if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', async () => {
+        if (selectedCards.size === 0) {
+            alert("Please select cards to delete.");
+            return;
+        }
+        if (confirm(`Are you sure you want to delete ${selectedCards.size} cards? This cannot be undone.`)) {
+            const batch = db.batch();
+            selectedCards.forEach(cardId => {
+                batch.delete(db.collection('users').doc(user.uid).collection('collection').doc(cardId));
+            });
+            await batch.commit();
+            alert(`${selectedCards.size} cards deleted.`);
+            toggleBulkEditMode();
+            loadCollectionData();
+        }
+    });
     editCardForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const cardId = document.getElementById('edit-card-id').value;
@@ -724,9 +852,12 @@ document.addEventListener('authReady', (e) => {
         };
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
         closeModal(editCardModal);
-        loadCardList(listType);
+        if (listType === 'collection') {
+            loadCollectionData();
+        } else {
+            loadWishlistData();
+        }
     });
-    
     document.getElementById('manage-listing-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const cardId = document.getElementById('listing-card-id').value;
@@ -738,9 +869,8 @@ document.addEventListener('authReady', (e) => {
         };
         await db.collection('users').doc(user.uid).collection('collection').doc(cardId).update(updatedData);
         closeModal(manageListingModal);
-        loadCardList('collection');
+        loadCollectionData();
     });
-
     percentagePriceForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         const percentage = document.getElementById('percentage-price-input').value;
@@ -751,7 +881,6 @@ document.addEventListener('authReady', (e) => {
         const amount = document.getElementById('fixed-undercut-input').value;
         if (amount && amount > 0) listCardsWithUndercut(amount);
     });
-
     document.getElementById('close-edit-card-modal')?.addEventListener('click', () => closeModal(editCardModal));
     document.getElementById('close-listing-modal')?.addEventListener('click', () => closeModal(manageListingModal));
     document.getElementById('close-list-sale-modal')?.addEventListener('click', () => closeModal(listForSaleModal));
@@ -761,5 +890,5 @@ document.addEventListener('authReady', (e) => {
     });
 
     // --- Initial Load ---
-    loadCardList('collection');
+    loadCollectionData();
 });
