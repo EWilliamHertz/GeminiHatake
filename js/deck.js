@@ -1,12 +1,9 @@
 /**
- * HatakeSocial - Deck Page Script (v21 - AI Deck Advisor)
+ * HatakeSocial - Deck Page Script (v22 - Quick View Tooltip)
  *
- * - NEW: Implements an AI-powered Deck Advisor using the Gemini API.
- * - NEW: Fetches synergistic cards from Scryfall and sends them to the Gemini API for categorization.
- * - NEW: Displays categorized suggestions in an accordion format.
- * - Adds a "Deck Primer / Guide" textarea to the deck builder.
- * - Saves the primer content to Firestore along with the rest of the deck data.
- * - Displays the formatted primer on the deck view page.
+ * - NEW: Adds a "Quick View" tooltip that appears when hovering over card names in the deck view.
+ * - NEW: The tooltip shows the correct card image for the specific edition by using its Scryfall ID.
+ * - All previous functionality (AI Advisor, deck building, etc.) is preserved.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -51,20 +48,46 @@ document.addEventListener('authReady', (e) => {
     const checkCollectionBtn = document.getElementById('check-collection-btn');
     const missingCardsSection = document.getElementById('missing-cards-section');
     const missingCardsList = document.getElementById('missing-cards-list');
-    
-    // Import Modal Elements
     const importDeckBtn = document.getElementById('import-deck-btn');
     const importDeckModal = document.getElementById('import-deck-modal');
     const closeImportModalBtn = document.getElementById('close-import-modal');
     const importDeckTextarea = document.getElementById('import-deck-textarea');
     const importDeckFileInput = document.getElementById('import-deck-file-input');
     const processImportBtn = document.getElementById('process-import-btn');
-
-    // Suggestion Elements
     const suggestCardsBtn = document.getElementById('suggest-cards-btn');
     const suggestionsContainer = document.getElementById('suggestions-container');
     const suggestionsOutput = document.getElementById('suggestions-output');
     const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
+
+    // NEW: Card Quick View Tooltip Logic
+    const tooltip = document.createElement('img');
+    tooltip.id = 'card-quick-view-tooltip';
+    tooltip.classList.add('hidden');
+    document.body.appendChild(tooltip);
+
+    document.addEventListener('mouseover', (event) => {
+        const cardLink = event.target.closest('.card-link');
+        if (cardLink) {
+            const scryfallId = cardLink.dataset.scryfallId;
+            if (scryfallId) {
+                tooltip.src = `https://api.scryfall.com/cards/${scryfallId}?format=image&version=normal`;
+                tooltip.classList.remove('hidden');
+            }
+        }
+    });
+
+    document.addEventListener('mouseout', (event) => {
+        const cardLink = event.target.closest('.card-link');
+        if (cardLink) {
+            tooltip.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        tooltip.style.left = event.pageX + 20 + 'px';
+        tooltip.style.top = event.pageY + 20 + 'px';
+    });
+    // End of New Tooltip Logic
 
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
@@ -106,14 +129,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            if (tab.id === 'tab-deck-view') return;
-            switchTab(tab.id);
-            applyDeckFilters();
-        });
-    });
-
     const loadCollectionForDeckBuilder = async () => {
         if (!user) {
             collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
@@ -172,99 +187,6 @@ document.addEventListener('authReady', (e) => {
         decklistInput.scrollTop = decklistInput.scrollHeight;
         decklistInput.focus();
     };
-    
-    collectionSearchInput.addEventListener('input', () => {
-        const searchTerm = collectionSearchInput.value.toLowerCase();
-        const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
-        renderCollectionInBuilder(filteredCards);
-    });
-
-    deckTcgSelect.addEventListener('change', () => {
-        const selectedTcg = deckTcgSelect.value;
-        if (formats[selectedTcg]) {
-            deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
-            formats[selectedTcg].forEach(format => {
-                deckFormatSelect.innerHTML += `<option value="${format}">${format}</option>`;
-            });
-            deckFormatSelectContainer.classList.remove('hidden');
-        } else {
-            deckFormatSelectContainer.classList.add('hidden');
-        }
-    });
-
-    deckBuilderForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!user) { alert("Please log in to build a deck."); return; }
-
-        buildDeckBtn.disabled = true;
-        buildDeckBtn.textContent = 'Processing...';
-
-        const isPublic = deckPublicCheckbox.checked;
-
-        const deckData = {
-            name: deckNameInput.value,
-            name_lower: deckNameInput.value.toLowerCase(),
-            bio: deckBioInput.value,
-            primer: deckPrimerInput.value.trim(),
-            tcg: deckTcgSelect.value,
-            format: deckFormatSelect.value,
-            authorId: user.uid,
-            authorName: user.displayName || 'Anonymous',
-            createdAt: new Date(),
-            isPublic: isPublic,
-            cards: []
-        };
-
-        const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
-        const cardPromises = lines.map(line => {
-            const match = line.match(/^(\d+)\s+(.*)/);
-            if (!match) return null;
-            const cardName = match[2].trim().replace(/\s\/\/.*$/, '');
-            return fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
-                .then(res => res.ok ? res.json() : null)
-                .then(cardData => cardData ? { ...cardData, quantity: parseInt(match[1], 10) } : null);
-        }).filter(p => p);
-
-        deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
-
-        const validationResult = validateDeck(deckData.cards, deckData.format, deckData.tcg);
-        if (!validationResult.isValid) {
-            const errorString = validationResult.errors.join('\n');
-            if (!confirm(`This deck is not legal for the ${deckData.format} format:\n\n${errorString}\n\nDo you want to save it anyway?`)) {
-                buildDeckBtn.disabled = false;
-                buildDeckBtn.textContent = 'Build & Price Deck';
-                return;
-            }
-        }
-
-        const editingId = editingDeckIdInput.value;
-        try {
-            const userDeckRef = editingId 
-                ? db.collection('users').doc(user.uid).collection('decks').doc(editingId)
-                : db.collection('users').doc(user.uid).collection('decks').doc();
-            
-            const publicDeckRef = db.collection('publicDecks').doc(userDeckRef.id);
-            const batch = db.batch();
-
-            batch.set(userDeckRef, deckData);
-
-            if (isPublic) {
-                batch.set(publicDeckRef, deckData);
-            } else if (editingId) {
-                batch.delete(publicDeckRef);
-            }
-
-            await batch.commit();
-            alert("Deck saved successfully!");
-            viewDeck(deckData, userDeckRef.id);
-
-        } catch(error) {
-            alert("Error saving deck: " + error.message);
-        } finally {
-            buildDeckBtn.disabled = false;
-            buildDeckBtn.textContent = 'Build & Price Deck';
-        }
-    });
     
     const validateDeck = (cards, format, tcg) => {
         if (tcg !== "Magic: The Gathering") {
@@ -396,7 +318,7 @@ document.addEventListener('authReady', (e) => {
                 const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
                 let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2 dark:text-white">${category} (${cardCount})</h3>`;
                 categorizedCards[category].forEach(card => {
-                    categoryHTML += `<p class="dark:text-gray-300">${card.quantity} <a href="#" class="card-link text-blue-600 dark:text-blue-400 hover:underline" data-card-name="${card.name}" data-card-image="${card.image_uris?.normal}">${card.name}</a></p>`;
+                    categoryHTML += `<p class="dark:text-gray-300">${card.quantity} <a href="#" class="card-link text-blue-600 dark:text-blue-400 hover:underline" data-scryfall-id="${card.id}">${card.name}</a></p>`;
                 });
                 categoryHTML += `</div>`;
                 listEl.innerHTML += categoryHTML;
@@ -489,7 +411,6 @@ document.addEventListener('authReady', (e) => {
             deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
                 if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
                     await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
-                    // Also delete from public collection if it exists
                     await db.collection('publicDecks').doc(doc.id).delete();
                     alert('Deck deleted successfully.');
                     loadMyDecks();
@@ -575,34 +496,7 @@ document.addEventListener('authReady', (e) => {
             loadCommunityDecks(tcg, format);
         }
     };
-
-    tcgFilterButtons.addEventListener('click', (e) => {
-        if (e.target.classList.contains('tcg-filter-btn')) {
-            tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
-            e.target.classList.add('filter-btn-active');
-            
-            const selectedTcg = e.target.dataset.tcg;
-            formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
-            if (selectedTcg !== 'all' && formats[selectedTcg]) {
-                formats[selectedTcg].forEach(format => {
-                    formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
-                });
-                formatFilterContainer.classList.remove('hidden');
-            } else {
-                formatFilterContainer.classList.add('hidden');
-            }
-            applyDeckFilters();
-        }
-    });
-
-    formatFilterButtons.addEventListener('click', (e) => {
-        if (e.target.classList.contains('format-filter-btn')) {
-            formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
-            e.target.classList.add('filter-btn-active');
-            applyDeckFilters();
-        }
-    });
-
+    
     const initializePlaytest = () => {
         if (!deckToShare) return;
         
@@ -696,42 +590,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    battlefieldEl.addEventListener('dragover', (e) => e.preventDefault());
-    handEl.addEventListener('dragover', (e) => e.preventDefault());
-    battlefieldEl.addEventListener('drop', handleDrop);
-    handEl.addEventListener('drop', handleDrop);
-    testHandBtn.addEventListener('click', initializePlaytest);
-    closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
-    playtestDrawBtn.addEventListener('click', () => drawCards(1));
-    playtestMulliganBtn.addEventListener('click', takeMulligan);
-    playtestResetBtn.addEventListener('click', initializePlaytest);
-
-    shareDeckBtn.addEventListener('click', async () => {
-        if (!user || !deckToShare) {
-            alert("Please log in and select a deck to share.");
-            return;
-        }
-        const postContent = `Check out my deck: [deck:${deckToShare.id}:${deckToShare.name}]\n\n${deckToShare.bio || ''}`;
-        try {
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            const userData = userDoc.data();
-            await db.collection('posts').add({
-                author: userData.displayName || 'Anonymous',
-                authorId: user.uid,
-                authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-                content: postContent,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                likes: [],
-                comments: []
-            });
-            alert('Deck shared to feed successfully!');
-            window.location.href = 'index.html';
-        } catch (error) {
-            console.error("Error sharing deck:", error);
-            alert("Could not share deck. " + error.message);
-        }
-    });
-    
     const checkDeckAgainstCollection = async () => {
         if (!user) {
             alert("Please log in to check your collection.");
@@ -792,17 +650,215 @@ document.addEventListener('authReady', (e) => {
         }
         missingCardsSection.classList.remove('hidden');
     };
-
-    checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
     
+    const parseAndFillDecklist = (content) => {
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        let parsedList = '';
+        lines.forEach(line => {
+            const match = line.match(/^(?:(\d+)x?\s+)?(.*?)(?:\s+\/\/.*|\s+\([A-Z0-9]+\))?$/);
+            if (match) {
+                const quantity = match[1] || '1';
+                const cardName = match[2].trim();
+                if (cardName && !cardName.toLowerCase().startsWith('sideboard')) {
+                     parsedList += `${quantity} ${cardName}\n`;
+                }
+            }
+        });
+        decklistInput.value = parsedList;
+        alert("Decklist imported successfully!");
+    };
+    
+    const renderCategorizedSuggestions = (categories) => {
+        suggestionsOutput.innerHTML = '';
+        for (const category in categories) {
+            const details = document.createElement('details');
+            details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg';
+            
+            const summary = document.createElement('summary');
+            summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white';
+            summary.textContent = `${category} (${categories[category].length})`;
+            
+            const cardGrid = document.createElement('div');
+            cardGrid.className = 'p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2';
+            
+            categories[category].forEach(cardName => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
+                cardEl.textContent = cardName;
+                cardEl.onclick = () => addCardToDecklist(cardName);
+                cardGrid.appendChild(cardEl);
+            });
+            
+            details.appendChild(summary);
+            details.appendChild(cardGrid);
+            suggestionsOutput.appendChild(details);
+        }
+    };
+
+    // --- All Event Listeners ---
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            if (tab.id === 'tab-deck-view') return;
+            switchTab(tab.id);
+            applyDeckFilters();
+        });
+    });
+    collectionSearchInput.addEventListener('input', () => {
+        const searchTerm = collectionSearchInput.value.toLowerCase();
+        const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
+        renderCollectionInBuilder(filteredCards);
+    });
+    deckTcgSelect.addEventListener('change', () => {
+        const selectedTcg = deckTcgSelect.value;
+        if (formats[selectedTcg]) {
+            deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
+            formats[selectedTcg].forEach(format => {
+                deckFormatSelect.innerHTML += `<option value="${format}">${format}</option>`;
+            });
+            deckFormatSelectContainer.classList.remove('hidden');
+        } else {
+            deckFormatSelectContainer.classList.add('hidden');
+        }
+    });
+    deckBuilderForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!user) { alert("Please log in to build a deck."); return; }
+
+        buildDeckBtn.disabled = true;
+        buildDeckBtn.textContent = 'Processing...';
+
+        const isPublic = deckPublicCheckbox.checked;
+
+        const deckData = {
+            name: deckNameInput.value,
+            name_lower: deckNameInput.value.toLowerCase(),
+            bio: deckBioInput.value,
+            primer: deckPrimerInput.value.trim(),
+            tcg: deckTcgSelect.value,
+            format: deckFormatSelect.value,
+            authorId: user.uid,
+            authorName: user.displayName || 'Anonymous',
+            createdAt: new Date(),
+            isPublic: isPublic,
+            cards: []
+        };
+
+        const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
+        const cardPromises = lines.map(line => {
+            const match = line.match(/^(\d+)\s+(.*)/);
+            if (!match) return null;
+            const cardName = match[2].trim().replace(/\s\/\/.*$/, '');
+            return fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(cardData => cardData ? { ...cardData, quantity: parseInt(match[1], 10) } : null);
+        }).filter(p => p);
+
+        deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
+
+        const validationResult = validateDeck(deckData.cards, deckData.format, deckData.tcg);
+        if (!validationResult.isValid) {
+            const errorString = validationResult.errors.join('\n');
+            if (!confirm(`This deck is not legal for the ${deckData.format} format:\n\n${errorString}\n\nDo you want to save it anyway?`)) {
+                buildDeckBtn.disabled = false;
+                buildDeckBtn.textContent = 'Build & Price Deck';
+                return;
+            }
+        }
+
+        const editingId = editingDeckIdInput.value;
+        try {
+            const userDeckRef = editingId 
+                ? db.collection('users').doc(user.uid).collection('decks').doc(editingId)
+                : db.collection('users').doc(user.uid).collection('decks').doc();
+            
+            const publicDeckRef = db.collection('publicDecks').doc(userDeckRef.id);
+            const batch = db.batch();
+
+            batch.set(userDeckRef, deckData);
+
+            if (isPublic) {
+                batch.set(publicDeckRef, deckData);
+            } else if (editingId) {
+                batch.delete(publicDeckRef);
+            }
+
+            await batch.commit();
+            alert("Deck saved successfully!");
+            viewDeck(deckData, userDeckRef.id);
+
+        } catch(error) {
+            alert("Error saving deck: " + error.message);
+        } finally {
+            buildDeckBtn.disabled = false;
+            buildDeckBtn.textContent = 'Build & Price Deck';
+        }
+    });
+    tcgFilterButtons.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tcg-filter-btn')) {
+            tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+            e.target.classList.add('filter-btn-active');
+            
+            const selectedTcg = e.target.dataset.tcg;
+            formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
+            if (selectedTcg !== 'all' && formats[selectedTcg]) {
+                formats[selectedTcg].forEach(format => {
+                    formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
+                });
+                formatFilterContainer.classList.remove('hidden');
+            } else {
+                formatFilterContainer.classList.add('hidden');
+            }
+            applyDeckFilters();
+        }
+    });
+    formatFilterButtons.addEventListener('click', (e) => {
+        if (e.target.classList.contains('format-filter-btn')) {
+            formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+            e.target.classList.add('filter-btn-active');
+            applyDeckFilters();
+        }
+    });
+    battlefieldEl.addEventListener('dragover', (e) => e.preventDefault());
+    handEl.addEventListener('dragover', (e) => e.preventDefault());
+    battlefieldEl.addEventListener('drop', handleDrop);
+    handEl.addEventListener('drop', handleDrop);
+    testHandBtn.addEventListener('click', initializePlaytest);
+    closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
+    playtestDrawBtn.addEventListener('click', () => drawCards(1));
+    playtestMulliganBtn.addEventListener('click', takeMulligan);
+    playtestResetBtn.addEventListener('click', initializePlaytest);
+    shareDeckBtn.addEventListener('click', async () => {
+        if (!user || !deckToShare) {
+            alert("Please log in and select a deck to share.");
+            return;
+        }
+        const postContent = `Check out my deck: [deck:${deckToShare.id}:${deckToShare.name}]\n\n${deckToShare.bio || ''}`;
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            const userData = userDoc.data();
+            await db.collection('posts').add({
+                author: userData.displayName || 'Anonymous',
+                authorId: user.uid,
+                authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                content: postContent,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                likes: [],
+                comments: []
+            });
+            alert('Deck shared to feed successfully!');
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error("Error sharing deck:", error);
+            alert("Could not share deck. " + error.message);
+        }
+    });
+    checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
     importDeckBtn.addEventListener('click', () => {
         openModal(importDeckModal);
     });
-    
     closeImportModalBtn.addEventListener('click', () => {
         closeModal(importDeckModal);
     });
-
     processImportBtn.addEventListener('click', () => {
         const file = importDeckFileInput.files[0];
         const text = importDeckTextarea.value;
@@ -821,24 +877,6 @@ document.addEventListener('authReady', (e) => {
         }
         closeModal(importDeckModal);
     });
-
-    const parseAndFillDecklist = (content) => {
-        const lines = content.split('\n').filter(line => line.trim() !== '');
-        let parsedList = '';
-        lines.forEach(line => {
-            const match = line.match(/^(?:(\d+)x?\s+)?(.*?)(?:\s+\/\/.*|\s+\([A-Z0-9]+\))?$/);
-            if (match) {
-                const quantity = match[1] || '1';
-                const cardName = match[2].trim();
-                if (cardName && !cardName.toLowerCase().startsWith('sideboard')) {
-                     parsedList += `${quantity} ${cardName}\n`;
-                }
-            }
-        });
-        decklistInput.value = parsedList;
-        alert("Decklist imported successfully!");
-    };
-    
     suggestCardsBtn.addEventListener('click', async () => {
         const decklist = document.getElementById('decklist-input').value;
         const format = document.getElementById('deck-format-select').value;
@@ -865,7 +903,6 @@ document.addEventListener('authReady', (e) => {
             }
             const commanderName = commanderNameMatch[1].trim();
             
-            // Step 1: Fetch synergistic cards from Scryfall
             const scryfallResponse = await fetch(`https://api.scryfall.com/cards/search?q=edhrec%3A"${encodeURIComponent(commanderName)}"`);
             if (!scryfallResponse.ok) {
                 throw new Error('Could not find commander on Scryfall or no suggestions available.');
@@ -873,7 +910,6 @@ document.addEventListener('authReady', (e) => {
             const scryfallData = await scryfallResponse.json();
             const suggestionNames = scryfallData.data.slice(0, 20).map(c => c.name);
 
-            // Step 2: Call Gemini API to categorize the cards
             const prompt = `You are a Magic: The Gathering deck building expert. Given the commander "${commanderName}" and this list of synergistic cards: ${suggestionNames.join(', ')}. Please categorize these cards into strategic roles for a Commander deck. The categories should be things like "Ramp", "Card Draw", "Removal", "Threats", "Board Wipes", or "Synergy Pieces". Provide your response as a JSON object where keys are the category names and values are an array of the card names that fit that category.`;
 
             let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
@@ -883,7 +919,7 @@ document.addEventListener('authReady', (e) => {
                     responseMimeType: "application/json",
                 }
             };
-            const apiKey = ""; // API key will be injected by the environment
+            const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
@@ -911,33 +947,6 @@ document.addEventListener('authReady', (e) => {
             suggestionsOutput.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
     });
-
-    const renderCategorizedSuggestions = (categories) => {
-        suggestionsOutput.innerHTML = '';
-        for (const category in categories) {
-            const details = document.createElement('details');
-            details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg';
-            
-            const summary = document.createElement('summary');
-            summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white';
-            summary.textContent = `${category} (${categories[category].length})`;
-            
-            const cardGrid = document.createElement('div');
-            cardGrid.className = 'p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2';
-            
-            categories[category].forEach(cardName => {
-                const cardEl = document.createElement('div');
-                cardEl.className = 'text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
-                cardEl.textContent = cardName;
-                cardEl.onclick = () => addCardToDecklist(cardName);
-                cardGrid.appendChild(cardEl);
-            });
-            
-            details.appendChild(summary);
-            details.appendChild(cardGrid);
-            suggestionsOutput.appendChild(details);
-        }
-    };
 
     // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
