@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v21 - Improved CSV Import)
+ * HatakeSocial - My Collection Page Script (v22 - Final CSV Import Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: The CSV import logic is now more robust. It correctly identifies the "Edition", "Set", or "Set code" column to ensure the exact version of the card is imported from Scryfall.
- * - FIX: Improved detection for "Quantity", "Condition", and "Foil" columns in CSV files.
- * - NEW: Provides a warning to the user if a set/edition column is not found in the CSV.
- * - All pricing logic is based on Scryfall API data.
+ * - FINAL FIX: The CSV import logic is now highly robust. It intelligently finds the set/edition
+ * column using multiple common names and confirms with the user if the set column is missing,
+ * preventing incorrect card versions from being imported.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -22,7 +21,7 @@ document.addEventListener('authReady', (e) => {
     let bulkEditMode = false;
     let quickEditMode = false;
     let selectedCards = new Set();
-    let fullCollection = []; 
+    let fullCollection = [];
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -521,7 +520,6 @@ document.addEventListener('authReady', (e) => {
 
                 const header = Object.keys(rows[0]).map(h => h.toLowerCase()); // Standardize headers
 
-                // More robust key finding
                 const findKey = (possibleKeys) => header.find(h => possibleKeys.includes(h.toLowerCase()));
     
                 const nameKey = findKey(['name', 'card', 'card name']);
@@ -529,7 +527,7 @@ document.addEventListener('authReady', (e) => {
                 const quantityKey = findKey(['quantity', 'count', 'qty']);
                 const conditionKey = findKey(['condition']);
                 const foilKey = findKey(['foil', 'is foil', 'isfoil']);
-    
+
                 if (!nameKey) {
                     csvStatus.textContent = 'Error: CSV must have a "Name" or "Card" column.';
                     csvStatus.classList.add('text-red-500');
