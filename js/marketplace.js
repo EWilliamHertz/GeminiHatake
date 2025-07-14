@@ -223,7 +223,7 @@ document.addEventListener('authReady', (e) => {
         const seller = card.sellerData;
         const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
         cardEl.innerHTML = `
-            <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block h-full flex flex-col">
+            <a href="card-view.html?id=${card.scryfallId}" class="block h-full flex flex-col">
                 <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
                 <div class="flex-grow flex flex-col p-1">
                     <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
@@ -245,7 +245,7 @@ document.addEventListener('authReady', (e) => {
         itemEl.innerHTML = `
             <img src="${card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
             <div class="flex-grow min-w-0">
-                <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name}</a>
+                <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name}</a>
                 <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${card.setName || ''}</p>
             </div>
             <div class="w-1/4 text-sm text-gray-600 dark:text-gray-300 flex-shrink-0">
