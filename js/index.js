@@ -1,12 +1,28 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v14 - Autocomplete Mentions)
+ * HatakeSocial - Index Page (Feed) Script (v15 - XSS Patch)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Implements autocomplete suggestions for @mentions.
+ * - NEW (Security): Implements a robust HTML sanitization function to prevent Cross-Site Scripting (XSS) attacks from user-generated post content.
+ * - Implements autocomplete suggestions for @mentions and [card names].
  * - Implements dynamic trending hashtags.
- * - FIX: Correctly handles all interactions on posts from all feeds.
- * - FIX: Improves UI responsiveness by updating the like button immediately.
+ * - Correctly handles all interactions on posts from all feeds.
+ * - Improves UI responsiveness by updating the like button immediately.
  */
+
+/**
+ * Sanitizes a string to prevent XSS attacks by converting HTML special characters.
+ * This should be the FIRST step before any other formatting is applied to user content.
+ * @param {string} str The string to sanitize.
+ * @returns {string} The sanitized string.
+ */
+const sanitizeHTML = (str) => {
+    if (!str) return '';
+    const temp = document.createElement('div');
+    temp.textContent = str; // This safely treats the string as text, not HTML
+    return temp.innerHTML; // This gets the text content back as a safely escaped HTML string
+};
+
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const postsContainer = document.getElementById('postsContainer');
@@ -35,7 +51,7 @@ document.addEventListener('authReady', (e) => {
                 <div class="flex-1">
                     <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
                         <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${comment.author}</a>
-                        <p class="text-sm text-gray-700 dark:text-gray-300">${comment.content}</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(comment.content)}</p>
                     </div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">${new Date(comment.timestamp.toDate()).toLocaleString()}</div>
                 </div>
@@ -135,12 +151,16 @@ document.addEventListener('authReady', (e) => {
                     postElement.dataset.groupId = post.groupId;
                 }
                 
-                let content = post.content || '';
-                content = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                content = content.replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`);
-                content = content.replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`);
-                content = content.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`);
-                content = content.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
+                // --- XSS FIX ---
+                // 1. Sanitize the content FIRST to remove any malicious HTML.
+                const safeContent = sanitizeHTML(post.content || '');
+                
+                // 2. Apply special formatting for mentions, hashtags, etc., to the *sanitized* content.
+                const formattedContent = safeContent
+                    .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
+                    .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
+                    .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
+                    .replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
 
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
@@ -160,7 +180,7 @@ document.addEventListener('authReady', (e) => {
                         </div>
                         <div class="flex">${deleteButtonHTML}${reportButtonHTML}</div>
                     </div>
-                    <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${content}</p>
+                    <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>
                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
                     <div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400">
                         <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
