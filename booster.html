@@ -63,129 +63,19 @@
         </div>
     </main>
 
- <div id="loginModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
-            <button class="close-button" id="closeLoginModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-                </div>
-                <div>
-                    <label for="loginPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
-                </button>
-            </form>
-        </div>
-    </div>
-    <div id="registerModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
-            <button class="close-button" id="closeRegisterModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Register for HatakeSocial</h2>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label for="registerEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-                </div>
-                <div>
-                    <label for="registerPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                 <div>
-                    <label for="registerCity" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">City:</label>
-                    <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
-                </div>
-                <div>
-                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
-                    <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
-                </div>
-                <div>
-                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
-                    <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
-            </form>
-        </div>
-    </div>
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+      </footer>
 
-
-
-<div id="messenger-widget-container" class="minimized">
-    <div id="messenger-open-btn">
-        <i class="fas fa-comments"></i>
-    </div>
-
-    <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
-        <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-            <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
-            <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
-        </div>
-        <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-            <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
-                </div>
-        </div>
-    </div>
-</div>
-
-    
-  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-        <div class="container mx-auto py-8 px-4">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
-                        <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
-                        <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Theme</h3>
-                    <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
-                        <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
-                        <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-                <div class="flex space-x-6 mt-4 md:mt-0">
-                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
-                </div>
-            </div>
-        </div>
-    </footer>
-   <!-- Firebase Libraries (use the compat libraries for v8 syntax) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    
     <script src="js/auth.js"></script>
     <script src="js/darkmode.js"></script>
     <script>
     /**
-     * HatakeSocial - Booster Pack Simulator Script (v10 - MTGJSON Implementation)
-     *
-     * This script is embedded directly to ensure it runs correctly.
-     * It uses MTGJSON for accurate pack data and the cors-anywhere proxy to bypass CORS issues.
+     * HatakeSocial - Booster Pack Simulator Script (v12 - Final Version)
      */
     document.addEventListener('authReady', () => {
         const boosterPageContainer = document.getElementById('generate-booster-btn');
@@ -196,7 +86,7 @@
         const resultsContainer = document.getElementById('booster-pack-results');
         const statusEl = document.getElementById('booster-status');
         
-        const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+        const corsProxy = 'https://cors.sh/';
 
         const populateSetList = async () => {
             statusEl.textContent = 'Fetching set list...';
@@ -219,7 +109,7 @@
                 statusEl.textContent = 'Select a set and generate a booster pack!';
             } catch (error) {
                 console.error("Error populating set list:", error);
-                statusEl.innerHTML = `<strong>Error: Load failed.</strong> Could not fetch the list of sets. Please ensure you have <a href="https://cors-anywhere.herokuapp.com/" target="_blank" class="text-blue-500 underline">activated the CORS proxy</a> for this session.`;
+                statusEl.innerHTML = `<strong>Error: Load failed.</strong> The public proxy may be down. Please try again in a few moments.`;
                 setSelect.innerHTML = '<option>Could not load sets</option>';
             }
         };
