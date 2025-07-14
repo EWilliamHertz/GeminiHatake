@@ -13,10 +13,10 @@ document.addEventListener('authReady', (e) => {
     if (!container) return; // Exit if not on the card-view page
 
     const urlParams = new URLSearchParams(window.location.search);
-    const cardName = urlParams.get('name');
+    const cardId = urlParams.get('id'); // Changed from 'name' to 'id'
 
-    if (!cardName) {
-        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No card name specified in the URL.</p>';
+    if (!cardId) {
+        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No card ID specified in the URL.</p>';
         return;
     }
 
@@ -33,7 +33,7 @@ document.addEventListener('authReady', (e) => {
     let allListings = [];
     let priceChart = null;
 
-    // --- NEW: Helper function to determine shipping region ---
+    // --- Helper function to determine shipping region ---
     const getShippingRegion = (sellerCountry, buyerCountry) => {
         const europeanCountries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "United Kingdom"];
         
@@ -50,26 +50,16 @@ document.addEventListener('authReady', (e) => {
      */
     const loadCardData = async () => {
         try {
-            // 1. Fetch card data from Scryfall API
-            const scryfallResponse = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`);
+            // Use the Scryfall API endpoint for fetching by ID
+            const scryfallResponse = await fetch(`https://api.scryfall.com/cards/${cardId}`);
             if (!scryfallResponse.ok) {
-                // Try fuzzy search if exact fails
-                const fuzzyResponse = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`);
-                if (!fuzzyResponse.ok) throw new Error('Card not found on Scryfall.');
-                const cardData = await fuzzyResponse.json();
-                // Redirect to the correct URL with the exact name
-                window.location.search = `?name=${encodeURIComponent(cardData.name)}`;
-                return;
+                throw new Error('Card not found on Scryfall with the specified ID.');
             }
             const cardData = await scryfallResponse.json();
 
-            // 2. Update the page with Scryfall data
+            // The rest of the function remains the same
             updatePageWithCardData(cardData);
-
-            // 3. Render the price chart with simulated historical data
             renderPriceChart(cardData);
-
-            // 4. Fetch listings for this card from our Firestore database
             await fetchListingsFromFirestore(cardData);
 
         } catch (error) {
