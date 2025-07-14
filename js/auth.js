@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v21 - Friend Request Handshake)
+ * HatakeSocial - Core Authentication & UI Script (v22 - Referral Tracking)
  *
- * - **NEW**: Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
+ * - **NEW**: Adds a "referrer" field to the registration process to track user acquisition.
+ * - Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
  * - Adds logic to toggle the mobile navigation menu.
  * - Replaces alert() with inline error messages for a better UX.
  * - Adds a "Scroll to Top" button for easier navigation.
@@ -126,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const city = document.getElementById('registerCity')?.value || '';
             const country = document.getElementById('registerCountry')?.value || '';
             const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || '';
+            const referrer = document.getElementById('registerReferrer')?.value.trim() || ''; // NEW
             const displayName = email.split('@')[0];
             const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
             const errorMessageEl = document.getElementById('register-error-message');
@@ -139,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         displayName_lower: displayName.toLowerCase(),
                         email: email, photoURL: defaultPhotoURL,
                         city: city, country: country, favoriteTcg: favoriteTcg,
+                        referrer: referrer, // NEW: Save the referrer
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
                         isAdmin: false,
@@ -168,7 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             displayName_lower: user.displayName.toLowerCase(),
                             email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false, primaryCurrency: 'SEK'
+                            handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false, primaryCurrency: 'SEK',
+                            referrer: '' // Set empty referrer for Google sign-ups
                         });
                     }
                 });
@@ -217,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // **NEW**: Listener for sent friend requests
     let friendRequestHandshakeListener = null;
     function listenForAcceptedRequests(user) {
         if (friendRequestHandshakeListener) {
@@ -279,7 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
             registerButton?.classList.add('hidden');
             userAvatar?.classList.remove('hidden');
             
-            // **NEW**: Start listening for accepted requests
             listenForAcceptedRequests(user);
 
             try {
@@ -317,7 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             window.HatakeSocial.currentUserData = null;
-            // **NEW**: Stop listening if user logs out
             if (friendRequestHandshakeListener) {
                 friendRequestHandshakeListener();
             }
