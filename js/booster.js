@@ -2,9 +2,9 @@
  * HatakeSocial - Booster Pack Simulator Script (v8 - Final Filter Fix)
  *
  * This script handles all logic for the booster.html page.
- * - FINAL FIX: Replaces the unreliable 'set.booster' filter with a
- * more robust filter based on Scryfall's official 'set_type' property.
- * This is confirmed to work on all browsers, including mobile Safari.
+ * - FINAL FIX: The filter for sets from the Scryfall API has been corrected
+ * to use the 'set.booster' boolean flag, which accurately reflects
+ * whether the API can generate a booster for that set.
  */
 document.addEventListener('authReady', () => {
     const boosterPageContainer = document.getElementById('generate-booster-btn');
@@ -31,14 +31,14 @@ document.addEventListener('authReady', () => {
             const setData = await response.json();
             setSelect.innerHTML = '';
 
-            // **THE FINAL FIX IS HERE:** Using a more reliable filter based on the set type.
-            const boosterEligibleSetTypes = ['core', 'expansion', 'masters', 'draft_innovation', 'funny'];
+            // **THE FINAL FIX IS HERE:** Using Scryfall's 'booster' flag.
+            // This is the most accurate way to filter for sets that have booster packs.
             const boosterSets = setData.data
-                .filter(set => boosterEligibleSetTypes.includes(set.set_type) && !set.digital)
+                .filter(set => set.booster && !set.digital)
                 .sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
 
             if (boosterSets.length === 0) {
-                 throw new Error("Filtering resulted in 0 sets, even with the new logic. There may be a temporary issue with the Scryfall API.");
+                 throw new Error("Filtering still resulted in 0 sets. There might be a temporary issue with the Scryfall API.");
             }
 
             boosterSets.forEach(set => {
@@ -75,6 +75,7 @@ document.addEventListener('authReady', () => {
         
         try {
             const response = await fetch(`https://api.scryfall.com/sets/${setCode}/booster`);
+
             if (!response.ok) {
                  if(response.status === 404) {
                     throw new Error(`Scryfall does not have booster data for this set. Please try another.`);
@@ -83,6 +84,7 @@ document.addEventListener('authReady', () => {
             }
             
             const boosterData = await response.json();
+            
             if (!boosterData.data || boosterData.data.length === 0) {
                  throw new Error('Received empty booster pack data from Scryfall.');
             }
