@@ -64,18 +64,16 @@
     </main>
 
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-      </footer>
+        </footer>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    
     <script src="js/auth.js"></script>
     <script src="js/darkmode.js"></script>
     <script>
     /**
-     * HatakeSocial - Booster Pack Simulator Script (v12 - Final Version)
+     * HatakeSocial - Booster Pack Simulator Script (v13 - Scryfall Final)
      */
     document.addEventListener('authReady', () => {
         const boosterPageContainer = document.getElementById('generate-booster-btn');
@@ -85,43 +83,39 @@
         const setSelect = document.getElementById('booster-set-select');
         const resultsContainer = document.getElementById('booster-pack-results');
         const statusEl = document.getElementById('booster-status');
-        
-        const corsProxy = 'https://cors.sh/';
 
         const populateSetList = async () => {
             statusEl.textContent = 'Fetching set list...';
             try {
-                const response = await fetch(`${corsProxy}https://mtgjson.com/api/v5/SetList.json`);
-                if (!response.ok) throw new Error('Could not fetch set list from MTGJSON.');
-                const setListData = await response.json();
+                const response = await fetch('https://api.scryfall.com/sets');
+                if (!response.ok) throw new Error(`Scryfall API Error: ${response.statusText}`);
                 
-                setSelect.innerHTML = ''; 
-                const filteredSets = setListData.data
-                    .filter(set => set.isOnlineOnly !== true && set.booster)
-                    .sort((a, b) => new Date(b.releaseDate) - new Date(a.releaseDate));
+                const setData = await response.json();
+                setSelect.innerHTML = '';
 
-                filteredSets.forEach(set => {
+                // FINAL FIX: This filter is the most robust for finding booster-eligible sets from Scryfall
+                const boosterSets = setData.data
+                    .filter(set => set.booster && !set.digital && (set.set_type === 'core' || set.set_type === 'expansion' || set.set_type === 'masters' || set.set_type === 'draft_innovation'))
+                    .sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
+
+                if (boosterSets.length === 0) {
+                     throw new Error("Filtering resulted in 0 sets. Scryfall may be having issues.");
+                }
+
+                boosterSets.forEach(set => {
                     const option = document.createElement('option');
                     option.value = set.code;
                     option.textContent = set.name;
                     setSelect.appendChild(option);
                 });
+                
                 statusEl.textContent = 'Select a set and generate a booster pack!';
+
             } catch (error) {
                 console.error("Error populating set list:", error);
-                statusEl.innerHTML = `<strong>Error: Load failed.</strong> The public proxy may be down. Please try again in a few moments.`;
+                statusEl.innerHTML = `<strong>Error: Load failed.</strong> Could not retrieve or process the set list.`;
                 setSelect.innerHTML = '<option>Could not load sets</option>';
             }
-        };
-
-        const weightedRandom = (items) => {
-            const totalWeight = Object.values(items).reduce((sum, weight) => sum + weight, 0);
-            let random = Math.random() * totalWeight;
-            for (const item in items) {
-                if (random < items[item]) return item;
-                random -= items[item];
-            }
-            return Object.keys(items)[0];
         };
 
         const generateBooster = async () => {
@@ -130,53 +124,34 @@
 
             generateBtn.disabled = true;
             generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
-            statusEl.textContent = `Fetching data for ${setSelect.options[setSelect.selectedIndex].text}...`;
+            statusEl.textContent = `Generating booster for ${setSelect.options[setSelect.selectedIndex].text}...`;
             resultsContainer.innerHTML = '';
             
             try {
-                const response = await fetch(`${corsProxy}https://mtgjson.com/api/v5/${setCode}.json`);
-                if (!response.ok) throw new Error(`Could not fetch set data for ${setCode}.`);
-                
-                const setData = await response.json();
-                
-                if (!setData.data.booster) throw new Error(`Booster data not available for ${setCode}.`);
-                
-                const boosterConfig = setData.data.booster.default;
-                if (!boosterConfig) throw new Error(`Default booster configuration not found for ${setCode}.`);
-
-                const boosterContents = boosterConfig.boosters[0].contents;
-                const sheets = boosterConfig.sheets;
-                const cardsByUuid = setData.data.cards.reduce((acc, card) => {
-                    acc[card.uuid] = card;
-                    return acc;
-                }, {});
-
-                let generatedPack = [];
-                for (const slot in boosterContents) {
-                    const count = boosterContents[slot];
-                    for (let i = 0; i < count; i++) {
-                        const sheet = sheets[slot];
-                         if (sheet && sheet.cards) {
-                            const cardUuid = weightedRandom(sheet.cards);
-                            const cardData = cardsByUuid[cardUuid];
-                            if (cardData) generatedPack.push(cardData);
-                        }
-                    }
+                const response = await fetch(`https://api.scryfall.com/sets/${setCode}/booster`);
+                if (!response.ok) {
+                     if(response.status === 404) {
+                        throw new Error(`Scryfall does not have booster data for this set.`);
+                     }
+                     throw new Error(`Scryfall API Error: ${response.statusText}`);
                 }
                 
-                if (generatedPack.length === 0) throw new Error("Failed to generate any cards for the pack.");
+                const boosterData = await response.json();
+                if (!boosterData.data || boosterData.data.length === 0) {
+                     throw new Error('Received empty booster pack data from Scryfall.');
+                }
 
-                generatedPack.forEach(card => {
+                boosterData.data.forEach(card => {
                     const imgEl = document.createElement('img');
-                    imgEl.src = `https://api.scryfall.com/cards/${card.identifiers.scryfallId}?format=image&version=normal`;
+                    imgEl.src = card.image_uris?.normal || 'https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';
                     imgEl.alt = card.name;
                     imgEl.title = `${card.name} (${card.rarity})`;
                     imgEl.className = 'rounded-lg shadow-md w-full transition-transform hover:scale-105 cursor-pointer';
-                    imgEl.addEventListener('click', () => window.open(`https://scryfall.com/card/${card.set}/${card.number}`, '_blank'));
+                    imgEl.addEventListener('click', () => window.open(card.scryfall_uri, '_blank'));
                     resultsContainer.appendChild(imgEl);
                 });
                 
-                statusEl.textContent = `Generated a booster pack from ${setData.data.name}!`;
+                statusEl.textContent = `Generated a booster pack from ${boosterData.data[0].set_name}!`;
 
             } catch (error) {
                 console.error('Error generating booster:', error);
