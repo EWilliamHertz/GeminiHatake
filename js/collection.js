@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - My Collection Page Script (v19 - Manual Search Fix)
+ * HatakeSocial - My Collection Page Script (v20 - CSV Import Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: The manual card search now correctly handles partial names instead of requiring an exact match.
+ * - FIX: The CSV import logic is now more robust. It correctly identifies the "Edition", "Set", or "Set code" column to ensure the exact version of the card is imported from Scryfall.
+ * - FIX: Improved detection for "Quantity", "Condition", and "Foil" columns in CSV files.
  * - All pricing logic is based on Scryfall API data.
  */
 document.addEventListener('authReady', (e) => {
@@ -401,7 +402,6 @@ document.addEventListener('authReady', (e) => {
         try {
             let versions = [];
             if (game === 'magic') {
-                // **FIX:** Changed the query to be less strict for better search results.
                 const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
                 if (!response.ok) throw new Error("Card not found on Scryfall.");
                 const result = await response.json();
@@ -519,11 +519,16 @@ document.addEventListener('authReady', (e) => {
                 }
 
                 const header = Object.keys(rows[0]);
+                // --- CSV IMPORT FIX ---
                 const nameKey = header.find(h => h.toLowerCase().includes('name'));
-                const setKey = header.find(h => h.toLowerCase().includes('set code'));
+                const setCodeKey = header.find(h => h.toLowerCase() === 'set code' || h.toLowerCase() === 'edition' || h.toLowerCase() === 'set');
+                const quantityKey = header.find(h => h.toLowerCase() === 'quantity' || h.toLowerCase() === 'count');
+                const conditionKey = header.find(h => h.toLowerCase() === 'condition');
+                const foilKey = header.find(h => h.toLowerCase() === 'foil');
 
                 if (!nameKey) {
-                    csvStatus.textContent = 'Error: Could not find a "Name" column in your CSV.';
+                    csvStatus.textContent = 'Error: Could not find a "Name" or "Card" column in your CSV.';
+                    csvUploadBtn.disabled = false;
                     return;
                 }
 
@@ -540,14 +545,17 @@ document.addEventListener('authReady', (e) => {
                         continue; 
                     }
                     const cardName = row[nameKey];
-                    const setCode = setKey ? row[setKey] : null;
+                    const setCode = setCodeKey ? row[setCodeKey] : null;
+                    const quantity = quantityKey ? parseInt(row[quantityKey], 10) : 1;
+                    const condition = conditionKey ? row[conditionKey] : 'Near Mint';
+                    const isFoil = foilKey ? (String(row[foilKey]).toLowerCase() === 'foil' || String(row[foilKey]).toLowerCase() === 'true' || row[foilKey] === '1') : false;
 
                     try {
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await new Promise(resolve => setTimeout(resolve, 100)); // Rate limit to avoid overwhelming Scryfall API
                         
                         let apiUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
                         if (setCode) {
-                            apiUrl += `&set=${encodeURIComponent(setCode)}`;
+                            apiUrl += `&set=${encodeURIComponent(setCode.toLowerCase())}`;
                         }
 
                         const response = await fetch(apiUrl);
@@ -555,14 +563,27 @@ document.addEventListener('authReady', (e) => {
                         
                         const cardData = await response.json();
                         const cardDoc = {
-                            name: cardData.name, tcg: "Magic: The Gathering", scryfallId: cardData.id,
-                            set: cardData.set, setName: cardData.set_name, rarity: cardData.rarity,
+                            name: cardData.name,
+                            name_lower: cardData.name.toLowerCase(),
+                            tcg: "Magic: The Gathering",
+                            scryfallId: cardData.id,
+                            set: cardData.set,
+                            setName: cardData.set_name,
+                            rarity: cardData.rarity,
                             imageUrl: cardData.image_uris?.normal || '',
-                            priceUsd: cardData.prices?.usd || '0.00', priceUsdFoil: cardData.prices?.usd_foil || '0.00',
-                            quantity: parseInt(row['Quantity'] || row['Count'] || 1, 10),
-                            isFoil: (row['Foil'] || '').toLowerCase() === 'foil',
-                            condition: row['Condition'] || 'Near Mint',
-                            addedAt: new Date(), forSale: false
+                            priceUsd: cardData.prices?.usd || null,
+                            priceUsdFoil: cardData.prices?.usd_foil || null,
+                            cmc: cardData.cmc,
+                            colors: cardData.colors,
+                            color_identity: cardData.color_identity,
+                            type_line: cardData.type_line,
+                            legalities: cardData.legalities,
+                            quantity: isNaN(quantity) ? 1 : quantity,
+                            isFoil: isFoil,
+                            condition: condition,
+                            addedAt: new Date(),
+                            forSale: false,
+                            salePrice: 0
                         };
                         
                         await collectionRef.add(cardDoc);
