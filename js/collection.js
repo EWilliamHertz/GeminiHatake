@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v20 - CSV Import Fix)
+ * HatakeSocial - My Collection Page Script (v21 - Improved CSV Import)
  *
  * This script handles all logic for the my_collection.html page.
  * - FIX: The CSV import logic is now more robust. It correctly identifies the "Edition", "Set", or "Set code" column to ensure the exact version of the card is imported from Scryfall.
  * - FIX: Improved detection for "Quantity", "Condition", and "Foil" columns in CSV files.
+ * - NEW: Provides a warning to the user if a set/edition column is not found in the CSV.
  * - All pricing logic is based on Scryfall API data.
  */
 document.addEventListener('authReady', (e) => {
@@ -518,18 +519,30 @@ document.addEventListener('authReady', (e) => {
                     return;
                 }
 
-                const header = Object.keys(rows[0]);
-                // --- CSV IMPORT FIX ---
-                const nameKey = header.find(h => h.toLowerCase().includes('name'));
-                const setCodeKey = header.find(h => h.toLowerCase() === 'set code' || h.toLowerCase() === 'edition' || h.toLowerCase() === 'set');
-                const quantityKey = header.find(h => h.toLowerCase() === 'quantity' || h.toLowerCase() === 'count');
-                const conditionKey = header.find(h => h.toLowerCase() === 'condition');
-                const foilKey = header.find(h => h.toLowerCase() === 'foil');
+                const header = Object.keys(rows[0]).map(h => h.toLowerCase()); // Standardize headers
 
+                // More robust key finding
+                const findKey = (possibleKeys) => header.find(h => possibleKeys.includes(h.toLowerCase()));
+    
+                const nameKey = findKey(['name', 'card', 'card name']);
+                const setCodeKey = findKey(['set code', 'edition', 'set', 'set name', 'expansion']);
+                const quantityKey = findKey(['quantity', 'count', 'qty']);
+                const conditionKey = findKey(['condition']);
+                const foilKey = findKey(['foil', 'is foil', 'isfoil']);
+    
                 if (!nameKey) {
-                    csvStatus.textContent = 'Error: Could not find a "Name" or "Card" column in your CSV.';
+                    csvStatus.textContent = 'Error: CSV must have a "Name" or "Card" column.';
+                    csvStatus.classList.add('text-red-500');
                     csvUploadBtn.disabled = false;
                     return;
+                }
+    
+                if (!setCodeKey) {
+                    if (!confirm("Warning: No 'Set', 'Edition', or 'Set Code' column was found. The importer will try to guess the newest version of each card, which may not be correct. Do you want to continue?")) {
+                        csvStatus.textContent = "Import cancelled by user.";
+                        csvUploadBtn.disabled = false;
+                        return;
+                    }
                 }
 
                 csvStatus.textContent = `Found ${rows.length} cards. Fetching data... This may take a moment.`;
@@ -539,16 +552,24 @@ document.addEventListener('authReady', (e) => {
                 let errorCount = 0;
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
                 
+                const originalHeaders = Object.keys(rows[0]);
+                const originalNameHeader = originalHeaders.find(h => h.toLowerCase() === nameKey);
+                const originalSetHeader = setCodeKey ? originalHeaders.find(h => h.toLowerCase() === setCodeKey) : null;
+                const originalQuantityHeader = quantityKey ? originalHeaders.find(h => h.toLowerCase() === quantityKey) : null;
+                const originalConditionHeader = conditionKey ? originalHeaders.find(h => h.toLowerCase() === conditionKey) : null;
+                const originalFoilHeader = foilKey ? originalHeaders.find(h => h.toLowerCase() === foilKey) : null;
+
+
                 for (const row of rows) {
-                    if (!row || !row[nameKey]) {
+                    if (!row || !row[originalNameHeader]) {
                         errorCount++;
                         continue; 
                     }
-                    const cardName = row[nameKey];
-                    const setCode = setCodeKey ? row[setCodeKey] : null;
-                    const quantity = quantityKey ? parseInt(row[quantityKey], 10) : 1;
-                    const condition = conditionKey ? row[conditionKey] : 'Near Mint';
-                    const isFoil = foilKey ? (String(row[foilKey]).toLowerCase() === 'foil' || String(row[foilKey]).toLowerCase() === 'true' || row[foilKey] === '1') : false;
+                    const cardName = row[originalNameHeader];
+                    const setCode = originalSetHeader ? row[originalSetHeader] : null;
+                    const quantity = originalQuantityHeader ? parseInt(row[originalQuantityHeader], 10) : 1;
+                    const condition = originalConditionHeader ? row[originalConditionHeader] : 'Near Mint';
+                    const isFoil = originalFoilHeader ? (String(row[originalFoilHeader]).toLowerCase() === 'foil' || String(row[originalFoilHeader]).toLowerCase() === 'true' || row[originalFoilHeader] === '1') : false;
 
                     try {
                         await new Promise(resolve => setTimeout(resolve, 100)); // Rate limit to avoid overwhelming Scryfall API
