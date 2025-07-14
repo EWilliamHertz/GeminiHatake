@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v18 - Tooltip Data Fix)
+ * HatakeSocial - Advanced Trades Page Script (v16 - Cancel & Display Fix)
  *
- * - FIX: Corrects the data saved during trade creation to include the proper `scryfallId`.
- * - FIX: The card quick view tooltip now uses this correct ID to fetch the 'large' image version
- * from Scryfall, ensuring the full, correct card art is displayed.
+ * This script implements a comprehensive and secure trading system.
+ * - FIX: Corrects the display logic to correctly show "Proposer Offers" and "Receiver Offers" on both sides of the trade.
+ * - FIX: Adds a "Cancel" button for the proposer on pending trades.
+ * - FIX: Corrects the feedback submission process to work without a backend.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -21,10 +22,14 @@ document.addEventListener('authReady', (e) => {
     const historyContainer = document.getElementById('tab-content-history');
     const tabs = document.querySelectorAll('.trade-tab-button');
     const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
+    
+    // Modals
     const tradeModal = document.getElementById('propose-trade-modal');
     const feedbackModal = document.getElementById('feedback-modal');
     const disputeModal = document.getElementById('dispute-modal');
     const autoBalanceModal = document.getElementById('auto-balance-modal');
+
+    // Trade Modal Elements
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
     const sendTradeOfferBtn = document.getElementById('send-trade-offer-btn');
     const tradePartnerSearch = document.getElementById('trade-partner-search');
@@ -36,12 +41,18 @@ document.addEventListener('authReady', (e) => {
     const proposerMoneyInput = document.getElementById('proposer-money');
     const receiverMoneyInput = document.getElementById('receiver-money');
     const counterOfferInput = document.getElementById('counter-offer-original-id');
+    
+    // Auto-Balance Modal Elements
     const closeBalanceModalBtn = document.getElementById('close-balance-modal');
     const autoBalanceForm = document.getElementById('auto-balance-form');
     const balanceTargetSideInput = document.getElementById('balance-target-side');
+
+    // Feedback Modal Elements
     const feedbackForm = document.getElementById('feedback-form');
     const closeFeedbackModalBtn = document.getElementById('close-feedback-modal');
     const starRatingContainers = document.querySelectorAll('.star-rating-container');
+
+    // Dispute Modal Elements
     const disputeForm = document.getElementById('dispute-form');
     const closeDisputeModalBtn = document.getElementById('close-dispute-modal');
 
@@ -55,36 +66,7 @@ document.addEventListener('authReady', (e) => {
         receiverMoney: 0,
         receiver: null
     };
-    const USD_TO_SEK_RATE = 10.5;
-
-    // --- Card Quick View Tooltip Logic ---
-    const tooltip = document.createElement('img');
-    tooltip.id = 'card-quick-view-tooltip';
-    tooltip.classList.add('hidden');
-    document.body.appendChild(tooltip);
-
-    document.addEventListener('mouseover', (event) => {
-        const cardLink = event.target.closest('.card-link');
-        if (cardLink) {
-            const scryfallId = cardLink.dataset.scryfallId;
-            if (scryfallId) {
-                tooltip.src = `https://api.scryfall.com/cards/${scryfallId}?format=image&version=large`;
-                tooltip.classList.remove('hidden');
-            }
-        }
-    });
-
-    document.addEventListener('mouseout', (event) => {
-        const cardLink = event.target.closest('.card-link');
-        if (cardLink) {
-            tooltip.classList.add('hidden');
-        }
-    });
-
-    document.addEventListener('mousemove', (event) => {
-        tooltip.style.left = event.pageX + 20 + 'px';
-        tooltip.style.top = event.pageY + 20 + 'px';
-    });
+    const USD_TO_SEK_RATE = 10.5; // Example rate
 
     // --- Helper Functions ---
     const generateIndexCreationLink = (collection, fields) => {
@@ -179,6 +161,7 @@ document.addEventListener('authReady', (e) => {
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
         const isProposer = trade.proposerId === user.uid;
 
+        // **FIX:** Use proposer and receiver names directly from the trade data.
         const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
         const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
         
@@ -233,6 +216,7 @@ document.addEventListener('authReady', (e) => {
         switch(trade.status) {
             case 'pending':
                 if (isProposer) {
+                    // **FIX:** Added cancel button for outgoing trades.
                     actionButtons = `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 text-sm">Cancel Offer</button>`;
                 } else {
                     actionButtons = `
@@ -320,6 +304,25 @@ document.addEventListener('authReady', (e) => {
         `;
     };
     
+    const renderTradeItems = (cards = [], money = 0) => {
+        let itemsHtml = cards.map(card => `
+            <div class="flex items-center space-x-2">
+                <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 object-cover rounded-sm">
+                <span class="text-sm dark:text-gray-300">${card.name}</span>
+            </div>
+        `).join('');
+
+        if (money > 0) {
+            itemsHtml += `
+                <div class="flex items-center space-x-2 mt-2 pt-2 border-t dark:border-gray-600">
+                    <i class="fas fa-money-bill-wave text-green-500"></i>
+                    <span class="text-sm font-semibold dark:text-gray-300">${money.toFixed(2)} SEK</span>
+                </div>
+            `;
+        }
+        return itemsHtml || '<p class="text-sm text-gray-500 italic">No items</p>';
+    };
+
     const openProposeTradeModal = async (options = {}) => {
         const { counterOfTrade = null, initialCard = null, initialPartner = null } = options;
 
@@ -515,6 +518,63 @@ document.addEventListener('authReady', (e) => {
             timestamp: new Date()
         };
         await db.collection('users').doc(userId).collection('notifications').add(notificationData);
+    };
+
+    const sendTradeOffer = async () => {
+        if (!tradeOffer.receiver) {
+            alert("Please select a trade partner.");
+            return;
+        }
+        if (tradeOffer.proposerCards.length === 0 && tradeOffer.receiverCards.length === 0 && !proposerMoneyInput.value && !receiverMoneyInput.value) {
+            alert("Please select at least one card or add money to trade.");
+            return;
+        }
+        
+        sendTradeOfferBtn.disabled = true;
+        sendTradeOfferBtn.textContent = 'Sending...';
+
+        const tradeData = {
+            proposerId: user.uid,
+            proposerName: user.displayName,
+            receiverId: tradeOffer.receiver.id,
+            receiverName: tradeOffer.receiver.displayName,
+            participants: [user.uid, tradeOffer.receiver.id],
+            proposerCards: tradeOffer.proposerCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil })),
+            receiverCards: tradeOffer.receiverCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil })),
+            proposerMoney: parseFloat(proposerMoneyInput.value) || 0,
+            receiverMoney: parseFloat(receiverMoneyInput.value) || 0,
+            notes: document.getElementById('trade-notes').value,
+            status: 'pending',
+            createdAt: new Date(),
+            proposerConfirmedShipment: false, receiverConfirmedShipment: false,
+            proposerConfirmedReceipt: false, receiverConfirmedReceipt: false,
+            proposerLeftFeedback: false, receiverLeftFeedback: false
+        };
+
+        try {
+            const originalTradeId = counterOfferInput.value;
+            if (originalTradeId) {
+                await db.collection('trades').doc(originalTradeId).update({ status: 'countered' });
+                tradeData.counterOfTradeId = originalTradeId;
+            }
+
+            const tradeDocRef = await db.collection('trades').add(tradeData);
+            
+            await createNotification(
+                tradeOffer.receiver.id,
+                `You have a new trade offer from ${user.displayName}!`,
+                '/trades.html'
+            );
+            
+            alert("Trade offer sent successfully!");
+            closeModal(tradeModal);
+        } catch (error) {
+            console.error("Error sending trade offer:", error);
+            alert("Could not send trade offer.");
+        } finally {
+            sendTradeOfferBtn.disabled = false;
+            sendTradeOfferBtn.textContent = 'Send Trade Offer';
+        }
     };
 
     const handleTradeAction = async (action, tradeId) => {
@@ -740,6 +800,7 @@ document.addEventListener('authReady', (e) => {
     
     closeFeedbackModalBtn?.addEventListener('click', () => closeModal(feedbackModal));
 
+    // **UPDATED** Feedback Form Listener
     feedbackForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -766,8 +827,11 @@ document.addEventListener('authReady', (e) => {
         };
 
         try {
+            // **REMOVED** logic to update user profile directly.
+            // A Cloud Function will now listen for this creation event.
             await db.collection('feedback').add(feedbackData);
 
+            // We can still update the trade document to show feedback was left.
             const tradeRef = db.collection('trades').doc(tradeId);
             const tradeDoc = await tradeRef.get();
             if (tradeDoc.exists) {
