@@ -613,58 +613,60 @@ document.addEventListener('mousemove', (e) => {
     listViewBtn?.addEventListener('click', () => switchView('list'));
 
     searchCardVersionsBtn.addEventListener('click', async () => {
-        const cardName = document.getElementById('manual-card-name').value;
-        const game = manualGameSelect.value;
-        if (!cardName) {
-            alert("Please enter a card name.");
-            return;
-        }
+    const cardName = document.getElementById('manual-card-name').value;
+    const game = manualGameSelect.value;
+    if (!cardName) {
+        alert("Please enter a card name.");
+        return;
+    }
 
-        searchCardVersionsBtn.disabled = true;
-        searchCardVersionsBtn.textContent = 'Searching...';
-        manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+    searchCardVersionsBtn.disabled = true;
+    searchCardVersionsBtn.textContent = 'Searching...';
+    manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
 
-        try {
-            let versions = [];
-            if (game === 'magic') {
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
-                if (!response.ok) throw new Error("Card not found on Scryfall.");
-                const result = await response.json();
-                versions = result.data.map(card => ({
-                    id: card.id,
-                    name: card.name,
-                    set: card.set,
-                    setName: card.set_name,
-                    rarity: card.rarity,
-                    imageUrl: card.image_uris?.normal || '',
-                    priceUsd: card.prices?.usd || null,
-                    priceUsdFoil: card.prices?.usd_foil || null,
-                    tcg: 'Magic: The Gathering'
-                }));
-            } else if (game === 'pokemon') {
-                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
-                if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
-                const result = await response.json();
-                versions = result.data.map(card => ({
-                    id: card.id,
-                    name: card.name,
-                    set: card.set.id,
-                    setName: card.set.name,
-                    rarity: card.rarity || 'Common',
-                    imageUrl: card.images?.small || '',
-                    priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
-                    priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
-                    tcg: 'Pokémon'
-                }));
-            }
-            displayCardVersions(versions);
-        } catch (error) {
-            manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
-        } finally {
-            searchCardVersionsBtn.disabled = false;
-            searchCardVersionsBtn.textContent = 'Search for Card';
+    try {
+        let versions = [];
+        if (game === 'magic') {
+            const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
+            if (!response.ok) throw new Error("Card not found on Scryfall.");
+            const result = await response.json();
+            versions = result.data.map(card => ({
+                id: card.id,
+                name: card.name,
+                set: card.set,
+                setName: card.set_name,
+                rarity: card.rarity,
+                collector_number: card.collector_number, // This line was missing
+                imageUrl: card.image_uris?.normal || '',
+                priceUsd: card.prices?.usd || null,
+                priceUsdFoil: card.prices?.usd_foil || null,
+                tcg: 'Magic: The Gathering'
+            }));
+        } else if (game === 'pokemon') {
+            const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
+            if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
+            const result = await response.json();
+            versions = result.data.map(card => ({
+                id: card.id,
+                name: card.name,
+                set: card.set.id,
+                setName: card.set.name,
+                rarity: card.rarity || 'Common',
+                collector_number: card.number, // This line was missing
+                imageUrl: card.images?.small || '',
+                priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
+                tcg: 'Pokémon'
+            }));
         }
-    });
+        displayCardVersions(versions);
+    } catch (error) {
+        manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
+    } finally {
+        searchCardVersionsBtn.disabled = false;
+        searchCardVersionsBtn.textContent = 'Search for Card';
+    }
+});
 
     addVersionForm.addEventListener('submit', async (e) => {
         e.preventDefault();
