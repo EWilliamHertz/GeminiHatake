@@ -10,10 +10,8 @@
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
-
    
-       <!-- Header Section -->
-<header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+       <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
     <div class="container mx-auto px-4 flex justify-between items-center">
         <a href="index.html" class="flex items-center">
             <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -159,25 +157,46 @@
                         <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
                     </div>
                 </div>
+
                 <div id="collection-filters" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div>
-                            <label for="filter-set" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Set</label>
-                            <select id="filter-set" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></select>
+                            <label for="filter-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                            <input type="text" id="filter-name" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Search by name...">
                         </div>
                         <div>
-                            <label for="filter-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
-                            <select id="filter-type" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></select>
+                            <label for="filter-set" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Set</label>
+                            <select id="filter-set" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="all">All Sets</option></select>
+                        </div>
+                        <div>
+                            <label for="filter-rarity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rarity</label>
+                            <select id="filter-rarity" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                                <option value="all">All Rarities</option>
+                                <option value="common">Common</option>
+                                <option value="uncommon">Uncommon</option>
+                                <option value="rare">Rare</option>
+                                <option value="mythic">Mythic</option>
+                            </select>
                         </div>
                         <div>
                             <label for="filter-color" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Color</label>
-                            <select id="filter-color" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></select>
+                            <select id="filter-color" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                                <option value="all">All Colors</option>
+                                <option value="W">White</option>
+                                <option value="U">Blue</option>
+                                <option value="B">Black</option>
+                                <option value="R">Red</option>
+                                <option value="G">Green</option>
+                                <option value="C">Colorless</option>
+                                <option value="M">Multi-color</option>
+                            </select>
                         </div>
                         <div class="flex items-end">
                             <button id="reset-filters-btn" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-500">Reset</button>
                         </div>
                     </div>
                 </div>
+
                 <div id="bulk-action-bar" class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40">
                     <div class="flex items-center space-x-3">
                         <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500">
