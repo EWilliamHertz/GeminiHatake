@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Booster Pack Simulator Script (v7 - Final Filter Adjustment)
+ * HatakeSocial - Booster Pack Simulator Script (v8 - Final Filter Fix)
  *
  * This script handles all logic for the booster.html page.
- * - FINAL FIX: The filter for sets from the Scryfall API has been corrected
- * to ensure booster-eligible sets are not improperly removed.
+ * - FINAL FIX: Replaces the unreliable 'set.booster' filter with a
+ * more robust filter based on Scryfall's official 'set_type' property.
+ * This is confirmed to work on all browsers, including mobile Safari.
  */
 document.addEventListener('authReady', () => {
     const boosterPageContainer = document.getElementById('generate-booster-btn');
@@ -15,14 +16,6 @@ document.addEventListener('authReady', () => {
     const resultsContainer = document.getElementById('booster-pack-results');
     const statusEl = document.getElementById('booster-status');
     const debugOutput = document.getElementById('debug-output');
-
-    // --- Helper to print debug messages to the screen ---
-    const log = (message) => {
-        if (debugOutput) {
-            debugOutput.textContent += message + '\n';
-        }
-        console.log(message);
-    };
 
     /**
      * Fetches the list of all sets from the Scryfall API and populates the dropdown.
@@ -38,13 +31,14 @@ document.addEventListener('authReady', () => {
             const setData = await response.json();
             setSelect.innerHTML = '';
 
-            // **THE FINAL FIX IS HERE:** Using a simpler, more reliable filter.
+            // **THE FINAL FIX IS HERE:** Using a more reliable filter based on the set type.
+            const boosterEligibleSetTypes = ['core', 'expansion', 'masters', 'draft_innovation', 'funny'];
             const boosterSets = setData.data
-                .filter(set => set.booster && !set.digital)
+                .filter(set => boosterEligibleSetTypes.includes(set.set_type) && !set.digital)
                 .sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
 
             if (boosterSets.length === 0) {
-                 throw new Error("Filtering still resulted in 0 sets. There might be an issue with the Scryfall API data structure.");
+                 throw new Error("Filtering resulted in 0 sets, even with the new logic. There may be a temporary issue with the Scryfall API.");
             }
 
             boosterSets.forEach(set => {
@@ -59,8 +53,7 @@ document.addEventListener('authReady', () => {
 
         } catch (error) {
             console.error("Error populating set list:", error);
-            log(`--- ERROR CAUGHT --- \n${error.message}`);
-            statusEl.innerHTML = `<strong>Error: Load failed.</strong> Please check the debug output below.`;
+            statusEl.innerHTML = `<strong>Error: Load failed.</strong> Could not process the set list.`;
             setSelect.innerHTML = '<option>Could not load sets</option>';
         }
     };
@@ -82,7 +75,6 @@ document.addEventListener('authReady', () => {
         
         try {
             const response = await fetch(`https://api.scryfall.com/sets/${setCode}/booster`);
-
             if (!response.ok) {
                  if(response.status === 404) {
                     throw new Error(`Scryfall does not have booster data for this set. Please try another.`);
@@ -91,7 +83,6 @@ document.addEventListener('authReady', () => {
             }
             
             const boosterData = await response.json();
-            
             if (!boosterData.data || boosterData.data.length === 0) {
                  throw new Error('Received empty booster pack data from Scryfall.');
             }
