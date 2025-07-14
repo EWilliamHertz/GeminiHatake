@@ -1,12 +1,11 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v15 - XSS Patch)
+ * HatakeSocial - Index Page (Feed) Script (v16 - Welcome Message)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW (Security): Implements a robust HTML sanitization function to prevent Cross-Site Scripting (XSS) attacks from user-generated post content.
+ * - NEW: Displays a friendly welcome message for logged-out users instead of a Firestore permission error.
+ * - FIX (Security): Implements a robust HTML sanitization function to prevent Cross-Site Scripting (XSS) attacks from user-generated post content.
  * - Implements autocomplete suggestions for @mentions and [card names].
  * - Implements dynamic trending hashtags.
- * - Correctly handles all interactions on posts from all feeds.
- * - Improves UI responsiveness by updating the like button immediately.
  */
 
 /**
@@ -107,7 +106,6 @@ document.addEventListener('authReady', (e) => {
         for (const groupId of groupIds) {
             const postsSnapshot = await db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc').limit(10).get();
             postsSnapshot.forEach(doc => {
-                // Add groupId to each post object to identify its origin
                 groupPosts.push({ id: doc.id, groupId: groupId, ...doc.data() });
             });
         }
@@ -151,11 +149,8 @@ document.addEventListener('authReady', (e) => {
                     postElement.dataset.groupId = post.groupId;
                 }
                 
-                // --- XSS FIX ---
-                // 1. Sanitize the content FIRST to remove any malicious HTML.
                 const safeContent = sanitizeHTML(post.content || '');
                 
-                // 2. Apply special formatting for mentions, hashtags, etc., to the *sanitized* content.
                 const formattedContent = safeContent
                     .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
                     .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
@@ -203,7 +198,18 @@ document.addEventListener('authReady', (e) => {
             }
         } catch (error) {
             console.error("Error loading posts:", error);
-            postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts. ${error.message}</p>`;
+            // Check if the error is due to permissions and the user is not logged in.
+            if (!user && (error.code === 'permission-denied' || error.code === 'unauthenticated')) {
+                postsContainer.innerHTML = `
+                    <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Welcome to HatakeSocial!</h2>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">Please log in or register to view the feed and join the community.</p>
+                    </div>
+                `;
+            } else {
+                // For any other error, display a generic error message.
+                postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts. ${error.message}</p>`;
+            }
         }
     };
 
@@ -256,7 +262,6 @@ document.addEventListener('authReady', (e) => {
         const text = textarea.value;
         const cursorPos = textarea.selectionStart;
 
-        // Check for @mention
         const mentionMatch = /@(\w*)$/.exec(text.substring(0, cursorPos));
         if (mentionMatch) {
             const query = mentionMatch[1];
@@ -285,7 +290,6 @@ document.addEventListener('authReady', (e) => {
             return;
         }
 
-        // Check for [card]
         const cardMatch = /\[([^\]]*)$/.exec(text.substring(0, cursorPos));
         if (cardMatch) {
             const query = cardMatch[1];
@@ -402,15 +406,14 @@ document.addEventListener('authReady', (e) => {
 
                     const postRef = await db.collection('posts').add(postData);
 
-                    // Send notifications for mentions
                     for (const handle of mentions) {
                         const userQuery = await db.collection('users').where('handle', '==', handle).limit(1).get();
                         if (!userQuery.empty) {
                             const mentionedUser = userQuery.docs[0];
-                            if (mentionedUser.id !== user.uid) { // Don't notify self
+                            if (mentionedUser.id !== user.uid) {
                                 await db.collection('users').doc(mentionedUser.id).collection('notifications').add({
                                     message: `${userData.displayName} mentioned you in a post.`,
-                                    link: `index.html#post-${postRef.id}`, // Link to the post
+                                    link: `index.html#post-${postRef.id}`,
                                     isRead: false,
                                     timestamp: new Date()
                                 });
@@ -463,7 +466,7 @@ document.addEventListener('authReady', (e) => {
                 if (confirm('Are you sure you want to delete this post?')) {
                     try {
                         await postRef.delete();
-                        postElement.remove(); // Remove from UI immediately
+                        postElement.remove();
                     } catch (error) {
                         console.error("Error deleting post: ", error);
                         alert("Could not delete post.");
@@ -476,7 +479,6 @@ document.addEventListener('authReady', (e) => {
                 const currentLikes = parseInt(countSpan.textContent, 10);
                 const isCurrentlyLiked = icon.classList.contains('fas');
 
-                // Optimistically update UI
                 likeBtn.classList.toggle('text-red-500', !isCurrentlyLiked);
                 icon.classList.toggle('fas', !isCurrentlyLiked);
                 icon.classList.toggle('far', isCurrentlyLiked);
@@ -496,7 +498,6 @@ document.addEventListener('authReady', (e) => {
                         t.update(postRef, { likes });
                     });
                 } catch (error) {
-                    // Revert UI on failure
                     console.error("Error updating like:", error);
                     likeBtn.classList.toggle('text-red-500', isCurrentlyLiked);
                     icon.classList.toggle('fas', isCurrentlyLiked);
@@ -547,7 +548,7 @@ document.addEventListener('authReady', (e) => {
                     timestamp: new Date()
                 };
 
-                input.value = ''; // Clear input immediately
+                input.value = '';
                 try {
                     await postRef.update({ comments: firebase.firestore.FieldValue.arrayUnion(newComment) });
                     const updatedPostDoc = await postRef.get();
@@ -556,7 +557,7 @@ document.addEventListener('authReady', (e) => {
                 } catch(error) {
                     console.error("Error submitting comment:", error);
                     alert("Could not post comment.");
-                    input.value = content; // Restore content on failure
+                    input.value = content;
                 }
             }
         });
