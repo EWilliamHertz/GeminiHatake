@@ -1,24 +1,25 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v17 - Trade Post Display Fix)
+ * HatakeSocial - Index Page (Feed) Script (v18 - Full XSS Patch)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Adds logic to correctly render WTB, WTS, and WTT posts in the main feed.
+ * - SECURITY FIX: Sanitizes all user-provided data before rendering (display names, photo URLs, post/comment content) to prevent Cross-Site Scripting (XSS).
+ * - Renders WTB, WTS, and WTT posts correctly in the main feed.
  * - Displays a friendly welcome message for logged-out users.
- * - Includes a security fix for Cross-Site Scripting (XSS).
  * - Implements autocomplete suggestions for @mentions and [card names].
  * - Implements dynamic trending hashtags.
  */
 
 /**
  * Sanitizes a string to prevent XSS attacks by converting HTML special characters.
+ * This should be the FIRST step before any other formatting is applied to user content.
  * @param {string} str The string to sanitize.
  * @returns {string} The sanitized string.
  */
 const sanitizeHTML = (str) => {
     if (!str) return '';
     const temp = document.createElement('div');
-    temp.textContent = str;
-    return temp.innerHTML;
+    temp.textContent = str; // This safely treats the string as text, not HTML
+    return temp.innerHTML; // This gets the text content back as a safely escaped HTML string
 };
 
 document.addEventListener('authReady', (e) => {
@@ -39,14 +40,20 @@ document.addEventListener('authReady', (e) => {
         comments.forEach(comment => {
             const commentEl = document.createElement('div');
             commentEl.className = 'flex items-start space-x-3 py-2 border-t border-gray-100 dark:border-gray-700';
+            
+            // Sanitize all user data from the comment object
+            const safeAuthorName = sanitizeHTML(comment.author);
+            const safeAuthorPhotoURL = sanitizeHTML(comment.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png';
+            const safeContent = sanitizeHTML(comment.content);
+
             commentEl.innerHTML = `
                 <a href="profile.html?uid=${comment.authorId}">
-                    <img src="${comment.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${comment.author}" class="h-8 w-8 rounded-full object-cover">
+                    <img src="${safeAuthorPhotoURL}" alt="${safeAuthorName}" class="h-8 w-8 rounded-full object-cover">
                 </a>
                 <div class="flex-1">
                     <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
-                        <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${comment.author}</a>
-                        <p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(comment.content)}</p>
+                        <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${safeAuthorName}</a>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">${safeContent}</p>
                     </div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">${new Date(comment.timestamp.toDate()).toLocaleString()}</div>
                 </div>
@@ -136,7 +143,6 @@ document.addEventListener('authReady', (e) => {
                 
                 let postBodyHTML = '';
 
-                // --- TRADE POST FIX ---
                 if (post.postType && ['wts', 'wtb', 'wtt'].includes(post.postType)) {
                     const postTypeColors = {
                         wts: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
@@ -147,7 +153,7 @@ document.addEventListener('authReady', (e) => {
                         if (!cards || cards.length === 0) return '<p class="text-xs italic text-gray-500">None</p>';
                         return cards.map(card => `
                             <a href="card-view.html?name=${encodeURIComponent(card.name)}" target="_blank" class="flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded-md">
-                                <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 rounded-sm object-cover">
+                                <img src="${sanitizeHTML(card.imageUrl) || 'https://placehold.co/32x44'}" class="w-8 h-11 rounded-sm object-cover">
                                 <span class="text-sm dark:text-gray-300">${sanitizeHTML(card.name)}</span>
                             </a>
                         `).join('');
@@ -181,10 +187,12 @@ document.addEventListener('authReady', (e) => {
                     
                     postBodyHTML = `
                         <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>
-                        ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
+                        ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" class="w-full rounded-lg my-2">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="w-full rounded-lg my-2"></video>`) : ''}
                     `;
                 }
 
+                const safeAuthorName = sanitizeHTML(post.author);
+                const safeAuthorPhotoURL = sanitizeHTML(post.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png';
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
                 const canDelete = user && (post.authorId === user.uid || currentUserIsAdmin);
@@ -194,9 +202,9 @@ document.addEventListener('authReady', (e) => {
                 postElement.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex items-center mb-4">
-                            <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                            <a href="profile.html?uid=${post.authorId}"><img src="${safeAuthorPhotoURL}" alt="${safeAuthorName}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
                             <div>
-                                <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${post.author}</a>
+                                <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${safeAuthorName}</a>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
                             </div>
                         </div>
@@ -267,10 +275,10 @@ document.addEventListener('authReady', (e) => {
                     userEl.href = `profile.html?uid=${userId}`;
                     userEl.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
                     userEl.innerHTML = `
-                        <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover">
+                        <img src="${sanitizeHTML(userData.photoURL) || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover">
                         <div>
-                            <p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">@${userData.handle}</p>
+                            <p class="font-semibold text-gray-800 dark:text-white">${sanitizeHTML(userData.displayName)}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">@${sanitizeHTML(userData.handle)}</p>
                         </div>
                     `;
                     likesListEl.appendChild(userEl);
