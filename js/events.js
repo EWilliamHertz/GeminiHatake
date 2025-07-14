@@ -8,7 +8,7 @@
  * - The event creator confirms scores, and winners automatically advance.
  * - The bracket view updates in real-time for all viewers.
  */
-document.addEventListener('authReady', (e) => {
+document.addEventListener('authReady', async (e) => { // Made this async
     const user = e.detail.user;
     const eventsListContainer = document.getElementById('events-list');
     if (!document.getElementById('events-main-view')) return; // Exit if not on events page
@@ -17,6 +17,7 @@ document.addEventListener('authReady', (e) => {
     let allEvents = [];
     let activeTab = 'all';
     let currentEventUnsubscribe = null;
+    let currentUserIsAdmin = false; // NEW: State for admin status
 
     // --- DOM Elements ---
     const createEventBtn = document.getElementById('create-event-btn');
@@ -42,9 +43,15 @@ document.addEventListener('authReady', (e) => {
     const calendarEl = document.getElementById('calendar');
     let calendar;
 
+    // --- NEW: Check for admin status ---
     if (user) {
-        createEventBtn.classList.remove('hidden');
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists && userDoc.data().isAdmin === true) {
+            currentUserIsAdmin = true;
+            createEventBtn.classList.remove('hidden');
+        }
     }
+    // --- End of new code ---
 
     createEventBtn.addEventListener('click', () => openModal(createEventModal));
     closeEventModalBtn.addEventListener('click', () => closeModal(createEventModal));
@@ -57,7 +64,11 @@ document.addEventListener('authReady', (e) => {
 
     createEventForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!user) { alert("You must be logged in to create an event."); return; }
+        // NEW: Double-check admin status on submission
+        if (!user || !currentUserIsAdmin) { 
+            alert("You do not have permission to create an event."); 
+            return; 
+        }
 
         const submitButton = createEventForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
@@ -229,8 +240,6 @@ document.addEventListener('authReady', (e) => {
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
                 <button id="back-to-events-list" class="text-blue-600 dark:text-blue-400 hover:underline mb-4"><i class="fas fa-arrow-left mr-2"></i>Back to All Events</button>
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-white">${eventData.name}</h2>
-                <!-- ... other event details like date, description, etc. ... -->
-
                 <div class="mt-6">
                     <div class="border-b border-gray-200 dark:border-gray-700">
                         <nav id="event-detail-tabs" class="flex space-x-8" aria-label="Tabs">
@@ -243,8 +252,7 @@ document.addEventListener('authReady', (e) => {
                              <button data-id="${eventData.id}" class="rsvp-btn px-5 py-2 font-semibold rounded-full ${isAttending ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}">
                                 ${isAttending ? 'Cancel RSVP' : 'RSVP Now'}
                             </button>
-                            <!-- Attendee list will be rendered here -->
-                        </div>
+                            </div>
                         ${eventData.tournament ? `
                         <div id="event-tab-tournament" class="event-detail-tab-content hidden">
                             <div class="flex justify-between items-center mb-4">
