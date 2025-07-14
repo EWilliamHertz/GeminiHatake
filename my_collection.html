@@ -11,7 +11,8 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
    
-       <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+       <!-- Header Section -->
+<header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
     <div class="container mx-auto px-4 flex justify-between items-center">
         <a href="index.html" class="flex items-center">
             <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -150,14 +151,22 @@
             <div id="content-collection" class="tab-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-3xl font-bold text-gray-800 dark:text-white">My Collection</h2>
-                    <div class="flex space-x-2">
+                    <div class="flex items-center space-x-2">
+                        <div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
+                            <button id="grid-view-btn" title="Grid View" class="view-btn p-2 rounded-full leading-none bg-white dark:bg-gray-800 shadow text-blue-600">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button id="list-view-btn" title="List View" class="view-btn p-2 rounded-full leading-none text-gray-500 dark:text-gray-400">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
                         <button id="quick-edit-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600">
                             <i class="fas fa-edit mr-2"></i>Quick Edit
                         </button>
                         <button id="bulk-edit-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Bulk Edit</button>
                     </div>
                 </div>
-
+                
                 <div id="collection-filters" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div>
@@ -365,48 +374,7 @@
         </div>
     </div>
 
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-        <div class="container mx-auto py-8 px-4">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
-                        <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
-                        <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
-                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Theme</h3>
-                    <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
-                        <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
-                        <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-                <div class="flex space-x-6 mt-4 md:mt-0">
-                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-   <div id="loginModal" class="modal-overlay">
+    <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
@@ -445,7 +413,7 @@
                     <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
                 </div>
                 <div>
-                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
+                    <label for="registerFavoriteTcg" class="block text-sm font-medium text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
                     <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
                 </div>
                 <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
