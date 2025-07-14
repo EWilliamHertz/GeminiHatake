@@ -8,16 +8,17 @@
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
    <link rel="stylesheet" href="css/style.css">
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
+   <!-- NEW: Style for the card quick view tooltip -->
+   <style>
         #card-quick-view-tooltip {
             position: absolute;
             z-index: 100;
-            pointer-events: none;
+            pointer-events: none; /* Allows mouse events to pass through to elements below */
             border: 2px solid #000;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            width: 223px;
-            height: 310px;
+            width: 223px; /* Standard card width */
+            height: 310px; /* Standard card height */
         }
     </style>
 </head>
@@ -306,7 +307,8 @@
         </div>
     </div>
 
-    <div id="loginModal" class="modal-overlay">
+    
+ <div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
@@ -320,6 +322,9 @@
                     <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
                 </div>
                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
+                <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
+                </button>
             </form>
         </div>
     </div>
@@ -336,26 +341,44 @@
                     <label for="registerPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
                     <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
                 </div>
+                 <div>
+                    <label for="registerCity" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">City:</label>
+                    <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
+                </div>
+                <div>
+                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
+                    <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
+                </div>
+                <div>
+                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
+                    <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
+                </div>
                 <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
             </form>
         </div>
     </div>
 
-    <div id="messenger-widget-container" class="minimized">
-        <div id="messenger-open-btn">
-            <i class="fas fa-comments"></i>
+
+
+<div id="messenger-widget-container" class="minimized">
+    <div id="messenger-open-btn">
+        <i class="fas fa-comments"></i>
+    </div>
+
+    <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
+        <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
+            <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
+            <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
         </div>
-        <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
-            <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-                <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
-                <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
-            </div>
-            <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-                <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
-            </div>
+        <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
+            <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
+                </div>
         </div>
     </div>
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+</div>
+
+    
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
         <div class="container mx-auto py-8 px-4">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
                 <div>
