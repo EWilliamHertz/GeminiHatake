@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v17 - Quick View Tooltip)
+ * HatakeSocial - Advanced Trades Page Script (v18 - Tooltip Image Fix)
  *
- * - NEW: Adds a "Quick View" tooltip that appears when hovering over card names in a trade.
- * - All previous functionality (trade actions, feedback, etc.) is preserved.
+ * - FIX: The card quick view tooltip now requests the 'large' image version from Scryfall
+ * to ensure the full, correct card art is displayed, fixing the "frame only" bug.
+ * - All previous functionality (trade actions, feedback, Quick View tooltip, etc.) is preserved.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -66,7 +67,7 @@ document.addEventListener('authReady', (e) => {
     };
     const USD_TO_SEK_RATE = 10.5; // Example rate
 
-    // NEW: Card Quick View Tooltip Logic
+    // Card Quick View Tooltip Logic
     const tooltip = document.createElement('img');
     tooltip.id = 'card-quick-view-tooltip';
     tooltip.classList.add('hidden');
@@ -77,7 +78,8 @@ document.addEventListener('authReady', (e) => {
         if (cardLink) {
             const scryfallId = cardLink.dataset.scryfallId;
             if (scryfallId) {
-                tooltip.src = `https://api.scryfall.com/cards/${scryfallId}?format=image&version=normal`;
+                // THE FIX: Request the 'large' image version for better quality and to avoid art-crop issues.
+                tooltip.src = `https://api.scryfall.com/cards/${scryfallId}?format=image&version=large`;
                 tooltip.classList.remove('hidden');
             }
         }
@@ -94,7 +96,7 @@ document.addEventListener('authReady', (e) => {
         tooltip.style.left = event.pageX + 20 + 'px';
         tooltip.style.top = event.pageY + 20 + 'px';
     });
-    // End of New Tooltip Logic
+    // End of Tooltip Logic
 
     // --- Helper Functions ---
     const generateIndexCreationLink = (collection, fields) => {
@@ -331,12 +333,14 @@ document.addEventListener('authReady', (e) => {
     };
     
     const renderTradeItems = (cards = [], money = 0) => {
-        let itemsHtml = cards.map(card => `
+        let itemsHtml = cards.map(card => {
+            const id = card.scryfallId || card.id;
+            return `
             <div class="flex items-center space-x-2">
                 <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 object-cover rounded-sm">
-                <a href="#" class="text-sm dark:text-gray-300 card-link" data-scryfall-id="${card.id || card.scryfallId}">${card.name}</a>
+                <a href="#" class="text-sm dark:text-gray-300 card-link" data-scryfall-id="${id}">${card.name}</a>
             </div>
-        `).join('');
+        `}).join('');
 
         if (money > 0) {
             itemsHtml += `
@@ -565,8 +569,8 @@ document.addEventListener('authReady', (e) => {
             receiverId: tradeOffer.receiver.id,
             receiverName: tradeOffer.receiver.displayName,
             participants: [user.uid, tradeOffer.receiver.id],
-            proposerCards: tradeOffer.proposerCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil })),
-            receiverCards: tradeOffer.receiverCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil })),
+            proposerCards: tradeOffer.proposerCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil, scryfallId: c.scryfallId || c.id })),
+            receiverCards: tradeOffer.receiverCards.map(c => ({ id: c.id, name: c.name, imageUrl: c.imageUrl, priceUsd: c.priceUsd, priceUsdFoil: c.priceUsdFoil, isFoil: c.isFoil, scryfallId: c.scryfallId || c.id })),
             proposerMoney: parseFloat(proposerMoneyInput.value) || 0,
             receiverMoney: parseFloat(receiverMoneyInput.value) || 0,
             notes: document.getElementById('trade-notes').value,
