@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const city = document.getElementById('registerCity')?.value || '';
             const country = document.getElementById('registerCountry')?.value || '';
             const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || '';
-            const referrer = document.getElementById('registerReferrer')?.value.trim() || ''; // NEW
+            const referrer = document.getElementById('registerReferrer')?.value.trim() || '';
             const displayName = email.split('@')[0];
             const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
             const errorMessageEl = document.getElementById('register-error-message');
@@ -135,20 +135,27 @@ document.addEventListener('DOMContentLoaded', () => {
             auth.createUserWithEmailAndPassword(email, password)
                 .then(cred => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
+                    
+                    // Send the verification email
+                    cred.user.sendEmailVerification();
+
                     cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
                     return db.collection('users').doc(cred.user.uid).set({
                         displayName: displayName,
                         displayName_lower: displayName.toLowerCase(),
                         email: email, photoURL: defaultPhotoURL,
                         city: city, country: country, favoriteTcg: favoriteTcg,
-                        referrer: referrer, // NEW: Save the referrer
+                        referrer: referrer,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         handle: handle,
                         isAdmin: false,
                         primaryCurrency: 'SEK'
                     });
                 })
-                .then(() => closeModal(registerModal))
+                .then(() => {
+                    closeModal(document.getElementById('registerModal'));
+                    alert("Registration successful! A verification link has been sent to your email. Please verify your account before logging in.");
+                })
                 .catch(err => {
                     if(errorMessageEl) {
                         errorMessageEl.textContent = err.message;
@@ -172,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false, primaryCurrency: 'SEK',
-                            referrer: '' // Set empty referrer for Google sign-ups
+                            referrer: ''
                         });
                     }
                 });
@@ -268,112 +275,138 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     auth.onAuthStateChanged(async (user) => {
-    const loginButton = document.getElementById('loginButton');
-    const registerButton = document.getElementById('registerButton');
-    const userAvatar = document.getElementById('userAvatar');
-    const userDropdown = document.getElementById('userDropdown');
-    const sidebarUserInfo = document.getElementById('sidebar-user-info');
-    
-    // --- NEW: Get reference to the mobile container ---
-    const mobileUserActions = document.getElementById('mobile-user-actions');
-
-    const existingAdminLink = document.getElementById('admin-link-container');
-    if (existingAdminLink) existingAdminLink.remove();
-    
-    if (user) {
-        // --- Desktop View Update ---
-        loginButton?.classList.add('hidden');
-        registerButton?.classList.add('hidden');
-        userAvatar?.classList.remove('hidden');
-        
-        // --- Mobile View Update (Logged In) ---
-        if (mobileUserActions) {
-            mobileUserActions.innerHTML = `
-                <div class="flex items-center space-x-4 px-3 py-2">
-                    <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover">
-                    <div>
-                        <div class="font-medium text-base text-gray-800 dark:text-white">${user.displayName}</div>
-                        <div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div>
+        // --- NEW: Check for email verification ---
+        if (user && !user.emailVerified) {
+            // Hide all page content and show a verification message
+            document.body.innerHTML = `
+                <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+                    <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
+                        <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
+                        <p class="text-gray-600 dark:text-gray-400 mb-6">
+                            A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox (and spam folder) and click the link to activate your account.
+                        </p>
+                        <div class="space-x-4">
+                            <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
+                            <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
+                        </div>
                     </div>
                 </div>
-                <div class="mt-3 space-y-1">
-                    <a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a>
-                    <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
-                    <a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a>
-                </div>
             `;
-            document.getElementById('mobileLogoutButton').addEventListener('click', (e) => {
-                e.preventDefault();
-                auth.signOut();
+            document.getElementById('resend-verification-btn').addEventListener('click', () => {
+                user.sendEmailVerification()
+                    .then(() => alert('A new verification email has been sent.'))
+                    .catch(err => alert('Error sending email: ' + err.message));
             });
+    
+            document.body.style.opacity = '1';
+            return; // Stop further execution until verified
+        }
+    
+        // --- Original code for verified users and guests ---
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const userAvatar = document.getElementById('userAvatar');
+        const userDropdown = document.getElementById('userDropdown');
+        const sidebarUserInfo = document.getElementById('sidebar-user-info');
+        const mobileUserActions = document.getElementById('mobile-user-actions');
+    
+        const existingAdminLink = document.getElementById('admin-link-container');
+        if (existingAdminLink) existingAdminLink.remove();
+        
+        if (user) { // This block will now only run for VERIFIED users
+            // Desktop View Update
+            loginButton?.classList.add('hidden');
+            registerButton?.classList.add('hidden');
+            userAvatar?.classList.remove('hidden');
+            
+            // Mobile View Update (Logged In)
+            if (mobileUserActions) {
+                mobileUserActions.innerHTML = `
+                    <div class="flex items-center space-x-4 px-3 py-2">
+                        <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover">
+                        <div>
+                            <div class="font-medium text-base text-gray-800 dark:text-white">${user.displayName}</div>
+                            <div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1">
+                        <a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a>
+                        <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
+                        <a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a>
+                    </div>
+                `;
+                document.getElementById('mobileLogoutButton').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    auth.signOut();
+                });
+            }
+            
+            listenForAcceptedRequests(user);
+    
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    window.HatakeSocial.currentUserData = userData;
+                    const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                    const name = userData.displayName || 'User';
+                    const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
+    
+                    if (userAvatar) userAvatar.src = photo;
+                    
+                    if (sidebarUserInfo) {
+                        sidebarUserInfo.classList.remove('hidden');
+                        document.getElementById('sidebar-user-avatar').src = photo;
+                        document.getElementById('sidebar-user-name').textContent = name;
+                        document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
+                    }
+    
+                    if (userData.isAdmin === true && userDropdown) {
+                        const adminLinkContainer = document.createElement('div');
+                        adminLinkContainer.id = 'admin-link-container';
+                        adminLinkContainer.innerHTML = `
+                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                            <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <i class="fas fa-user-shield mr-2"></i>Admin
+                            </a>
+                        `;
+                        userDropdown.appendChild(adminLinkContainer);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        } else {
+            window.HatakeSocial.currentUserData = null;
+            if (friendRequestHandshakeListener) {
+                friendRequestHandshakeListener();
+            }
+            // Desktop View Update
+            loginButton?.classList.remove('hidden');
+            registerButton?.classList.remove('hidden');
+            userAvatar?.classList.add('hidden');
+            userDropdown?.classList.add('hidden');
+            sidebarUserInfo?.classList.add('hidden');
+    
+            // Mobile View Update (Logged Out)
+            if (mobileUserActions) {
+                mobileUserActions.innerHTML = `
+                    <div class="space-y-2">
+                        <button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button>
+                        <button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button>
+                    </div>
+                `;
+                document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+                document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+            }
         }
         
-        listenForAcceptedRequests(user);
-
-        try {
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                window.HatakeSocial.currentUserData = userData;
-                const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                const name = userData.displayName || 'User';
-                const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
-
-                if (userAvatar) userAvatar.src = photo;
-                
-                if (sidebarUserInfo) {
-                    sidebarUserInfo.classList.remove('hidden');
-                    document.getElementById('sidebar-user-avatar').src = photo;
-                    document.getElementById('sidebar-user-name').textContent = name;
-                    document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
-                }
-
-                if (userData.isAdmin === true && userDropdown) {
-                    const adminLinkContainer = document.createElement('div');
-                    adminLinkContainer.id = 'admin-link-container';
-                    adminLinkContainer.innerHTML = `
-                        <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                        <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <i class="fas fa-user-shield mr-2"></i>Admin
-                        </a>
-                    `;
-                    userDropdown.appendChild(adminLinkContainer);
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-        }
-    } else {
-        window.HatakeSocial.currentUserData = null;
-        if (friendRequestHandshakeListener) {
-            friendRequestHandshakeListener();
-        }
-        // --- Desktop View Update ---
-        loginButton?.classList.remove('hidden');
-        registerButton?.classList.remove('hidden');
-        userAvatar?.classList.add('hidden');
-        userDropdown?.classList.add('hidden');
-        sidebarUserInfo?.classList.add('hidden');
-
-        // --- Mobile View Update (Logged Out) ---
-        if (mobileUserActions) {
-            mobileUserActions.innerHTML = `
-                <div class="space-y-2">
-                    <button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button>
-                    <button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button>
-                </div>
-            `;
-            document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(document.getElementById('loginModal')));
-            document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(document.getElementById('registerModal')));
-        }
-    }
+        const event = new CustomEvent('authReady', { detail: { user } });
+        document.dispatchEvent(event);
     
-    const event = new CustomEvent('authReady', { detail: { user } });
-    document.dispatchEvent(event);
-
-    document.body.style.transition = 'opacity 0.3s ease-in-out';
-    document.body.style.opacity = '1';
-});
+        document.body.style.transition = 'opacity 0.3s ease-in-out';
+        document.body.style.opacity = '1';
+    });
     
     setupGlobalListeners();
     setupCurrencySelector();
