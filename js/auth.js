@@ -268,73 +268,112 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     auth.onAuthStateChanged(async (user) => {
-        const loginButton = document.getElementById('loginButton');
-        const registerButton = document.getElementById('registerButton');
-        const userAvatar = document.getElementById('userAvatar');
-        const userDropdown = document.getElementById('userDropdown');
-        const sidebarUserInfo = document.getElementById('sidebar-user-info');
+    const loginButton = document.getElementById('loginButton');
+    const registerButton = document.getElementById('registerButton');
+    const userAvatar = document.getElementById('userAvatar');
+    const userDropdown = document.getElementById('userDropdown');
+    const sidebarUserInfo = document.getElementById('sidebar-user-info');
+    
+    // --- NEW: Get reference to the mobile container ---
+    const mobileUserActions = document.getElementById('mobile-user-actions');
+
+    const existingAdminLink = document.getElementById('admin-link-container');
+    if (existingAdminLink) existingAdminLink.remove();
+    
+    if (user) {
+        // --- Desktop View Update ---
+        loginButton?.classList.add('hidden');
+        registerButton?.classList.add('hidden');
+        userAvatar?.classList.remove('hidden');
         
-        const existingAdminLink = document.getElementById('admin-link-container');
-        if (existingAdminLink) existingAdminLink.remove();
-        
-        if (user) {
-            loginButton?.classList.add('hidden');
-            registerButton?.classList.add('hidden');
-            userAvatar?.classList.remove('hidden');
-            
-            listenForAcceptedRequests(user);
-
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    window.HatakeSocial.currentUserData = userData;
-                    const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                    const name = userData.displayName || 'User';
-                    const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
-
-                    if (userAvatar) userAvatar.src = photo;
-                    
-                    if (sidebarUserInfo) {
-                        sidebarUserInfo.classList.remove('hidden');
-                        document.getElementById('sidebar-user-avatar').src = photo;
-                        document.getElementById('sidebar-user-name').textContent = name;
-                        document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
-                    }
-
-                    if (userData.isAdmin === true && userDropdown) {
-                        const adminLinkContainer = document.createElement('div');
-                        adminLinkContainer.id = 'admin-link-container';
-                        adminLinkContainer.innerHTML = `
-                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                            <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <i class="fas fa-user-shield mr-2"></i>Admin
-                            </a>
-                        `;
-                        userDropdown.appendChild(adminLinkContainer);
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-            }
-        } else {
-            window.HatakeSocial.currentUserData = null;
-            if (friendRequestHandshakeListener) {
-                friendRequestHandshakeListener();
-            }
-            loginButton?.classList.remove('hidden');
-            registerButton?.classList.remove('hidden');
-            userAvatar?.classList.add('hidden');
-            userDropdown?.classList.add('hidden');
-            sidebarUserInfo?.classList.add('hidden');
+        // --- Mobile View Update (Logged In) ---
+        if (mobileUserActions) {
+            mobileUserActions.innerHTML = `
+                <div class="flex items-center space-x-4 px-3 py-2">
+                    <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover">
+                    <div>
+                        <div class="font-medium text-base text-gray-800 dark:text-white">${user.displayName}</div>
+                        <div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div>
+                    </div>
+                </div>
+                <div class="mt-3 space-y-1">
+                    <a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a>
+                    <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
+                    <a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a>
+                </div>
+            `;
+            document.getElementById('mobileLogoutButton').addEventListener('click', (e) => {
+                e.preventDefault();
+                auth.signOut();
+            });
         }
         
-        const event = new CustomEvent('authReady', { detail: { user } });
-        document.dispatchEvent(event);
+        listenForAcceptedRequests(user);
 
-        document.body.style.transition = 'opacity 0.3s ease-in-out';
-        document.body.style.opacity = '1';
-    });
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                window.HatakeSocial.currentUserData = userData;
+                const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                const name = userData.displayName || 'User';
+                const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
+
+                if (userAvatar) userAvatar.src = photo;
+                
+                if (sidebarUserInfo) {
+                    sidebarUserInfo.classList.remove('hidden');
+                    document.getElementById('sidebar-user-avatar').src = photo;
+                    document.getElementById('sidebar-user-name').textContent = name;
+                    document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
+                }
+
+                if (userData.isAdmin === true && userDropdown) {
+                    const adminLinkContainer = document.createElement('div');
+                    adminLinkContainer.id = 'admin-link-container';
+                    adminLinkContainer.innerHTML = `
+                        <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                        <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <i class="fas fa-user-shield mr-2"></i>Admin
+                        </a>
+                    `;
+                    userDropdown.appendChild(adminLinkContainer);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+        }
+    } else {
+        window.HatakeSocial.currentUserData = null;
+        if (friendRequestHandshakeListener) {
+            friendRequestHandshakeListener();
+        }
+        // --- Desktop View Update ---
+        loginButton?.classList.remove('hidden');
+        registerButton?.classList.remove('hidden');
+        userAvatar?.classList.add('hidden');
+        userDropdown?.classList.add('hidden');
+        sidebarUserInfo?.classList.add('hidden');
+
+        // --- Mobile View Update (Logged Out) ---
+        if (mobileUserActions) {
+            mobileUserActions.innerHTML = `
+                <div class="space-y-2">
+                    <button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button>
+                    <button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button>
+                </div>
+            `;
+            document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+            document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+        }
+    }
+    
+    const event = new CustomEvent('authReady', { detail: { user } });
+    document.dispatchEvent(event);
+
+    document.body.style.transition = 'opacity 0.3s ease-in-out';
+    document.body.style.opacity = '1';
+});
     
     setupGlobalListeners();
     setupCurrencySelector();
