@@ -8,6 +8,7 @@
  * for Magic: The Gathering cards.
  * - All filtering is performed client-side for a fast and responsive user experience.
  */
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
