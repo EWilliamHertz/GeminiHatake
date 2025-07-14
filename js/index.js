@@ -1,26 +1,25 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v16 - Welcome Message)
+ * HatakeSocial - Index Page (Feed) Script (v17 - Trade Post Display Fix)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Displays a friendly welcome message for logged-out users instead of a Firestore permission error.
- * - FIX (Security): Implements a robust HTML sanitization function to prevent Cross-Site Scripting (XSS) attacks from user-generated post content.
+ * - NEW: Adds logic to correctly render WTB, WTS, and WTT posts in the main feed.
+ * - Displays a friendly welcome message for logged-out users.
+ * - Includes a security fix for Cross-Site Scripting (XSS).
  * - Implements autocomplete suggestions for @mentions and [card names].
  * - Implements dynamic trending hashtags.
  */
 
 /**
  * Sanitizes a string to prevent XSS attacks by converting HTML special characters.
- * This should be the FIRST step before any other formatting is applied to user content.
  * @param {string} str The string to sanitize.
  * @returns {string} The sanitized string.
  */
 const sanitizeHTML = (str) => {
     if (!str) return '';
     const temp = document.createElement('div');
-    temp.textContent = str; // This safely treats the string as text, not HTML
-    return temp.innerHTML; // This gets the text content back as a safely escaped HTML string
+    temp.textContent = str;
+    return temp.innerHTML;
 };
-
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -28,18 +27,15 @@ document.addEventListener('authReady', (e) => {
     if (!postsContainer) return;
 
     let currentUserIsAdmin = false;
-    let activeFeedType = 'for-you'; // Default feed
+    let activeFeedType = 'for-you';
 
-    // --- Helper function to render comments ---
     const renderComments = (container, comments) => {
         container.innerHTML = '';
         if (!comments || comments.length === 0) {
             container.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400 px-2">No comments yet.</p>';
             return;
         }
-        
         comments.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
-
         comments.forEach(comment => {
             const commentEl = document.createElement('div');
             commentEl.className = 'flex items-start space-x-3 py-2 border-t border-gray-100 dark:border-gray-700';
@@ -68,7 +64,6 @@ document.addEventListener('authReady', (e) => {
         currentUserIsAdmin = userDoc.exists && userDoc.data().isAdmin === true;
     };
 
-    // --- Feed Fetching Logic ---
     const fetchForYouFeed = async () => {
         const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(50).get();
         return postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -96,12 +91,10 @@ document.addEventListener('authReady', (e) => {
         }
         const groupsSnapshot = await db.collection('groups').where('participants', 'array-contains', user.uid).get();
         const groupIds = groupsSnapshot.docs.map(doc => doc.id);
-
         if (groupIds.length === 0) {
             postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Join some groups to see their posts here!</p>';
             return [];
         }
-
         let groupPosts = [];
         for (const groupId of groupIds) {
             const postsSnapshot = await db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc').limit(10).get();
@@ -109,7 +102,6 @@ document.addEventListener('authReady', (e) => {
                 groupPosts.push({ id: doc.id, groupId: groupId, ...doc.data() });
             });
         }
-
         groupPosts.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
         return groupPosts;
     };
@@ -121,22 +113,15 @@ document.addEventListener('authReady', (e) => {
         let posts = [];
         try {
             switch (feedType) {
-                case 'friends':
-                    posts = await fetchFriendsFeed();
-                    break;
-                case 'groups':
-                    posts = await fetchGroupsFeed();
-                    break;
-                case 'for-you':
-                default:
-                    posts = await fetchForYouFeed();
-                    break;
+                case 'friends': posts = await fetchFriendsFeed(); break;
+                case 'groups': posts = await fetchGroupsFeed(); break;
+                default: posts = await fetchForYouFeed(); break;
             }
 
-            if (posts.length === 0 && feedType === 'for-you') {
-                 postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">No posts yet. Be the first to share something!</p>';
-                 return;
-            } else if (posts.length === 0) {
+            if (posts.length === 0) {
+                if (feedType === 'for-you') {
+                    postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">No posts yet. Be the first to share something!</p>';
+                }
                 return;
             }
 
@@ -149,18 +134,60 @@ document.addEventListener('authReady', (e) => {
                     postElement.dataset.groupId = post.groupId;
                 }
                 
-                const safeContent = sanitizeHTML(post.content || '');
-                
-                const formattedContent = safeContent
-                    .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
-                    .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
-                    .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
-                    .replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
+                let postBodyHTML = '';
+
+                // --- TRADE POST FIX ---
+                if (post.postType && ['wts', 'wtb', 'wtt'].includes(post.postType)) {
+                    const postTypeColors = {
+                        wts: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+                        wtb: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+                        wtt: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                    };
+                    const renderCardList = (cards) => {
+                        if (!cards || cards.length === 0) return '<p class="text-xs italic text-gray-500">None</p>';
+                        return cards.map(card => `
+                            <a href="card-view.html?name=${encodeURIComponent(card.name)}" target="_blank" class="flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded-md">
+                                <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 rounded-sm object-cover">
+                                <span class="text-sm dark:text-gray-300">${sanitizeHTML(card.name)}</span>
+                            </a>
+                        `).join('');
+                    };
+                    postBodyHTML = `
+                        <div class="border-t dark:border-gray-700 pt-3 mt-4">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-lg font-bold dark:text-white">${sanitizeHTML(post.title)}</h4>
+                                <span class="px-2 py-1 text-xs font-bold rounded-full ${postTypeColors[post.postType]}">${post.postType.toUpperCase()}</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 mb-4">${sanitizeHTML(post.body)}</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h5 class="font-semibold mb-2 dark:text-gray-200">Haves:</h5>
+                                    <div class="space-y-1">${renderCardList(post.haves)}</div>
+                                </div>
+                                <div>
+                                    <h5 class="font-semibold mb-2 dark:text-gray-200">Wants:</h5>
+                                    <div class="space-y-1">${renderCardList(post.wants)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const safeContent = sanitizeHTML(post.content || '');
+                    const formattedContent = safeContent
+                        .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
+                        .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
+                        .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
+                        .replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
+                    
+                    postBodyHTML = `
+                        <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>
+                        ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
+                    `;
+                }
 
                 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
                 const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
                 const canDelete = user && (post.authorId === user.uid || currentUserIsAdmin);
-
                 const deleteButtonHTML = canDelete ? `<button class="delete-post-btn text-gray-400 hover:text-red-500" title="Delete Post"><i class="fas fa-trash"></i></button>` : '';
                 const reportButtonHTML = (user && !canDelete) ? `<button class="report-post-btn text-gray-400 hover:text-yellow-500 ml-2" title="Report Post"><i class="fas fa-flag"></i></button>` : '';
 
@@ -175,8 +202,7 @@ document.addEventListener('authReady', (e) => {
                         </div>
                         <div class="flex">${deleteButtonHTML}${reportButtonHTML}</div>
                     </div>
-                    <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>
-                    ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
+                    ${postBodyHTML}
                     <div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400">
                         <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i> 
@@ -198,7 +224,6 @@ document.addEventListener('authReady', (e) => {
             }
         } catch (error) {
             console.error("Error loading posts:", error);
-            // Check if the error is due to permissions and the user is not logged in.
             if (!user && (error.code === 'permission-denied' || error.code === 'unauthenticated')) {
                 postsContainer.innerHTML = `
                     <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -207,7 +232,6 @@ document.addEventListener('authReady', (e) => {
                     </div>
                 `;
             } else {
-                // For any other error, display a generic error message.
                 postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts. ${error.message}</p>`;
             }
         }
