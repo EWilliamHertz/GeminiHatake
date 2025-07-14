@@ -11,6 +11,13 @@ document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const collectionPageContainer = document.getElementById('content-collection');
     if (!collectionPageContainer) return;
+document.addEventListener('mousemove', (e) => {
+    const tooltip = document.getElementById('manual-add-tooltip');
+    if (tooltip && !tooltip.classList.contains('hidden')) {
+        tooltip.style.left = e.pageX + 20 + 'px';
+        tooltip.style.top = e.pageY + 20 + 'px';
+    }
+});
 
     if (!user) {
         const mainContent = document.querySelector('main.container');
@@ -483,31 +490,52 @@ document.addEventListener('authReady', (e) => {
         alert("Pricing with undercut is a complex feature that requires fetching competitor prices. This functionality will be implemented in a future update!");
     };
 
-    const displayCardVersions = (versions) => {
-        manualAddResultsContainer.innerHTML = '';
-        if (versions.length === 0) {
-            manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
-            return;
-        }
-        versions.forEach(card => {
-            const versionEl = document.createElement('div');
-            versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
-            versionEl.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm">
-                    <div>
-                        <p class="text-sm font-semibold dark:text-white">${card.name}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
-                    </div>
+ const displayCardVersions = (versions) => {
+    manualAddResultsContainer.innerHTML = '';
+    const tooltip = document.getElementById('manual-add-tooltip'); // Get the tooltip element
+
+    if (versions.length === 0) {
+        manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
+        return;
+    }
+
+    versions.forEach(card => {
+        const versionEl = document.createElement('div');
+        versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+        
+        // NEW: Added the collector number next to the set name
+        versionEl.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm card-thumbnail-preview">
+                <div>
+                    <p class="text-sm font-semibold dark:text-white">${card.name}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName} (#${card.collector_number || 'N/A'})</p>
                 </div>
-                <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
-            `;
-            versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
-                openAddVersionModal(card);
-            });
-            manualAddResultsContainer.appendChild(versionEl);
+            </div>
+            <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
+        `;
+        
+        // NEW: Added event listeners for hover preview
+        const thumbnail = versionEl.querySelector('.card-thumbnail-preview');
+        thumbnail.addEventListener('mouseover', () => {
+            if (tooltip) {
+                tooltip.src = thumbnail.src;
+                tooltip.classList.remove('hidden');
+            }
         });
-    };
+        thumbnail.addEventListener('mouseout', () => {
+            if (tooltip) {
+                tooltip.classList.add('hidden');
+            }
+        });
+
+        versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
+            openAddVersionModal(card);
+        });
+
+        manualAddResultsContainer.appendChild(versionEl);
+    });
+};
 
     const openAddVersionModal = (cardData) => {
         document.getElementById('add-version-name').textContent = cardData.name;
