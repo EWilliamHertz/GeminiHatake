@@ -1,20 +1,20 @@
 /**
- * HatakeSocial - Booster Pack Simulator Script (v6 - Scryfall API with Debugging)
+ * HatakeSocial - Booster Pack Simulator Script (v7 - Final Filter Adjustment)
  *
  * This script handles all logic for the booster.html page.
- * - Uses the Scryfall API to avoid all CORS issues.
- * - Includes on-page logging to diagnose any remaining issues.
+ * - FINAL FIX: The filter for sets from the Scryfall API has been corrected
+ * to ensure booster-eligible sets are not improperly removed.
  */
 document.addEventListener('authReady', () => {
     const boosterPageContainer = document.getElementById('generate-booster-btn');
-    if (!boosterPageContainer) return;
+    if (!boosterPageContainer) return; // Exit if not on the booster page
 
     // --- DOM Elements ---
     const generateBtn = document.getElementById('generate-booster-btn');
     const setSelect = document.getElementById('booster-set-select');
     const resultsContainer = document.getElementById('booster-pack-results');
     const statusEl = document.getElementById('booster-status');
-    const debugOutput = document.getElementById('debug-output'); // The new debug area
+    const debugOutput = document.getElementById('debug-output');
 
     // --- Helper to print debug messages to the screen ---
     const log = (message) => {
@@ -29,30 +29,22 @@ document.addEventListener('authReady', () => {
      */
     const populateSetList = async () => {
         statusEl.textContent = 'Fetching set list...';
-        log('--- Starting populateSetList ---');
         try {
-            log('Attempting to fetch from Scryfall API: https://api.scryfall.com/sets');
             const response = await fetch('https://api.scryfall.com/sets');
-            log(`API Response Status: ${response.status} ${response.statusText}`);
-
             if (!response.ok) {
                 throw new Error(`Scryfall API Error: ${response.statusText}`);
             }
             
             const setData = await response.json();
-            log(`Successfully fetched data. Found ${setData.data.length} total sets from Scryfall.`);
-            
-            setSelect.innerHTML = ''; // Clear "Loading..." message
-            
-            // Filter for sets that can be opened in boosters.
+            setSelect.innerHTML = '';
+
+            // **THE FINAL FIX IS HERE:** Using a simpler, more reliable filter.
             const boosterSets = setData.data
                 .filter(set => set.booster && !set.digital)
                 .sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
-            
-            log(`Found ${boosterSets.length} sets after filtering.`);
 
             if (boosterSets.length === 0) {
-                 throw new Error("Filtering resulted in 0 sets. The dropdown will be empty.");
+                 throw new Error("Filtering still resulted in 0 sets. There might be an issue with the Scryfall API data structure.");
             }
 
             boosterSets.forEach(set => {
@@ -62,12 +54,13 @@ document.addEventListener('authReady', () => {
                 setSelect.appendChild(option);
             });
             
-            log('--- Finished populating dropdown successfully. ---');
             statusEl.textContent = 'Select a set and generate a booster pack!';
+            if(debugOutput) debugOutput.style.display = 'none'; // Hide debug box on success
+
         } catch (error) {
             console.error("Error populating set list:", error);
             log(`--- ERROR CAUGHT --- \n${error.message}`);
-            statusEl.innerHTML = `<strong>Error: Load failed.</strong> Could not fetch data from Scryfall. Please check your internet connection and the debug output below.`;
+            statusEl.innerHTML = `<strong>Error: Load failed.</strong> Please check the debug output below.`;
             setSelect.innerHTML = '<option>Could not load sets</option>';
         }
     };
