@@ -1,10 +1,8 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v16 - Cancel & Display Fix)
+ * HatakeSocial - Advanced Trades Page Script (v17 - Quick View Tooltip)
  *
- * This script implements a comprehensive and secure trading system.
- * - FIX: Corrects the display logic to correctly show "Proposer Offers" and "Receiver Offers" on both sides of the trade.
- * - FIX: Adds a "Cancel" button for the proposer on pending trades.
- * - FIX: Corrects the feedback submission process to work without a backend.
+ * - NEW: Adds a "Quick View" tooltip that appears when hovering over card names in a trade.
+ * - All previous functionality (trade actions, feedback, etc.) is preserved.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -67,6 +65,36 @@ document.addEventListener('authReady', (e) => {
         receiver: null
     };
     const USD_TO_SEK_RATE = 10.5; // Example rate
+
+    // NEW: Card Quick View Tooltip Logic
+    const tooltip = document.createElement('img');
+    tooltip.id = 'card-quick-view-tooltip';
+    tooltip.classList.add('hidden');
+    document.body.appendChild(tooltip);
+
+    document.addEventListener('mouseover', (event) => {
+        const cardLink = event.target.closest('.card-link');
+        if (cardLink) {
+            const scryfallId = cardLink.dataset.scryfallId;
+            if (scryfallId) {
+                tooltip.src = `https://api.scryfall.com/cards/${scryfallId}?format=image&version=normal`;
+                tooltip.classList.remove('hidden');
+            }
+        }
+    });
+
+    document.addEventListener('mouseout', (event) => {
+        const cardLink = event.target.closest('.card-link');
+        if (cardLink) {
+            tooltip.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        tooltip.style.left = event.pageX + 20 + 'px';
+        tooltip.style.top = event.pageY + 20 + 'px';
+    });
+    // End of New Tooltip Logic
 
     // --- Helper Functions ---
     const generateIndexCreationLink = (collection, fields) => {
@@ -161,7 +189,6 @@ document.addEventListener('authReady', (e) => {
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
         const isProposer = trade.proposerId === user.uid;
 
-        // **FIX:** Use proposer and receiver names directly from the trade data.
         const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
         const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
         
@@ -216,7 +243,6 @@ document.addEventListener('authReady', (e) => {
         switch(trade.status) {
             case 'pending':
                 if (isProposer) {
-                    // **FIX:** Added cancel button for outgoing trades.
                     actionButtons = `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 text-sm">Cancel Offer</button>`;
                 } else {
                     actionButtons = `
@@ -308,7 +334,7 @@ document.addEventListener('authReady', (e) => {
         let itemsHtml = cards.map(card => `
             <div class="flex items-center space-x-2">
                 <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 object-cover rounded-sm">
-                <span class="text-sm dark:text-gray-300">${card.name}</span>
+                <a href="#" class="text-sm dark:text-gray-300 card-link" data-scryfall-id="${card.id || card.scryfallId}">${card.name}</a>
             </div>
         `).join('');
 
@@ -800,7 +826,6 @@ document.addEventListener('authReady', (e) => {
     
     closeFeedbackModalBtn?.addEventListener('click', () => closeModal(feedbackModal));
 
-    // **UPDATED** Feedback Form Listener
     feedbackForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -827,11 +852,8 @@ document.addEventListener('authReady', (e) => {
         };
 
         try {
-            // **REMOVED** logic to update user profile directly.
-            // A Cloud Function will now listen for this creation event.
             await db.collection('feedback').add(feedbackData);
 
-            // We can still update the trade document to show feedback was left.
             const tradeRef = db.collection('trades').doc(tradeId);
             const tradeDoc = await tradeRef.get();
             if (tradeDoc.exists) {
