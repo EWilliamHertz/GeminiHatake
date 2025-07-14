@@ -4,7 +4,7 @@
  * This script handles all logic for the booster.html page.
  * - Fetches a comprehensive list of sets from MTGJSON to populate the simulator dropdown.
  * - Generates a simulated booster pack based on the selected set's data.
- * - Displays the generated cards.
+ * - FIX: Uses a CORS proxy to prevent cross-origin errors when fetching data from MTGJSON.
  * - FIX: Added more detailed error logging to help diagnose network/CORS issues.
  */
 document.addEventListener('authReady', () => {
@@ -16,6 +16,9 @@ document.addEventListener('authReady', () => {
     const setSelect = document.getElementById('booster-set-select');
     const resultsContainer = document.getElementById('booster-pack-results');
     const statusEl = document.getElementById('booster-status');
+    
+    // --- CORS Proxy ---
+    const corsProxy = 'https://api.allorigins.win/raw?url=';
 
     // --- Main Functions ---
 
@@ -25,7 +28,8 @@ document.addEventListener('authReady', () => {
     const populateSetList = async () => {
         statusEl.textContent = 'Fetching set list...';
         try {
-            const response = await fetch('https://mtgjson.com/api/v5/SetList.json');
+            const apiUrl = 'https://mtgjson.com/api/v5/SetList.json';
+            const response = await fetch(`${corsProxy}${encodeURIComponent(apiUrl)}`);
             
             // Check if the request was successful
             if (!response.ok) {
@@ -89,7 +93,8 @@ document.addEventListener('authReady', () => {
         resultsContainer.innerHTML = '';
         
         try {
-            const response = await fetch(`https://mtgjson.com/api/v5/${setCode}.json`);
+            const apiUrl = `https://mtgjson.com/api/v5/${setCode}.json`;
+            const response = await fetch(`${corsProxy}${encodeURIComponent(apiUrl)}`);
             if (!response.ok) throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
             
             const setData = await response.json();
