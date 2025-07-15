@@ -1,10 +1,8 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v16 - Cancel & Display Fix)
+ * HatakeSocial - Advanced Trades Page Script (v17 - Final Fix)
  *
  * This script implements a comprehensive and secure trading system.
- * - FIX: Corrects the display logic to correctly show "Proposer Offers" and "Receiver Offers" on both sides of the trade.
- * - FIX: Adds a "Cancel" button for the proposer on pending trades.
- * - FIX: Corrects the feedback submission process to work without a backend.
+ * - FIX: Corrects the trade acceptance logic to prevent security rule violations.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -179,7 +177,6 @@ document.addEventListener('authReady', (e) => {
         let tradeStatusSection = '';
         let shippingInfoHTML = '';
 
-        // --- THE FIX IS HERE ---
         const formatAddress = (userData) => {
             if (!userData || !userData.address) {
                 return userData.displayName || 'Address not available';
@@ -218,10 +215,9 @@ document.addEventListener('authReady', (e) => {
                     const theirAddress = formatAddress(isProposer ? receiverData : proposerData);
                     
                     let payoutInfoHTML = '';
-                    // Display payout info if there's a cash component
                     if (trade.proposerMoney > 0 || trade.receiverMoney > 0) {
-                        const payee = trade.proposerMoney > 0 ? proposerData : receiverData;
-                        const payer = trade.proposerMoney > 0 ? receiverData : proposerData;
+                        const payer = trade.proposerMoney > 0 ? proposerData : receiverData;
+                        const payee = trade.proposerMoney > 0 ? receiverData : proposerData;
                         const paymentAmount = Math.max(trade.proposerMoney, trade.receiverMoney);
 
                         payoutInfoHTML = `
@@ -259,7 +255,6 @@ document.addEventListener('authReady', (e) => {
                 shippingInfoHTML = '<p class="text-xs text-red-500">Could not load shipping addresses.</p>';
             }
         }
-        // --- END OF FIX ---
 
         switch(trade.status) {
             case 'pending':
