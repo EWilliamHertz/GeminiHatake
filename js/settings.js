@@ -56,6 +56,7 @@ document.addEventListener('authReady', (e) => {
     // Account Section
     const accountEmailEl = document.getElementById('account-email');
     const primaryCurrencySelect = document.getElementById('primaryCurrency');
+    const priceSourceSelect = document.getElementById('price-source-select');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
     
     // Shipping Section
@@ -120,6 +121,7 @@ document.addEventListener('authReady', (e) => {
 
             accountEmailEl.textContent = user.email;
             primaryCurrencySelect.value = data.primaryCurrency || 'SEK';
+            priceSourceSelect.value = data.priceSource || 'eur';
             
             if (data.shippingProfile) {
                 shippingDomesticInput.value = data.shippingProfile.domestic || '';
