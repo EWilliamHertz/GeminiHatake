@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         container.innerHTML = `
+            <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
             <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
                 <option value="SEK">SEK</option>
                 <option value="USD">USD</option>
@@ -275,9 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     auth.onAuthStateChanged(async (user) => {
-        // --- NEW: Check for email verification ---
         if (user && !user.emailVerified) {
-            // Hide all page content and show a verification message
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
                     <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
@@ -299,10 +298,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     
             document.body.style.opacity = '1';
-            return; // Stop further execution until verified
+            return;
         }
     
-        // --- Original code for verified users and guests ---
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
         const userAvatar = document.getElementById('userAvatar');
@@ -313,13 +311,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const existingAdminLink = document.getElementById('admin-link-container');
         if (existingAdminLink) existingAdminLink.remove();
         
-        if (user) { // This block will now only run for VERIFIED users
-            // Desktop View Update
+        if (user) {
             loginButton?.classList.add('hidden');
             registerButton?.classList.add('hidden');
             userAvatar?.classList.remove('hidden');
             
-            // Mobile View Update (Logged In)
             if (mobileUserActions) {
                 mobileUserActions.innerHTML = `
                     <div class="flex items-center space-x-4 px-3 py-2">
@@ -381,14 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (friendRequestHandshakeListener) {
                 friendRequestHandshakeListener();
             }
-            // Desktop View Update
             loginButton?.classList.remove('hidden');
             registerButton?.classList.remove('hidden');
             userAvatar?.classList.add('hidden');
             userDropdown?.classList.add('hidden');
             sidebarUserInfo?.classList.add('hidden');
     
-            // Mobile View Update (Logged Out)
             if (mobileUserActions) {
                 mobileUserActions.innerHTML = `
                     <div class="space-y-2">
