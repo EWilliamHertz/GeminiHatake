@@ -8,7 +8,6 @@
  * for Magic: The Gathering cards.
  * - All filtering is performed client-side for a fast and responsive user experience.
  */
-
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
@@ -220,12 +219,18 @@ document.addEventListener('authReady', (e) => {
     
     const renderGridViewCard = (card) => {
         const cardEl = document.createElement('div');
-        cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
+        cardEl.className = 'relative bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
         const seller = card.sellerData;
         const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
+        
+        const quantityBadge = `<div class="absolute top-1 right-1 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
+
         cardEl.innerHTML = `
             <a href="card-view.html?id=${card.scryfallId}" class="block h-full flex flex-col">
-                <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                <div class="relative">
+                    <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                    ${quantityBadge}
+                </div>
                 <div class="flex-grow flex flex-col p-1">
                     <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
                     <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
@@ -248,6 +253,10 @@ document.addEventListener('authReady', (e) => {
             <div class="flex-grow min-w-0">
                 <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name}</a>
                 <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${card.setName || ''}</p>
+            </div>
+            <div class="text-center w-16 flex-shrink-0">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Qty</p>
+                <p class="font-bold text-lg dark:text-white">${card.quantity}</p>
             </div>
             <div class="w-1/4 text-sm text-gray-600 dark:text-gray-300 flex-shrink-0">
                 <p class="font-semibold truncate">${seller.displayName}</p>
