@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v17 - Final Fix)
+ * HatakeSocial - Advanced Trades Page Script (v18 - Client-Side Inventory Transfer)
  *
  * This script implements a comprehensive and secure trading system.
- * - FIX: Corrects the trade acceptance logic to prevent security rule violations.
+ * - NEW: Adds client-side logic to transfer card ownership when a trade is completed.
+ * - This is an interim solution until a backend function can be deployed.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -619,7 +620,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // CORRECTED FUNCTION
+    // FINALIZED INVENTORY TRANSFER LOGIC
     const handleTradeAction = async (action, tradeId) => {
         const tradeRef = db.collection('trades').doc(tradeId);
         const tradeDoc = await tradeRef.get();
@@ -635,49 +636,81 @@ document.addEventListener('authReady', (e) => {
             case 'accepted':
                 confirmMessage = 'Are you sure you want to accept this trade? This will lock in the items.';
                 break;
+            case 'confirm-shipment':
+                confirmMessage = 'Please confirm that you have shipped your items.';
+                break;
+            case 'confirm-receipt':
+                confirmMessage = 'Please confirm you have received the items from your trade partner.';
+                break;
         }
 
         if (confirm(confirmMessage)) {
-            if (action === 'accepted') {
-                // Simplified logic: Only update the status. Card transfer is deferred.
-                await tradeRef.update({ status: 'accepted' });
-                const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
-                await createNotification(otherPartyId, `Your trade offer was accepted by ${user.displayName}. Please ship your items.`, '/trades.html');
-                await createNotification(user.uid, `You accepted the trade. Please ship your items.`, '/trades.html');
+            try {
+                if (action === 'accepted') {
+                    await tradeRef.update({ status: 'accepted' });
+                    const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
+                    await createNotification(otherPartyId, `Your trade offer was accepted by ${user.displayName}. Please ship your items.`, '/trades.html');
+                    await createNotification(user.uid, `You accepted the trade. Please ship your items.`, '/trades.html');
+                } else if (action === 'rejected') {
+                    await tradeRef.update({ status: action });
+                    const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
+                    const message = isProposer ? `Your trade offer to ${tradeData.receiverName} was cancelled.` : `Your trade offer was rejected by ${user.displayName}.`;
+                    await createNotification(otherPartyId, message, '/trades.html');
+                } else if (action === 'counter') {
+                    openProposeTradeModal({ counterOfTrade: { id: tradeId, ...tradeData } });
+                } else if (action === 'confirm-shipment') {
+                    const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
+                    await tradeRef.update({ [fieldToUpdate]: true });
 
-            } else if (action === 'rejected') {
-                // Logic for rejecting/cancelling a trade
-                await tradeRef.update({ status: action });
-                const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
-                const message = isProposer ? `Your trade offer to ${tradeData.receiverName} was cancelled.` : `Your trade offer was rejected by ${user.displayName}.`;
-                await createNotification(otherPartyId, message, '/trades.html');
+                    const updatedDoc = await tradeRef.get();
+                    if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
+                        await tradeRef.update({ status: 'shipped' });
+                    }
+                } else if (action === 'confirm-receipt') {
+                    const fieldToUpdate = isProposer ? 'proposerConfirmedReceipt' : 'receiverConfirmedReceipt';
+                    await tradeRef.update({ [fieldToUpdate]: true });
 
-            } else if (action === 'counter') {
-                // Logic for counter-offers remains the same
-                openProposeTradeModal({ counterOfTrade: { id: tradeId, ...tradeData } });
+                    const updatedDoc = await tradeRef.get();
+                    const updatedTradeData = updatedDoc.data();
+                    if (updatedTradeData.proposerConfirmedReceipt && updatedTradeData.receiverConfirmedReceipt) {
+                        // All parties have confirmed receipt, now perform the inventory transfer.
+                        const batch = db.batch();
 
-            } else if (action === 'confirm-shipment') {
-                const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
-                await tradeRef.update({ [fieldToUpdate]: true });
+                        // Remove cards from proposer, add to receiver
+                        updatedTradeData.proposerCards.forEach(card => {
+                            const cardToRemoveRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc(card.id);
+                            batch.delete(cardToRemoveRef);
 
-                const updatedDoc = await tradeRef.get();
-                if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
-                    await tradeRef.update({ status: 'shipped' });
+                            const cardToAddRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc();
+                            const newCardData = { ...card, forSale: false, addedAt: new Date() };
+                            delete newCardData.id; 
+                            batch.set(cardToAddRef, newCardData);
+                        });
+
+                        // Remove cards from receiver, add to proposer
+                        updatedTradeData.receiverCards.forEach(card => {
+                            const cardToRemoveRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc(card.id);
+                            batch.delete(cardToRemoveRef);
+
+                            const cardToAddRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
+                            const newCardData = { ...card, forSale: false, addedAt: new Date() };
+                            delete newCardData.id;
+                            batch.set(cardToAddRef, newCardData);
+                        });
+
+                        // Finally, update the trade status to completed
+                        batch.update(tradeRef, { status: 'completed' });
+
+                        await batch.commit();
+
+                        // Send notifications
+                        await createNotification(tradeData.proposerId, `Your trade with ${tradeData.receiverName} is complete! Leave feedback.`, '/trades.html');
+                        await createNotification(tradeData.receiverId, `Your trade with ${tradeData.proposerName} is complete! Leave feedback.`, '/trades.html');
+                    }
                 }
-            } else if (action === 'confirm-receipt') {
-                 const fieldToUpdate = isProposer ? 'proposerConfirmedReceipt' : 'receiverConfirmedReceipt';
-                await tradeRef.update({ [fieldToUpdate]: true });
-
-                const updatedDoc = await tradeRef.get();
-                const updatedTradeData = updatedDoc.data();
-                if (updatedTradeData.proposerConfirmedReceipt && updatedTradeData.receiverConfirmedReceipt) {
-                    // This is the point where a Cloud Function would ideally handle the final, secure inventory transfer.
-                    // For now, we just complete the trade.
-                    await tradeRef.update({ status: 'completed' });
-                    
-                    await createNotification(tradeData.proposerId, `Your trade with ${tradeData.receiverName} is complete! Leave feedback.`, '/trades.html');
-                    await createNotification(tradeData.receiverId, `Your trade with ${tradeData.proposerName} is complete! Leave feedback.`, '/trades.html');
-                }
+            } catch (error) {
+                console.error(`Error during trade action '${action}':`, error);
+                alert("An error occurred. Please try again.");
             }
         }
     };
