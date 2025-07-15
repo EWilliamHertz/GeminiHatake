@@ -22,7 +22,7 @@ document.addEventListener('authReady', (e) => {
     const historyContainer = document.getElementById('tab-content-history');
     const tabs = document.querySelectorAll('.trade-tab-button');
     const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
-    
+
     // Modals
     const tradeModal = document.getElementById('propose-trade-modal');
     const feedbackModal = document.getElementById('feedback-modal');
@@ -41,7 +41,7 @@ document.addEventListener('authReady', (e) => {
     const proposerMoneyInput = document.getElementById('proposer-money');
     const receiverMoneyInput = document.getElementById('receiver-money');
     const counterOfferInput = document.getElementById('counter-offer-original-id');
-    
+
     // Auto-Balance Modal Elements
     const closeBalanceModalBtn = document.getElementById('close-balance-modal');
     const autoBalanceForm = document.getElementById('auto-balance-form');
@@ -77,13 +77,13 @@ document.addEventListener('authReady', (e) => {
         });
         return url;
     };
-    
+
     const displayIndexError = (container, link) => {
         const errorMessage = `
             <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
                 <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
                 <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                <a href="${link}" target="_blank" rel="noopener noreferrer" 
+                <a href="${link}" target="_blank" rel="noopener noreferrer"
                    class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
                    Click Here to Create the Index
                 </a>
@@ -163,7 +163,7 @@ document.addEventListener('authReady', (e) => {
 
         const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
         const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
-        
+
         const statusColors = {
             pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
             accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
@@ -187,8 +187,15 @@ document.addEventListener('authReady', (e) => {
                     const proposerData = proposerDoc.data();
                     const receiverData = receiverDoc.data();
 
-                    const yourAddress = isProposer ? `${proposerData.displayName}<br>${proposerData.city}, ${proposerData.country}` : `${receiverData.displayName}<br>${receiverData.city}, ${receiverData.country}`;
-                    const theirAddress = isProposer ? `${receiverData.displayName}<br>${receiverData.city}, ${receiverData.country}` : `${proposerData.displayName}<br>${proposerData.city}, ${proposerData.country}`;
+                    // --- THE FIX IS HERE ---
+                    const yourAddress = isProposer ? 
+                        `${proposerData.displayName}<br>${proposerData.address?.street || ''}<br>${proposerData.address?.city || ''}, ${proposerData.address?.country || ''}` : 
+                        `${receiverData.displayName}<br>${receiverData.address?.street || ''}<br>${receiverData.address?.city || ''}, ${receiverData.address?.country || ''}`;
+                    
+                    const theirAddress = isProposer ? 
+                        `${receiverData.displayName}<br>${receiverData.address?.street || ''}<br>${receiverData.address?.city || ''}, ${receiverData.address?.country || ''}` : 
+                        `${proposerData.displayName}<br>${proposerData.address?.street || ''}<br>${proposerData.address?.city || ''}, ${proposerData.address?.country || ''}`;
+                    // --- END OF FIX ---
 
                     shippingInfoHTML = `
                         <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
@@ -252,7 +259,7 @@ document.addEventListener('authReady', (e) => {
         if (['accepted', 'shipped', 'disputed'].includes(trade.status)) {
             actionButtons += `<button data-id="${tradeId}" class="report-problem-btn text-xs text-gray-500 hover:text-red-500 ml-2">Report Problem</button>`;
         }
-        
+
         tradeCard.innerHTML = `
             <div class="flex justify-between items-start mb-4">
                 <div>
