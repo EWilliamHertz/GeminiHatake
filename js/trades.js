@@ -161,7 +161,6 @@ document.addEventListener('authReady', (e) => {
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
         const isProposer = trade.proposerId === user.uid;
 
-        // **FIX:** Use proposer and receiver names directly from the trade data.
         const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
         const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
         
@@ -216,7 +215,6 @@ document.addEventListener('authReady', (e) => {
         switch(trade.status) {
             case 'pending':
                 if (isProposer) {
-                    // **FIX:** Added cancel button for outgoing trades.
                     actionButtons = `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700 text-sm">Cancel Offer</button>`;
                 } else {
                     actionButtons = `
@@ -596,16 +594,44 @@ document.addEventListener('authReady', (e) => {
                 confirmMessage = 'Are you sure?';
         }
 
-        if (action === 'accepted' || action === 'rejected') {
+        if (action === 'accepted') {
+            if (confirm(confirmMessage)) {
+                // *** NEW: CARD REMOVAL LOGIC ***
+                const batch = db.batch();
+    
+                // 1. Remove cards from proposer's collection and add to receiver's
+                tradeData.proposerCards.forEach(card => {
+                    const cardToRemoveRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc(card.id);
+                    batch.delete(cardToRemoveRef);
+    
+                    const cardToAddRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc();
+                    batch.set(cardToAddRef, { ...card, forSale: false, addedAt: new Date() });
+                });
+    
+                // 2. Remove cards from receiver's collection and add to proposer's
+                tradeData.receiverCards.forEach(card => {
+                    const cardToRemoveRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc(card.id);
+                    batch.delete(cardToRemoveRef);
+    
+                    const cardToAddRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
+                    batch.set(cardToAddRef, { ...card, forSale: false, addedAt: new Date() });
+                });
+    
+                // 3. Update the trade status
+                batch.update(tradeRef, { status: 'accepted' });
+    
+                // 4. Commit all changes at once
+                await batch.commit();
+                
+                // 5. Send notification
+                const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
+                await createNotification(otherPartyId, `Your trade offer was accepted by ${user.displayName}.`, '/trades.html');
+            }
+        } else if (action === 'rejected') {
             if (confirm(confirmMessage)) {
                 await tradeRef.update({ status: action });
                 const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
-                let message;
-                if (action === 'accepted') {
-                    message = `Your trade offer was accepted by ${user.displayName}.`;
-                } else {
-                    message = isProposer ? `Your trade offer to ${tradeData.receiverName} was cancelled.` : `Your trade offer was rejected by ${user.displayName}.`;
-                }
+                const message = isProposer ? `Your trade offer to ${tradeData.receiverName} was cancelled.` : `Your trade offer was rejected by ${user.displayName}.`;
                 await createNotification(otherPartyId, message, '/trades.html');
             }
         } else if (action === 'counter') {
@@ -800,7 +826,6 @@ document.addEventListener('authReady', (e) => {
     
     closeFeedbackModalBtn?.addEventListener('click', () => closeModal(feedbackModal));
 
-    // **UPDATED** Feedback Form Listener
     feedbackForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -827,11 +852,8 @@ document.addEventListener('authReady', (e) => {
         };
 
         try {
-            // **REMOVED** logic to update user profile directly.
-            // A Cloud Function will now listen for this creation event.
             await db.collection('feedback').add(feedbackData);
 
-            // We can still update the trade document to show feedback was left.
             const tradeRef = db.collection('trades').doc(tradeId);
             const tradeDoc = await tradeRef.get();
             if (tradeDoc.exists) {
