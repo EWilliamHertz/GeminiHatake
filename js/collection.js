@@ -11,13 +11,6 @@ document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const collectionPageContainer = document.getElementById('content-collection');
     if (!collectionPageContainer) return;
-document.addEventListener('mousemove', (e) => {
-    const tooltip = document.getElementById('manual-add-tooltip');
-    if (tooltip && !tooltip.classList.contains('hidden')) {
-        tooltip.style.left = e.pageX + 20 + 'px';
-        tooltip.style.top = e.pageY + 20 + 'px';
-    }
-});
 
     if (!user) {
         const mainContent = document.querySelector('main.container');
@@ -29,7 +22,7 @@ document.addEventListener('mousemove', (e) => {
     let bulkEditMode = false;
     let quickEditMode = false;
     let selectedCards = new Set();
-    let fullCollection = []; 
+    let fullCollection = [];
     let filteredCollection = [];
     let currentView = 'grid'; // 'grid' or 'list'
 
@@ -70,7 +63,7 @@ document.addEventListener('mousemove', (e) => {
     const filterRaritySelect = document.getElementById('filter-rarity');
     const filterColorSelect = document.getElementById('filter-color');
     const resetFiltersBtn = document.getElementById('reset-filters-btn');
-    
+
     // View Toggle Elements
     const gridViewBtn = document.getElementById('grid-view-btn');
     const listViewBtn = document.getElementById('list-view-btn');
@@ -83,7 +76,7 @@ document.addEventListener('mousemove', (e) => {
             const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
             fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             filteredCollection = [...fullCollection];
-            
+
             calculateAndDisplayStats(fullCollection);
             populateFilters();
             renderCurrentView();
@@ -105,13 +98,13 @@ document.addEventListener('mousemove', (e) => {
             container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your wishlist.</p>`;
         }
     };
-    
+
     const populateFilters = () => {
         const sets = new Set();
         fullCollection.forEach(card => {
             if (card.setName) sets.add(card.setName);
         });
-        
+
         filterSetSelect.innerHTML = '<option value="all">All Sets</option>';
         [...sets].sort().forEach(setName => {
             const option = document.createElement('option');
@@ -129,11 +122,11 @@ document.addEventListener('mousemove', (e) => {
 
         filteredCollection = fullCollection.filter(card => {
             const cardColors = card.colors || [];
-            
+
             const nameMatch = card.name.toLowerCase().includes(nameFilter);
             const setMatch = setFilter === 'all' || card.setName === setFilter;
             const rarityMatch = rarityFilter === 'all' || card.rarity === rarityFilter;
-            
+
             let colorMatch = true;
             if (colorFilter !== 'all') {
                 if (colorFilter === 'M') {
@@ -144,13 +137,13 @@ document.addEventListener('mousemove', (e) => {
                     colorMatch = cardColors.includes(colorFilter);
                 }
             }
-            
+
             return nameMatch && setMatch && rarityMatch && colorMatch;
         });
-        
+
         renderCurrentView();
     };
-    
+
     const renderCurrentView = () => {
         if (currentView === 'grid') {
             renderGridView();
@@ -170,7 +163,7 @@ document.addEventListener('mousemove', (e) => {
             container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
             return;
         }
-    
+
         container.innerHTML = '';
         collectionToRender.forEach(card => {
             const cardEl = document.createElement('div');
@@ -183,15 +176,21 @@ document.addEventListener('mousemove', (e) => {
 
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
             const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
-            const priceTagHTML = formattedPrice 
+            const priceTagHTML = formattedPrice
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
 
+            // NEW: Added quantity badge
+            const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
+
             cardEl.innerHTML = `
-                <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                <div class="relative">
+                    <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                    ${quantityBadge}
+                    ${checkboxOverlay}
+                </div>
                 ${priceTagHTML}
-                ${checkboxOverlay}
-                <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <button class="edit-card-btn text-white text-xs" data-list="collection"><i class="fas fa-edit"></i></button>
                     <button class="delete-card-btn text-white text-xs ml-1" data-list="collection"><i class="fas fa-trash"></i></button>
                     <button class="manage-listing-btn text-white text-xs ml-1" data-list="collection"><i class="fas fa-tags"></i></button>
@@ -247,7 +246,7 @@ document.addEventListener('mousemove', (e) => {
         tableHTML += `</tbody></table>`;
         container.innerHTML = tableHTML;
     };
-    
+
     const renderWishlist = (wishlistItems) => {
         if (!wishlistListContainer) return;
         if (wishlistItems.length === 0) {
@@ -279,7 +278,7 @@ document.addEventListener('mousemove', (e) => {
         collectionData.forEach(card => {
             const quantity = card.quantity || 1;
             totalCards += quantity;
-            
+
             const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
             totalValue += price * quantity;
 
@@ -293,7 +292,7 @@ document.addEventListener('mousemove', (e) => {
         document.getElementById('stats-total-cards').textContent = totalCards;
         document.getElementById('stats-unique-cards').textContent = uniqueCards;
         document.getElementById('stats-total-value').textContent = window.HatakeSocial.convertAndFormatPrice(totalValue, 'USD');
-        
+
         const rarityContainer = document.getElementById('stats-rarity-breakdown');
         if (rarityContainer) {
             rarityContainer.innerHTML = `
@@ -309,7 +308,7 @@ document.addEventListener('mousemove', (e) => {
         bulkEditMode = !bulkEditMode;
         selectedCards.clear();
         if (selectAllCheckbox) selectAllCheckbox.checked = false;
-        
+
         if (bulkEditMode) {
             bulkEditBtn.textContent = 'Cancel Bulk Edit';
             bulkEditBtn.classList.add('bg-red-600', 'hover:bg-red-700');
@@ -393,7 +392,7 @@ document.addEventListener('mousemove', (e) => {
 
         const batch = db.batch();
         const rows = document.querySelectorAll('.quick-edit-row');
-        
+
         rows.forEach(row => {
             const docId = row.dataset.id;
             const docRef = db.collection('users').doc(user.uid).collection('collection').doc(docId);
@@ -446,7 +445,7 @@ document.addEventListener('mousemove', (e) => {
             selectAllCheckbox.checked = selectedCards.size === allCollectionIds.length && allCollectionIds.length > 0;
         }
     };
-    
+
     const handleSelectAll = (e) => {
         const allCollectionIds = fullCollection.map(c => c.id);
         if (e.target.checked) {
@@ -462,7 +461,7 @@ document.addEventListener('mousemove', (e) => {
         const batch = db.batch();
         const collectionRef = db.collection('users').doc(user.uid).collection('collection');
         const userCurrency = window.HatakeSocial.currentUserData?.primaryCurrency || 'SEK';
-        
+
         selectedCards.forEach(cardId => {
             const card = fullCollection.find(c => c.id === cardId);
             if (card) {
@@ -485,57 +484,55 @@ document.addEventListener('mousemove', (e) => {
             alert("An error occurred. Please try again.");
         }
     };
-    
+
     const listCardsWithUndercut = async (undercutAmount) => {
         alert("Pricing with undercut is a complex feature that requires fetching competitor prices. This functionality will be implemented in a future update!");
     };
 
- const displayCardVersions = (versions) => {
-    manualAddResultsContainer.innerHTML = '';
-    const tooltip = document.getElementById('manual-add-tooltip'); // Get the tooltip element
+    const displayCardVersions = (versions) => {
+        manualAddResultsContainer.innerHTML = '';
+        const tooltip = document.getElementById('manual-add-tooltip'); // Get the tooltip element
 
-    if (versions.length === 0) {
-        manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
-        return;
-    }
+        if (versions.length === 0) {
+            manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
+            return;
+        }
 
-    versions.forEach(card => {
-        const versionEl = document.createElement('div');
-        versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
-        
-        // NEW: Added the collector number next to the set name
-        versionEl.innerHTML = `
-            <div class="flex items-center space-x-3">
-                <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm card-thumbnail-preview">
-                <div>
-                    <p class="text-sm font-semibold dark:text-white">${card.name}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName} (#${card.collector_number || 'N/A'})</p>
+        versions.forEach(card => {
+            const versionEl = document.createElement('div');
+            versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+            
+            versionEl.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm card-thumbnail-preview">
+                    <div>
+                        <p class="text-sm font-semibold dark:text-white">${card.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName} (#${card.collector_number || 'N/A'})</p>
+                    </div>
                 </div>
-            </div>
-            <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
-        `;
-        
-        // NEW: Added event listeners for hover preview
-        const thumbnail = versionEl.querySelector('.card-thumbnail-preview');
-        thumbnail.addEventListener('mouseover', () => {
-            if (tooltip) {
-                tooltip.src = thumbnail.src;
-                tooltip.classList.remove('hidden');
-            }
-        });
-        thumbnail.addEventListener('mouseout', () => {
-            if (tooltip) {
-                tooltip.classList.add('hidden');
-            }
-        });
+                <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
+            `;
+            
+            const thumbnail = versionEl.querySelector('.card-thumbnail-preview');
+            thumbnail.addEventListener('mouseover', () => {
+                if (tooltip) {
+                    tooltip.src = thumbnail.src;
+                    tooltip.classList.remove('hidden');
+                }
+            });
+            thumbnail.addEventListener('mouseout', () => {
+                if (tooltip) {
+                    tooltip.classList.add('hidden');
+                }
+            });
 
-        versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
-            openAddVersionModal(card);
-        });
+            versionEl.querySelector('.add-version-btn').addEventListener('click', () => {
+                openAddVersionModal(card);
+            });
 
-        manualAddResultsContainer.appendChild(versionEl);
-    });
-};
+            manualAddResultsContainer.appendChild(versionEl);
+        });
+    };
 
     const openAddVersionModal = (cardData) => {
         document.getElementById('add-version-name').textContent = cardData.name;
@@ -581,12 +578,20 @@ document.addEventListener('mousemove', (e) => {
     };
 
     // --- Event Listeners ---
+    document.addEventListener('mousemove', (e) => {
+        const tooltip = document.getElementById('manual-add-tooltip');
+        if (tooltip && !tooltip.classList.contains('hidden')) {
+            tooltip.style.left = e.pageX + 20 + 'px';
+            tooltip.style.top = e.pageY + 20 + 'px';
+        }
+    });
+
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(item => item.classList.remove('text-blue-600', 'border-blue-600'));
             tab.classList.add('text-blue-600', 'border-blue-600');
             tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tab.id.split('-')[1]}`));
-            
+
             if (tab.id === 'tab-collection') loadCollectionData();
             if (tab.id === 'tab-wishlist') loadWishlistData();
         });
@@ -613,60 +618,60 @@ document.addEventListener('mousemove', (e) => {
     listViewBtn?.addEventListener('click', () => switchView('list'));
 
     searchCardVersionsBtn.addEventListener('click', async () => {
-    const cardName = document.getElementById('manual-card-name').value;
-    const game = manualGameSelect.value;
-    if (!cardName) {
-        alert("Please enter a card name.");
-        return;
-    }
-
-    searchCardVersionsBtn.disabled = true;
-    searchCardVersionsBtn.textContent = 'Searching...';
-    manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
-
-    try {
-        let versions = [];
-        if (game === 'magic') {
-            const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
-            if (!response.ok) throw new Error("Card not found on Scryfall.");
-            const result = await response.json();
-            versions = result.data.map(card => ({
-                id: card.id,
-                name: card.name,
-                set: card.set,
-                setName: card.set_name,
-                rarity: card.rarity,
-                collector_number: card.collector_number, // This line was missing
-                imageUrl: card.image_uris?.normal || '',
-                priceUsd: card.prices?.usd || null,
-                priceUsdFoil: card.prices?.usd_foil || null,
-                tcg: 'Magic: The Gathering'
-            }));
-        } else if (game === 'pokemon') {
-            const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
-            if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
-            const result = await response.json();
-            versions = result.data.map(card => ({
-                id: card.id,
-                name: card.name,
-                set: card.set.id,
-                setName: card.set.name,
-                rarity: card.rarity || 'Common',
-                collector_number: card.number, // This line was missing
-                imageUrl: card.images?.small || '',
-                priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
-                priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
-                tcg: 'Pokémon'
-            }));
+        const cardName = document.getElementById('manual-card-name').value;
+        const game = manualGameSelect.value;
+        if (!cardName) {
+            alert("Please enter a card name.");
+            return;
         }
-        displayCardVersions(versions);
-    } catch (error) {
-        manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
-    } finally {
-        searchCardVersionsBtn.disabled = false;
-        searchCardVersionsBtn.textContent = 'Search for Card';
-    }
-});
+
+        searchCardVersionsBtn.disabled = true;
+        searchCardVersionsBtn.textContent = 'Searching...';
+        manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+
+        try {
+            let versions = [];
+            if (game === 'magic') {
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
+                if (!response.ok) throw new Error("Card not found on Scryfall.");
+                const result = await response.json();
+                versions = result.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    set: card.set,
+                    setName: card.set_name,
+                    rarity: card.rarity,
+                    collector_number: card.collector_number,
+                    imageUrl: card.image_uris?.normal || '',
+                    priceUsd: card.prices?.usd || null,
+                    priceUsdFoil: card.prices?.usd_foil || null,
+                    tcg: 'Magic: The Gathering'
+                }));
+            } else if (game === 'pokemon') {
+                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
+                if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
+                const result = await response.json();
+                versions = result.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    set: card.set.id,
+                    setName: card.set.name,
+                    rarity: card.rarity || 'Common',
+                    collector_number: card.number,
+                    imageUrl: card.images?.small || '',
+                    priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                    priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
+                    tcg: 'Pokémon'
+                }));
+            }
+            displayCardVersions(versions);
+        } catch (error) {
+            manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
+        } finally {
+            searchCardVersionsBtn.disabled = false;
+            searchCardVersionsBtn.textContent = 'Search for Card';
+        }
+    });
 
     addVersionForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -703,7 +708,7 @@ document.addEventListener('mousemove', (e) => {
             alert("Please select a CSV file to upload.");
             return;
         }
-        
+
         Papa.parse(csvUploadInput.files[0], {
             header: true,
             skipEmptyLines: true,
@@ -717,7 +722,7 @@ document.addEventListener('mousemove', (e) => {
                 const header = Object.keys(rows[0]).map(h => h.toLowerCase());
 
                 const findKey = (possibleKeys) => header.find(h => possibleKeys.includes(h.toLowerCase()));
-    
+
                 const nameKey = findKey(['name', 'card', 'card name']);
                 const setCodeKey = findKey(['set code', 'edition', 'set', 'set name', 'expansion']);
                 const quantityKey = findKey(['quantity', 'count', 'qty']);
@@ -730,7 +735,7 @@ document.addEventListener('mousemove', (e) => {
                     csvUploadBtn.disabled = false;
                     return;
                 }
-    
+
                 if (!setCodeKey) {
                     if (!confirm("Warning: No 'Set', 'Edition', or 'Set Code' column was found. The importer will try to guess the newest version of each card, which may not be correct. Do you want to continue?")) {
                         csvStatus.textContent = "Import cancelled by user.";
@@ -741,11 +746,11 @@ document.addEventListener('mousemove', (e) => {
 
                 csvStatus.textContent = `Found ${rows.length} cards. Fetching data... This may take a moment.`;
                 csvUploadBtn.disabled = true;
-                
+
                 let processedCount = 0;
                 let errorCount = 0;
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
-                
+
                 const originalHeaders = Object.keys(rows[0]);
                 const originalNameHeader = originalHeaders.find(h => h.toLowerCase() === nameKey);
                 const originalSetHeader = setCodeKey ? originalHeaders.find(h => h.toLowerCase() === setCodeKey) : null;
@@ -756,7 +761,7 @@ document.addEventListener('mousemove', (e) => {
                 for (const row of rows) {
                     if (!row || !row[originalNameHeader]) {
                         errorCount++;
-                        continue; 
+                        continue;
                     }
                     const cardName = row[originalNameHeader];
                     const setCode = originalSetHeader ? row[originalSetHeader] : null;
@@ -766,7 +771,7 @@ document.addEventListener('mousemove', (e) => {
 
                     try {
                         await new Promise(resolve => setTimeout(resolve, 100));
-                        
+
                         let apiUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
                         if (setCode) {
                             apiUrl += `&set=${encodeURIComponent(setCode.toLowerCase())}`;
@@ -774,7 +779,7 @@ document.addEventListener('mousemove', (e) => {
 
                         const response = await fetch(apiUrl);
                         if (!response.ok) throw new Error(`Scryfall API error for ${cardName} ${setCode ? `(Set: ${setCode})` : ''}`);
-                        
+
                         const cardData = await response.json();
                         const cardDoc = {
                             name: cardData.name,
@@ -799,7 +804,7 @@ document.addEventListener('mousemove', (e) => {
                             forSale: false,
                             salePrice: 0
                         };
-                        
+
                         await collectionRef.add(cardDoc);
                         processedCount++;
                     } catch (error) {
@@ -808,7 +813,7 @@ document.addEventListener('mousemove', (e) => {
                     }
                     csvStatus.textContent = `Processing... ${processedCount + errorCount} / ${rows.length}`;
                 }
-                
+
                 csvStatus.textContent = `Import complete! ${processedCount} cards added. ${errorCount > 0 ? `${errorCount} failed.` : ''}`;
                 csvUploadBtn.disabled = false;
                 setTimeout(() => {
