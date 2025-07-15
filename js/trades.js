@@ -22,7 +22,7 @@ document.addEventListener('authReady', (e) => {
     const historyContainer = document.getElementById('tab-content-history');
     const tabs = document.querySelectorAll('.trade-tab-button');
     const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
-    
+
     // Modals
     const tradeModal = document.getElementById('propose-trade-modal');
     const feedbackModal = document.getElementById('feedback-modal');
@@ -41,7 +41,7 @@ document.addEventListener('authReady', (e) => {
     const proposerMoneyInput = document.getElementById('proposer-money');
     const receiverMoneyInput = document.getElementById('receiver-money');
     const counterOfferInput = document.getElementById('counter-offer-original-id');
-    
+
     // Auto-Balance Modal Elements
     const closeBalanceModalBtn = document.getElementById('close-balance-modal');
     const autoBalanceForm = document.getElementById('auto-balance-form');
@@ -77,13 +77,13 @@ document.addEventListener('authReady', (e) => {
         });
         return url;
     };
-    
+
     const displayIndexError = (container, link) => {
         const errorMessage = `
             <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
                 <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
                 <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                <a href="${link}" target="_blank" rel="noopener noreferrer" 
+                <a href="${link}" target="_blank" rel="noopener noreferrer"
                    class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
                    Click Here to Create the Index
                 </a>
@@ -193,6 +193,19 @@ document.addEventListener('authReady', (e) => {
             return parts.filter(part => part && part.trim() !== '').join('<br>');
         };
 
+        const formatPayout = (userData) => {
+            if (!userData || !userData.payoutDetails) {
+                return 'Payout details not provided.';
+            }
+            const { iban, swift, clearing, bankAccount } = userData.payoutDetails;
+            let details = [];
+            if (iban) details.push(`<strong>IBAN:</strong> ${iban}`);
+            if (swift) details.push(`<strong>SWIFT/BIC:</strong> ${swift}`);
+            if (clearing) details.push(`<strong>Clearing Nr:</strong> ${clearing}`);
+            if (bankAccount) details.push(`<strong>Account Nr:</strong> ${bankAccount}`);
+            return details.length > 0 ? details.join('<br>') : 'No payout details available.';
+        };
+
         if (['accepted', 'shipped', 'completed'].includes(trade.status)) {
             try {
                 const proposerDoc = await db.collection('users').doc(trade.proposerId).get();
@@ -203,10 +216,30 @@ document.addEventListener('authReady', (e) => {
                     
                     const yourAddress = formatAddress(isProposer ? proposerData : receiverData);
                     const theirAddress = formatAddress(isProposer ? receiverData : proposerData);
+                    
+                    let payoutInfoHTML = '';
+                    // Display payout info if there's a cash component
+                    if (trade.proposerMoney > 0 || trade.receiverMoney > 0) {
+                        const payee = trade.proposerMoney > 0 ? proposerData : receiverData;
+                        const payer = trade.proposerMoney > 0 ? receiverData : proposerData;
+                        const paymentAmount = Math.max(trade.proposerMoney, trade.receiverMoney);
+
+                        payoutInfoHTML = `
+                            <div class="mt-4 pt-4 border-t dark:border-gray-600">
+                                <h5 class="font-semibold text-gray-700 dark:text-gray-300">Payment Details:</h5>
+                                <p class="text-sm dark:text-gray-400">
+                                    <strong>${payer.displayName}</strong> to send <strong>${paymentAmount.toFixed(2)} SEK</strong> to <strong>${payee.displayName}</strong>
+                                </p>
+                                <div class="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-sm">
+                                    ${formatPayout(payee)}
+                                </div>
+                            </div>
+                        `;
+                    }
 
                     shippingInfoHTML = `
                         <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
-                            <h4 class="font-bold text-lg mb-2 dark:text-white">Shipping Information</h4>
+                            <h4 class="font-bold text-lg mb-2 dark:text-white">Shipping & Payment Information</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <p class="font-semibold text-gray-700 dark:text-gray-300">Ship Your Items To:</p>
@@ -217,6 +250,7 @@ document.addEventListener('authReady', (e) => {
                                     <address class="not-italic dark:text-gray-400">${yourAddress}</address>
                                 </div>
                             </div>
+                            ${payoutInfoHTML}
                         </div>
                     `;
                 }
