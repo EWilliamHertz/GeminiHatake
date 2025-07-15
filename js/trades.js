@@ -179,6 +179,20 @@ document.addEventListener('authReady', (e) => {
         let tradeStatusSection = '';
         let shippingInfoHTML = '';
 
+        // --- THE FIX IS HERE ---
+        const formatAddress = (userData) => {
+            if (!userData || !userData.address) {
+                return userData.displayName || 'Address not available';
+            }
+            const parts = [
+                userData.displayName,
+                userData.address.street,
+                `${userData.address.zip || ''} ${userData.address.city || ''}`.trim(),
+                userData.address.country
+            ];
+            return parts.filter(part => part && part.trim() !== '').join('<br>');
+        };
+
         if (['accepted', 'shipped', 'completed'].includes(trade.status)) {
             try {
                 const proposerDoc = await db.collection('users').doc(trade.proposerId).get();
@@ -187,15 +201,8 @@ document.addEventListener('authReady', (e) => {
                     const proposerData = proposerDoc.data();
                     const receiverData = receiverDoc.data();
                     
-                    // --- THE FIX IS HERE ---
-                    const yourAddress = isProposer ? 
-                        `${proposerData.displayName}<br>${proposerData.address?.street || ''}<br>${proposerData.address?.zip || ''} ${proposerData.address?.city || ''}<br>${proposerData.address?.country || ''}` : 
-                        `${receiverData.displayName}<br>${receiverData.address?.street || ''}<br>${receiverData.address?.zip || ''} ${receiverData.address?.city || ''}<br>${receiverData.address?.country || ''}`;
-                    
-                    const theirAddress = isProposer ? 
-                        `${receiverData.displayName}<br>${receiverData.address?.street || ''}<br>${receiverData.address?.zip || ''} ${receiverData.address?.city || ''}<br>${receiverData.address?.country || ''}` : 
-                        `${proposerData.displayName}<br>${proposerData.address?.street || ''}<br>${proposerData.address?.zip || ''} ${proposerData.address?.city || ''}<br>${proposerData.address?.country || ''}`;
-                    // --- END OF FIX ---
+                    const yourAddress = formatAddress(isProposer ? proposerData : receiverData);
+                    const theirAddress = formatAddress(isProposer ? receiverData : proposerData);
 
                     shippingInfoHTML = `
                         <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
@@ -218,6 +225,7 @@ document.addEventListener('authReady', (e) => {
                 shippingInfoHTML = '<p class="text-xs text-red-500">Could not load shipping addresses.</p>';
             }
         }
+        // --- END OF FIX ---
 
         switch(trade.status) {
             case 'pending':
