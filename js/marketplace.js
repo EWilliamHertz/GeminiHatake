@@ -224,12 +224,15 @@ document.addEventListener('authReady', (e) => {
         const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
         
         const quantityBadge = `<div class="absolute top-1 right-1 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
+        const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
+
 
         cardEl.innerHTML = `
             <a href="card-view.html?id=${card.scryfallId}" class="block h-full flex flex-col">
                 <div class="relative">
                     <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
                     ${quantityBadge}
+                    ${foilIndicatorHTML}
                 </div>
                 <div class="flex-grow flex flex-col p-1">
                     <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
@@ -251,7 +254,7 @@ document.addEventListener('authReady', (e) => {
         itemEl.innerHTML = `
             <img src="${card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
             <div class="flex-grow min-w-0">
-                <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name}</a>
+                <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</a>
                 <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${card.setName || ''}</p>
             </div>
             <div class="text-center w-16 flex-shrink-0">
