@@ -16,11 +16,6 @@ document.addEventListener('authReady', (e) => {
 
     if (!marketplaceGrid) return;
 
-    if (!user) {
-        mainContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to view the marketplace.</p>';
-        return;
-    }
-
     // --- DOM Elements ---
     const searchForm = document.getElementById('marketplace-search-form');
     const sortByEl = document.getElementById('sort-by');
@@ -250,7 +245,15 @@ document.addEventListener('authReady', (e) => {
         itemEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center gap-4';
         const seller = card.sellerData;
         const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
-        const tradeButtonDisabled = user.uid === seller.uid;
+        
+        let tradeButtonHTML = '';
+        if(user && user.uid !== seller.uid){
+            tradeButtonHTML = `<a href="trades.html?propose_to_card=${card.id}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-green-600 hover:bg-green-700">Propose Trade</a>`;
+        } else if (user && user.uid === seller.uid) {
+            tradeButtonHTML = `<span class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-gray-400 cursor-not-allowed">Your Listing</span>`;
+        }
+
+
         itemEl.innerHTML = `
             <img src="${card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
             <div class="flex-grow min-w-0">
@@ -266,9 +269,7 @@ document.addEventListener('authReady', (e) => {
                 <p class="truncate">from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</p>
             </div>
             <div class="w-1/6 font-semibold text-lg text-blue-600 dark:text-blue-400 flex-shrink-0">${priceDisplay}</div>
-            <a href="trades.html?propose_to_card=${card.id}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 ${tradeButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}" ${tradeButtonDisabled ? 'aria-disabled="true" tabindex="-1"' : ''}>
-                ${tradeButtonDisabled ? 'Your Listing' : 'Propose Trade'}
-            </a>
+            ${tradeButtonHTML}
         `;
         return itemEl;
     };
