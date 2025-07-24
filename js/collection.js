@@ -179,8 +179,7 @@ document.addEventListener('authReady', (e) => {
             const priceTagHTML = formattedPrice
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
-
-            // NEW: Added quantity badge
+            const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
             const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
 
             cardEl.innerHTML = `
@@ -190,6 +189,7 @@ document.addEventListener('authReady', (e) => {
                     ${checkboxOverlay}
                 </div>
                 ${priceTagHTML}
+                ${foilIndicatorHTML}
                 <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <button class="edit-card-btn text-white text-xs" data-list="collection"><i class="fas fa-edit"></i></button>
                     <button class="delete-card-btn text-white text-xs ml-1" data-list="collection"><i class="fas fa-trash"></i></button>
