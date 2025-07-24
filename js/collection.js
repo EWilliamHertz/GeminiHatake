@@ -56,6 +56,7 @@ document.addEventListener('authReady', (e) => {
     const addVersionModal = document.getElementById('add-version-modal');
     const addVersionForm = document.getElementById('add-version-form');
     const closeAddVersionModalBtn = document.getElementById('close-add-version-modal');
+    const exportCollectionBtn = document.getElementById('export-collection-btn');
 
     // Filter Elements
     const filterNameInput = document.getElementById('filter-name');
@@ -180,6 +181,7 @@ document.addEventListener('authReady', (e) => {
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
             const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
+
             const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
 
             cardEl.innerHTML = `
@@ -576,8 +578,30 @@ document.addEventListener('authReady', (e) => {
             loadWishlistData();
         }
     };
+    
+    const exportCollectionAsText = () => {
+        if (fullCollection.length === 0) {
+            alert("Your collection is empty.");
+            return;
+        }
+
+        const textList = fullCollection.map(card => {
+            return `"${card.name}" [${card.set}/${card.setName}] (${card.collector_number || 'N/A'})`;
+        }).join('\n');
+
+        const textarea = document.createElement('textarea');
+        textarea.value = textList;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        alert("Collection copied to clipboard!");
+    };
 
     // --- Event Listeners ---
+    if(exportCollectionBtn) exportCollectionBtn.addEventListener('click', exportCollectionAsText);
+    
     document.addEventListener('mousemove', (e) => {
         const tooltip = document.getElementById('manual-add-tooltip');
         if (tooltip && !tooltip.classList.contains('hidden')) {
