@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - My Collection Page Script (v25 - Edit Fix & Purchase Price)
+ * HatakeSocial - My Collection Page Script (v26 - List View Edit Button Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: The edit button now works correctly in list view.
- * - NEW: Added "Purchase Price" to the Quick Edit table.
- * - NEW: Added "Purchase Price" to the standard Edit Card modal.
+ * - FIX: The edit, delete, and manage listing buttons now work correctly in list view.
+ * - Refactored the event handling to a more robust, unified system for all views.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -237,8 +236,8 @@ document.addEventListener('authReady', (e) => {
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.condition}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formattedPrice}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 space-x-2">
-                        <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-list="collection"><i class="fas fa-edit"></i></button>
-                        <button class="delete-card-btn text-red-500 hover:text-red-700" data-list="collection"><i class="fas fa-trash"></i></button>
+                        <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
+                        <button class="delete-card-btn text-red-500 hover:text-red-700" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `;
@@ -601,6 +600,62 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Event Listeners ---
+    
+    // NEW UNIFIED EVENT LISTENER FOR CARD ACTIONS
+    collectionPageContainer.addEventListener('click', (e) => {
+        const target = e.target;
+        const groupElement = target.closest('.group'); // This is the DIV in grid view or TR in list view
+        
+        // Find the button that was clicked
+        const editBtn = target.closest('.edit-card-btn');
+        const deleteBtn = target.closest('.delete-card-btn');
+        const manageBtn = target.closest('.manage-listing-btn');
+
+        // Determine cardId. For list view, it's on the button. For grid view, it's on the group.
+        const cardId = editBtn?.dataset.id || deleteBtn?.dataset.id || manageBtn?.dataset.id || groupElement?.dataset.id;
+        
+        if (!cardId) return; // Exit if we couldn't find a card ID
+
+        const listType = target.closest('[data-list]')?.dataset.list || 'collection';
+
+        if (bulkEditMode && listType === 'collection' && !editBtn && !deleteBtn && !manageBtn) {
+            handleCardSelection(cardId);
+            return;
+        }
+
+        if (editBtn) {
+            openModalHandler(editCardModal, cardId, listType);
+        } else if (deleteBtn) {
+            if (confirm('Are you sure you want to delete this card?')) {
+                deleteCard(cardId, listType);
+            }
+        } else if (manageBtn) {
+            openModalHandler(manageListingModal, cardId, listType);
+        } else if (groupElement) { // Handle click on the card itself (grid view link)
+            const cardData = fullCollection.find(c => c.id === cardId);
+            if (cardData && cardData.scryfallId) {
+                window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+            }
+        }
+    });
+
+    wishlistListContainer.addEventListener('click', (e) => {
+        const target = e.target;
+        const cardElement = target.closest('.group[data-id]');
+        if (!cardElement) return;
+
+        const cardId = cardElement.dataset.id;
+        const listType = 'wishlist';
+
+        if (target.closest('.edit-card-btn')) {
+            openModalHandler(editCardModal, cardId, listType);
+        } else if (target.closest('.delete-card-btn')) {
+            if (confirm('Are you sure you want to delete this card?')) {
+                deleteCard(cardId, listType);
+            }
+        }
+    });
+    
     if(exportCollectionBtn) exportCollectionBtn.addEventListener('click', exportCollectionAsText);
     
     document.addEventListener('mousemove', (e) => {
@@ -849,38 +904,6 @@ document.addEventListener('authReady', (e) => {
             }
         });
     });
-
-    const setupActionListeners = (container) => {
-        container.addEventListener('click', (e) => {
-            const cardElement = e.target.closest('.group');
-            if (!cardElement || !cardElement.dataset.id) return;
-    
-            const cardId = cardElement.dataset.id;
-            const listType = e.target.closest('[data-list]')?.dataset.list || 'collection';
-    
-            if (bulkEditMode && listType === 'collection') {
-                handleCardSelection(cardId);
-            } else {
-                if (e.target.closest('.edit-card-btn')) {
-                    openModalHandler(editCardModal, cardId, listType);
-                } else if (e.target.closest('.delete-card-btn')) {
-                    if (confirm('Are you sure you want to delete this card?')) {
-                        deleteCard(cardId, listType);
-                    }
-                } else if (e.target.closest('.manage-listing-btn')) {
-                    openModalHandler(manageListingModal, cardId, listType);
-                } else {
-                    const cardData = fullCollection.find(c => c.id === cardId);
-                    if (cardData && cardData.scryfallId) {
-                        window.location.href = `card-view.html?id=${cardData.scryfallId}`;
-                    }
-                }
-            }
-        });
-    };
-    
-    setupActionListeners(collectionPageContainer); 
-    setupActionListeners(wishlistListContainer);
     
     if (bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
     if (quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
