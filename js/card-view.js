@@ -13,10 +13,12 @@ document.addEventListener('authReady', (e) => {
     if (!container) return; // Exit if not on the card-view page
 
     const urlParams = new URLSearchParams(window.location.search);
-    const cardId = urlParams.get('id'); // Changed from 'name' to 'id'
+    const cardId = urlParams.get('id');
+    const cardName = urlParams.get('name');
 
-    if (!cardId) {
-        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No card ID specified in the URL.</p>';
+
+    if (!cardId && !cardName) {
+        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No card ID or name specified in the URL.</p>';
         return;
     }
 
@@ -50,14 +52,17 @@ document.addEventListener('authReady', (e) => {
      */
     const loadCardData = async () => {
         try {
-            // Use the Scryfall API endpoint for fetching by ID
-            const scryfallResponse = await fetch(`https://api.scryfall.com/cards/${cardId}`);
+            // Prioritize fetching by ID for accuracy, fall back to name search
+            const scryfallUrl = cardId 
+                ? `https://api.scryfall.com/cards/${cardId}`
+                : `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
+
+            const scryfallResponse = await fetch(scryfallUrl);
             if (!scryfallResponse.ok) {
-                throw new Error('Card not found on Scryfall with the specified ID.');
+                throw new Error('Card not found on Scryfall.');
             }
             const cardData = await scryfallResponse.json();
 
-            // The rest of the function remains the same
             updatePageWithCardData(cardData);
             renderPriceChart(cardData);
             await fetchListingsFromFirestore(cardData);
