@@ -1,9 +1,11 @@
 /**
- * HatakeSocial - Card View Page Script (v6 - Comments & Profile Links)
+ * HatakeSocial - Card View Page Script (v5 - Merged Internationalization)
  *
  * This script is a complete, working version for the card-view.html page.
- * - NEW: Adds a community discussion section for users to comment on cards.
- * - FIX: Updates links to point to the new profile.html page.
+ * - Restores the full original code structure from the repository.
+ * - Integrates the internationalization features for currency and shipping.
+ * - Displays all prices in the user's selected currency.
+ * - Shows seller's location and estimated shipping costs for each listing.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -28,17 +30,10 @@ document.addEventListener('authReady', (e) => {
     const filterConditionEl = document.getElementById('filter-condition');
     const filterFoilEl = document.getElementById('filter-foil');
     const sortByEl = document.getElementById('sort-by');
-    
-    // Comments Elements
-    const commentForm = document.getElementById('comment-form');
-    const commentInput = document.getElementById('comment-input');
-    const commentsList = document.getElementById('comments-list');
-
 
     // --- State ---
     let allListings = [];
     let priceChart = null;
-    let currentScryfallId = null;
 
     // --- Helper function to determine shipping region ---
     const getShippingRegion = (sellerCountry, buyerCountry) => {
@@ -67,12 +62,10 @@ document.addEventListener('authReady', (e) => {
                 throw new Error('Card not found on Scryfall.');
             }
             const cardData = await scryfallResponse.json();
-            currentScryfallId = cardData.id; // Store the definitive ID
 
             updatePageWithCardData(cardData);
             renderPriceChart(cardData);
             await fetchListingsFromFirestore(cardData);
-            loadComments();
 
         } catch (error) {
             console.error("Error loading card view:", error);
@@ -118,12 +111,13 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
 
+            // Efficiently get all seller info in one batch
             const sellerIds = [...new Set(listingsSnapshot.docs.map(doc => doc.ref.parent.parent.id))];
             const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
             const sellerDocs = await Promise.all(sellerPromises);
             const sellers = {};
             sellerDocs.forEach(doc => {
-                if (doc.exists) sellers[doc.id] = {id: doc.id, ...doc.data()};
+                if (doc.exists) sellers[doc.id] = doc.data();
             });
 
             allListings = listingsSnapshot.docs.map(doc => {
@@ -150,17 +144,20 @@ document.addEventListener('authReady', (e) => {
     const applyFiltersAndSort = () => {
         let filteredListings = [...allListings];
 
+        // Apply condition filter
         const condition = filterConditionEl.value;
         if (condition !== 'all') {
             filteredListings = filteredListings.filter(l => l.condition === condition);
         }
 
+        // Apply foil filter
         const foil = filterFoilEl.value;
         if (foil !== 'all') {
             const isFoil = foil === 'true';
             filteredListings = filteredListings.filter(l => l.isFoil === isFoil);
         }
 
+        // Apply sorting
         const sortBy = sortByEl.value;
         if (sortBy === 'price-asc') {
             filteredListings.sort((a, b) => a.salePrice - b.salePrice);
@@ -206,6 +203,7 @@ document.addEventListener('authReady', (e) => {
             const sellerCurrency = seller.primaryCurrency || 'SEK';
             const priceDisplay = window.HatakeSocial.convertAndFormatPrice(listing.salePrice, sellerCurrency);
 
+            // Calculate shipping
             const shippingRegion = getShippingRegion(seller.country, buyerData?.country);
             const shippingCost = seller.shippingProfile?.[shippingRegion] || null;
             const shippingDisplay = shippingCost !== null 
@@ -220,7 +218,7 @@ document.addEventListener('authReady', (e) => {
                                 <img class="h-10 w-10 rounded-full object-cover" src="${seller.photoURL}" alt="${seller.displayName}">
                             </div>
                             <div class="ml-4">
-                                <a href="profile.html?uid=${seller.id}" class="text-sm font-medium text-gray-900 dark:text-white hover:underline">${seller.displayName}</a>
+                                <a href="profile.html?uid=${listing.sellerId}" class="text-sm font-medium text-gray-900 dark:text-white hover:underline">${seller.displayName}</a>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">★ ${overallRating} | from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</div>
                             </div>
                         </div>
@@ -242,63 +240,6 @@ document.addEventListener('authReady', (e) => {
         tableHTML += `</tbody></table></div>`;
         listingsContainer.innerHTML = tableHTML;
     };
-    
-    const loadComments = () => {
-        if (!currentScryfallId) return;
-
-        const commentsRef = db.collection('cards').doc(currentScryfallId).collection('comments').orderBy('timestamp', 'desc');
-        
-        commentsRef.onSnapshot(snapshot => {
-            commentsList.innerHTML = '';
-            if (snapshot.empty) {
-                commentsList.innerHTML = '<p class="text-center text-sm text-gray-500 dark:text-gray-400">No comments yet. Be the first!</p>';
-                return;
-            }
-            snapshot.forEach(doc => {
-                const comment = doc.data();
-                const commentEl = document.createElement('div');
-                commentEl.className = 'flex items-start space-x-3';
-                commentEl.innerHTML = `
-                    <img src="${comment.authorPhotoURL}" alt="${comment.authorName}" class="h-10 w-10 rounded-full object-cover">
-                    <div class="flex-1 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                        <div class="flex justify-between items-center">
-                            <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${comment.authorName}</a>
-                            <span class="text-xs text-gray-400">${new Date(comment.timestamp.seconds * 1000).toLocaleString()}</span>
-                        </div>
-                        <p class="text-gray-700 dark:text-gray-300 mt-1">${comment.text}</p>
-                    </div>
-                `;
-                commentsList.appendChild(commentEl);
-            });
-        });
-    };
-    
-    const handleCommentSubmit = async (e) => {
-        e.preventDefault();
-        if (!user) {
-            alert("Please log in to post a comment.");
-            return;
-        }
-        
-        const commentText = commentInput.value.trim();
-        if (!commentText) return;
-
-        const commentData = {
-            text: commentText,
-            authorId: user.uid,
-            authorName: user.displayName,
-            authorPhotoURL: user.photoURL,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        try {
-            await db.collection('cards').doc(currentScryfallId).collection('comments').add(commentData);
-            commentForm.reset();
-        } catch (error) {
-            console.error("Error posting comment:", error);
-            alert("Could not post comment. Please try again.");
-        }
-    };
 
     /**
      * Generates a plausible 90-day price history and renders it using Chart.js.
@@ -316,16 +257,17 @@ document.addEventListener('authReady', (e) => {
             return;
         }
 
+        // --- Simulate 90 days of historical data ---
         const history = [];
         const labels = [];
-        let price = priceUSD * (0.8 + Math.random() * 0.4);
+        let price = priceUSD * (0.8 + Math.random() * 0.4); // Start price between 80% and 120% of current
 
         for (let i = 90; i >= 0; i--) {
             const date = new Date();
             date.setDate(date.getDate() - i);
             labels.push(date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
             
-            const volatility = price * 0.05; 
+            const volatility = price * 0.05; // 5% volatility
             price += (Math.random() - 0.5) * volatility;
             price += (priceUSD - price) * 0.02; 
             price = Math.max(price, priceUSD * 0.2); 
@@ -383,8 +325,6 @@ document.addEventListener('authReady', (e) => {
     filterConditionEl?.addEventListener('change', applyFiltersAndSort);
     filterFoilEl?.addEventListener('change', applyFiltersAndSort);
     sortByEl?.addEventListener('change', applyFiltersAndSort);
-    commentForm?.addEventListener('submit', handleCommentSubmit);
-
 
     // --- Initial Load ---
     loadCardData();
