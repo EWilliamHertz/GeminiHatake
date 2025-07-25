@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v24 - Filter & View Fix)
+ * HatakeSocial - My Collection Page Script (v25 - Edit Fix & Purchase Price)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: The client-side filtering logic has been corrected and now works as intended.
- * - RE-IMPLEMENTED: A "List View" toggle has been added back, allowing users to switch
- * between the default grid view and a more detailed table view of their collection.
- * - All previous functionality (CSV import, bulk edit, etc.) is preserved.
+ * - FIX: The edit button now works correctly in list view.
+ * - NEW: Added "Purchase Price" to the Quick Edit table.
+ * - NEW: Added "Purchase Price" to the standard Edit Card modal.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -231,15 +230,15 @@ document.addEventListener('authReady', (e) => {
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
             const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : 'N/A';
             tableHTML += `
-                <tr class="group">
+                <tr class="group" data-id="${card.id}">
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.setName}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.quantity}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.condition}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formattedPrice}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 space-x-2">
-                        <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
-                        <button class="delete-card-btn text-red-500 hover:text-red-700" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
+                        <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-list="collection"><i class="fas fa-edit"></i></button>
+                        <button class="delete-card-btn text-red-500 hover:text-red-700" data-list="collection"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `;
@@ -357,8 +356,9 @@ document.addEventListener('authReady', (e) => {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Foil</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Purchase Price</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">For Sale</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Sale Price</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -378,6 +378,7 @@ document.addEventListener('authReady', (e) => {
                         </select>
                     </td>
                     <td class="px-6 py-4"><input type="checkbox" ${card.isFoil ? 'checked' : ''} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 quick-edit-input" data-field="isFoil"></td>
+                    <td class="px-6 py-4"><input type="number" value="${card.purchasePrice || ''}" placeholder="0.00" step="0.01" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="purchasePrice"></td>
                     <td class="px-6 py-4"><input type="checkbox" ${card.forSale ? 'checked' : ''} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 quick-edit-input" data-field="forSale"></td>
                     <td class="px-6 py-4"><input type="number" value="${card.salePrice || ''}" placeholder="0.00" step="0.01" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="salePrice"></td>
                 </tr>
@@ -555,6 +556,7 @@ document.addEventListener('authReady', (e) => {
             document.getElementById('edit-card-list-type').value = listType;
             document.getElementById('edit-card-quantity').value = card.quantity;
             document.getElementById('edit-card-condition').value = card.condition;
+            document.getElementById('edit-card-purchase-price').value = card.purchasePrice || '';
             document.getElementById('edit-card-foil').checked = card.isFoil;
         } else if (modal === manageListingModal) {
             document.getElementById('listing-card-id').value = cardId;
@@ -851,27 +853,35 @@ document.addEventListener('authReady', (e) => {
     const setupActionListeners = (container) => {
         container.addEventListener('click', (e) => {
             const cardElement = e.target.closest('.group');
-            if (!cardElement) return;
+            if (!cardElement || !cardElement.dataset.id) return;
+    
             const cardId = cardElement.dataset.id;
-            const listType = container.id.includes('collection') ? 'collection' : 'wishlist';
-
+            const listType = e.target.closest('[data-list]')?.dataset.list || 'collection';
+    
             if (bulkEditMode && listType === 'collection') {
                 handleCardSelection(cardId);
             } else {
-                if (e.target.closest('.edit-card-btn')) openModalHandler(editCardModal, cardId, listType);
-                else if (e.target.closest('.delete-card-btn')) {
-                    if (confirm('Are you sure you want to delete this card?')) deleteCard(cardId, listType);
+                if (e.target.closest('.edit-card-btn')) {
+                    openModalHandler(editCardModal, cardId, listType);
+                } else if (e.target.closest('.delete-card-btn')) {
+                    if (confirm('Are you sure you want to delete this card?')) {
+                        deleteCard(cardId, listType);
+                    }
                 } else if (e.target.closest('.manage-listing-btn')) {
                     openModalHandler(manageListingModal, cardId, listType);
                 } else {
-                    const cardImg = cardElement.querySelector('img');
-                    if (cardImg) window.location.href = `card-view.html?id=${card.scryfallId}`;
+                    const cardData = fullCollection.find(c => c.id === cardId);
+                    if (cardData && cardData.scryfallId) {
+                        window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+                    }
                 }
             }
         });
     };
-    setupActionListeners(collectionGridView);
+    
+    setupActionListeners(collectionPageContainer); 
     setupActionListeners(wishlistListContainer);
+    
     if (bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
     if (quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
     if (saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
@@ -907,6 +917,7 @@ document.addEventListener('authReady', (e) => {
         const updatedData = {
             quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
             condition: document.getElementById('edit-card-condition').value,
+            purchasePrice: parseFloat(document.getElementById('edit-card-purchase-price').value) || 0,
             isFoil: document.getElementById('edit-card-foil').checked
         };
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
