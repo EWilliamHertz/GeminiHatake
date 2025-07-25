@@ -19,6 +19,7 @@ document.addEventListener('authReady', (e) => {
     const incomingContainer = document.getElementById('tab-content-incoming');
     const outgoingContainer = document.getElementById('tab-content-outgoing');
     const historyContainer = document.getElementById('tab-content-history');
+    const analysisContainer = document.getElementById('tab-content-analysis');
     const tabs = document.querySelectorAll('.trade-tab-button');
     const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
 
@@ -86,10 +87,70 @@ document.addEventListener('authReady', (e) => {
                    class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
                    Click Here to Create the Index
                 </a>
-                <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+                <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes.</p>
             </div>
          `;
         container.innerHTML = errorMessage;
+    };
+    
+    const loadTradeAnalysis = async () => {
+        analysisContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">Loading trade analysis...</p>';
+
+        try {
+            const tradesSnapshot = await db.collection('trades')
+                .where('participants', 'array-contains', user.uid)
+                .where('status', '==', 'completed')
+                .get();
+
+            if (tradesSnapshot.empty) {
+                analysisContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No completed trades to analyze.</p>';
+                return;
+            }
+
+            let analysisHTML = `
+                <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Card Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Purchase Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Sale Value</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            `;
+
+            for (const doc of tradesSnapshot.docs) {
+                const trade = doc.data();
+                const isProposer = trade.proposerId === user.uid;
+                const cardsSold = isProposer ? trade.proposerCards : trade.receiverCards;
+                const moneyReceived = isProposer ? trade.receiverMoney : trade.proposerMoney;
+
+                for (const card of cardsSold) {
+                    const purchasePrice = card.purchasePrice || 0;
+                    const saleValue = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) * USD_TO_SEK_RATE || 0;
+                    const profit = saleValue - purchasePrice + (moneyReceived / cardsSold.length); // Distribute money received over all cards
+                    const profitColor = profit >= 0 ? 'text-green-500' : 'text-red-500';
+
+                    analysisHTML += `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${purchasePrice.toFixed(2)} SEK</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${saleValue.toFixed(2)} SEK</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${profitColor}">${profit.toFixed(2)} SEK</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            analysisHTML += `</tbody></table></div>`;
+            analysisContainer.innerHTML = analysisHTML;
+
+        } catch (error) {
+            console.error("Error loading trade analysis:", error);
+            analysisContainer.innerHTML = '<p class="text-center text-red-500 p-4">Could not load trade analysis.</p>';
+        }
     };
 
     // --- Tab Switching Logic ---
@@ -99,7 +160,12 @@ document.addEventListener('authReady', (e) => {
             tabs.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             document.querySelectorAll('.trade-tab-content').forEach(content => content.classList.add('hidden'));
-            document.getElementById(`tab-content-${button.dataset.tab}`).classList.remove('hidden');
+            const targetContent = document.getElementById(`tab-content-${button.dataset.tab}`);
+            if(targetContent) targetContent.classList.remove('hidden');
+            
+            if(button.dataset.tab === 'analysis'){
+                loadTradeAnalysis();
+            }
         });
     });
 
