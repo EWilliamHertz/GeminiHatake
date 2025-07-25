@@ -705,6 +705,7 @@ document.addEventListener('authReady', (e) => {
             scryfallId: cardData.id,
             quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
             condition: document.getElementById('add-version-condition').value,
+            purchasePrice: parseFloat(document.getElementById('add-version-purchase-price').value) || 0,
             isFoil: document.getElementById('add-version-foil').checked,
             addedAt: new Date(),
             forSale: false
@@ -864,7 +865,7 @@ document.addEventListener('authReady', (e) => {
                     openModalHandler(manageListingModal, cardId, listType);
                 } else {
                     const cardImg = cardElement.querySelector('img');
-                    if (cardImg) window.location.href = `card-view.html?name=${encodeURIComponent(cardImg.alt)}`;
+                    if (cardImg) window.location.href = `card-view.html?id=${card.scryfallId}`;
                 }
             }
         });
