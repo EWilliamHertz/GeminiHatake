@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Add Cards - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
+
+    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+        </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div id="bulk-add-container" class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+                <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Bulk Add from Text</h1>
+                <a href="my_collection.html" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Collection
+                </a>
+            </div>
+
+            <div id="step-1-input" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold mb-4 dark:text-white">Step 1: Paste Your Card List</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Paste your list below. Each card should be on a new line. You can use formats like:
+                    <br><code>4 Brainstorm</code>
+                    <br><code>1 Mox Opal [SOM]</code>
+                    <br><code>Lightning Bolt (SLD) 123</code>
+                </p>
+                <form id="paste-form">
+                    <textarea id="card-list-input" class="w-full h-64 p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="1x Sol Ring&#10;4x Counterspell&#10;..."></textarea>
+                    <button type="submit" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-cogs mr-2"></i>Process List
+                    </button>
+                </form>
+            </div>
+
+            <div id="step-2-confirm" class="hidden mt-8">
+                <h2 class="text-2xl font-bold mb-4 dark:text-white text-center">Step 2: Confirm Your Cards</h2>
+                <div id="progress-bar-container" class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700">
+                    <div id="progress-bar" class="bg-green-600 h-4 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" class="text-center text-gray-600 dark:text-gray-400 mb-6">Processing card 1 of X...</p>
+
+                <div id="card-confirmation-area" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    </div>
+            </div>
+            
+            <div id="step-3-complete" class="hidden mt-8 text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
+                <i class="fas fa-check-circle text-green-500 text-6xl mb-4"></i>
+                <h2 class="text-3xl font-bold mb-4 dark:text-white">Bulk Add Complete!</h2>
+                <p id="summary-text" class="text-gray-600 dark:text-gray-400 mb-6">Successfully added X cards to your collection.</p>
+                <a href="my_collection.html" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">
+                    Go to My Collection
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+        </footer>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/bulk_add.js"></script>
+    <script src="js/darkmode.js"></script>
+</body>
+</html>
