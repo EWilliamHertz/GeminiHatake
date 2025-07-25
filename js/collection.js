@@ -1,7 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v26 - List View Edit Button Fix)
+ * HatakeSocial - My Collection Page Script (v27 - Language & Notes Update)
  *
  * This script handles all logic for the my_collection.html page.
+ * - NEW: Added "Language" and "Notes" fields to the data model.
+ * - NEW: "Language" and "Notes" can be added and edited in all edit modes.
+ * - NEW: "Language" and "Notes" are now displayed in both grid and list views.
  * - FIX: The edit, delete, and manage listing buttons now work correctly in list view.
  * - Refactored the event handling to a more robust, unified system for all views.
  */
@@ -179,6 +182,8 @@ document.addEventListener('authReady', (e) => {
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
             const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
+            const languageIndicatorHTML = card.language ? `<div class="absolute bottom-1.5 right-1.5 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${card.language}</div>` : '';
+            const notesIndicatorHTML = card.notes ? `<div class="absolute top-1.5 left-1.5 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full pointer-events-none" title="${card.notes}"><i class="fas fa-sticky-note"></i></div>` : '';
             const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
 
             cardEl.innerHTML = `
@@ -189,6 +194,8 @@ document.addEventListener('authReady', (e) => {
                 </div>
                 ${priceTagHTML}
                 ${foilIndicatorHTML}
+                ${languageIndicatorHTML}
+                ${notesIndicatorHTML}
                 <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
                     <button class="edit-card-btn text-white text-xs" data-list="collection"><i class="fas fa-edit"></i></button>
                     <button class="delete-card-btn text-white text-xs ml-1" data-list="collection"><i class="fas fa-trash"></i></button>
@@ -219,6 +226,8 @@ document.addEventListener('authReady', (e) => {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Language</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Value</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
                     </tr>
@@ -234,6 +243,8 @@ document.addEventListener('authReady', (e) => {
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.setName}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.quantity}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.condition}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.language || 'English'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.notes || ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formattedPrice}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 space-x-2">
                         <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
@@ -354,8 +365,10 @@ document.addEventListener('authReady', (e) => {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Card Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Language</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Foil</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Purchase Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">For Sale</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Sale Price</th>
                     </tr>
@@ -376,8 +389,10 @@ document.addEventListener('authReady', (e) => {
                             <option ${card.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
                         </select>
                     </td>
+                    <td class="px-6 py-4"><input type="text" value="${card.language || 'English'}" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="language"></td>
                     <td class="px-6 py-4"><input type="checkbox" ${card.isFoil ? 'checked' : ''} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 quick-edit-input" data-field="isFoil"></td>
                     <td class="px-6 py-4"><input type="number" value="${card.purchasePrice || ''}" placeholder="0.00" step="0.01" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="purchasePrice"></td>
+                    <td class="px-6 py-4"><input type="text" value="${card.notes || ''}" class="w-32 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="notes"></td>
                     <td class="px-6 py-4"><input type="checkbox" ${card.forSale ? 'checked' : ''} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 quick-edit-input" data-field="forSale"></td>
                     <td class="px-6 py-4"><input type="number" value="${card.salePrice || ''}" placeholder="0.00" step="0.01" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="salePrice"></td>
                 </tr>
@@ -555,7 +570,9 @@ document.addEventListener('authReady', (e) => {
             document.getElementById('edit-card-list-type').value = listType;
             document.getElementById('edit-card-quantity').value = card.quantity;
             document.getElementById('edit-card-condition').value = card.condition;
+            document.getElementById('edit-card-language').value = card.language || 'English';
             document.getElementById('edit-card-purchase-price').value = card.purchasePrice || '';
+            document.getElementById('edit-card-notes').value = card.notes || '';
             document.getElementById('edit-card-foil').checked = card.isFoil;
         } else if (modal === manageListingModal) {
             document.getElementById('listing-card-id').value = cardId;
@@ -600,23 +617,19 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Event Listeners ---
-    
-    // NEW UNIFIED EVENT LISTENER FOR CARD ACTIONS
     collectionPageContainer.addEventListener('click', (e) => {
         const target = e.target;
-        const groupElement = target.closest('.group'); // This is the DIV in grid view or TR in list view
         
-        // Find the button that was clicked
+        const groupElement = target.closest('.group'); 
         const editBtn = target.closest('.edit-card-btn');
         const deleteBtn = target.closest('.delete-card-btn');
         const manageBtn = target.closest('.manage-listing-btn');
 
-        // Determine cardId. For list view, it's on the button. For grid view, it's on the group.
         const cardId = editBtn?.dataset.id || deleteBtn?.dataset.id || manageBtn?.dataset.id || groupElement?.dataset.id;
         
-        if (!cardId) return; // Exit if we couldn't find a card ID
+        if (!cardId) return;
 
-        const listType = target.closest('[data-list]')?.dataset.list || 'collection';
+        const listType = e.target.closest('[data-list]')?.dataset.list || 'collection';
 
         if (bulkEditMode && listType === 'collection' && !editBtn && !deleteBtn && !manageBtn) {
             handleCardSelection(cardId);
@@ -631,7 +644,7 @@ document.addEventListener('authReady', (e) => {
             }
         } else if (manageBtn) {
             openModalHandler(manageListingModal, cardId, listType);
-        } else if (groupElement) { // Handle click on the card itself (grid view link)
+        } else if (groupElement) {
             const cardData = fullCollection.find(c => c.id === cardId);
             if (cardData && cardData.scryfallId) {
                 window.location.href = `card-view.html?id=${cardData.scryfallId}`;
@@ -762,7 +775,9 @@ document.addEventListener('authReady', (e) => {
             scryfallId: cardData.id,
             quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
             condition: document.getElementById('add-version-condition').value,
+            language: document.getElementById('add-version-language').value || 'English',
             purchasePrice: parseFloat(document.getElementById('add-version-purchase-price').value) || 0,
+            notes: document.getElementById('add-version-notes').value || '',
             isFoil: document.getElementById('add-version-foil').checked,
             addedAt: new Date(),
             forSale: false
@@ -940,7 +955,9 @@ document.addEventListener('authReady', (e) => {
         const updatedData = {
             quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
             condition: document.getElementById('edit-card-condition').value,
+            language: document.getElementById('edit-card-language').value,
             purchasePrice: parseFloat(document.getElementById('edit-card-purchase-price').value) || 0,
+            notes: document.getElementById('edit-card-notes').value,
             isFoil: document.getElementById('edit-card-foil').checked
         };
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
