@@ -1,8 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v9 - Display Custom Images)
+ * HatakeSocial - Marketplace Page Script (v11 - Display Notes)
  *
  * This script handles all logic for the marketplace.html page.
- * - NEW: Displays the user-uploaded custom image for a card if it exists, otherwise falls back to the default image.
+ * - NEW: Displays the "notes" field for a card in both grid and list views.
+ * - FIX: Corrected the list view rendering to display custom-uploaded images and the "signed" status icon, matching the grid view's functionality.
+ * - Displays the user-uploaded custom image for a card if it exists, otherwise falls back to the default image.
  * - Adds a "Signed" filter for Magic: The Gathering cards.
  * - Displays a "Signed" indicator on cards in both grid and list views.
  */
@@ -33,6 +35,13 @@ document.addEventListener('authReady', (e) => {
         marketplaceGrid.innerHTML = '';
         marketplaceListView.innerHTML = '';
         messageContainer.innerHTML = html;
+    };
+
+    const sanitizeHTML = (str) => {
+        if (!str) return '';
+        const temp = document.createElement('div');
+        temp.textContent = str;
+        return temp.innerHTML;
     };
 
     // --- Filter Rendering ---
@@ -215,19 +224,20 @@ document.addEventListener('authReady', (e) => {
     
     const renderGridViewCard = (card) => {
         const cardEl = document.createElement('div');
-        cardEl.className = 'relative bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
+        cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
         const seller = card.sellerData;
         const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
         
         const quantityBadge = `<div class="absolute top-1 right-1 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
         const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
         const signedIndicatorHTML = card.isSigned ? `<div class="absolute bottom-1.5 left-1.5 ml-12 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Signed</div>` : '';
-
+        const notesDisplayHTML = card.notes ? `<div class="notes-display p-1 text-xs bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 rounded-t-lg truncate" title="${sanitizeHTML(card.notes)}">${sanitizeHTML(card.notes)}</div>` : '';
 
         cardEl.innerHTML = `
             <a href="card-view.html?id=${card.scryfallId}" class="block h-full flex flex-col">
+                ${notesDisplayHTML}
                 <div class="relative">
-                    <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                    <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-full ${card.notes ? 'rounded-b-md' : 'rounded-md'} mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
                     ${quantityBadge}
                     ${foilIndicatorHTML}
                     ${signedIndicatorHTML}
@@ -255,13 +265,15 @@ document.addEventListener('authReady', (e) => {
         } else if (user && user.uid === seller.uid) {
             tradeButtonHTML = `<span class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-gray-400 cursor-not-allowed">Your Listing</span>`;
         }
-
+        
+        const notesDisplayHTML = card.notes ? `<p class="text-xs text-yellow-600 dark:text-yellow-400 truncate italic" title="${sanitizeHTML(card.notes)}"><i class="fas fa-sticky-note mr-1"></i>${sanitizeHTML(card.notes)}</p>` : '';
 
         itemEl.innerHTML = `
             <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
             <div class="flex-grow min-w-0">
                 <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</a>
                 <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${card.setName || ''}</p>
+                ${notesDisplayHTML}
             </div>
             <div class="text-center w-16 flex-shrink-0">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Qty</p>
