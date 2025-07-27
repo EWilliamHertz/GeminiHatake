@@ -1,7 +1,7 @@
 /**
  * HatakeSocial - Deck Page Script (v24 - API Fix)
  *
- * - Fixes the "403 Forbidden" error when calling the Gemini API by adjusting the fetch request URL.
+ * - Fixes the "403 Forbidden" error when calling the Gemini API by correctly constructing the fetch request URL.
  * - Removes redundant, old AI suggestion logic.
  * - All other functionality (format, budget, analysis) remains the same.
  */
@@ -929,8 +929,7 @@ document.addEventListener('authReady', (e) => {
                 }
             };
             
-            // ** API FIX: The key is handled by the environment, so we don't add it to the URL manually. **
-            const apiKey = ""; 
+            const apiKey = ""; // This will be replaced by the environment
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
@@ -940,7 +939,6 @@ document.addEventListener('authReady', (e) => {
             });
 
             if (!apiResponse.ok) {
-                // Provide a more user-friendly error
                 throw new Error(`Gemini API request failed with status: ${apiResponse.status}. This might be a temporary issue with the API key service.`);
             }
 
@@ -957,7 +955,6 @@ document.addEventListener('authReady', (e) => {
                     suggestionsOutput.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
                 }
             } else {
-                // Handle cases where the response structure is unexpected
                 console.error("Unexpected API response:", result);
                 if (result.error) {
                      throw new Error(`API Error: ${result.error.message}`);
