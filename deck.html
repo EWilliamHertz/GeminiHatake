@@ -183,15 +183,50 @@
 
                                <div class="flex space-x-2 mt-4">
                                     <button type="submit" id="build-deck-btn" class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build & Price Deck</button>
-                                    <button type="button" id="suggest-cards-btn" class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700">
-                                        <i class="fas fa-magic mr-2"></i> AI Deck Advisor
-                                    </button>
-                                </div>
+                                    <!-- This button is now handled by the separate AI advisor section -->
+                               </div>
                             </form>
                         </div>
-                        <div id="suggestions-container" class="hidden mt-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                        <!-- UPDATED AI ADVISOR SECTION -->
+                        <div id="ai-advisor-container" class="mt-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">AI Deck Advisor</h2>
-                            <div id="suggestions-output" class="space-y-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Get suggestions for a new deck or analyze an existing one.</p>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="ai-deck-theme" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Deck Theme/Commander (for new decks)</label>
+                                    <input type="text" id="ai-deck-theme" placeholder="e.g., 'Atraxa, Praetors' Voice'" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                                </div>
+
+                                <div>
+                                    <label for="ai-game-format" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Game Format</label>
+                                    <select id="ai-game-format" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                                        <option value="Commander">Commander</option>
+                                        <option value="Standard">Standard</option>
+                                        <option value="Modern">Modern</option>
+                                        <option value="Pioneer">Pioneer</option>
+                                        <option value="Legacy">Legacy</option>
+                                        <option value="Vintage">Vintage</option>
+                                        <option value="Pauper">Pauper</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="ai-deck-budget" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Budget (USD, optional)</label>
+                                    <input type="number" id="ai-deck-budget" placeholder="e.g., 50" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                                </div>
+
+                                <div>
+                                    <label for="ai-decklist-analysis" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Analyze Existing Decklist (Optional)</label>
+                                    <textarea id="ai-decklist-analysis" rows="6" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="Paste a decklist here for the AI to analyze and suggest improvements."></textarea>
+                                </div>
+                                
+                                <button id="get-ai-suggestions-btn" class="w-full bg-purple-600 text-white py-2 rounded-full hover:bg-purple-700">
+                                    <i class="fas fa-magic mr-2"></i> Get AI Suggestions
+                                </button>
+                            </div>
+                            
+                            <div id="suggestions-output" class="mt-4 space-y-2">
                                 <!-- AI suggestions will be rendered here -->
                             </div>
                         </div>
