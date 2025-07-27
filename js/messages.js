@@ -1,187 +1,151 @@
-/**
- * HatakeSocial - Messages Page Script (v17 - UI Enhancements)
- *
- * This script handles all logic for the messages.html page.
- * It provides a clean, well-commented, and fully functional implementation
- * for real-time messaging.
- *
- * Key Features:
- * - Adds timestamps and sender avatars to messages for a better chat experience.
- * - Highlights the currently active conversation in the list for better UX.
- * - Fixes the "Could not start conversation" error by explicitly setting `isGroupChat: false`
- * when creating new one-on-one chats, satisfying Firestore index requirements.
- * - Robust real-time listeners for conversations and messages.
- * - User search functionality to initiate new chats.
- * - Handles URL parameters to open a chat directly (e.g., `messages.html?with=USER_ID`).
- * - Generates a direct link to create missing Firestore indexes on error, simplifying debugging.
- */
-document.addEventListener('authReady', (e) => {
-    const currentUser = e.detail.user;
-    const chatArea = document.getElementById('chat-area');
-    if (!chatArea) return; // Exit if not on the messages page
+// js/messages.js
 
-    if (!currentUser) {
-        const mainContent = document.querySelector('main.container');
-        if(mainContent) {
-            mainContent.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-center p-8 text-gray-500 dark:text-gray-400">Please log in to view your messages.</p></div>';
-        }
-        return;
-    }
-
-    // --- STATE MANAGEMENT ---
-    let currentChatListener = null;
+document.addEventListener('DOMContentLoaded', () => {
+    const db = firebase.firestore();
+    let currentUser = null;
     let currentConversationId = null;
     let currentConversationData = null;
-    let activeTab = 'users';
+    let unsubscribeConversation = null;
+    let usersCache = {}; // Cache for user data
 
-    // --- DOM ELEMENT REFERENCES ---
-    const conversationsListEl = document.getElementById('conversations-list');
-    const userSearchInput = document.getElementById('user-search-input');
-    const userSearchResultsEl = document.getElementById('user-search-results');
-    const messageForm = document.getElementById('message-form');
+    const conversationsList = document.getElementById('conversations-list');
+    const chatWindow = document.getElementById('chat-window');
+    const chatHeader = document.getElementById('chat-header');
+    const messagesContainer = document.getElementById('messages-container');
     const messageInput = document.getElementById('message-input');
-    const chatWelcomeScreen = document.getElementById('chat-welcome-screen');
-    const chatView = document.getElementById('chat-view');
-    const messageTabs = document.querySelectorAll('.message-tab-button');
+    const sendMessageBtn = document.getElementById('send-message-btn');
+    const newConversationBtn = document.getElementById('new-conversation-btn');
+    const newConversationModal = document.getElementById('new-conversation-modal');
+    const closeBtn = document.querySelector('.close-btn');
+    const searchUserInput = document.getElementById('search-user-input');
+    const searchResults = document.getElementById('search-results');
+    const createConversationBtn = document.getElementById('create-conversation-btn');
 
-    // --- HELPER FUNCTIONS ---
-    const generateIndexCreationLink = (collection, fields) => {
-        const projectId = db.app.options.projectId;
-        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
-        fields.forEach(field => {
-            url += `&fields=${field.name},${field.order.toUpperCase()}`;
-        });
-        return url;
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            await loadConversations();
+            checkUrlForConversation();
+        } else {
+            // Redirect to login if not authenticated
+            window.location.href = '/';
+        }
+    });
+
+    const getUserData = async (userId) => {
+        if (usersCache[userId]) {
+            return usersCache[userId];
+        }
+        try {
+            const userDoc = await db.collection('users').doc(userId).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                usersCache[userId] = userData;
+                return userData;
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+        }
+        return { displayName: 'Unknown User', photoURL: 'images/default-avatar.png' }; // Default data
     };
 
-    const createNotification = async (userId, message, link) => {
-        if (!userId || !message) return;
-        const notificationData = {
-            message: message,
-            link: link || '#',
-            isRead: false,
-            timestamp: new Date()
-        };
+    const loadConversations = async () => {
+        if (!currentUser) return;
+        conversationsList.innerHTML = 'Loading conversations...';
         try {
-            await db.collection('users').doc(userId).collection('notifications').add(notificationData);
+            db.collection('conversations')
+              .where('participants', 'array-contains', currentUser.uid)
+              .orderBy('updatedAt', 'desc')
+              .onSnapshot(async (snapshot) => {
+                  if (snapshot.empty) {
+                      conversationsList.innerHTML = '<p>No conversations yet. Start a new one!</p>';
+                      return;
+                  }
+                  conversationsList.innerHTML = '';
+                  for (const doc of snapshot.docs) {
+                      const conversation = doc.data();
+                      const conversationId = doc.id;
+                      const otherParticipantId = conversation.participants.find(id => id !== currentUser.uid);
+                      
+                      if (otherParticipantId) {
+                          const otherUserData = await getUserData(otherParticipantId);
+                          const conversationElement = document.createElement('div');
+                          conversationElement.classList.add('conversation-item');
+                          conversationElement.dataset.id = conversationId;
+                          
+                          conversationElement.innerHTML = `
+                              <img src="${otherUserData.photoURL || 'images/default-avatar.png'}" alt="${otherUserData.displayName}" class="avatar">
+                              <div>
+                                  <strong>${otherUserData.displayName}</strong>
+                                  <p>${conversation.lastMessage ? (conversation.lastMessage.length > 30 ? conversation.lastMessage.substring(0, 30) + '...' : conversation.lastMessage) : 'No messages yet'}</p>
+                              </div>
+                          `;
+                          conversationElement.addEventListener('click', () => selectConversation(conversationId));
+                          conversationsList.appendChild(conversationElement);
+                      }
+                  }
+              });
         } catch (error) {
-            console.error("Error creating notification:", error);
+            console.error("Error loading conversations: ", error);
+            conversationsList.innerHTML = '<p>Error loading conversations.</p>';
         }
     };
 
-    // --- CORE MESSAGING LOGIC ---
-    const loadConversations = () => {
-        conversationsListEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
-        
-        const isGroup = activeTab === 'groups';
-        let query = db.collection('conversations')
-                      .where('participants', 'array-contains', currentUser.uid)
-                      .where('isGroupChat', '==', isGroup)
-                      .orderBy('updatedAt', 'desc');
-
-        query.onSnapshot(snapshot => {
-            if (snapshot.empty) {
-                conversationsListEl.innerHTML = `<p class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">No ${activeTab} conversations.</p>`;
-                return;
-            }
-            
-            conversationsListEl.innerHTML = '';
-            snapshot.forEach(doc => {
-                const conversation = doc.data();
-                const convoId = doc.id;
-                let title = '', imageUrl = '', otherUserId = null;
-
-                if (conversation.isGroupChat) {
-                    title = conversation.groupName || 'Group Chat';
-                    imageUrl = conversation.groupImage || 'https://placehold.co/40x40/cccccc/969696?text=G';
-                } else {
-                    otherUserId = conversation.participants.find(id => id !== currentUser.uid);
-                    if (otherUserId && conversation.participantInfo && conversation.participantInfo[otherUserId]) {
-                        const remoteUserInfo = conversation.participantInfo[otherUserId];
-                        title = remoteUserInfo.displayName || 'Unknown User';
-                        imageUrl = remoteUserInfo.photoURL || 'https://placehold.co/40x40/cccccc/969696?text=U';
-                    } else { return; }
-                }
-                
-                const item = document.createElement('div');
-                item.className = 'conversation-item flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 border-b border-gray-200 dark:border-gray-600';
-                item.dataset.convoId = convoId;
-                if (convoId === currentConversationId) {
-                    item.classList.add('bg-blue-50', 'dark:bg-blue-900/50');
-                }
-
-                item.innerHTML = `
-                    <img src="${imageUrl}" class="h-12 w-12 rounded-full mr-3 object-cover flex-shrink-0">
-                    <div class="flex-grow overflow-hidden">
-                        <span class="font-bold text-gray-800 dark:text-white">${title}</span>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${conversation.lastMessage || 'No messages yet'}</p>
-                    </div>
-                `;
-                item.addEventListener('click', () => openChat(convoId, title, imageUrl, conversation));
-                conversationsListEl.appendChild(item);
-            });
-        }, error => {
-            console.error(`Error loading ${activeTab} conversations:`, error);
-            if (error.code === 'failed-precondition') {
-                const indexFields = [{ name: 'participants', order: 'asc' }, { name: 'isGroupChat', order: 'asc' }, { name: 'updatedAt', order: 'desc' }];
-                const indexLink = generateIndexCreationLink('conversations', indexFields);
-                const errorMessage = `<div class="p-4 bg-red-100 dark:bg-red-900/50 rounded-lg text-center"><p class="font-bold text-red-700 dark:text-red-300">Database Error</p><p class="text-red-600 dark:text-red-400 mt-2 text-sm">A required database index is missing.</p><a href="${indexLink}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 text-sm">Click Here to Create the Index</a><p class="text-xs text-gray-500 mt-2">This opens Firebase. Click "Save" to create the index. It may take a few minutes.</p></div>`;
-                conversationsListEl.innerHTML = errorMessage;
-            } else {
-                conversationsListEl.innerHTML = `<p class="p-4 text-center text-red-500 text-sm">Could not load conversations.</p>`;
-            }
-        });
-    };
-
-    const openChat = (conversationId, title, imageUrl, conversationData) => {
-        if (currentChatListener) currentChatListener();
+    const selectConversation = async (conversationId) => {
+        if (unsubscribeConversation) {
+            unsubscribeConversation();
+        }
 
         currentConversationId = conversationId;
-        currentConversationData = conversationData;
-
-        document.querySelectorAll('.conversation-item').forEach(item => {
-            item.classList.toggle('bg-blue-50', item.dataset.convoId === conversationId);
-            item.classList.toggle('dark:bg-blue-900/50', item.dataset.convoId === conversationId);
-        });
-
-        chatWelcomeScreen.classList.add('hidden');
-        chatView.classList.remove('hidden');
-        chatView.classList.add('flex');
-
-        document.getElementById('chat-header-avatar').src = imageUrl;
-        document.getElementById('chat-header-name').textContent = title;
+        chatWindow.style.display = 'flex';
 
         const conversationRef = db.collection('conversations').doc(conversationId);
-        const messagesContainer = document.getElementById('messages-container');
-
-        currentChatListener = conversationRef.onSnapshot(doc => {
-            messagesContainer.innerHTML = '';
+        
+        unsubscribeConversation = conversationRef.onSnapshot(async (doc) => {
             if (doc.exists) {
-                const conversation = doc.data();
-                const messages = conversation.messages || [];
-                
-                messages.forEach(msg => {
-                    const messageEl = document.createElement('div');
-                    const isSentByCurrentUser = msg.senderId === currentUser.uid;
-                    const senderInfo = conversation.participantInfo[msg.senderId];
-                    const timestamp = msg.timestamp ? new Date(msg.timestamp.toDate()) : new Date();
-                    const formattedTime = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                currentConversationData = doc.data();
+                const otherParticipantId = currentConversationData.participants.find(id => id !== currentUser.uid);
+                const otherUserData = await getUserData(otherParticipantId);
 
-                    messageEl.className = `message-group flex flex-col ${isSentByCurrentUser ? 'items-end' : 'items-start'}`;
-                    
-                    messageEl.innerHTML = `
-                        <div class="flex items-end gap-2 ${isSentByCurrentUser ? 'flex-row-reverse' : ''}">
-                            <div class="message-bubble">
-                                <p class="text-sm font-normal">${msg.content}</p>
-                            </div>
-                        </div>
-                        <p class="message-timestamp">${formattedTime}</p>
-                    `;
-                    messagesContainer.appendChild(messageEl);
-                });
+                chatHeader.innerHTML = `<h3>Chat with ${otherUserData.displayName}</h3>`;
+                renderMessages(currentConversationData.messages);
             }
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         });
+        
+        // Update URL without reloading
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?with=' + currentConversationId;
+        window.history.pushState({path:newUrl},'',newUrl);
+    };
+
+    const renderMessages = async (messages) => {
+        messagesContainer.innerHTML = '';
+        if (!messages || messages.length === 0) {
+            messagesContainer.innerHTML = '<p>No messages yet. Say hello!</p>';
+            return;
+        }
+
+        for (const message of messages) {
+            const senderData = await getUserData(message.senderId);
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            if (message.senderId === currentUser.uid) {
+                messageElement.classList.add('sent');
+            } else {
+                messageElement.classList.add('received');
+            }
+            
+            const timestamp = message.timestamp?.toDate ? message.timestamp.toDate().toLocaleTimeString() : new Date().toLocaleTimeString();
+
+            messageElement.innerHTML = `
+                <img src="${senderData.photoURL || 'images/default-avatar.png'}" alt="${senderData.displayName}" class="avatar">
+                <div class="message-content">
+                    <p>${message.content}</p>
+                    <span class="timestamp">${timestamp}</span>
+                </div>
+            `;
+            messagesContainer.appendChild(messageElement);
+        }
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     };
 
     const sendMessage = async () => {
@@ -195,7 +159,9 @@ document.addEventListener('authReady', (e) => {
             timestamp: new Date()
         };
         
-        messageInput.value = '';
+        const originalInput = content;
+        messageInput.value = ''; // Clear input immediately for better UX
+
         try {
             await conversationRef.update({
                 messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
@@ -203,142 +169,143 @@ document.addEventListener('authReady', (e) => {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             
+            // Send notifications to other participants
             const recipients = currentConversationData.participants.filter(id => id !== currentUser.uid);
             for (const recipientId of recipients) {
+                // Create a snippet of the message for the notification
+                const snippet = content.length > 50 ? content.substring(0, 47) + '...' : content;
                 await createNotification(
                     recipientId,
-                    `New message from ${currentUser.displayName}`,
-                    `/messages.html?with=${currentUser.uid}`
+                    `${currentUser.displayName}: ${snippet}`,
+                    `/messages.html?conversationId=${currentConversationId}`
                 );
             }
         } catch (error) {
             console.error("Error sending message:", error);
+            // Restore input if sending failed
+            messageInput.value = originalInput;
+            // Optionally show an error message to the user
             alert("Could not send message. Please try again.");
-            messageInput.value = content;
         }
     };
-
-    const startConversationWithUser = async (userId, userData) => {
-        const conversationId = [currentUser.uid, userId].sort().join('_');
-        const conversationRef = db.collection('conversations').doc(conversationId);
-
+    
+    const createNotification = async (userId, message, link) => {
+        if (!userId || !message) return;
         try {
-            const convoDoc = await conversationRef.get();
-            
-            if (!convoDoc.exists) {
-                const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (!currentUserDoc.exists) throw new Error("Could not find current user's profile data.");
-                const currentUserData = currentUserDoc.data();
-                
-                const newConversationData = {
-                    participants: [currentUser.uid, userId],
-                    participantInfo: {
-                        [currentUser.uid]: { displayName: currentUserData.displayName, photoURL: currentUserData.photoURL },
-                        [userId]: { displayName: userData.displayName, photoURL: userData.photoURL }
-                    },
-                    isGroupChat: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessage: 'Conversation started.',
-                    messages: []
-                };
-                await conversationRef.set(newConversationData);
-            }
-            
-            document.querySelector('.message-tab-button[data-tab="users"]').click();
-            
-            const finalConvoData = (await conversationRef.get()).data();
-            openChat(conversationId, userData.displayName, userData.photoURL, finalConvoData);
-
-        } catch (error) {
-            console.error("Error starting conversation:", error);
-            alert(`Could not start conversation. Error: ${error.message}. Please check console for details.`);
-        }
-    };
-
-    // --- EVENT LISTENERS ---
-    messageTabs.forEach(button => {
-        button.addEventListener('click', () => {
-            messageTabs.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            activeTab = button.dataset.tab;
-            loadConversations();
-        });
-    });
-
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        sendMessage();
-    });
-
-    userSearchInput.addEventListener('keyup', async (e) => {
-        const searchTerm = e.target.value.toLowerCase().trim();
-        if (searchTerm.length < 2) {
-            userSearchResultsEl.innerHTML = '';
-            userSearchResultsEl.classList.add('hidden');
-            return;
-        }
-        userSearchResultsEl.classList.remove('hidden');
-        userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">Searching...</div>';
-        
-        const usersRef = db.collection('users');
-        const queryByDisplayName = usersRef.orderBy('displayName_lower').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
-        const queryByHandle = usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').get();
-
-        try {
-            const [displayNameSnapshot, handleSnapshot] = await Promise.all([queryByDisplayName, queryByHandle]);
-            
-            const results = new Map();
-            displayNameSnapshot.forEach(doc => { if (doc.id !== currentUser.uid) results.set(doc.id, doc.data()); });
-            handleSnapshot.forEach(doc => { if (doc.id !== currentUser.uid) results.set(doc.id, doc.data()); });
-
-            userSearchResultsEl.innerHTML = '';
-            if (results.size === 0) {
-                userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No users found</div>';
-                return;
-            }
-            
-            results.forEach((userData, userId) => {
-                const resultItem = document.createElement('div');
-                resultItem.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
-                resultItem.innerHTML = `<img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-8 w-8 rounded-full mr-2 object-cover"><span class="text-sm dark:text-gray-200">${userData.displayName} (@${userData.handle})</span>`;
-                resultItem.addEventListener('click', () => {
-                    userSearchInput.value = '';
-                    userSearchResultsEl.classList.add('hidden');
-                    startConversationWithUser(userId, userData);
-                });
-                userSearchResultsEl.appendChild(resultItem);
+            await db.collection('notifications').add({
+                userId: userId,
+                message: message,
+                link: link,
+                read: false,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
         } catch (error) {
-            console.error("User search error:", error);
-            userSearchResultsEl.innerHTML = '<div class="p-2 text-sm text-red-500">Error searching. Required indexes might be missing.</div>';
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!userSearchInput.contains(e.target) && !userSearchResultsEl.contains(e.target)) {
-            userSearchResultsEl.classList.add('hidden');
-        }
-    });
-
-    const checkForUrlParams = async () => {
-        const params = new URLSearchParams(window.location.search);
-        const userIdToMessage = params.get('with');
-        if (userIdToMessage) {
-            try {
-                const userDoc = await db.collection('users').doc(userIdToMessage).get();
-                if (userDoc.exists) {
-                    startConversationWithUser(userDoc.id, userDoc.data());
-                } else {
-                    console.warn("User ID from URL parameter not found.");
-                }
-            } catch (error) {
-                console.error("Error fetching user from URL parameter:", error);
-            }
+            console.error("Error creating notification:", error);
         }
     };
 
-    // --- INITIALIZATION ---
-    loadConversations();
-    checkForUrlParams();
+    const checkUrlForConversation = () => {
+        const params = new URLSearchParams(window.location.search);
+        const conversationId = params.get('conversationId') || params.get('with');
+        if (conversationId) {
+            // Validate that the current user is part of this conversation
+            db.collection('conversations').doc(conversationId).get().then(doc => {
+                if (doc.exists && doc.data().participants.includes(currentUser.uid)) {
+                    selectConversation(conversationId);
+                } else {
+                    console.warn("User is not a participant of the requested conversation or it does not exist.");
+                }
+            });
+        }
+    };
+
+    // Event Listeners
+    sendMessageBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    newConversationBtn.addEventListener('click', () => {
+        newConversationModal.style.display = 'block';
+    });
+
+    closeBtn.addEventListener('click', () => {
+        newConversationModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target == newConversationModal) {
+            newConversationModal.style.display = 'none';
+        }
+    });
+
+    let searchTimeout;
+    searchUserInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const searchTerm = searchUserInput.value.trim();
+        if (searchTerm.length < 2) {
+            searchResults.innerHTML = '';
+            return;
+        }
+        searchResults.innerHTML = 'Searching...';
+        searchTimeout = setTimeout(async () => {
+            try {
+                const usersRef = db.collection('users');
+                const snapshot = await usersRef.where('displayName', '>=', searchTerm).where('displayName', '<=', searchTerm + '\uf8ff').get();
+                
+                searchResults.innerHTML = '';
+                if (snapshot.empty) {
+                    searchResults.innerHTML = 'No users found.';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    if (doc.id !== currentUser.uid) { // Don't show current user in results
+                        const user = doc.data();
+                        const userElement = document.createElement('div');
+                        userElement.classList.add('search-result-item');
+                        userElement.innerHTML = `
+                            <span>${user.displayName}</span>
+                            <button data-id="${doc.id}" data-name="${user.displayName}">Start Chat</button>
+                        `;
+                        searchResults.appendChild(userElement);
+                    }
+                });
+            } catch (error) {
+                console.error("Error searching users:", error);
+                searchResults.innerHTML = 'Error searching for users.';
+            }
+        }, 500);
+    });
+
+    searchResults.addEventListener('click', async (event) => {
+        if (event.target.tagName === 'BUTTON') {
+            const userId = event.target.dataset.id;
+            
+            // Check if a conversation already exists
+            const existingConversation = await db.collection('conversations')
+                .where('participants', '==', [currentUser.uid, userId].sort())
+                .get();
+
+            if (!existingConversation.empty) {
+                // Conversation exists, select it
+                const conversationId = existingConversation.docs[0].id;
+                selectConversation(conversationId);
+            } else {
+                // Create a new conversation
+                const newConversationRef = await db.collection('conversations').add({
+                    participants: [currentUser.uid, userId].sort(), // Store sorted to make querying easier
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    messages: [],
+                    lastMessage: ''
+                });
+                selectConversation(newConversationRef.id);
+            }
+            newConversationModal.style.display = 'none';
+            searchUserInput.value = '';
+            searchResults.innerHTML = '';
+        }
+    });
 });
