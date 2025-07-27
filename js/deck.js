@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Deck Page Script (v22 - Quick View Tooltip)
+ * HatakeSocial - Deck Page Script (v23 - Enhanced AI Advisor)
  *
- * - NEW: Adds a "Quick View" tooltip that appears when hovering over card names in the deck view.
- * - NEW: The tooltip shows the correct card image for the specific edition by using its Scryfall ID.
- * - All previous functionality (AI Advisor, deck building, etc.) is preserved.
+ * - Adds a "Quick View" tooltip that appears when hovering over card names in the deck view.
+ * - The tooltip shows the correct card image for the specific edition by using its Scryfall ID.
+ * - Enhances the AI Deck Advisor to allow suggestions for various formats, include a budget parameter, and analyze existing decklists for improvements.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -54,12 +54,18 @@ document.addEventListener('authReady', (e) => {
     const importDeckTextarea = document.getElementById('import-deck-textarea');
     const importDeckFileInput = document.getElementById('import-deck-file-input');
     const processImportBtn = document.getElementById('process-import-btn');
-    const suggestCardsBtn = document.getElementById('suggest-cards-btn');
-    const suggestionsContainer = document.getElementById('suggestions-container');
+    
+    // AI Advisor Elements from the new section
+    const getAISuggestionsBtn = document.getElementById('get-ai-suggestions-btn');
     const suggestionsOutput = document.getElementById('suggestions-output');
+    const aiDeckThemeInput = document.getElementById('ai-deck-theme');
+    const aiGameFormatSelect = document.getElementById('ai-game-format');
+    const aiDeckBudgetInput = document.getElementById('ai-deck-budget');
+    const aiDecklistAnalysisTextarea = document.getElementById('ai-decklist-analysis');
+
     const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
 
-    // NEW: Card Quick View Tooltip Logic
+    // Card Quick View Tooltip Logic
     const tooltip = document.createElement('img');
     tooltip.id = 'card-quick-view-tooltip';
     tooltip.classList.add('hidden');
@@ -87,7 +93,7 @@ document.addEventListener('authReady', (e) => {
         tooltip.style.left = event.pageX + 20 + 'px';
         tooltip.style.top = event.pageY + 20 + 'px';
     });
-    // End of New Tooltip Logic
+    // End of Tooltip Logic
 
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
@@ -877,49 +883,49 @@ document.addEventListener('authReady', (e) => {
         }
         closeModal(importDeckModal);
     });
-    suggestCardsBtn.addEventListener('click', async () => {
-        const decklist = document.getElementById('decklist-input').value;
-        const format = document.getElementById('deck-format-select').value;
-        const lines = decklist.split('\n').filter(line => line.trim() !== '');
+    
+    // *** NEW ENHANCED AI ADVISOR LOGIC ***
+    getAISuggestionsBtn.addEventListener('click', async () => {
+        const decklist = aiDecklistAnalysisTextarea.value.trim();
+        const theme = aiDeckThemeInput.value.trim();
+        const format = aiGameFormatSelect.value;
+        const budget = aiDeckBudgetInput.value.trim();
 
-        if (lines.length === 0) {
-            alert("Please add some cards to your deck first!");
+        if (!theme && !decklist) {
+            alert("Please provide a theme/commander for a new deck, or a decklist to analyze.");
             return;
         }
 
-        suggestionsContainer.classList.remove('hidden');
+        let prompt = `You are an expert Magic: The Gathering deck builder providing advice. The user wants help with the ${format} format.`;
+
+        if (decklist) {
+            // Scenario 1: Analyze an existing decklist
+            prompt += ` Please analyze the following decklist. Provide specific suggestions for cards to cut and cards to add. Explain your reasoning for each suggestion.`;
+            if (budget) {
+                prompt += ` All suggestions for additions must be budget-friendly, keeping the total cost of upgrades under about $${budget}. Suggest affordable alternatives to expensive staples.`;
+            }
+            prompt += `\n\nHere is the decklist to analyze:\n${decklist}`;
+        } else if (theme) {
+            // Scenario 2: Suggest a new deck
+            prompt += ` The user wants to build a deck around the theme or commander: "${theme}".`;
+            if (budget) {
+                prompt += ` The total cost of the deck should be affordable, around a budget of $${budget}.`;
+            }
+            prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names (like "Commander", "Creatures", "Spells", "Lands") and values are an array of strings, with each string being "quantity x Card Name".`;
+        }
+
         suggestionsOutput.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
 
         try {
-            if (format !== 'Commander') {
-                suggestionsOutput.innerHTML = `<p class="text-gray-400">The AI Deck Advisor is currently optimized for the Commander format.</p>`;
-                return;
-            }
-
-            const commanderLine = lines[0];
-            const commanderNameMatch = commanderLine.match(/^\d*\s*(.*)/);
-            if (!commanderNameMatch || !commanderNameMatch[1]) {
-                throw new Error('Could not determine the Commander from your decklist. Make sure it is the first card listed.');
-            }
-            const commanderName = commanderNameMatch[1].trim();
-            
-            const scryfallResponse = await fetch(`https://api.scryfall.com/cards/search?q=edhrec%3A"${encodeURIComponent(commanderName)}"`);
-            if (!scryfallResponse.ok) {
-                throw new Error('Could not find commander on Scryfall or no suggestions available.');
-            }
-            const scryfallData = await scryfallResponse.json();
-            const suggestionNames = scryfallData.data.slice(0, 20).map(c => c.name);
-
-            const prompt = `You are a Magic: The Gathering deck building expert. Given the commander "${commanderName}" and this list of synergistic cards: ${suggestionNames.join(', ')}. Please categorize these cards into strategic roles for a Commander deck. The categories should be things like "Ramp", "Card Draw", "Removal", "Threats", "Board Wipes", or "Synergy Pieces". Provide your response as a JSON object where keys are the category names and values are an array of the card names that fit that category.`;
-
             let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
             const payload = { 
                 contents: chatHistory,
                 generationConfig: {
-                    responseMimeType: "application/json",
+                    // Request JSON output only if we are building a new decklist
+                    ...( (theme && !decklist) && { responseMimeType: "application/json" } )
                 }
             };
-            const apiKey = ""; 
+            const apiKey = ""; // Leave blank, handled by the environment
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
@@ -935,9 +941,17 @@ document.addEventListener('authReady', (e) => {
             const result = await apiResponse.json();
             
             if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
-                const jsonText = result.candidates[0].content.parts[0].text;
-                const categorizedSuggestions = JSON.parse(jsonText);
-                renderCategorizedSuggestions(categorizedSuggestions);
+                const responseText = result.candidates[0].content.parts[0].text;
+                
+                if (theme && !decklist) {
+                    // Render the JSON decklist
+                    const categorizedSuggestions = JSON.parse(responseText);
+                    renderCategorizedSuggestions(categorizedSuggestions);
+                } else {
+                    // Render the text analysis
+                    const formattedResponse = responseText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    suggestionsOutput.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
+                }
             } else {
                 throw new Error('Unexpected response structure from Gemini API.');
             }
@@ -947,6 +961,7 @@ document.addEventListener('authReady', (e) => {
             suggestionsOutput.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
     });
+
 
     // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
