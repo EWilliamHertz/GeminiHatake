@@ -929,7 +929,7 @@ document.addEventListener('authReady', (e) => {
                 }
             };
             
-            const apiKey = ""; // This will be replaced by the environment
+            const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
