@@ -1,12 +1,11 @@
 /**
- * HatakeSocial - My Collection Page Script (v27 - Language & Notes Update)
+ * HatakeSocial - My Collection Page Script (v28 - Image Upload & Signed Status)
  *
  * This script handles all logic for the my_collection.html page.
- * - NEW: Added "Language" and "Notes" fields to the data model.
- * - NEW: "Language" and "Notes" can be added and edited in all edit modes.
- * - NEW: "Language" and "Notes" are now displayed in both grid and list views.
- * - FIX: The edit, delete, and manage listing buttons now work correctly in list view.
- * - Refactored the event handling to a more robust, unified system for all views.
+ * - NEW: Added ability to upload a custom image for a card.
+ * - NEW: Added a "signed" checkbox when adding/editing cards.
+ * - NEW: Displays a "signed" indicator on cards in both grid and list views.
+ * - All previous functionality (bulk edit, quick edit, filtering, etc.) is preserved.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -182,18 +181,20 @@ document.addEventListener('authReady', (e) => {
                 ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
                 : '';
             const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
+            const signedIndicatorHTML = card.isSigned ? `<div class="absolute bottom-1.5 left-1.5 ml-12 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Signed</div>` : '';
             const languageIndicatorHTML = card.language ? `<div class="absolute bottom-1.5 right-1.5 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${card.language}</div>` : '';
             const notesIndicatorHTML = card.notes ? `<div class="absolute top-1.5 left-1.5 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded-full pointer-events-none" title="${card.notes}"><i class="fas fa-sticky-note"></i></div>` : '';
             const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
 
             cardEl.innerHTML = `
                 <div class="relative">
-                    <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                    <img src="${card.customImageUrl || card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
                     ${quantityBadge}
                     ${checkboxOverlay}
                 </div>
                 ${priceTagHTML}
                 ${foilIndicatorHTML}
+                ${signedIndicatorHTML}
                 ${languageIndicatorHTML}
                 ${notesIndicatorHTML}
                 <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -239,7 +240,7 @@ document.addEventListener('authReady', (e) => {
             const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : 'N/A';
             tableHTML += `
                 <tr class="group" data-id="${card.id}">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.setName}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.quantity}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.condition}</td>
@@ -367,6 +368,7 @@ document.addEventListener('authReady', (e) => {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Language</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Foil</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Signed</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Purchase Price</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">For Sale</th>
@@ -391,6 +393,7 @@ document.addEventListener('authReady', (e) => {
                     </td>
                     <td class="px-6 py-4"><input type="text" value="${card.language || 'English'}" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="language"></td>
                     <td class="px-6 py-4"><input type="checkbox" ${card.isFoil ? 'checked' : ''} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 quick-edit-input" data-field="isFoil"></td>
+                    <td class="px-6 py-4"><input type="checkbox" ${card.isSigned ? 'checked' : ''} class="h-4 w-4 rounded text-yellow-500 focus:ring-yellow-400 quick-edit-input" data-field="isSigned"></td>
                     <td class="px-6 py-4"><input type="number" value="${card.purchasePrice || ''}" placeholder="0.00" step="0.01" class="w-24 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="purchasePrice"></td>
                     <td class="px-6 py-4"><input type="text" value="${card.notes || ''}" class="w-32 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="notes"></td>
                     <td class="px-6 py-4"><input type="checkbox" ${card.forSale ? 'checked' : ''} class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 quick-edit-input" data-field="forSale"></td>
@@ -401,7 +404,7 @@ document.addEventListener('authReady', (e) => {
         tableHTML += `</tbody></table>`;
         collectionTableView.innerHTML = tableHTML;
     };
-
+    
     const saveQuickEdits = async () => {
         saveQuickEditsBtn.disabled = true;
         saveQuickEditsBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
@@ -432,6 +435,7 @@ document.addEventListener('authReady', (e) => {
             await batch.commit();
             alert("All changes saved successfully!");
             toggleQuickEditMode();
+            loadCollectionData(); 
         } catch (error) {
             console.error("Error saving quick edits:", error);
             alert("An error occurred while saving changes.");
@@ -495,6 +499,7 @@ document.addEventListener('authReady', (e) => {
             alert(`${selectedCards.size} cards listed for sale!`);
             closeModal(listForSaleModal);
             toggleBulkEditMode();
+            loadCollectionData();
         } catch (error) {
             console.error("Error listing cards:", error);
             alert("An error occurred. Please try again.");
@@ -574,6 +579,7 @@ document.addEventListener('authReady', (e) => {
             document.getElementById('edit-card-purchase-price').value = card.purchasePrice || '';
             document.getElementById('edit-card-notes').value = card.notes || '';
             document.getElementById('edit-card-foil').checked = card.isFoil;
+            document.getElementById('edit-card-signed').checked = card.isSigned;
         } else if (modal === manageListingModal) {
             document.getElementById('listing-card-id').value = cardId;
             document.getElementById('listing-card-image').src = card.imageUrl;
@@ -770,6 +776,16 @@ document.addEventListener('authReady', (e) => {
         e.preventDefault();
         const cardData = JSON.parse(document.getElementById('add-version-data').value);
         const listType = document.getElementById('add-to-list-select').value;
+        const imageFile = document.getElementById('card-image-upload').files[0];
+
+        let customImageUrl = null;
+        if (imageFile) {
+            const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
+            const imageRef = firebase.storage().ref(imagePath);
+            await imageRef.put(imageFile);
+            customImageUrl = await imageRef.getDownloadURL();
+        }
+
         const cardDoc = {
             ...cardData,
             scryfallId: cardData.id,
@@ -779,6 +795,8 @@ document.addEventListener('authReady', (e) => {
             purchasePrice: parseFloat(document.getElementById('add-version-purchase-price').value) || 0,
             notes: document.getElementById('add-version-notes').value || '',
             isFoil: document.getElementById('add-version-foil').checked,
+            isSigned: document.getElementById('add-version-signed').checked, // Added signed
+            customImageUrl: customImageUrl, // Added custom image URL
             addedAt: new Date(),
             forSale: false
         };
@@ -952,14 +970,30 @@ document.addEventListener('authReady', (e) => {
         e.preventDefault();
         const cardId = document.getElementById('edit-card-id').value;
         const listType = document.getElementById('edit-card-list-type').value;
+        const imageFile = document.getElementById('edit-card-image-upload').files[0];
+
+        let customImageUrl = null;
+        if (imageFile) {
+            const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
+            const imageRef = firebase.storage().ref(imagePath);
+            await imageRef.put(imageFile);
+            customImageUrl = await imageRef.getDownloadURL();
+        }
+
         const updatedData = {
             quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
             condition: document.getElementById('edit-card-condition').value,
             language: document.getElementById('edit-card-language').value,
             purchasePrice: parseFloat(document.getElementById('edit-card-purchase-price').value) || 0,
             notes: document.getElementById('edit-card-notes').value,
-            isFoil: document.getElementById('edit-card-foil').checked
+            isFoil: document.getElementById('edit-card-foil').checked,
+            isSigned: document.getElementById('edit-card-signed').checked
         };
+        
+        if (customImageUrl) {
+            updatedData.customImageUrl = customImageUrl;
+        }
+        
         await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
         closeModal(editCardModal);
         if (listType === 'collection') {
