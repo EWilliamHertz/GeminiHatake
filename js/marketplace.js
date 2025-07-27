@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v8 - Signed Card Filter & Display)
+ * HatakeSocial - Marketplace Page Script (v9 - Display Custom Images)
  *
  * This script handles all logic for the marketplace.html page.
- * - NEW: Adds a "Signed" filter for Magic: The Gathering cards.
- * - NEW: Displays a "Signed" indicator on cards in both grid and list views.
- * - All previous functionality (seller search, other filters, etc.) is preserved.
+ * - NEW: Displays the user-uploaded custom image for a card if it exists, otherwise falls back to the default image.
+ * - Adds a "Signed" filter for Magic: The Gathering cards.
+ * - Displays a "Signed" indicator on cards in both grid and list views.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
