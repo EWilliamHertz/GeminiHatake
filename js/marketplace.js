@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v7 - Final Fix Merged)
+ * HatakeSocial - Marketplace Page Script (v8 - Signed Card Filter & Display)
  *
  * This script handles all logic for the marketplace.html page.
- * - Works with the corrected Firestore security rules for collection group queries.
- * - Implements multi-seller search (comma-separated).
- * - Implements a comprehensive set of advanced, client-side filters
- * for Magic: The Gathering cards.
- * - All filtering is performed client-side for a fast and responsive user experience.
+ * - NEW: Adds a "Signed" filter for Magic: The Gathering cards.
+ * - NEW: Displays a "Signed" indicator on cards in both grid and list views.
+ * - All previous functionality (seller search, other filters, etc.) is preserved.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -85,6 +83,7 @@ document.addEventListener('authReady', (e) => {
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Attributes</label>
                         <div id="mtg-attr-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
                             <label class="flex items-center space-x-1"><input type="checkbox" id="mtg-foil-filter" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200">Foil</span></label>
+                            <label class="flex items-center space-x-1"><input type="checkbox" id="mtg-signed-filter" class="h-4 w-4 rounded text-yellow-500 focus:ring-yellow-400 mtg-filter"><span class="dark:text-gray-200">Signed</span></label>
                         </div>
                     </div>
                 </div>
@@ -156,6 +155,7 @@ document.addEventListener('authReady', (e) => {
             const langFilter = document.getElementById('mtg-lang-filter').value;
             const conditionFilter = document.getElementById('mtg-condition-filter').value;
             const isFoil = document.getElementById('mtg-foil-filter').checked;
+            const isSigned = document.getElementById('mtg-signed-filter').checked;
             const selectedFormats = Array.from(document.querySelectorAll('#mtg-format-filters input:checked')).map(cb => cb.value);
 
             if (selectedColors.length > 0) {
@@ -172,6 +172,7 @@ document.addEventListener('authReady', (e) => {
             if (langFilter) cardsToDisplay = cardsToDisplay.filter(c => c.lang === langFilter);
             if (conditionFilter) cardsToDisplay = cardsToDisplay.filter(c => c.condition === conditionFilter);
             if (isFoil) cardsToDisplay = cardsToDisplay.filter(c => c.isFoil === true);
+            if (isSigned) cardsToDisplay = cardsToDisplay.filter(c => c.isSigned === true);
             if (selectedFormats.length > 0) {
                 cardsToDisplay = cardsToDisplay.filter(c => c.legalities && selectedFormats.every(format => c.legalities[format] === 'legal'));
             }
@@ -220,14 +221,16 @@ document.addEventListener('authReady', (e) => {
         
         const quantityBadge = `<div class="absolute top-1 right-1 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
         const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
+        const signedIndicatorHTML = card.isSigned ? `<div class="absolute bottom-1.5 left-1.5 ml-12 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Signed</div>` : '';
 
 
         cardEl.innerHTML = `
             <a href="card-view.html?id=${card.scryfallId}" class="block h-full flex flex-col">
                 <div class="relative">
-                    <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
+                    <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-full rounded-md mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
                     ${quantityBadge}
                     ${foilIndicatorHTML}
+                    ${signedIndicatorHTML}
                 </div>
                 <div class="flex-grow flex flex-col p-1">
                     <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
@@ -239,7 +242,7 @@ document.addEventListener('authReady', (e) => {
             </a>`;
         return cardEl;
     };
-
+    
     const renderListViewItem = (card) => {
         const itemEl = document.createElement('div');
         itemEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center gap-4';
@@ -255,9 +258,9 @@ document.addEventListener('authReady', (e) => {
 
 
         itemEl.innerHTML = `
-            <img src="${card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
+            <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
             <div class="flex-grow min-w-0">
-                <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</a>
+                <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</a>
                 <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${card.setName || ''}</p>
             </div>
             <div class="text-center w-16 flex-shrink-0">
