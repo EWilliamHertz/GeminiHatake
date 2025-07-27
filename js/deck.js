@@ -676,22 +676,37 @@ document.addEventListener('authReady', (e) => {
     
     const renderCategorizedSuggestions = (categories) => {
         suggestionsOutput.innerHTML = '';
+        // A helper to add cards to the main decklist input
+        const addCardsToMainDeck = (cardList) => {
+            cardList.forEach(cardString => {
+                 const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
+                 if(match) {
+                    addCardToDecklist(match[2].trim());
+                 }
+            });
+            alert(`${cardList.length} cards added to your decklist!`);
+        };
+
         for (const category in categories) {
             const details = document.createElement('details');
             details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg';
+            details.open = true; // Start with details open
             
             const summary = document.createElement('summary');
-            summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white';
-            summary.textContent = `${category} (${categories[category].length})`;
+            summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white flex justify-between items-center';
+            summary.innerHTML = `<span>${category} (${categories[category].length})</span>`;
             
             const cardGrid = document.createElement('div');
-            cardGrid.className = 'p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2';
+            cardGrid.className = 'p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2';
             
-            categories[category].forEach(cardName => {
+            categories[category].forEach(cardString => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
-                cardEl.textContent = cardName;
-                cardEl.onclick = () => addCardToDecklist(cardName);
+                cardEl.textContent = cardString;
+                 const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
+                 if(match) {
+                    cardEl.onclick = () => addCardToDecklist(match[2].trim());
+                 }
                 cardGrid.appendChild(cardEl);
             });
             
