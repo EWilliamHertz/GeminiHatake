@@ -707,12 +707,25 @@ document.addEventListener('authReady', (e) => {
             cardGrid.className = 'p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2';
             
             categories[category].forEach(cardString => {
-                const cardEl = document.createElement('div');
-                cardEl.className = 'text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
+                const cardEl = document.createElement('a'); // Change from div to a
+                cardEl.className = 'card-link text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer'; // Add card-link class
                 cardEl.textContent = cardString;
-                 const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
-                 if(match) {
-                    cardEl.onclick = () => addCardToDecklist(match[2].trim());
+
+                const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
+                if(match) {
+                    const cardName = match[2].trim();
+                    cardEl.onclick = (e) => {
+                        e.preventDefault(); // Prevent navigation
+                        addCardToDecklist(cardName);
+                    };
+                    // Fetch Scryfall ID and add it to the element
+                    fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
+                        .then(res => res.ok ? res.json() : null)
+                        .then(cardData => {
+                            if (cardData) {
+                                cardEl.dataset.scryfallId = cardData.id;
+                            }
+                        });
                  }
                 cardGrid.appendChild(cardEl);
             });
