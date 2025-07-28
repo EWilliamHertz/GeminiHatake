@@ -1,9 +1,11 @@
 /**
- * HatakeSocial - Deck Page Script (v24 - API Fix)
+ * HatakeSocial - Deck Page Script (v24 - API Fix & Primer Integration)
  *
  * - Fixes the "403 Forbidden" error when calling the Gemini API by correctly constructing the fetch request URL.
  * - Removes redundant, old AI suggestion logic.
  * - All other functionality (format, budget, analysis) remains the same.
+ * - NEW: Adds a "Write a Primer" button to the deck editor.
+ * - NEW: This button links to the create-article page, pre-filling deck info.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -54,6 +56,7 @@ document.addEventListener('authReady', (e) => {
     const importDeckTextarea = document.getElementById('import-deck-textarea');
     const importDeckFileInput = document.getElementById('import-deck-file-input');
     const processImportBtn = document.getElementById('process-import-btn');
+    const writePrimerBtn = document.getElementById('write-primer-btn'); // NEW
     
     // AI Advisor Elements
     const getAISuggestionsBtn = document.getElementById('get-ai-suggestions-btn');
@@ -102,6 +105,15 @@ document.addEventListener('authReady', (e) => {
         "Yu-Gi-Oh!": ["Advanced", "Traditional"]
     };
 
+    const resetBuilderForm = () => {
+        deckBuilderForm.reset();
+        builderTitle.textContent = "Create New Deck";
+        buildDeckBtn.textContent = "Build & Price Deck";
+        editingDeckIdInput.value = '';
+        deckFormatSelectContainer.classList.add('hidden');
+        writePrimerBtn.classList.add('hidden'); // NEW: Hide primer button
+    };
+
     const switchTab = (tabId) => {
         tabs.forEach(item => {
             const isTarget = item.id === tabId;
@@ -113,6 +125,9 @@ document.addEventListener('authReady', (e) => {
         const targetContentId = tabId.replace('tab-', 'content-');
         tabContents.forEach(content => content.id === targetContentId ? content.classList.remove('hidden') : content.classList.add('hidden'));
         
+        if (tabId === 'tab-builder' && !editingDeckIdInput.value) {
+             resetBuilderForm(); 
+        }
         if (tabId === 'tab-builder' && user) {
             loadCollectionForDeckBuilder();
         }
@@ -222,7 +237,7 @@ document.addEventListener('authReady', (e) => {
                 });
                 if (cards.length > 0) {
                      if (!cards[0].type_line.includes('Legendary Creature')) {
-                         errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
+                          errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
                      }
                 } else {
                     errors.push('- Deck must contain a Commander.');
@@ -433,6 +448,7 @@ document.addEventListener('authReady', (e) => {
         deckFormatSelect.value = deck.format;
 
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
+        writePrimerBtn.classList.remove('hidden'); // NEW: Show primer button on edit
     };
     
     const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
@@ -966,6 +982,18 @@ document.addEventListener('authReady', (e) => {
             console.error("Error fetching AI suggestions:", error);
             suggestionsOutput.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
+    });
+
+    // --- NEW: Primer Button Event Listener ---
+    writePrimerBtn.addEventListener('click', () => {
+        const deckId = editingDeckIdInput.value;
+        const deckName = deckNameInput.value;
+        if (!deckId || !deckName) {
+            alert('Please save the deck before writing a primer.');
+            return;
+        }
+        const deckNameEncoded = encodeURIComponent(deckName);
+        window.location.href = `create-article.html?deckId=${deckId}&deckName=${deckNameEncoded}`;
     });
 
     // --- Initial Load ---
