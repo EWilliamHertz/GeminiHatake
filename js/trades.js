@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Advanced Trades Page Script (v18 - Client-Side Inventory Transfer)
+ * HatakeSocial - Advanced Trades Page Script (v19 - Binder View)
  *
  * This script implements a comprehensive and secure trading system.
- * - NEW: Adds client-side logic to transfer card ownership when a trade is completed.
- * - This is an interim solution until a backend function can be deployed.
+ * - NEW: Adds a visual "Binder View" to the trade proposal modal.
+ * - NEW: Users can toggle between the existing list view and the new grid view for both their own and their partner's collection.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -445,7 +445,7 @@ document.addEventListener('authReady', (e) => {
         myCollectionList.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading your collection...</p>';
         const snapshot = await db.collection('users').doc(user.uid).collection('collection').where('forSale', '==', true).get();
         myCollectionForTrade = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderCollectionForTrade(myCollectionForTrade, 'proposer');
+        renderCollectionForTrade(myCollectionForTrade, 'proposer', 'list'); // Default to list view
 
         if (counterOfTrade) {
             counterOfferInput.value = counterOfTrade.id;
@@ -484,31 +484,53 @@ document.addEventListener('authReady', (e) => {
         theirCollectionList.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading collection...</p>';
         const snapshot = await db.collection('users').doc(partner.id).collection('collection').where('forSale', '==', true).get();
         theirCollectionForTrade = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderCollectionForTrade(theirCollectionForTrade, 'receiver');
+        renderCollectionForTrade(theirCollectionForTrade, 'receiver', 'list'); // Default to list view
     };
 
-    const renderCollectionForTrade = (cards, side) => {
-        const container = document.getElementById(side === 'proposer' ? 'my-collection-list' : 'their-collection-list');
-        container.innerHTML = '';
+    const renderCollectionForTrade = (cards, side, viewType) => {
+        const listContainer = document.getElementById(side === 'proposer' ? 'my-collection-list' : 'their-collection-list');
+        const binderContainer = document.getElementById(side === 'proposer' ? 'my-collection-binder' : 'their-collection-binder');
+
+        listContainer.innerHTML = '';
+        binderContainer.innerHTML = '';
+
         if (cards.length === 0) {
-            container.innerHTML = '<p class="text-sm text-gray-500 p-2 italic">No cards found for trade.</p>';
+            const noCardsMsg = '<p class="text-sm text-gray-500 p-2 italic col-span-full">No cards found for trade.</p>';
+            listContainer.innerHTML = noCardsMsg;
+            binderContainer.innerHTML = noCardsMsg;
             return;
         }
-        cards.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer';
-            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            const localPrice = window.HatakeSocial.convertAndFormatPrice(price, 'USD');
-            cardEl.innerHTML = `
-                <span class="text-sm truncate dark:text-gray-300">${card.name}</span>
-                <div class="flex items-center">
-                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">${localPrice}</span>
-                    <i class="fas fa-plus-circle text-green-500"></i>
-                </div>
-            `;
-            cardEl.addEventListener('click', () => selectCardForTrade(card, side));
-            container.appendChild(cardEl);
-        });
+
+        if (viewType === 'list') {
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'flex items-center justify-between p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer';
+                const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                const localPrice = window.HatakeSocial.convertAndFormatPrice(price, 'USD');
+                cardEl.innerHTML = `
+                    <span class="text-sm truncate dark:text-gray-300">${card.name}</span>
+                    <div class="flex items-center">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">${localPrice}</span>
+                        <i class="fas fa-plus-circle text-green-500"></i>
+                    </div>
+                `;
+                cardEl.addEventListener('click', () => selectCardForTrade(card, side));
+                listContainer.appendChild(cardEl);
+            });
+        } else { // Binder view
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'relative cursor-pointer group';
+                cardEl.innerHTML = `
+                    <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="w-full rounded-md shadow-sm transition-transform group-hover:scale-105">
+                    <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-plus-circle text-white text-2xl"></i>
+                    </div>
+                `;
+                cardEl.addEventListener('click', () => selectCardForTrade(card, side));
+                binderContainer.appendChild(cardEl);
+            });
+        }
     };
 
     const selectCardForTrade = (card, side) => {
@@ -897,13 +919,46 @@ document.addEventListener('authReady', (e) => {
     myCollectionSearch?.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filtered = myCollectionForTrade.filter(c => c.name.toLowerCase().includes(searchTerm));
-        renderCollectionForTrade(filtered, 'proposer');
+        const activeView = document.querySelector('.view-toggle-btn[data-side="proposer"].active')?.dataset.view || 'list';
+        renderCollectionForTrade(filtered, 'proposer', activeView);
     });
 
     theirCollectionSearch?.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filtered = theirCollectionForTrade.filter(c => c.name.toLowerCase().includes(searchTerm));
-        renderCollectionForTrade(filtered, 'receiver');
+        const activeView = document.querySelector('.view-toggle-btn[data-side="receiver"].active')?.dataset.view || 'list';
+        renderCollectionForTrade(filtered, 'receiver', activeView);
+    });
+    
+    tradeModal.addEventListener('click', (e) => {
+        const button = e.target.closest('.view-toggle-btn');
+        if (button) {
+            const { view, side } = button.dataset;
+            
+            // Toggle active state for buttons on the same side
+            document.querySelectorAll(`.view-toggle-btn[data-side="${side}"]`).forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-300', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');
+            });
+            button.classList.add('active', 'bg-blue-600', 'text-white');
+            button.classList.remove('bg-gray-300', 'dark:bg-gray-700', 'text-gray-800', 'dark:text-gray-200');
+
+            // Show/hide the correct view container
+            const listContainer = document.getElementById(side === 'proposer' ? 'my-collection-list' : 'their-collection-list');
+            const binderContainer = document.getElementById(side === 'proposer' ? 'my-collection-binder' : 'their-collection-binder');
+            
+            const collection = side === 'proposer' ? myCollectionForTrade : theirCollectionForTrade;
+
+            if (view === 'list') {
+                listContainer.classList.remove('hidden');
+                binderContainer.classList.add('hidden');
+                renderCollectionForTrade(collection, side, 'list');
+            } else {
+                listContainer.classList.add('hidden');
+                binderContainer.classList.remove('hidden');
+                renderCollectionForTrade(collection, side, 'binder');
+            }
+        }
     });
 
     document.getElementById('proposer-selected-cards')?.addEventListener('click', (e) => {
