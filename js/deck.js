@@ -15,14 +15,16 @@ document.addEventListener('authReady', (e) => {
     const openModal = (modal) => {
         if (modal) {
             modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            // If using TailwindCSS utility classes for modals
+            modal.classList.add('flex'); 
         }
     };
 
     const closeModal = (modal) => {
         if (modal) {
-            modal.classList.remove('flex');
             modal.classList.add('hidden');
+            // If using TailwindCSS utility classes for modals
+            modal.classList.remove('flex');
         }
     };
 
