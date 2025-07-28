@@ -931,6 +931,10 @@ document.addEventListener('authReady', (e) => {
             if (budget) {
                 prompt += ` The total cost of the deck should be affordable, around a budget of $${budget}.`;
             }
+            // Add specific rules for Commander format
+            if (format === 'Commander') {
+                prompt += ` The deck must be a valid Commander deck, which means it must contain exactly 100 cards. Each card, with the exception of basic lands, must be unique (only one copy of each card). The commander must be a Legendary Creature.`;
+            }
             prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names (like "Commander", "Creatures", "Spells", "Lands") and values are an array of strings, with each string being "quantity x Card Name".`;
         }
 
@@ -957,7 +961,9 @@ document.addEventListener('authReady', (e) => {
             });
 
             if (!apiResponse.ok) {
-                throw new Error(`Gemini API request failed with status: ${apiResponse.status}. This might be a temporary issue with the API key service.`);
+                const errorBody = await apiResponse.json();
+                console.error("Gemini API Error Body:", errorBody);
+                throw new Error(`Gemini API request failed with status: ${apiResponse.status}. ${errorBody?.error?.message || 'Check console for details.'}`);
             }
 
             const result = await apiResponse.json();
@@ -976,6 +982,9 @@ document.addEventListener('authReady', (e) => {
                 console.error("Unexpected API response:", result);
                 if (result.error) {
                      throw new Error(`API Error: ${result.error.message}`);
+                }
+                 if (result.candidates && result.candidates[0].finishReason) {
+                    throw new Error(`Generation stopped. Reason: ${result.candidates[0].finishReason}. Check safety settings in Google AI Studio.`);
                 }
                 throw new Error('Unexpected response structure from Gemini API.');
             }
