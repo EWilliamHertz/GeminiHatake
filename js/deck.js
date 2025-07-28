@@ -945,7 +945,9 @@ document.addEventListener('authReady', (e) => {
                 }
             };
             
-            const apiKey = "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU"; 
+            // IMPORTANT: You must generate your own API key from Google AI Studio (https://aistudio.google.com/)
+            // and enable the "Generative Language API". The Firebase API key will not work here.
+            const apiKey = "AIzaSyC6SboKjZJckxEr9S5obfN_lFcpEYOz4Yo"; // <-- PASTE YOUR GEMINI API KEY HERE
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
