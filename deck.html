@@ -20,7 +20,7 @@
             width: 223px; /* Standard card width */
             height: 310px; /* Standard card height */
         }
-    </style>
+   </style>
 </head>
    
 <body class="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
@@ -183,7 +183,10 @@
 
                                <div class="flex space-x-2 mt-4">
                                     <button type="submit" id="build-deck-btn" class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Build & Price Deck</button>
-                                    <!-- Old AI button removed from here -->
+                                    <!-- NEW: Write a Primer Button -->
+                                    <button type="button" id="write-primer-btn" class="hidden flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700">
+                                        <i class="fas fa-feather-alt mr-2"></i>Write a Primer
+                                    </button>
                                 </div>
                             </form>
                         </div>
@@ -343,7 +346,7 @@
     </div>
 
     
- <div id="loginModal" class="modal-overlay">
+<div id="loginModal" class="modal-overlay">
         <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
             <button class="close-button" id="closeLoginModal">&times;</button>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
