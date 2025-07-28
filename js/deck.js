@@ -945,8 +945,8 @@ document.addEventListener('authReady', (e) => {
                 }
             };
             
-            const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const apiKey = "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
                 method: 'POST',
