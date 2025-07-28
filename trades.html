@@ -166,7 +166,13 @@
                         <div class="mb-2">
                             <input type="text" id="their-collection-search" placeholder="Search their collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600">
                         </div>
+                        <!-- BINDER VIEW TOGGLE -->
+                        <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
+                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="list" data-side="receiver">List</button>
+                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="binder" data-side="receiver">Binder</button>
+                        </div>
                         <div id="their-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-600"></div>
+                        <div id="their-collection-binder" class="h-48 overflow-y-auto border rounded-md p-2 bg-white dark:bg-gray-800 dark:border-gray-600 hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
                         <div class="mt-4 flex-grow">
                              <h4 class="font-semibold mb-2 dark:text-gray-200">Selected for Trade:</h4>
                              <div id="receiver-selected-cards" class="space-y-1"><p class="text-sm text-gray-500 italic">Select a trade partner first.</p></div>
@@ -190,7 +196,13 @@
                         <div class="mb-2">
                             <input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600">
                         </div>
+                        <!-- BINDER VIEW TOGGLE -->
+                        <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
+                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="list" data-side="proposer">List</button>
+                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="binder" data-side="proposer">Binder</button>
+                        </div>
                         <div id="my-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-600"></div>
+                        <div id="my-collection-binder" class="h-48 overflow-y-auto border rounded-md p-2 bg-white dark:bg-gray-800 dark:border-gray-600 hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
                         <div class="mt-4 flex-grow">
                              <h4 class="font-semibold mb-2 dark:text-gray-200">Selected for Trade:</h4>
                              <div id="proposer-selected-cards" class="space-y-1"><p class="text-sm text-gray-500 italic">No cards selected.</p></div>
@@ -285,10 +297,10 @@
                 <div>
                      <label for="dispute-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason</label>
                      <select id="dispute-reason" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" required>
-                        <option>Items not received</option>
-                        <option>Items not as described (condition, foil, etc.)</option>
-                        <option>Received wrong items</option>
-                        <option>Other</option>
+                         <option>Items not received</option>
+                         <option>Items not as described (condition, foil, etc.)</option>
+                         <option>Received wrong items</option>
+                         <option>Other</option>
                      </select>
                 </div>
                 <div>
