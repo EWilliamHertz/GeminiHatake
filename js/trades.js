@@ -715,14 +715,14 @@ document.addEventListener('authReady', (e) => {
         if (!tradeDoc.exists) return;
         const tradeData = tradeDoc.data();
         const isProposer = tradeData.proposerId === user.uid;
-
+    
         let confirmMessage = 'Are you sure?';
         switch (action) {
             case 'rejected':
                 confirmMessage = isProposer ? 'Are you sure you want to cancel this offer?' : 'Are you sure you want to decline this trade?';
                 break;
             case 'accepted':
-                confirmMessage = 'Are you sure you want to accept this trade? This will lock in the items.';
+                confirmMessage = 'Are you sure you want to accept this trade? This will lock in the items and remove them from your collection pending trade completion.';
                 break;
             case 'confirm-shipment':
                 confirmMessage = 'Please confirm that you have shipped your items.';
@@ -731,14 +731,33 @@ document.addEventListener('authReady', (e) => {
                 confirmMessage = 'Please confirm you have received the items from your trade partner.';
                 break;
         }
-
+    
         if (confirm(confirmMessage)) {
             try {
                 if (action === 'accepted') {
-                    await tradeRef.update({ status: 'accepted' });
+                    const batch = db.batch();
+    
+                    // Remove cards from proposer's collection
+                    tradeData.proposerCards.forEach(card => {
+                        const cardToRemoveRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc(card.id);
+                        batch.delete(cardToRemoveRef);
+                    });
+    
+                    // Remove cards from receiver's collection
+                    tradeData.receiverCards.forEach(card => {
+                        const cardToRemoveRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc(card.id);
+                        batch.delete(cardToRemoveRef);
+                    });
+    
+    
+                    batch.update(tradeRef, { status: 'accepted' });
+    
+                    await batch.commit();
+    
                     const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
                     await createNotification(otherPartyId, `Your trade offer was accepted by ${user.displayName}. Please ship your items.`, '/trades.html');
                     await createNotification(user.uid, `You accepted the trade. Please ship your items.`, '/trades.html');
+    
                 } else if (action === 'rejected') {
                     await tradeRef.update({ status: action });
                     const otherPartyId = isProposer ? tradeData.receiverId : tradeData.proposerId;
@@ -749,7 +768,7 @@ document.addEventListener('authReady', (e) => {
                 } else if (action === 'confirm-shipment') {
                     const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
                     await tradeRef.update({ [fieldToUpdate]: true });
-
+    
                     const updatedDoc = await tradeRef.get();
                     if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
                         await tradeRef.update({ status: 'shipped' });
@@ -757,40 +776,40 @@ document.addEventListener('authReady', (e) => {
                 } else if (action === 'confirm-receipt') {
                     const fieldToUpdate = isProposer ? 'proposerConfirmedReceipt' : 'receiverConfirmedReceipt';
                     await tradeRef.update({ [fieldToUpdate]: true });
-
+    
                     const updatedDoc = await tradeRef.get();
                     const updatedTradeData = updatedDoc.data();
                     if (updatedTradeData.proposerConfirmedReceipt && updatedTradeData.receiverConfirmedReceipt) {
                         // All parties have confirmed receipt, now perform the inventory transfer.
                         const batch = db.batch();
-
+    
                         // Remove cards from proposer, add to receiver
                         updatedTradeData.proposerCards.forEach(card => {
                             const cardToRemoveRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc(card.id);
                             batch.delete(cardToRemoveRef);
-
+    
                             const cardToAddRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc();
                             const newCardData = { ...card, forSale: false, addedAt: new Date() };
                             delete newCardData.id; 
                             batch.set(cardToAddRef, newCardData);
                         });
-
+    
                         // Remove cards from receiver, add to proposer
                         updatedTradeData.receiverCards.forEach(card => {
                             const cardToRemoveRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc(card.id);
                             batch.delete(cardToRemoveRef);
-
+    
                             const cardToAddRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
                             const newCardData = { ...card, forSale: false, addedAt: new Date() };
                             delete newCardData.id;
                             batch.set(cardToAddRef, newCardData);
                         });
-
+    
                         // Finally, update the trade status to completed
                         batch.update(tradeRef, { status: 'completed' });
-
+    
                         await batch.commit();
-
+    
                         // Send notifications
                         await createNotification(tradeData.proposerId, `Your trade with ${tradeData.receiverName} is complete! Leave feedback.`, '/trades.html');
                         await createNotification(tradeData.receiverId, `Your trade with ${tradeData.proposerName} is complete! Leave feedback.`, '/trades.html');
