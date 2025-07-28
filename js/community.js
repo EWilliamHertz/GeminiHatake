@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Community Page Script (v5 - Group Member List Fix)
+ * HatakeSocial - Community Page Script (v5 - Group Member List Fix & Articles Integration)
  *
  * This script handles all logic for the community.html page.
  * - FIX: Adds the missing logic to render the member list within the group detail view.
  * - Implements a secure, client-side "handshake" for friend requests.
  * - Adds robust error handling to notify the user if an action fails.
+ * - NEW: Loads featured articles into the new section on the community hub.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -27,12 +28,54 @@ document.addEventListener('authReady', (e) => {
     });
 
     // =================================================================================
+    // ARTICLES LOGIC (NEW)
+    // =================================================================================
+    const featuredArticlesContainer = document.getElementById('featured-articles-list');
+
+    const loadFeaturedArticles = async () => {
+        if (!featuredArticlesContainer) return;
+        featuredArticlesContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">Loading articles...</p>';
+        try {
+            const snapshot = await db.collection('articles').where('status', '==', 'published').orderBy('createdAt', 'desc').limit(3).get();
+            if (snapshot.empty) {
+                featuredArticlesContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">No articles published yet.</p>';
+                return;
+            }
+            featuredArticlesContainer.innerHTML = '';
+            snapshot.forEach(doc => {
+                const article = doc.data();
+                const articleCard = document.createElement('a');
+                articleCard.href = `view-article.html?id=${doc.id}`;
+                articleCard.className = 'block bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow';
+                
+                const snippet = article.content.substring(0, 100).replace(/<[^>]+>/g, '') + '...';
+
+                articleCard.innerHTML = `
+                    <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">${article.category}</span>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mt-2">${article.title}</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2 text-sm">${snippet}</p>
+                    <div class="mt-4 pt-4 border-t dark:border-gray-700 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                        <span>By ${article.authorName}</span>
+                        <span>${new Date(article.createdAt.seconds * 1000).toLocaleDateString()}</span>
+                    </div>
+                `;
+                featuredArticlesContainer.appendChild(articleCard);
+            });
+        } catch (error) {
+            console.error("Error loading featured articles:", error);
+            featuredArticlesContainer.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load articles.</p>';
+        }
+    };
+
+
+    // =================================================================================
     // FRIENDS LOGIC
     // =================================================================================
     const friendsPageContainer = document.getElementById('friends-page-container');
     if (friendsPageContainer) {
         if (!currentUser) {
             friendsPageContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your friends.</p>';
+            loadFeaturedArticles(); // Still load articles even if not logged in
             return;
         }
 
@@ -1075,4 +1118,6 @@ document.addEventListener('authReady', (e) => {
             checkForUrlParams();
         }
     }
+    // Initial load for the whole page
+    loadFeaturedArticles();
 });
