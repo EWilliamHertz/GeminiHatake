@@ -1,16 +1,31 @@
 /**
- * HatakeSocial - Deck Page Script (v24 - API Fix & Primer Integration)
+ * HatakeSocial - Deck Page Script (v25 - AI Modal Integration)
  *
- * - Fixes the "403 Forbidden" error when calling the Gemini API by correctly constructing the fetch request URL.
- * - Removes redundant, old AI suggestion logic.
- * - All other functionality (format, budget, analysis) remains the same.
- * - NEW: Adds a "Write a Primer" button to the deck editor.
- * - NEW: This button links to the create-article page, pre-filling deck info.
+ * - Wires up the new AI Suggestions modal.
+ * - Removes the old, separate AI Advisor tab and its logic.
+ * - The AI now analyzes the current decklist in the builder combined with a user's prompt from the modal.
+ * - If the decklist is empty, it will generate a new deck based on the prompt.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
     if (!deckBuilderForm) return;
+
+    // --- Helper functions for modals ---
+    const openModal = (modal) => {
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    const closeModal = (modal) => {
+        if (modal) {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+    };
+
 
     // --- State Variables ---
     let deckToShare = null;
@@ -56,17 +71,17 @@ document.addEventListener('authReady', (e) => {
     const importDeckTextarea = document.getElementById('import-deck-textarea');
     const importDeckFileInput = document.getElementById('import-deck-file-input');
     const processImportBtn = document.getElementById('process-import-btn');
-    const writePrimerBtn = document.getElementById('write-primer-btn'); // NEW
-    
-    // AI Advisor Elements
-    const getAISuggestionsBtn = document.getElementById('get-ai-suggestions-btn');
-    const suggestionsOutput = document.getElementById('suggestions-output');
-    const aiDeckThemeInput = document.getElementById('ai-deck-theme');
-    const aiGameFormatSelect = document.getElementById('ai-game-format');
-    const aiDeckBudgetInput = document.getElementById('ai-deck-budget');
-    const aiDecklistAnalysisTextarea = document.getElementById('ai-decklist-analysis');
-
+    const writePrimerBtn = document.getElementById('write-primer-btn');
     const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
+
+    // --- NEW AI Modal Elements ---
+    const aiSuggestionsModal = document.getElementById('ai-suggestions-modal');
+    const openAiModalBtn = document.getElementById('open-ai-modal-btn');
+    const closeAiModalBtn = document.getElementById('close-ai-modal-btn');
+    const getAiSuggestionsModalBtn = document.getElementById('get-ai-suggestions-modal-btn');
+    const aiModalPrompt = document.getElementById('ai-modal-prompt');
+    const aiSuggestionsOutputModal = document.getElementById('ai-suggestions-output-modal');
+
 
     // Card Quick View Tooltip Logic
     const tooltip = document.createElement('img');
@@ -111,7 +126,7 @@ document.addEventListener('authReady', (e) => {
         buildDeckBtn.textContent = "Build & Price Deck";
         editingDeckIdInput.value = '';
         deckFormatSelectContainer.classList.add('hidden');
-        writePrimerBtn.classList.add('hidden'); // NEW: Hide primer button
+        writePrimerBtn.classList.add('hidden');
     };
 
     const switchTab = (tabId) => {
@@ -123,7 +138,13 @@ document.addEventListener('authReady', (e) => {
             item.classList.toggle('hover:border-gray-300', !isTarget);
         });
         const targetContentId = tabId.replace('tab-', 'content-');
-        tabContents.forEach(content => content.id === targetContentId ? content.classList.remove('hidden') : content.classList.add('hidden'));
+        document.querySelectorAll('.tab-content').forEach(content => {
+            if (content.id === targetContentId) {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
+        });
         
         if (tabId === 'tab-builder' && !editingDeckIdInput.value) {
              resetBuilderForm(); 
@@ -448,7 +469,7 @@ document.addEventListener('authReady', (e) => {
         deckFormatSelect.value = deck.format;
 
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
-        writePrimerBtn.classList.remove('hidden'); // NEW: Show primer button on edit
+        writePrimerBtn.classList.remove('hidden');
     };
     
     const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
@@ -682,43 +703,32 @@ document.addEventListener('authReady', (e) => {
     };
     
     const renderCategorizedSuggestions = (categories) => {
-        suggestionsOutput.innerHTML = '';
-        // A helper to add cards to the main decklist input
-        const addCardsToMainDeck = (cardList) => {
-            cardList.forEach(cardString => {
-                 const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
-                 if(match) {
-                    addCardToDecklist(match[2].trim());
-                 }
-            });
-            alert(`${cardList.length} cards added to your decklist!`);
-        };
-
+        aiSuggestionsOutputModal.innerHTML = '';
+        
         for (const category in categories) {
             const details = document.createElement('details');
-            details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg';
-            details.open = true; // Start with details open
+            details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg mb-2';
+            details.open = true;
             
             const summary = document.createElement('summary');
             summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white flex justify-between items-center';
             summary.innerHTML = `<span>${category} (${categories[category].length})</span>`;
             
             const cardGrid = document.createElement('div');
-            cardGrid.className = 'p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2';
+            cardGrid.className = 'p-3 grid grid-cols-1 sm:grid-cols-2 gap-2';
             
             categories[category].forEach(cardString => {
-                const cardEl = document.createElement('a'); // Change from div to a
-                cardEl.className = 'card-link text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer'; // Add card-link class
+                const cardEl = document.createElement('a');
+                cardEl.className = 'card-link text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
                 cardEl.textContent = cardString;
 
                 const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
                 if(match) {
                     const cardName = match[2].trim();
-                    cardEl.onclick = (e) => {
-                        e.preventDefault(); // Prevent navigation
+                    cardEl.addEventListener('click', (e) => {
+                        e.preventDefault();
                         addCardToDecklist(cardName);
-                    };
-                    // Fetch Scryfall ID and add it to the element
+                    });
                     fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
                         .then(res => res.ok ? res.json() : null)
                         .then(cardData => {
@@ -732,7 +742,7 @@ document.addEventListener('authReady', (e) => {
             
             details.appendChild(summary);
             details.appendChild(cardGrid);
-            suggestionsOutput.appendChild(details);
+            aiSuggestionsOutputModal.appendChild(details);
         }
     };
 
@@ -919,58 +929,60 @@ document.addEventListener('authReady', (e) => {
         closeModal(importDeckModal);
     });
     
-    // *** CORRECTED AI ADVISOR LOGIC ***
-    getAISuggestionsBtn.addEventListener('click', async () => {
-        const decklist = aiDecklistAnalysisTextarea.value.trim();
-        const theme = aiDeckThemeInput.value.trim();
-        const format = aiGameFormatSelect.value;
-        const budget = aiDeckBudgetInput.value.trim();
+    // --- AI MODAL LOGIC ---
+    openAiModalBtn.addEventListener('click', () => {
+        openModal(aiSuggestionsModal);
+    });
 
-        if (!theme && !decklist) {
-            alert("Please provide a theme/commander for a new deck, or a decklist to analyze.");
+    closeAiModalBtn.addEventListener('click', () => {
+        closeModal(aiSuggestionsModal);
+    });
+
+    getAiSuggestionsModalBtn.addEventListener('click', async () => {
+        const userPrompt = aiModalPrompt.value.trim();
+        const currentDecklist = decklistInput.value.trim();
+        const format = deckFormatSelect.value;
+        const tcg = deckTcgSelect.value;
+
+        if (!userPrompt && !currentDecklist) {
+            alert("Please provide a prompt or a decklist for the AI to work with.");
+            return;
+        }
+        if (!format || !tcg) {
+            alert("Please select a TCG and Format for your deck first.");
             return;
         }
 
-        let prompt = `You are an expert Magic: The Gathering deck builder providing advice. The user wants help with the ${format} format.`;
+        let prompt = `You are an expert ${tcg} deck builder providing advice. The user wants help with the ${format} format.`;
 
-        if (decklist) {
-            prompt += ` Please analyze the following decklist. Provide specific suggestions for cards to cut and cards to add. Explain your reasoning for each suggestion.`;
-            if (budget) {
-                prompt += ` All suggestions for additions must be budget-friendly, keeping the total cost of upgrades under about $${budget}. Suggest affordable alternatives to expensive staples.`;
-            }
-            prompt += `\n\nHere is the decklist to analyze:\n${decklist}`;
-        } else if (theme) {
-            prompt += ` The user wants to build a deck around the theme or commander: "${theme}".`;
-            if (budget) {
-                prompt += ` The total cost of the deck should be affordable, around a budget of $${budget}.`;
-            }
-            
-            // Add specific rules for Commander format
+        if (currentDecklist) {
+            prompt += ` The user has provided the following decklist:\n\n${currentDecklist}\n\n`;
+            prompt += `Based on this decklist and their request, please provide suggestions. The user's specific request is: "${userPrompt}"`;
+        } else {
+            prompt += ` The user wants to build a new deck based on this prompt: "${userPrompt}".`;
+             // Add specific rules for Commander format
             if (format === 'Commander') {
                 prompt += ` You MUST build a valid Commander deck. This means the final list must contain exactly 100 cards total. The commander must be a Legendary Creature. With the exception of basic lands, EVERY other card must be a unique singleton (only one copy of each card name). Ensure you include an appropriate number of lands, typically between 35 and 40.`;
             }
             // Add specific rules for 60-card formats
             else if (['Standard', 'Modern', 'Legacy', 'Vintage', 'Pauper'].includes(format)) {
-                prompt += ` You MUST build a valid ${format} deck. This means the main deck must contain exactly 60 cards. You must also provide a 15-card sideboard. No more than 4 copies of any card are allowed, except for basic lands.`;
+                prompt += ` You MUST build a valid ${format} deck. This means the main deck must contain exactly 60 cards. Do NOT create a sideboard. No more than 4 copies of any card are allowed, except for basic lands.`;
             }
-
-            prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land, Sideboard). Provide the response as a JSON object where keys are the category names and values are an array of strings, with each string being "quantity x Card Name".`;
+             prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names and values are an array of strings, with each string being "quantity x Card Name".`;
         }
 
-        suggestionsOutput.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
+        aiSuggestionsOutputModal.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
 
         try {
             let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
             const payload = { 
                 contents: chatHistory,
                 generationConfig: {
-                    ...( (theme && !decklist) && { responseMimeType: "application/json" } )
+                    ...( (!currentDecklist && userPrompt) && { responseMimeType: "application/json" } )
                 }
             };
             
-            // IMPORTANT: You must generate your own API key from Google AI Studio (https://aistudio.google.com/)
-            // and enable the "Generative Language API". The Firebase API key will not work here.
-            const apiKey = "AIzaSyC6SboKjZJckxEr9S5obfN_lFcpEYOz4Yo"; // <-- PASTE YOUR GEMINI API KEY HERE
+            const apiKey = "AIzaSyC6SboKjZJckxEr9S5obfN_lFcpEYOz4Yo";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
@@ -990,12 +1002,12 @@ document.addEventListener('authReady', (e) => {
             if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
                 const responseText = result.candidates[0].content.parts[0].text;
                 
-                if (theme && !decklist) {
+                if (!currentDecklist && userPrompt) {
                     const categorizedSuggestions = JSON.parse(responseText);
                     renderCategorizedSuggestions(categorizedSuggestions);
                 } else {
                     const formattedResponse = responseText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    suggestionsOutput.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
+                    aiSuggestionsOutputModal.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
                 }
             } else {
                 console.error("Unexpected API response:", result);
@@ -1010,11 +1022,12 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error fetching AI suggestions:", error);
-            suggestionsOutput.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+            aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">${error.message}</p>`;
         }
     });
 
-    // --- NEW: Primer Button Event Listener ---
+
+    // --- Primer Button Event Listener ---
     writePrimerBtn.addEventListener('click', () => {
         const deckId = editingDeckIdInput.value;
         const deckName = deckNameInput.value;
