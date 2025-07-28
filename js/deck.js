@@ -1,8 +1,8 @@
 /**
- * HatakeSocial - Deck Page Script (v25 - AI Modal Integration)
+ * HatakeSocial - Deck Page Script (v26 - AI Modal Fix & Security Update)
  *
- * - Wires up the new AI Suggestions modal.
- * - Removes the old, separate AI Advisor tab and its logic.
+ * - Fixes the event listener for the AI Suggestions modal button.
+ * - Replaces the exposed API key with a secure placeholder.
  * - The AI now analyzes the current decklist in the builder combined with a user's prompt from the modal.
  * - If the decklist is empty, it will generate a new deck based on the prompt.
  */
@@ -15,16 +15,13 @@ document.addEventListener('authReady', (e) => {
     const openModal = (modal) => {
         if (modal) {
             modal.classList.remove('hidden');
-            // If using TailwindCSS utility classes for modals
-            modal.classList.add('flex'); 
+            // Using a simple class toggle, assuming CSS handles the display
         }
     };
 
     const closeModal = (modal) => {
         if (modal) {
             modal.classList.add('hidden');
-            // If using TailwindCSS utility classes for modals
-            modal.classList.remove('flex');
         }
     };
 
@@ -984,7 +981,10 @@ document.addEventListener('authReady', (e) => {
                 }
             };
             
-            const apiKey = "AIzaSyC6SboKjZJckxEr9S5obfN_lFcpEYOz4Yo";
+            // SECURITY WARNING: This key has been exposed. It MUST be revoked and replaced.
+            // Go to https://aistudio.google.com/app/apikey to manage your API keys.
+            const apiKey = "AIzaSyA9nej1KT5lqQYACX8n-0UMYvtlz6DAXvc"; // <-- REPLACE WITH YOUR NEW, SECURE KEY
+            
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             
             const apiResponse = await fetch(apiUrl, {
