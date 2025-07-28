@@ -931,11 +931,17 @@ document.addEventListener('authReady', (e) => {
             if (budget) {
                 prompt += ` The total cost of the deck should be affordable, around a budget of $${budget}.`;
             }
+            
             // Add specific rules for Commander format
             if (format === 'Commander') {
-                prompt += ` The deck must be a valid Commander deck, which means it must contain exactly 100 cards. Each card, with the exception of basic lands, must be unique (only one copy of each card). The commander must be a Legendary Creature.`;
+                prompt += ` You MUST build a valid Commander deck. This means the final list must contain exactly 100 cards total. The commander must be a Legendary Creature. With the exception of basic lands, EVERY other card must be a unique singleton (only one copy of each card name). Ensure you include an appropriate number of lands, typically between 35 and 40.`;
             }
-            prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names (like "Commander", "Creatures", "Spells", "Lands") and values are an array of strings, with each string being "quantity x Card Name".`;
+            // Add specific rules for 60-card formats
+            else if (['Standard', 'Modern', 'Legacy', 'Vintage', 'Pauper'].includes(format)) {
+                prompt += ` You MUST build a valid ${format} deck. This means the main deck must contain exactly 60 cards. You must also provide a 15-card sideboard. No more than 4 copies of any card are allowed, except for basic lands.`;
+            }
+
+            prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land, Sideboard). Provide the response as a JSON object where keys are the category names and values are an array of strings, with each string being "quantity x Card Name".`;
         }
 
         suggestionsOutput.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
