@@ -1,14 +1,11 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.3 - Final Image & Button Fix)
+ * HatakeSocial - My Collection Page Script (v28.5 - Final Fixes)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Correctly implemented getCardImageUrl helper function during card saving process to permanently fix images for all card types.
+ * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error. Replaced an incorrect call to `firebase.storage()` with the correct `storage` variable.
+ * - FIX: Implemented getCardImageUrl helper function during card saving process to permanently fix images for all card types.
  * - FIX: Ensured Scryfall ID is saved correctly for all cards, fixing broken links to the card-view page.
  * - FIX: Correctly attached event listeners for "Quick Edit" and "Bulk Edit" buttons, restoring their functionality.
- * - FIX: Added button state management and proper error handling to Add/Edit card forms.
- * - NEW: Added ability to upload a custom image for a card.
- * - NEW: Added a "signed" checkbox when adding/editing cards.
- * - NEW: Displays a "signed" indicator on cards in both grid and list views.
  */
 
 /**
@@ -971,3 +968,15 @@ document.addEventListener('authReady', (e) => {
     // --- Initial Load ---
     loadCollectionData();
 });
+
+function openModal(modal) {
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeModal(modal) {
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
