@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.5 - Final Fixes)
+ * HatakeSocial - My Collection Page Script (v28.6 - Final Fixes)
  *
  * This script handles all logic for the my_collection.html page.
  * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error. Replaced an incorrect call to `firebase.storage()` with the correct `storage` variable.
