@@ -1,11 +1,33 @@
 /**
- * HatakeSocial - Deck Page Script (v26 - AI Modal Fix & Security Update)
+ * HatakeSocial - Deck Page Script (v27 - Image Fix Applied)
  *
+ * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall, in the deck view and playtester.
  * - Fixes the event listener for the AI Suggestions modal button.
  * - Replaces the exposed API key with a secure placeholder.
  * - The AI now analyzes the current decklist in the builder combined with a user's prompt from the modal.
  * - If the decklist is empty, it will generate a new deck based on the prompt.
  */
+
+/**
+ * Gets the correct image URL for any card type from Scryfall data.
+ * Handles standard, double-faced, and split cards.
+ * @param {object} cardData The full card data object from Scryfall.
+ * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+ * @returns {string} The URL of the card image or a placeholder.
+ */
+function getCardImageUrl(cardData, size = 'normal') {
+    // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
+    if (cardData.card_faces && cardData.card_faces[0].image_uris) {
+        return cardData.card_faces[0].image_uris[size];
+    }
+    // Case 2: The card is a standard, single-faced card
+    if (cardData.image_uris) {
+        return cardData.image_uris[size];
+    }
+    // Fallback if no image is found
+    return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
+}
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const deckBuilderForm = document.getElementById('deck-builder-form');
@@ -341,7 +363,9 @@ document.addEventListener('authReady', (e) => {
 
         document.getElementById('deck-view-price').textContent = `$${totalPrice.toFixed(2)}`;
         if (deck.cards.length > 0) {
-            featuredCardImg.src = deck.cards[0].image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+            featuredCardImg.src = getCardImageUrl(deck.cards[0], 'normal');
+        } else {
+            featuredCardImg.src = 'https://placehold.co/223x310?text=No+Image';
         }
 
         const order = ['Creatures', 'Planeswalkers', 'Spells', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
@@ -585,7 +609,7 @@ document.addEventListener('authReady', (e) => {
 
     const createPlaytestCard = (card) => {
         const cardEl = document.createElement('img');
-        cardEl.src = card.image_uris?.normal || 'https://placehold.co/223x310';
+        cardEl.src = getCardImageUrl(card, 'normal');
         cardEl.className = 'playtest-card';
         cardEl.dataset.instanceId = card.instanceId;
         cardEl.draggable = true;
