@@ -1,12 +1,35 @@
 /**
- * HatakeSocial - Card View Page Script (v5 - Merged Internationalization)
+ * HatakeSocial - Card View Page Script (v6 - Image Fix Applied)
  *
  * This script is a complete, working version for the card-view.html page.
+ * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall.
  * - Restores the full original code structure from the repository.
  * - Integrates the internationalization features for currency and shipping.
  * - Displays all prices in the user's selected currency.
  * - Shows seller's location and estimated shipping costs for each listing.
  */
+
+/**
+ * Gets the correct image URL for any card type from Scryfall data.
+ * Handles standard, double-faced, and split cards.
+ * @param {object} cardData The full card data object from Scryfall.
+ * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+ * @returns {string} The URL of the card image or a placeholder.
+ */
+function getCardImageUrl(cardData, size = 'large') { // Default to large for this page
+    // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
+    if (cardData.card_faces && cardData.card_faces[0].image_uris) {
+        return cardData.card_faces[0].image_uris[size];
+    }
+    // Case 2: The card is a standard, single-faced card
+    if (cardData.image_uris) {
+        return cardData.image_uris[size];
+    }
+    // Fallback if no image is found
+    return 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
+}
+
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const container = document.getElementById('card-view-container');
@@ -79,7 +102,7 @@ document.addEventListener('authReady', (e) => {
      */
     const updatePageWithCardData = (cardData) => {
         document.title = `${cardData.name} - HatakeSocial`;
-        cardImageEl.src = cardData.image_uris?.large || 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
+        cardImageEl.src = getCardImageUrl(cardData, 'large');
         cardImageEl.alt = cardData.name;
 
         cardDetailsEl.innerHTML = `
