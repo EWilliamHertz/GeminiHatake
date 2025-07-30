@@ -1,24 +1,22 @@
 /**
- * HatakeSocial - Card View Page Script (v6 - Image Fix Applied)
+ * HatakeSocial - Card View Page Script (v7 - Double-Faced Card Fix)
  *
  * This script is a complete, working version for the card-view.html page.
+ * - FIX: The `updatePageWithCardData` function now correctly handles double-faced cards by checking for a `card_faces` array and pulling details like `oracle_text` and `mana_cost` from the first face. This resolves the "Cannot read properties of undefined (reading 'replace')" error.
  * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall.
- * - Restores the full original code structure from the repository.
  * - Integrates the internationalization features for currency and shipping.
- * - Displays all prices in the user's selected currency.
- * - Shows seller's location and estimated shipping costs for each listing.
  */
 
 /**
  * Gets the correct image URL for any card type from Scryfall data.
  * Handles standard, double-faced, and split cards.
  * @param {object} cardData The full card data object from Scryfall.
- * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+ * @param {string} [size='large'] The desired image size ('small', 'normal', 'large').
  * @returns {string} The URL of the card image or a placeholder.
  */
 function getCardImageUrl(cardData, size = 'large') { // Default to large for this page
     // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
-    if (cardData.card_faces && cardData.card_faces[0].image_uris) {
+    if (cardData.card_faces && cardData.card_faces[0] && cardData.card_faces[0].image_uris) {
         return cardData.card_faces[0].image_uris[size];
     }
     // Case 2: The card is a standard, single-faced card
@@ -105,15 +103,28 @@ document.addEventListener('authReady', (e) => {
         cardImageEl.src = getCardImageUrl(cardData, 'large');
         cardImageEl.alt = cardData.name;
 
+        // *** FIX STARTS HERE ***
+        // Determine which object to get card details from (the main object or the first face)
+        const detailsSource = (cardData.card_faces && cardData.card_faces[0]) ? cardData.card_faces[0] : cardData;
+
+        // Safely get properties, providing fallbacks to prevent errors
+        const manaCost = detailsSource.mana_cost || '';
+        const typeLine = detailsSource.type_line || cardData.type_line || '';
+        const oracleText = detailsSource.oracle_text || '';
+        const power = detailsSource.power || null;
+        const toughness = detailsSource.toughness || null;
+
         cardDetailsEl.innerHTML = `
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">${cardData.name}</h1>
-            <p class="text-lg text-gray-600 dark:text-gray-400">${cardData.mana_cost || ''}</p>
-            <p class="text-lg text-gray-800 dark:text-gray-200">${cardData.type_line}</p>
-            <div class="text-md my-2 space-y-2 text-gray-700 dark:text-gray-300">${cardData.oracle_text.replace(/\n/g, '<br>')}</div>
-            ${cardData.power ? `<p class="text-lg font-bold text-gray-900 dark:text-white">${cardData.power} / ${cardData.toughness}</p>` : ''}
+            <p class="text-lg text-gray-600 dark:text-gray-400">${manaCost}</p>
+            <p class="text-lg text-gray-800 dark:text-gray-200">${typeLine}</p>
+            <div class="text-md my-2 space-y-2 text-gray-700 dark:text-gray-300">${oracleText.replace(/\n/g, '<br>')}</div>
+            ${power ? `<p class="text-lg font-bold text-gray-900 dark:text-white">${power} / ${toughness}</p>` : ''}
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">Set: ${cardData.set_name} (#${cardData.collector_number})</p>
         `;
+        // *** FIX ENDS HERE ***
     };
+
 
     /**
      * Fetches listings for a specific card name from Firestore.
