@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.2 - Image Fix Applied)
+ * HatakeSocial - My Collection Page Script (v28.3 - Final Image & Button Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall.
- * - FIX: Corrected Firebase Storage reference from `firebase.storage()` to `storage` to resolve the "Add Card" button being unclickable.
- * - FIX: Added button state management (disable/enable) and proper error handling to the Add/Edit card forms.
+ * - FIX: Correctly implemented getCardImageUrl helper function during card saving process to permanently fix images for all card types.
+ * - FIX: Ensured Scryfall ID is saved correctly for all cards, fixing broken links to the card-view page.
+ * - FIX: Correctly attached event listeners for "Quick Edit" and "Bulk Edit" buttons, restoring their functionality.
+ * - FIX: Added button state management and proper error handling to Add/Edit card forms.
  * - NEW: Added ability to upload a custom image for a card.
  * - NEW: Added a "signed" checkbox when adding/editing cards.
  * - NEW: Displays a "signed" indicator on cards in both grid and list views.
@@ -19,7 +20,7 @@
  */
 function getCardImageUrl(cardData, size = 'normal') {
     // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
-    if (cardData.card_faces && cardData.card_faces[0].image_uris) {
+    if (cardData.card_faces && cardData.card_faces[0] && cardData.card_faces[0].image_uris) {
         return cardData.card_faces[0].image_uris[size];
     }
     // Case 2: The card is a standard, single-faced card
@@ -29,7 +30,6 @@ function getCardImageUrl(cardData, size = 'normal') {
     // Fallback if no image is found
     return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
 }
-
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -648,6 +648,11 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Event Listeners ---
+    if(bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
+    if(quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
+    if(saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
+
+
     collectionPageContainer.addEventListener('click', (e) => {
         const target = e.target;
         
@@ -774,7 +779,7 @@ document.addEventListener('authReady', (e) => {
                 if (!response.ok) throw new Error("Card not found on Scryfall.");
                 const result = await response.json();
                 versions = result.data.map(card => ({
-                    id: card.id,
+                    scryfallId: card.id, // Make sure to save the correct ID
                     name: card.name,
                     set: card.set,
                     setName: card.set_name,
@@ -783,14 +788,15 @@ document.addEventListener('authReady', (e) => {
                     imageUrl: getCardImageUrl(card, 'normal'),
                     priceUsd: card.prices?.usd || null,
                     priceUsdFoil: card.prices?.usd_foil || null,
-                    tcg: 'Magic: The Gathering'
+                    tcg: 'Magic: The Gathering',
+                    fullData: card // Store the full data for saving later
                 }));
             } else if (game === 'pokemon') {
                 const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
                 if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
                 const result = await response.json();
                 versions = result.data.map(card => ({
-                    id: card.id,
+                    scryfallId: card.id, // Using the pokemon tcg id here
                     name: card.name,
                     set: card.set.id,
                     setName: card.set.name,
@@ -799,7 +805,8 @@ document.addEventListener('authReady', (e) => {
                     imageUrl: card.images?.small || '',
                     priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
                     priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
-                    tcg: 'Pokémon'
+                    tcg: 'Pokémon',
+                    fullData: card
                 }));
             }
             displayCardVersions(versions);
@@ -818,7 +825,7 @@ document.addEventListener('authReady', (e) => {
         submitButton.textContent = 'Adding...';
 
         try {
-            const cardData = JSON.parse(document.getElementById('add-version-data').value);
+            const cardDataFromForm = JSON.parse(document.getElementById('add-version-data').value);
             const listType = document.getElementById('add-to-list-select').value;
             const imageFile = document.getElementById('card-image-upload').files[0];
 
@@ -830,9 +837,24 @@ document.addEventListener('authReady', (e) => {
                 customImageUrl = await imageRef.getDownloadURL();
             }
 
+            // Create the full document to be saved
             const cardDoc = {
-                ...cardData,
-                scryfallId: cardData.id,
+                scryfallId: cardDataFromForm.scryfallId,
+                name: cardDataFromForm.name,
+                name_lower: cardDataFromForm.name.toLowerCase(),
+                set: cardDataFromForm.set,
+                setName: cardDataFromForm.setName,
+                rarity: cardDataFromForm.rarity,
+                collector_number: cardDataFromForm.collector_number,
+                imageUrl: cardDataFromForm.imageUrl, // This is now correct from getCardImageUrl
+                priceUsd: cardDataFromForm.priceUsd,
+                priceUsdFoil: cardDataFromForm.priceUsdFoil,
+                tcg: cardDataFromForm.tcg,
+                colors: cardDataFromForm.fullData.colors,
+                color_identity: cardDataFromForm.fullData.color_identity,
+                type_line: cardDataFromForm.fullData.type_line,
+                cmc: cardDataFromForm.fullData.cmc,
+                legalities: cardDataFromForm.fullData.legalities,
                 quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
                 condition: document.getElementById('add-version-condition').value,
                 language: document.getElementById('add-version-language').value || 'English',
@@ -844,7 +866,7 @@ document.addEventListener('authReady', (e) => {
                 addedAt: new Date(),
                 forSale: false
             };
-            delete cardDoc.id;
+            
 
             await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
             alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
