@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.6 - Final Fixes)
+ * HatakeSocial - My Collection Page Script (v28.7 - Final Fixes)
  *
  * This script handles all logic for the my_collection.html page.
+ * - FIX: Resolved "Unsupported field value: undefined" error by correctly sourcing the `colors` property for double-faced cards during the save process.
  * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error. Replaced an incorrect call to `firebase.storage()` with the correct `storage` variable.
  * - FIX: Implemented getCardImageUrl helper function during card saving process to permanently fix images for all card types.
  * - FIX: Ensured Scryfall ID is saved correctly for all cards, fixing broken links to the card-view page.
@@ -833,6 +834,8 @@ document.addEventListener('authReady', (e) => {
                 await imageRef.put(imageFile);
                 customImageUrl = await imageRef.getDownloadURL();
             }
+            
+            const fullCardData = cardDataFromForm.fullData || cardDataFromForm;
 
             // Create the full document to be saved
             const cardDoc = {
@@ -847,11 +850,12 @@ document.addEventListener('authReady', (e) => {
                 priceUsd: cardDataFromForm.priceUsd,
                 priceUsdFoil: cardDataFromForm.priceUsdFoil,
                 tcg: cardDataFromForm.tcg,
-                colors: cardDataFromForm.fullData.colors,
-                color_identity: cardDataFromForm.fullData.color_identity,
-                type_line: cardDataFromForm.fullData.type_line,
-                cmc: cardDataFromForm.fullData.cmc,
-                legalities: cardDataFromForm.fullData.legalities,
+                // *** THE FIX IS HERE: Correctly handle colors for all card types ***
+                colors: (fullCardData.card_faces ? fullCardData.card_faces[0].colors : fullCardData.colors) || [],
+                color_identity: fullCardData.color_identity,
+                type_line: fullCardData.type_line,
+                cmc: fullCardData.cmc,
+                legalities: fullCardData.legalities,
                 quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
                 condition: document.getElementById('add-version-condition').value,
                 language: document.getElementById('add-version-language').value || 'English',
