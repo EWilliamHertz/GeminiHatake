@@ -1,13 +1,13 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.8 - Final Fixes)
+ * HatakeSocial - My Collection Page Script (v28.9 - Final Fixes)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Added event listeners for the "List for Sale" and "Delete" buttons in the bulk edit bar to restore their functionality.
+ * - FIX: Corrected "Select All" functionality to only select the currently filtered cards and attached the necessary event listener.
  * - FIX: Resolved "Unsupported field value: undefined" error by correctly sourcing the `colors` property for double-faced cards during the save process.
  * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error.
  * - FIX: Implemented getCardImageUrl helper function to correctly display images for all card types.
  * - FIX: Ensured Scryfall ID is saved correctly for all cards, fixing broken links to the card-view page.
- * - FIX: Correctly attached event listeners for "Quick Edit" and "Bulk Edit" buttons.
+ * - FIX: Correctly attached event listeners for "Quick Edit", "Bulk Edit", and bulk action buttons.
  */
 
 /**
@@ -485,20 +485,20 @@ document.addEventListener('authReady', (e) => {
         const cardEl = document.querySelector(`div[data-id="${cardId}"]`);
         cardEl?.querySelector('.bulk-checkbox-overlay')?.classList.toggle('hidden', !selectedCards.has(cardId));
         if (selectAllCheckbox) {
-            const allCollectionIds = fullCollection.map(c => c.id);
-            selectAllCheckbox.checked = selectedCards.size === allCollectionIds.length && allCollectionIds.length > 0;
+            const allFilteredIds = filteredCollection.map(c => c.id);
+            selectAllCheckbox.checked = selectedCards.size === allFilteredIds.length && allFilteredIds.length > 0;
         }
     };
 
     const handleSelectAll = (e) => {
-        const allCollectionIds = fullCollection.map(c => c.id);
+        const visibleCardIds = filteredCollection.map(c => c.id);
         if (e.target.checked) {
-            allCollectionIds.forEach(id => selectedCards.add(id));
+            visibleCardIds.forEach(id => selectedCards.add(id));
         } else {
             selectedCards.clear();
         }
         updateSelectedCount();
-        renderGridView();
+        renderCurrentView();
     };
 
     const listCardsWithPercentage = async (percentage) => {
@@ -651,6 +651,7 @@ document.addEventListener('authReady', (e) => {
     if(quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
     if(saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
     if(listSelectedBtn) listSelectedBtn.addEventListener('click', () => openModal(listForSaleModal));
+    if(selectAllCheckbox) selectAllCheckbox.addEventListener('change', handleSelectAll);
     
     if (deleteSelectedBtn) {
         deleteSelectedBtn.addEventListener('click', async () => {
