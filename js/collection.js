@@ -1,12 +1,13 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.7 - Final Fixes)
+ * HatakeSocial - My Collection Page Script (v28.8 - Final Fixes)
  *
  * This script handles all logic for the my_collection.html page.
+ * - FIX: Added event listeners for the "List for Sale" and "Delete" buttons in the bulk edit bar to restore their functionality.
  * - FIX: Resolved "Unsupported field value: undefined" error by correctly sourcing the `colors` property for double-faced cards during the save process.
- * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error. Replaced an incorrect call to `firebase.storage()` with the correct `storage` variable.
- * - FIX: Implemented getCardImageUrl helper function during card saving process to permanently fix images for all card types.
+ * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error.
+ * - FIX: Implemented getCardImageUrl helper function to correctly display images for all card types.
  * - FIX: Ensured Scryfall ID is saved correctly for all cards, fixing broken links to the card-view page.
- * - FIX: Correctly attached event listeners for "Quick Edit" and "Bulk Edit" buttons, restoring their functionality.
+ * - FIX: Correctly attached event listeners for "Quick Edit" and "Bulk Edit" buttons.
  */
 
 /**
@@ -649,6 +650,34 @@ document.addEventListener('authReady', (e) => {
     if(bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
     if(quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
     if(saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
+    if(listSelectedBtn) listSelectedBtn.addEventListener('click', () => openModal(listForSaleModal));
+    
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', async () => {
+            if (selectedCards.size === 0) {
+                alert("Please select cards to delete.");
+                return;
+            }
+    
+            if (confirm(`Are you sure you want to delete ${selectedCards.size} selected cards? This action cannot be undone.`)) {
+                const batch = db.batch();
+                const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+                selectedCards.forEach(cardId => {
+                    batch.delete(collectionRef.doc(cardId));
+                });
+    
+                try {
+                    await batch.commit();
+                    alert(`${selectedCards.size} cards deleted successfully.`);
+                    toggleBulkEditMode(); 
+                    loadCollectionData();
+                } catch (error) {
+                    console.error("Error deleting selected cards:", error);
+                    alert("An error occurred while deleting the cards. Please try again.");
+                }
+            }
+        });
+    }
 
 
     collectionPageContainer.addEventListener('click', (e) => {
@@ -846,11 +875,10 @@ document.addEventListener('authReady', (e) => {
                 setName: cardDataFromForm.setName,
                 rarity: cardDataFromForm.rarity,
                 collector_number: cardDataFromForm.collector_number,
-                imageUrl: cardDataFromForm.imageUrl, // This is now correct from getCardImageUrl
+                imageUrl: cardDataFromForm.imageUrl,
                 priceUsd: cardDataFromForm.priceUsd,
                 priceUsdFoil: cardDataFromForm.priceUsdFoil,
                 tcg: cardDataFromForm.tcg,
-                // *** THE FIX IS HERE: Correctly handle colors for all card types ***
                 colors: (fullCardData.card_faces ? fullCardData.card_faces[0].colors : fullCardData.colors) || [],
                 color_identity: fullCardData.color_identity,
                 type_line: fullCardData.type_line,
