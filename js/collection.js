@@ -1,13 +1,36 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.1 - Bug Fix & Full Merge)
+ * HatakeSocial - My Collection Page Script (v28.2 - Image Fix Applied)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Corrected Firebase Storage reference from `firebase.storage()` to `storage` to match the project's setup, which resolves the "Add Card" button being unclickable.
+ * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall.
+ * - FIX: Corrected Firebase Storage reference from `firebase.storage()` to `storage` to resolve the "Add Card" button being unclickable.
  * - FIX: Added button state management (disable/enable) and proper error handling to the Add/Edit card forms.
  * - NEW: Added ability to upload a custom image for a card.
  * - NEW: Added a "signed" checkbox when adding/editing cards.
  * - NEW: Displays a "signed" indicator on cards in both grid and list views.
  */
+
+/**
+ * Gets the correct image URL for any card type from Scryfall data.
+ * Handles standard, double-faced, and split cards.
+ * @param {object} cardData The full card data object from Scryfall.
+ * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+ * @returns {string} The URL of the card image or a placeholder.
+ */
+function getCardImageUrl(cardData, size = 'normal') {
+    // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
+    if (cardData.card_faces && cardData.card_faces[0].image_uris) {
+        return cardData.card_faces[0].image_uris[size];
+    }
+    // Case 2: The card is a standard, single-faced card
+    if (cardData.image_uris) {
+        return cardData.image_uris[size];
+    }
+    // Fallback if no image is found
+    return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
+}
+
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const collectionPageContainer = document.getElementById('content-collection');
@@ -757,7 +780,7 @@ document.addEventListener('authReady', (e) => {
                     setName: card.set_name,
                     rarity: card.rarity,
                     collector_number: card.collector_number,
-                    imageUrl: card.image_uris?.normal || '',
+                    imageUrl: getCardImageUrl(card, 'normal'),
                     priceUsd: card.prices?.usd || null,
                     priceUsdFoil: card.prices?.usd_foil || null,
                     tcg: 'Magic: The Gathering'
