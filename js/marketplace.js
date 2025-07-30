@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - Marketplace Page Script (v11 - Display Notes)
+ * HatakeSocial - Marketplace Page Script (v12 - Image Fix Applied)
  *
  * This script handles all logic for the marketplace.html page.
+ * - FIX: Although this page primarily uses Firestore data, the rendering functions have been verified to prioritize `customImageUrl` then `imageUrl`. The root cause of missing images is in how data is added to the collection, which has been fixed in `collection.js`.
  * - NEW: Displays the "notes" field for a card in both grid and list views.
  * - FIX: Corrected the list view rendering to display custom-uploaded images and the "signed" status icon, matching the grid view's functionality.
  * - Displays the user-uploaded custom image for a card if it exists, otherwise falls back to the default image.
