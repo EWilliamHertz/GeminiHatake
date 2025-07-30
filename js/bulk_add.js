@@ -1,12 +1,35 @@
 /**
- * HatakeSocial - Bulk Add from Text Script
+ * HatakeSocial - Bulk Add from Text Script (v2 - Image Fix Applied)
  *
  * This script handles all logic for the bulk_add.html page.
+ * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall.
  * - Parses a user's pasted text list of cards.
  * - Fetches potential matches from the Scryfall API.
  * - Presents a step-by-step UI for the user to confirm each card and its details.
  * - Adds the confirmed cards to the user's Firestore collection.
  */
+
+/**
+ * Gets the correct image URL for any card type from Scryfall data.
+ * Handles standard, double-faced, and split cards.
+ * @param {object} cardData The full card data object from Scryfall.
+ * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+ * @returns {string} The URL of the card image or a placeholder.
+ */
+function getCardImageUrl(cardData, size = 'normal') {
+    // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
+    if (cardData.card_faces && cardData.card_faces[0].image_uris) {
+        return cardData.card_faces[0].image_uris[size];
+    }
+    // Case 2: The card is a standard, single-faced card
+    if (cardData.image_uris) {
+        return cardData.image_uris[size];
+    }
+    // Fallback if no image is found
+    return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
+}
+
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const container = document.getElementById('bulk-add-container');
@@ -82,7 +105,7 @@ document.addEventListener('authReady', (e) => {
                 setName: card.set_name,
                 rarity: card.rarity,
                 collector_number: card.collector_number,
-                imageUrl: card.image_uris?.normal || '',
+                imageUrl: getCardImageUrl(card, 'normal'),
                 priceUsd: card.prices?.usd || null,
                 priceUsdFoil: card.prices?.usd_foil || null,
                 tcg: 'Magic: The Gathering'
