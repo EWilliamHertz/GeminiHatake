@@ -1,6 +1,7 @@
 /**
- * HatakeSocial - Settings Page Script (v7 - Merged Personality & Payouts)
+ * HatakeSocial - Settings Page Script (v8 - Authentication Race Condition Fix)
  *
+ * - FIX: Wraps all logic in the 'authReady' event listener to ensure the user object is available before any functions are called. This resolves the "Cannot read properties of undefined (reading 'uid')" error.
  * - RESTORED: Re-implements the original IBAN/SWIFT payout form logic.
  * - NEW: Includes fields for Playstyle, Favorite Format, Pet Card, and Nemesis Card.
  * - Updates save/load logic to handle all profile fields correctly.
