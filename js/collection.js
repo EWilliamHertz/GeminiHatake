@@ -1,15 +1,10 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.10 - Final Race Condition Fix)
+ * HatakeSocial - My Collection Page Script (v28.11 - Complete Script)
  *
  * This script handles all logic for the my_collection.html page.
+ * - FIX: Provided the full, uninterrupted script to fix non-functional buttons and the blank collection view caused by an incomplete copy/paste.
  * - FIX: Implemented a robust check for the currency converter function before calling it. This resolves the critical race
  * condition that caused the page to appear blank on fast servers by providing a USD fallback, ensuring the script never crashes.
- * - FIX: Corrected "Select All" functionality to only select the currently filtered cards and attached the necessary event listener.
- * - FIX: Resolved "Unsupported field value: undefined" error by correctly sourcing the `colors` property for double-faced cards during the save process.
- * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error.
- * - FIX: Implemented getCardImageUrl helper function to correctly display images for all card types.
- * - FIX: Ensured Scryfall ID is saved correctly for all cards, fixing broken links to the card-view page.
- * - FIX: Correctly attached event listeners for "Quick Edit", "Bulk Edit", and bulk action buttons.
  */
 
 /**
@@ -216,7 +211,6 @@ document.addEventListener('authReady', (e) => {
             const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            // FIX: Use the safe price formatting function
             const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : '';
 
             const priceTagHTML = formattedPrice ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>` : '';
@@ -277,7 +271,6 @@ document.addEventListener('authReady', (e) => {
         `;
         collectionToRender.forEach(card => {
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            // FIX: Use the safe price formatting function
             const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : 'N/A';
             tableHTML += `
                 <tr class="group" data-id="${card.id}">
@@ -344,8 +337,6 @@ document.addEventListener('authReady', (e) => {
 
         document.getElementById('stats-total-cards').textContent = totalCards;
         document.getElementById('stats-unique-cards').textContent = uniqueCards;
-
-        // FIX: This is the critical change. Check if the converter function exists before using it.
         document.getElementById('stats-total-value').textContent = safeFormatPrice(totalValue);
 
         const rarityContainer = document.getElementById('stats-rarity-breakdown');
@@ -359,9 +350,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // ... (The rest of the JS code is identical to what you provided and does not need changes for this specific bug)
-    // --- The following code remains unchanged ---
-    
     const toggleBulkEditMode = () => {
         bulkEditMode = !bulkEditMode;
         selectedCards.clear();
@@ -525,7 +513,6 @@ document.addEventListener('authReady', (e) => {
     };
 
     const listCardsWithPercentage = async (percentage) => {
-        // FIX: Ensure currency converter is ready before proceeding with complex logic
         if (!window.HatakeSocial || typeof window.HatakeSocial.convertAndFormatPrice !== 'function') {
             alert("Currency data is still loading. Please try again in a moment.");
             return;
@@ -564,7 +551,7 @@ document.addEventListener('authReady', (e) => {
 
     const displayCardVersions = (versions) => {
         manualAddResultsContainer.innerHTML = '';
-        const tooltip = document.getElementById('manual-add-tooltip'); // Get the tooltip element
+        const tooltip = document.getElementById('manual-add-tooltip');
 
         if (versions.length === 0) {
             manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No versions found.</p>';
@@ -708,7 +695,6 @@ document.addEventListener('authReady', (e) => {
         });
     }
 
-
     collectionPageContainer.addEventListener('click', (e) => {
         const target = e.target;
 
@@ -744,22 +730,24 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    wishlistListContainer.addEventListener('click', (e) => {
-        const target = e.target;
-        const cardElement = target.closest('.group[data-id]');
-        if (!cardElement) return;
-
-        const cardId = cardElement.dataset.id;
-        const listType = 'wishlist';
-
-        if (target.closest('.edit-card-btn')) {
-            openModalHandler(editCardModal, cardId, listType);
-        } else if (target.closest('.delete-card-btn')) {
-            if (confirm('Are you sure you want to delete this card?')) {
-                deleteCard(cardId, listType);
+    if (wishlistListContainer) {
+        wishlistListContainer.addEventListener('click', (e) => {
+            const target = e.target;
+            const cardElement = target.closest('.group[data-id]');
+            if (!cardElement) return;
+    
+            const cardId = cardElement.dataset.id;
+            const listType = 'wishlist';
+    
+            if (target.closest('.edit-card-btn')) {
+                openModalHandler(editCardModal, cardId, listType);
+            } else if (target.closest('.delete-card-btn')) {
+                if (confirm('Are you sure you want to delete this card?')) {
+                    deleteCard(cardId, listType);
+                }
             }
-        }
-    });
+        });
+    }
 
     if (exportCollectionBtn) exportCollectionBtn.addEventListener('click', exportCollectionAsText);
 
@@ -771,22 +759,24 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(item => item.classList.remove('text-blue-600', 'border-blue-600'));
-            tab.classList.add('text-blue-600', 'border-blue-600');
-            tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tab.id.split('-')[1]}`));
-
-            if (tab.id === 'tab-collection') loadCollectionData();
-            if (tab.id === 'tab-wishlist') loadWishlistData();
+    if (tabs) {
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(item => item.classList.remove('text-blue-600', 'border-blue-600'));
+                tab.classList.add('text-blue-600', 'border-blue-600');
+                tabContents.forEach(content => content.classList.toggle('hidden', content.id !== `content-${tab.id.split('-')[1]}`));
+    
+                if (tab.id === 'tab-collection') loadCollectionData();
+                if (tab.id === 'tab-wishlist') loadWishlistData();
+            });
         });
-    });
+    }
 
-    filterNameInput.addEventListener('input', applyFilters);
-    filterSetSelect.addEventListener('change', applyFilters);
-    filterRaritySelect.addEventListener('change', applyFilters);
-    filterColorSelect.addEventListener('change', applyFilters);
-    resetFiltersBtn.addEventListener('click', () => {
+    if (filterNameInput) filterNameInput.addEventListener('input', applyFilters);
+    if (filterSetSelect) filterSetSelect.addEventListener('change', applyFilters);
+    if (filterRaritySelect) filterRaritySelect.addEventListener('change', applyFilters);
+    if (filterColorSelect) filterColorSelect.addEventListener('change', applyFilters);
+    if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', () => {
         filterNameInput.value = '';
         filterSetSelect.value = 'all';
         filterRaritySelect.value = 'all';
@@ -813,215 +803,227 @@ document.addEventListener('authReady', (e) => {
         renderCurrentView();
     };
 
-    gridViewBtn?.addEventListener('click', () => switchView('grid'));
-    listViewBtn?.addEventListener('click', () => switchView('list'));
+    if (gridViewBtn) gridViewBtn.addEventListener('click', () => switchView('grid'));
+    if (listViewBtn) listViewBtn.addEventListener('click', () => switchView('list'));
 
-    searchCardVersionsBtn.addEventListener('click', async () => {
-        const cardName = document.getElementById('manual-card-name').value;
-        const game = manualGameSelect.value;
-        if (!cardName) {
-            alert("Please enter a card name.");
-            return;
-        }
-
-        searchCardVersionsBtn.disabled = true;
-        searchCardVersionsBtn.textContent = 'Searching...';
-        manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
-
-        try {
-            let versions = [];
-            if (game === 'magic') {
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
-                if (!response.ok) throw new Error("Card not found on Scryfall.");
-                const result = await response.json();
-                versions = result.data.map(card => ({
-                    scryfallId: card.id, // Make sure to save the correct ID
-                    name: card.name,
-                    set: card.set,
-                    setName: card.set_name,
-                    rarity: card.rarity,
-                    collector_number: card.collector_number,
-                    imageUrl: getCardImageUrl(card, 'normal'),
-                    priceUsd: card.prices?.usd || null,
-                    priceUsdFoil: card.prices?.usd_foil || null,
-                    tcg: 'Magic: The Gathering',
-                    fullData: card // Store the full data for saving later
-                }));
-            } else if (game === 'pokemon') {
-                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
-                if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
-                const result = await response.json();
-                versions = result.data.map(card => ({
-                    scryfallId: card.id, // Using the pokemon tcg id here
-                    name: card.name,
-                    set: card.set.id,
-                    setName: card.set.name,
-                    rarity: card.rarity || 'Common',
-                    collector_number: card.number,
-                    imageUrl: card.images?.small || '',
-                    priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
-                    priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
-                    tcg: 'Pokémon',
-                    fullData: card
-                }));
+    if (searchCardVersionsBtn) {
+        searchCardVersionsBtn.addEventListener('click', async () => {
+            const cardName = document.getElementById('manual-card-name').value;
+            const game = manualGameSelect.value;
+            if (!cardName) {
+                alert("Please enter a card name.");
+                return;
             }
-            displayCardVersions(versions);
-        } catch (error) {
-            manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
-        } finally {
-            searchCardVersionsBtn.disabled = false;
-            searchCardVersionsBtn.textContent = 'Search for Card';
-        }
-    });
-
-    addVersionForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitButton = addVersionForm.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Adding...';
-
-        try {
-            const cardDataFromForm = JSON.parse(document.getElementById('add-version-data').value);
-            const listType = document.getElementById('add-to-list-select').value;
-            const imageFile = document.getElementById('card-image-upload').files[0];
-
-            let customImageUrl = null;
-            if (imageFile) {
-                const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
-                const imageRef = storage.ref(imagePath);
-                await imageRef.put(imageFile);
-                customImageUrl = await imageRef.getDownloadURL();
+    
+            searchCardVersionsBtn.disabled = true;
+            searchCardVersionsBtn.textContent = 'Searching...';
+            manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+    
+            try {
+                let versions = [];
+                if (game === 'magic') {
+                    const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released`);
+                    if (!response.ok) throw new Error("Card not found on Scryfall.");
+                    const result = await response.json();
+                    versions = result.data.map(card => ({
+                        scryfallId: card.id,
+                        name: card.name,
+                        set: card.set,
+                        setName: card.set_name,
+                        rarity: card.rarity,
+                        collector_number: card.collector_number,
+                        imageUrl: getCardImageUrl(card, 'normal'),
+                        priceUsd: card.prices?.usd || null,
+                        priceUsdFoil: card.prices?.usd_foil || null,
+                        tcg: 'Magic: The Gathering',
+                        fullData: card
+                    }));
+                } else if (game === 'pokemon') {
+                    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}"&orderBy=set.releaseDate`);
+                    if (!response.ok) throw new Error("Card not found on Pokémon TCG API.");
+                    const result = await response.json();
+                    versions = result.data.map(card => ({
+                        scryfallId: card.id,
+                        name: card.name,
+                        set: card.set.id,
+                        setName: card.set.name,
+                        rarity: card.rarity || 'Common',
+                        collector_number: card.number,
+                        imageUrl: card.images?.small || '',
+                        priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                        priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || card.tcgplayer?.prices?.holofoil?.market || null,
+                        tcg: 'Pokémon',
+                        fullData: card
+                    }));
+                }
+                displayCardVersions(versions);
+            } catch (error) {
+                manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">${error.message}</p>`;
+            } finally {
+                searchCardVersionsBtn.disabled = false;
+                searchCardVersionsBtn.textContent = 'Search for Card';
             }
+        });
+    }
 
-            const fullCardData = cardDataFromForm.fullData || cardDataFromForm;
-
-            // Create the full document to be saved
-            const cardDoc = {
-                scryfallId: cardDataFromForm.scryfallId,
-                name: cardDataFromForm.name,
-                name_lower: cardDataFromForm.name.toLowerCase(),
-                set: cardDataFromForm.set,
-                setName: cardDataFromForm.setName,
-                rarity: cardDataFromForm.rarity,
-                collector_number: cardDataFromForm.collector_number,
-                imageUrl: cardDataFromForm.imageUrl,
-                priceUsd: cardDataFromForm.priceUsd,
-                priceUsdFoil: cardDataFromForm.priceUsdFoil,
-                tcg: cardDataFromForm.tcg,
-                colors: (fullCardData.card_faces ? fullCardData.card_faces[0].colors : fullCardData.colors) || [],
-                color_identity: fullCardData.color_identity,
-                type_line: fullCardData.type_line,
-                cmc: fullCardData.cmc,
-                legalities: fullCardData.legalities,
-                quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
-                condition: document.getElementById('add-version-condition').value,
-                language: document.getElementById('add-version-language').value || 'English',
-                purchasePrice: parseFloat(document.getElementById('add-version-purchase-price').value) || 0,
-                notes: document.getElementById('add-version-notes').value || '',
-                isFoil: document.getElementById('add-version-foil').checked,
-                isSigned: document.getElementById('add-version-signed').checked,
-                customImageUrl: customImageUrl,
-                addedAt: new Date(),
-                forSale: false
-            };
-
-
-            await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
-            alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
-            closeModal(addVersionModal);
-            if (listType === 'collection') {
-                loadCollectionData();
-            } else {
-                loadWishlistData();
+    if (addVersionForm) {
+        addVersionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = addVersionForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Adding...';
+    
+            try {
+                const cardDataFromForm = JSON.parse(document.getElementById('add-version-data').value);
+                const listType = document.getElementById('add-to-list-select').value;
+                const imageFile = document.getElementById('card-image-upload').files[0];
+    
+                let customImageUrl = null;
+                if (imageFile) {
+                    const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
+                    const imageRef = storage.ref(imagePath);
+                    await imageRef.put(imageFile);
+                    customImageUrl = await imageRef.getDownloadURL();
+                }
+    
+                const fullCardData = cardDataFromForm.fullData || cardDataFromForm;
+    
+                const cardDoc = {
+                    scryfallId: cardDataFromForm.scryfallId,
+                    name: cardDataFromForm.name,
+                    name_lower: cardDataFromForm.name.toLowerCase(),
+                    set: cardDataFromForm.set,
+                    setName: cardDataFromForm.setName,
+                    rarity: cardDataFromForm.rarity,
+                    collector_number: cardDataFromForm.collector_number,
+                    imageUrl: cardDataFromForm.imageUrl,
+                    priceUsd: cardDataFromForm.priceUsd,
+                    priceUsdFoil: cardDataFromForm.priceUsdFoil,
+                    tcg: cardDataFromForm.tcg,
+                    colors: (fullCardData.card_faces ? fullCardData.card_faces[0].colors : fullCardData.colors) || [],
+                    color_identity: fullCardData.color_identity,
+                    type_line: fullCardData.type_line,
+                    cmc: fullCardData.cmc,
+                    legalities: fullCardData.legalities,
+                    quantity: parseInt(document.getElementById('add-version-quantity').value, 10),
+                    condition: document.getElementById('add-version-condition').value,
+                    language: document.getElementById('add-version-language').value || 'English',
+                    purchasePrice: parseFloat(document.getElementById('add-version-purchase-price').value) || 0,
+                    notes: document.getElementById('add-version-notes').value || '',
+                    isFoil: document.getElementById('add-version-foil').checked,
+                    isSigned: document.getElementById('add-version-signed').checked,
+                    customImageUrl: customImageUrl,
+                    addedAt: new Date(),
+                    forSale: false
+                };
+    
+    
+                await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
+                alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
+                closeModal(addVersionModal);
+                if (listType === 'collection') {
+                    loadCollectionData();
+                } else {
+                    loadWishlistData();
+                }
+    
+            } catch (error) {
+                console.error("Error adding card version:", error);
+                alert("Could not add card to collection. " + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Add Card';
             }
+        });
+    }
 
-        } catch (error) {
-            console.error("Error adding card version:", error);
-            alert("Could not add card to collection. " + error.message);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Add Card';
-        }
-    });
-
-    editCardForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitButton = editCardForm.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Saving...';
-
-        try {
-            const cardId = document.getElementById('edit-card-id').value;
-            const listType = document.getElementById('edit-card-list-type').value;
-            const imageFile = document.getElementById('edit-card-image-upload').files[0];
-
-            let customImageUrl = null;
-            if (imageFile) {
-                const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
-                const imageRef = storage.ref(imagePath);
-                await imageRef.put(imageFile);
-                customImageUrl = await imageRef.getDownloadURL();
+    if (editCardForm) {
+        editCardForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = editCardForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+    
+            try {
+                const cardId = document.getElementById('edit-card-id').value;
+                const listType = document.getElementById('edit-card-list-type').value;
+                const imageFile = document.getElementById('edit-card-image-upload').files[0];
+    
+                let customImageUrl = null;
+                if (imageFile) {
+                    const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
+                    const imageRef = storage.ref(imagePath);
+                    await imageRef.put(imageFile);
+                    customImageUrl = await imageRef.getDownloadURL();
+                }
+    
+                const updatedData = {
+                    quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
+                    condition: document.getElementById('edit-card-condition').value,
+                    language: document.getElementById('edit-card-language').value,
+                    purchasePrice: parseFloat(document.getElementById('edit-card-purchase-price').value) || 0,
+                    notes: document.getElementById('edit-card-notes').value,
+                    isFoil: document.getElementById('edit-card-foil').checked,
+                    isSigned: document.getElementById('edit-card-signed').checked,
+                };
+    
+                if (customImageUrl) {
+                    updatedData.customImageUrl = customImageUrl;
+                }
+    
+                await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
+                alert("Card updated successfully!");
+                closeModal(editCardModal);
+                if (listType === 'collection') {
+                    loadCollectionData();
+                } else {
+                    loadWishlistData();
+                }
+    
+            } catch (error) {
+                console.error("Error updating card:", error);
+                alert("Could not update card. " + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Save Changes';
             }
-
+        });
+    }
+    
+    const manageListingForm = document.getElementById('manage-listing-form');
+    if (manageListingForm) {
+        manageListingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cardId = document.getElementById('listing-card-id').value;
+            const isForSale = document.getElementById('forSale').checked;
+            const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
             const updatedData = {
-                quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
-                condition: document.getElementById('edit-card-condition').value,
-                language: document.getElementById('edit-card-language').value,
-                purchasePrice: parseFloat(document.getElementById('edit-card-purchase-price').value) || 0,
-                notes: document.getElementById('edit-card-notes').value,
-                isFoil: document.getElementById('edit-card-foil').checked,
-                isSigned: document.getElementById('edit-card-signed').checked,
+                forSale: isForSale,
+                salePrice: isForSale ? salePrice : firebase.firestore.FieldValue.delete()
             };
-
-            if (customImageUrl) {
-                updatedData.customImageUrl = customImageUrl;
-            }
-
-            await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
-            alert("Card updated successfully!");
-            closeModal(editCardModal);
-            if (listType === 'collection') {
-                loadCollectionData();
-            } else {
-                loadWishlistData();
-            }
-
-        } catch (error) {
-            console.error("Error updating card:", error);
-            alert("Could not update card. " + error.message);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Save Changes';
-        }
-    });
-
-    document.getElementById('manage-listing-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const cardId = document.getElementById('listing-card-id').value;
-        const isForSale = document.getElementById('forSale').checked;
-        const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
-        const updatedData = {
-            forSale: isForSale,
-            salePrice: isForSale ? salePrice : firebase.firestore.FieldValue.delete()
-        };
-        await db.collection('users').doc(user.uid).collection('collection').doc(cardId).update(updatedData);
-        closeModal(manageListingModal);
-        loadCollectionData();
-    });
-    percentagePriceForm?.addEventListener('submit', (e) => {
+            await db.collection('users').doc(user.uid).collection('collection').doc(cardId).update(updatedData);
+            closeModal(manageListingModal);
+            loadCollectionData();
+        });
+    }
+    
+    if (percentagePriceForm) percentagePriceForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const percentage = document.getElementById('percentage-price-input').value;
         if (percentage && percentage > 0) listCardsWithPercentage(percentage);
     });
-    fixedUndercutForm?.addEventListener('submit', (e) => {
+    
+    if (fixedUndercutForm) fixedUndercutForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const amount = document.getElementById('fixed-undercut-input').value;
         if (amount && amount > 0) listCardsWithUndercut(amount);
     });
+    
     document.getElementById('close-edit-card-modal')?.addEventListener('click', () => closeModal(editCardModal));
     document.getElementById('close-listing-modal')?.addEventListener('click', () => closeModal(manageListingModal));
     document.getElementById('close-list-sale-modal')?.addEventListener('click', () => closeModal(listForSaleModal));
-    closeAddVersionModalBtn?.addEventListener('click', () => closeModal(addVersionModal));
+    if (closeAddVersionModalBtn) closeAddVersionModalBtn.addEventListener('click', () => closeModal(addVersionModal));
+    
     document.getElementById('forSale')?.addEventListener('change', (e) => {
         document.getElementById('price-input-container').classList.toggle('hidden', !e.target.checked);
     });
