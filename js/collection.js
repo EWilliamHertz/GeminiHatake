@@ -1,7 +1,9 @@
 /**
- * HatakeSocial - My Collection Page Script (v28.9 - Final Fixes)
+ * HatakeSocial - My Collection Page Script (v28.10 - Final Race Condition Fix)
  *
  * This script handles all logic for the my_collection.html page.
+ * - FIX: Implemented a robust check for the currency converter function before calling it. This resolves the critical race
+ * condition that caused the page to appear blank on fast servers by providing a USD fallback, ensuring the script never crashes.
  * - FIX: Corrected "Select All" functionality to only select the currently filtered cards and attached the necessary event listener.
  * - FIX: Resolved "Unsupported field value: undefined" error by correctly sourcing the `colors` property for double-faced cards during the save process.
  * - FIX: Corrected a critical bug in the "Add Card" functionality that was causing a 'uid' error.
@@ -29,6 +31,21 @@ function getCardImageUrl(cardData, size = 'normal') {
     // Fallback if no image is found
     return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
 }
+
+/**
+ * Safely converts a price using the global converter, with a fallback.
+ * @param {number} value The price in USD.
+ * @returns {string} The formatted price string.
+ */
+function safeFormatPrice(value) {
+    if (window.HatakeSocial && typeof window.HatakeSocial.convertAndFormatPrice === 'function') {
+        // Converter is ready, use it.
+        return window.HatakeSocial.convertAndFormatPrice(value, 'USD');
+    }
+    // Fallback: Converter is not ready, display in USD as a failsafe.
+    return `$${value.toFixed(2)} USD`;
+}
+
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -106,7 +123,7 @@ document.addEventListener('authReady', (e) => {
             renderCurrentView();
         } catch (error) {
             console.error(`Error loading collection:`, error);
-            container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your collection.</p>`;
+            container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your collection. Check console for details.</p>`;
         }
     };
 
@@ -181,7 +198,7 @@ document.addEventListener('authReady', (e) => {
         const collectionToRender = filteredCollection;
 
         if (collectionTableView) collectionTableView.classList.add('hidden');
-        if(container) container.classList.remove('hidden');
+        if (container) container.classList.remove('hidden');
 
         if (collectionToRender.length === 0) {
             container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">No cards match your filters.</p>`;
@@ -199,10 +216,10 @@ document.addEventListener('authReady', (e) => {
             const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
 
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
-            const priceTagHTML = formattedPrice
-                ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
-                : '';
+            // FIX: Use the safe price formatting function
+            const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : '';
+
+            const priceTagHTML = formattedPrice ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>` : '';
             const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
             const signedIndicatorHTML = card.isSigned ? `<div class="absolute bottom-1.5 left-1.5 ml-12 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Signed</div>` : '';
             const languageIndicatorHTML = card.language ? `<div class="absolute bottom-1.5 right-1.5 bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${card.language}</div>` : '';
@@ -234,8 +251,8 @@ document.addEventListener('authReady', (e) => {
         const container = collectionTableView;
         const collectionToRender = filteredCollection;
 
-        if(collectionGridView) collectionGridView.classList.add('hidden');
-        if(container) container.classList.remove('hidden');
+        if (collectionGridView) collectionGridView.classList.add('hidden');
+        if (container) container.classList.remove('hidden');
 
         if (collectionToRender.length === 0) {
             container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
@@ -260,7 +277,8 @@ document.addEventListener('authReady', (e) => {
         `;
         collectionToRender.forEach(card => {
             const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-            const formattedPrice = priceUsd > 0 ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : 'N/A';
+            // FIX: Use the safe price formatting function
+            const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : 'N/A';
             tableHTML += `
                 <tr class="group" data-id="${card.id}">
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</td>
@@ -326,7 +344,9 @@ document.addEventListener('authReady', (e) => {
 
         document.getElementById('stats-total-cards').textContent = totalCards;
         document.getElementById('stats-unique-cards').textContent = uniqueCards;
-        document.getElementById('stats-total-value').textContent = window.HatakeSocial.convertAndFormatPrice(totalValue, 'USD');
+
+        // FIX: This is the critical change. Check if the converter function exists before using it.
+        document.getElementById('stats-total-value').textContent = safeFormatPrice(totalValue);
 
         const rarityContainer = document.getElementById('stats-rarity-breakdown');
         if (rarityContainer) {
@@ -339,6 +359,9 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    // ... (The rest of the JS code is identical to what you provided and does not need changes for this specific bug)
+    // --- The following code remains unchanged ---
+    
     const toggleBulkEditMode = () => {
         bulkEditMode = !bulkEditMode;
         selectedCards.clear();
@@ -428,7 +451,7 @@ document.addEventListener('authReady', (e) => {
         tableHTML += `</tbody></table>`;
         collectionTableView.innerHTML = tableHTML;
     };
-    
+
     const saveQuickEdits = async () => {
         saveQuickEditsBtn.disabled = true;
         saveQuickEditsBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
@@ -502,9 +525,14 @@ document.addEventListener('authReady', (e) => {
     };
 
     const listCardsWithPercentage = async (percentage) => {
+        // FIX: Ensure currency converter is ready before proceeding with complex logic
+        if (!window.HatakeSocial || typeof window.HatakeSocial.convertAndFormatPrice !== 'function') {
+            alert("Currency data is still loading. Please try again in a moment.");
+            return;
+        }
+
         const batch = db.batch();
         const collectionRef = db.collection('users').doc(user.uid).collection('collection');
-        const userCurrency = window.HatakeSocial.currentUserData?.primaryCurrency || 'SEK';
 
         selectedCards.forEach(cardId => {
             const card = fullCollection.find(c => c.id === cardId);
@@ -546,7 +574,7 @@ document.addEventListener('authReady', (e) => {
         versions.forEach(card => {
             const versionEl = document.createElement('div');
             versionEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
-            
+
             versionEl.innerHTML = `
                 <div class="flex items-center space-x-3">
                     <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm card-thumbnail-preview">
@@ -557,7 +585,7 @@ document.addEventListener('authReady', (e) => {
                 </div>
                 <button class="add-version-btn px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700">Add</button>
             `;
-            
+
             const thumbnail = versionEl.querySelector('.card-thumbnail-preview');
             thumbnail.addEventListener('mouseover', () => {
                 if (tooltip) {
@@ -625,7 +653,7 @@ document.addEventListener('authReady', (e) => {
             loadWishlistData();
         }
     };
-    
+
     const exportCollectionAsText = () => {
         if (fullCollection.length === 0) {
             alert("Your collection is empty.");
@@ -647,30 +675,30 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Event Listeners ---
-    if(bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
-    if(quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
-    if(saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
-    if(listSelectedBtn) listSelectedBtn.addEventListener('click', () => openModal(listForSaleModal));
-    if(selectAllCheckbox) selectAllCheckbox.addEventListener('change', handleSelectAll);
-    
+    if (bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
+    if (quickEditBtn) quickEditBtn.addEventListener('click', toggleQuickEditMode);
+    if (saveQuickEditsBtn) saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
+    if (listSelectedBtn) listSelectedBtn.addEventListener('click', () => openModal(listForSaleModal));
+    if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', handleSelectAll);
+
     if (deleteSelectedBtn) {
         deleteSelectedBtn.addEventListener('click', async () => {
             if (selectedCards.size === 0) {
                 alert("Please select cards to delete.");
                 return;
             }
-    
+
             if (confirm(`Are you sure you want to delete ${selectedCards.size} selected cards? This action cannot be undone.`)) {
                 const batch = db.batch();
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
                 selectedCards.forEach(cardId => {
                     batch.delete(collectionRef.doc(cardId));
                 });
-    
+
                 try {
                     await batch.commit();
                     alert(`${selectedCards.size} cards deleted successfully.`);
-                    toggleBulkEditMode(); 
+                    toggleBulkEditMode();
                     loadCollectionData();
                 } catch (error) {
                     console.error("Error deleting selected cards:", error);
@@ -683,23 +711,23 @@ document.addEventListener('authReady', (e) => {
 
     collectionPageContainer.addEventListener('click', (e) => {
         const target = e.target;
-        
-        const cardElement = target.closest('.group[data-id]'); 
+
+        const cardElement = target.closest('.group[data-id]');
         const editBtn = target.closest('.edit-card-btn');
         const deleteBtn = target.closest('.delete-card-btn');
         const manageBtn = target.closest('.manage-listing-btn');
-    
+
         const cardId = cardElement?.dataset.id;
-        
+
         if (!cardId) return;
-    
+
         const listType = cardElement.closest('#wishlist-list') ? 'wishlist' : 'collection';
-    
+
         if (bulkEditMode && listType === 'collection' && !editBtn && !deleteBtn && !manageBtn) {
             handleCardSelection(cardId);
             return;
         }
-    
+
         if (editBtn) {
             openModalHandler(editCardModal, cardId, listType);
         } else if (deleteBtn) {
@@ -732,9 +760,9 @@ document.addEventListener('authReady', (e) => {
             }
         }
     });
-    
-    if(exportCollectionBtn) exportCollectionBtn.addEventListener('click', exportCollectionAsText);
-    
+
+    if (exportCollectionBtn) exportCollectionBtn.addEventListener('click', exportCollectionAsText);
+
     document.addEventListener('mousemove', (e) => {
         const tooltip = document.getElementById('manual-add-tooltip');
         if (tooltip && !tooltip.classList.contains('hidden')) {
@@ -864,7 +892,7 @@ document.addEventListener('authReady', (e) => {
                 await imageRef.put(imageFile);
                 customImageUrl = await imageRef.getDownloadURL();
             }
-            
+
             const fullCardData = cardDataFromForm.fullData || cardDataFromForm;
 
             // Create the full document to be saved
@@ -896,7 +924,7 @@ document.addEventListener('authReady', (e) => {
                 addedAt: new Date(),
                 forSale: false
             };
-            
+
 
             await db.collection('users').doc(user.uid).collection(listType).add(cardDoc);
             alert(`${cardDoc.quantity}x ${cardDoc.name} (${cardDoc.setName}) added to your ${listType}!`);
@@ -915,18 +943,18 @@ document.addEventListener('authReady', (e) => {
             submitButton.textContent = 'Add Card';
         }
     });
-    
+
     editCardForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitButton = editCardForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Saving...';
-    
+
         try {
             const cardId = document.getElementById('edit-card-id').value;
             const listType = document.getElementById('edit-card-list-type').value;
             const imageFile = document.getElementById('edit-card-image-upload').files[0];
-    
+
             let customImageUrl = null;
             if (imageFile) {
                 const imagePath = `card-images/${user.uid}/${Date.now()}_${imageFile.name}`;
@@ -934,7 +962,7 @@ document.addEventListener('authReady', (e) => {
                 await imageRef.put(imageFile);
                 customImageUrl = await imageRef.getDownloadURL();
             }
-    
+
             const updatedData = {
                 quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
                 condition: document.getElementById('edit-card-condition').value,
@@ -944,11 +972,11 @@ document.addEventListener('authReady', (e) => {
                 isFoil: document.getElementById('edit-card-foil').checked,
                 isSigned: document.getElementById('edit-card-signed').checked,
             };
-    
+
             if (customImageUrl) {
                 updatedData.customImageUrl = customImageUrl;
             }
-    
+
             await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
             alert("Card updated successfully!");
             closeModal(editCardModal);
@@ -957,7 +985,7 @@ document.addEventListener('authReady', (e) => {
             } else {
                 loadWishlistData();
             }
-    
+
         } catch (error) {
             console.error("Error updating card:", error);
             alert("Could not update card. " + error.message);
