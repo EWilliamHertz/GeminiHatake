@@ -293,6 +293,7 @@ document.addEventListener('authReady', (e) => {
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Value</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
                     </tr>
                 </thead>
@@ -302,10 +303,11 @@ document.addEventListener('authReady', (e) => {
             const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : 'N/A';
             tableHTML += `
                 <tr class="group" data-id="${card.id}">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.setName}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.quantity || 1}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formattedPrice}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.notes || ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 space-x-2">
                         <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
                         <button class="delete-card-btn text-red-500 hover:text-red-700" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
@@ -353,6 +355,8 @@ document.addEventListener('authReady', (e) => {
                         const quantity = parseInt(row['Quantity'], 10) || 1;
                         const condition = row['Condition'] || 'Near Mint';
                         const isFoil = (row['Foil'] || '').toLowerCase() === 'true' || (row['Finish'] || '').toLowerCase() === 'foil';
+                        const isSigned = (row['Signed'] || '').toLowerCase() === 'true';
+                        const notes = row['Notes'] || '';
 
                         if (!cardName) continue;
 
@@ -383,7 +387,7 @@ document.addEventListener('authReady', (e) => {
                                 priceUsdFoil: cardData.prices?.usd_foil || null,
                                 tcg: 'Magic: The Gathering',
                                 colors: (cardData.card_faces ? cardData.card_faces[0].colors : cardData.colors) || [],
-                                quantity, condition, isFoil,
+                                quantity, condition, isFoil, isSigned, notes,
                                 addedAt: new Date(),
                                 forSale: false
                             };
@@ -422,16 +426,78 @@ document.addEventListener('authReady', (e) => {
             alert("Your collection is empty.");
             return;
         }
-        const textList = fullCollection.map(card => {
-            return `${card.quantity || 1} "${card.name}" [${card.set || card.setName}]`;
-        }).join('\n');
-        const textarea = document.createElement('textarea');
-        textarea.value = textList;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert("Collection copied to clipboard!");
+
+        const exportModal = document.createElement('div');
+        exportModal.id = 'export-modal';
+        exportModal.className = 'modal-overlay open';
+        exportModal.innerHTML = `
+            <div class="modal-content w-full max-w-lg dark:bg-gray-800">
+                <button id="close-export-modal" class="close-button">&times;</button>
+                <h2 class="text-2xl font-bold mb-4 dark:text-white">Export Collection</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Export Format</label>
+                        <select id="export-format" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="text">Plain Text</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Include Fields</label>
+                        <div id="export-fields" class="mt-2 grid grid-cols-2 gap-2">
+                            <label class="flex items-center"><input type="checkbox" value="set" class="mr-2" checked>Set Code</label>
+                            <label class="flex items-center"><input type="checkbox" value="setName" class="mr-2" checked>Expansion Name</label>
+                            <label class="flex items-center"><input type="checkbox" value="quantity" class="mr-2" checked>Quantity</label>
+                            <label class="flex items-center"><input type="checkbox" value="isFoil" class="mr-2">Is Foil</label>
+                            <label class="flex items-center"><input type="checkbox" value="isSigned" class="mr-2">Is Signed</label>
+                            <label class="flex items-center"><input type="checkbox" value="notes" class="mr-2">Notes</label>
+                            <label class="flex items-center"><input type="checkbox" value="priceUsd" class="mr-2">Market Price</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-right">
+                    <button id="confirm-export-btn" class="px-6 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600">Export</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(exportModal);
+
+        document.getElementById('close-export-modal').addEventListener('click', () => {
+            exportModal.remove();
+        });
+
+        document.getElementById('confirm-export-btn').addEventListener('click', () => {
+            const format = document.getElementById('export-format').value;
+            const selectedFields = Array.from(document.querySelectorAll('#export-fields input:checked')).map(cb => cb.value);
+
+            let output = '';
+            if (format === 'csv') {
+                const headers = ['Name', ...selectedFields].join(',');
+                const rows = fullCollection.map(card => {
+                    const row = [card.name];
+                    selectedFields.forEach(field => row.push(card[field] || ''));
+                    return row.join(',');
+                }).join('\n');
+                output = `${headers}\n${rows}`;
+            } else {
+                output = fullCollection.map(card => {
+                    let line = `${card.quantity || 1} ${card.name}`;
+                    selectedFields.forEach(field => {
+                        if (card[field]) line += ` [${field}: ${card[field]}]`;
+                    });
+                    return line;
+                }).join('\n');
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = output;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert("Collection copied to clipboard!");
+            exportModal.remove();
+        });
     };
 
     const toggleBulkEditMode = () => {
