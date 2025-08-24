@@ -64,7 +64,6 @@ document.addEventListener('authReady', async (e) => {
                 const product = { id: doc.id, ...doc.data() };
                 currentProducts.push(product);
                 const row = document.createElement('tr');
-                // Use the first image in the gallery as the thumbnail, or a placeholder
                 const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/40x40?text=N/A';
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -117,7 +116,6 @@ document.addEventListener('authReady', async (e) => {
 
     const renderGalleryPreviews = () => {
         galleryPreviews.innerHTML = '';
-        // Render existing images
         existingImageUrls.forEach(url => {
             const imgContainer = document.createElement('div');
             imgContainer.className = 'relative';
@@ -127,7 +125,6 @@ document.addEventListener('authReady', async (e) => {
             `;
             galleryPreviews.appendChild(imgContainer);
         });
-        // Render newly selected files
         newImageFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -159,13 +156,12 @@ document.addEventListener('authReady', async (e) => {
             stock: parseInt(document.getElementById('product-stock').value),
             stripeProductId: document.getElementById('stripe-product-id').value.trim(),
             stripePriceId: document.getElementById('stripe-price-id').value.trim(),
-            galleryImageUrls: [...existingImageUrls] // Start with the remaining existing URLs
+            galleryImageUrls: [...existingImageUrls]
         };
 
         try {
             const docRef = isEditing ? db.collection('products').doc(productId) : db.collection('products').doc();
             
-            // Upload new images
             if (newImageFiles.length > 0) {
                 const uploadPromises = newImageFiles.map(file => {
                     const timestamp = Date.now();
@@ -211,9 +207,81 @@ document.addEventListener('authReady', async (e) => {
         }
     };
 
-    // --- Existing Admin Functions (User & Report Management) ---
-    const loadUsers = async () => { /* ... (Your existing loadUsers function) ... */ };
-    const loadReports = async () => { /* ... (Your existing loadReports function) ... */ };
+    const loadUsers = async () => {
+        userTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading users...</td></tr>';
+        const usersSnapshot = await db.collection('users').get();
+        userTableBody.innerHTML = '';
+
+        usersSnapshot.forEach(doc => {
+            const userData = doc.data();
+            const userId = doc.id;
+            const userIsAdmin = userData.isAdmin === true;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <img class="h-10 w-10 rounded-full object-cover" src="${userData.photoURL || 'https://placehold.co/40x40'}" alt="">
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">${userData.displayName}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">@${userData.handle}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${userData.email}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${userIsAdmin ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">
+                        ${userIsAdmin ? 'Admin' : 'User'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button data-uid="${userId}" data-is-admin="${userIsAdmin}" class="toggle-admin-btn text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
+                        ${userIsAdmin ? 'Revoke Admin' : 'Make Admin'}
+                    </button>
+                </td>
+            `;
+            userTableBody.appendChild(row);
+        });
+    };
+
+    const loadReports = async () => {
+        reportTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading reports...</td></tr>';
+        const reportsSnapshot = await db.collection('reports').where('status', '==', 'pending').orderBy('timestamp', 'desc').get();
+        
+        if (reportsSnapshot.empty) {
+            reportTableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500 dark:text-gray-400">No pending reports. Great job!</td></tr>';
+            return;
+        }
+
+        reportTableBody.innerHTML = '';
+        for (const doc of reportsSnapshot.docs) {
+            const report = doc.data();
+            const reportId = doc.id;
+
+            const reporterDoc = await db.collection('users').doc(report.reportedBy).get();
+            const postDoc = await db.collection('posts').doc(report.postId).get();
+
+            const reporterName = reporterDoc.exists ? reporterDoc.data().displayName : 'Unknown User';
+            const postContent = postDoc.exists ? postDoc.data().content.substring(0, 100) + '...' : '[Post Deleted]';
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">${reporterName}</td>
+                <td class="px-6 py-4">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">${report.reason}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${report.details || 'No details provided.'}</p>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-300">${postContent}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <button data-report-id="${reportId}" class="dismiss-report-btn text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-200">Dismiss</button>
+                    ${postDoc.exists ? `<button data-report-id="${reportId}" data-post-id="${report.postId}" class="delete-post-btn text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200">Delete Post</button>` : ''}
+                </td>
+            `;
+            reportTableBody.appendChild(row);
+        }
+    };
 
     // --- Event Listeners ---
     addProductBtn.addEventListener('click', () => openProductModal());
@@ -223,6 +291,7 @@ document.addEventListener('authReady', async (e) => {
     galleryImageInput.addEventListener('change', (e) => {
         newImageFiles.push(...Array.from(e.target.files));
         renderGalleryPreviews();
+        galleryImageInput.value = ''; // Clear the input
     });
 
     galleryPreviews.addEventListener('click', (e) => {
@@ -250,8 +319,61 @@ document.addEventListener('authReady', async (e) => {
         }
     });
 
-    userTableBody.addEventListener('click', async (e) => { /* ... (Your existing userTableBody listener) ... */ });
-    reportTableBody.addEventListener('click', async (e) => { /* ... (Your existing reportTableBody listener) ... */ });
+    userTableBody.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('toggle-admin-btn')) {
+            const button = e.target;
+            const userIdToUpdate = button.dataset.uid;
+            const currentIsAdmin = button.dataset.isAdmin === 'true';
+            
+            if (userIdToUpdate === user.uid) {
+                showToast("You cannot change your own admin status.", "error");
+                return;
+            }
+
+            const action = currentIsAdmin ? 'revoke admin status from' : 'make';
+            if (confirm(`Are you sure you want to ${action} this user?`)) {
+                try {
+                    await db.collection('users').doc(userIdToUpdate).update({
+                        isAdmin: !currentIsAdmin
+                    });
+                    showToast('User role updated successfully.', 'success');
+                    loadUsers();
+                } catch (error) {
+                    console.error("Error updating user role:", error);
+                    showToast("Failed to update user role.", "error");
+                }
+            }
+        }
+    });
+
+    reportTableBody.addEventListener('click', async (e) => {
+        const dismissBtn = e.target.closest('.dismiss-report-btn');
+        const deleteBtn = e.target.closest('.delete-post-btn');
+
+        if (dismissBtn) {
+            const reportId = dismissBtn.dataset.reportId;
+            if (confirm("Are you sure you want to dismiss this report?")) {
+                await db.collection('reports').doc(reportId).update({ status: 'dismissed' });
+                loadReports();
+            }
+        }
+
+        if (deleteBtn) {
+            const reportId = deleteBtn.dataset.reportId;
+            const postId = deleteBtn.dataset.postId;
+            if (confirm("Are you sure you want to DELETE the post and dismiss the report? This cannot be undone.")) {
+                const postRef = db.collection('posts').doc(postId);
+                const reportRef = db.collection('reports').doc(reportId);
+                
+                const batch = db.batch();
+                batch.delete(postRef);
+                batch.update(reportRef, { status: 'resolved_deleted' });
+                
+                await batch.commit();
+                loadReports();
+            }
+        }
+    });
 
     // --- Initial Load ---
     loadUsers();

@@ -87,10 +87,48 @@ document.addEventListener('authReady', () => {
         });
     };
 
-    const updateCartTotal = () => { /* ... (This function remains the same) ... */ };
-    const updateCartButton = () => { /* ... (This function remains the same) ... */ };
-    const addToCart = (productId) => { /* ... (This function remains the same) ... */ };
-    const removeFromCart = (productId) => { /* ... (This function remains the same) ... */ };
+    const updateCartTotal = () => {
+        if (!cartTotalElement) return;
+        const total = cart.reduce((sum, item) => {
+            const product = products.find(p => p.id === item.id);
+            return sum + (product ? product.price * item.quantity : 0);
+        }, 0);
+        cartTotalElement.textContent = `$${total.toFixed(2)}`;
+    };
+
+    const updateCartButton = () => {
+        const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const cartCounter = document.getElementById('cart-counter');
+        if (cartCounter) {
+            if (cartItemCount > 0) {
+                cartCounter.textContent = cartItemCount;
+                cartCounter.classList.remove('hidden');
+            } else {
+                cartCounter.classList.add('hidden');
+            }
+        }
+    };
+
+    const addToCart = (productId) => {
+        const product = products.find(p => p.id === productId);
+        if (product.stock <= 0) {
+            showToast("This item is out of stock.", "error");
+            return;
+        }
+        const existingItem = cart.find(item => item.id === productId);
+        if (existingItem) {
+            existingItem.quantity++;
+        } else {
+            cart.push({ id: productId, quantity: 1 });
+        }
+        saveCart();
+        showToast(`${product.name} added to cart!`, "success");
+    };
+
+    const removeFromCart = (productId) => {
+        cart = cart.filter(item => item.id !== productId);
+        saveCart();
+    };
 
     const handleCheckout = async () => {
         if (cart.length === 0) {
@@ -111,7 +149,6 @@ document.addEventListener('authReady', () => {
         const cartItems = cart.map(item => {
             const product = products.find(p => p.id === item.id);
             if (!product || !product.stripePriceId) {
-                // This will stop the checkout if a product is missing a price ID
                 throw new Error(`Product "${product.name}" is missing a Stripe Price ID and cannot be purchased.`);
             }
             return {
