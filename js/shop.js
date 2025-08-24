@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const productGrid = document.getElementById('product-grid');
     const cartBtn = document.getElementById('cart-btn');
+    const mobileCartBtn = document.getElementById('mobile-cart-btn');
     const cartModal = document.getElementById('cart-modal');
     const closeModalBtn = document.getElementById('close-cart-modal');
     const cartItemsContainer = document.getElementById('cart-items-container');
@@ -17,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const referralDiscountSlider = document.getElementById('referral-discount-slider');
     const referralDiscountValue = document.getElementById('referral-discount-value');
     const referralDiscountSection = document.getElementById('referral-discount-section');
+    const productDetailModal = document.getElementById('product-detail-modal');
+    const closeProductModalBtn = document.getElementById('close-product-modal');
+    const modalBody = document.getElementById('modal-body');
+
 
     // State
     let cart = JSON.parse(localStorage.getItem('geminiHatakeCart')) || [];
@@ -47,7 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         products.forEach(product => {
             const card = document.createElement('div');
-            card.className = 'product-card dark:bg-gray-800';
+            card.className = 'product-card dark:bg-gray-800 cursor-pointer';
+            card.dataset.id = product.id; // Set the product ID on the card itself
+            
             const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/300x300?text=No+Image';
             
             card.innerHTML = `
@@ -101,6 +108,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // --- PRODUCT DETAIL MODAL ---
+    const openProductModal = (productId) => {
+        const product = products.find(p => p.id === productId);
+        if (!product || !modalBody) return;
+
+        let imageGalleryHtml = '';
+        if (product.galleryImageUrls && product.galleryImageUrls.length > 0) {
+            const mainImage = `<img src="${product.galleryImageUrls[0]}" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4 main-modal-image">`;
+            const thumbnails = product.galleryImageUrls.map(url =>
+                `<img src="${url}" alt="Thumbnail" class="w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-blue-500 thumbnail-image">`
+            ).join('');
+            imageGalleryHtml = `${mainImage}<div class="flex gap-2 overflow-x-auto">${thumbnails}</div>`;
+        } else {
+            imageGalleryHtml = `<img src="https://placehold.co/600x400?text=No+Image" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4">`;
+        }
+
+        modalBody.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    ${imageGalleryHtml}
+                </div>
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${product.name}</h2>
+                    <p class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-4">$${product.price.toFixed(2)}</p>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">${product.description || 'No description available.'}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-300 mb-4">${product.stock > 0 ? `${product.stock} in stock` : 'Out of Stock'}</p>
+                    <button data-id="${product.id}" class="add-to-cart-btn-modal w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${product.stock === 0 ? 'disabled' : ''}>
+                        ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        modalBody.querySelectorAll('.thumbnail-image').forEach(thumb => {
+            thumb.addEventListener('click', () => {
+                modalBody.querySelector('.main-modal-image').src = thumb.src;
+            });
+        });
+        
+        modalBody.querySelector('.add-to-cart-btn-modal').addEventListener('click', (e) => {
+            const id = e.target.dataset.id;
+            addToCart(id);
+        });
+
+        productDetailModal.classList.add('active');
+    };
+
     // --- CART LOGIC ---
     const saveCart = () => {
         localStorage.setItem('geminiHatakeCart', JSON.stringify(cart));
@@ -144,6 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateCartButton = () => {
         const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
         const cartCounter = document.getElementById('cart-counter');
+        const mobileCartCounter = document.getElementById('mobile-cart-counter'); // Assuming you might add one
+        
         if (cartCounter) {
             if (cartItemCount > 0) {
                 cartCounter.textContent = cartItemCount;
@@ -170,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cart.push({ id: productId, quantity: 1 });
         }
         saveCart();
+        alert(`${product.name} has been added to your cart.`);
     };
 
     const removeFromCart = (productId) => {
@@ -250,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await createCheckoutSession(checkoutData);
 
             if (result.data && result.data.id) {
-                const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn'); 
+                const stripe = Stripe('pk_test_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn'); 
                 await stripe.redirectToCheckout({ sessionId: result.data.id });
             } else {
                 throw new Error(result.data.message || 'Failed to create checkout session.');
@@ -266,15 +323,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
     if (productGrid) {
         productGrid.addEventListener('click', (e) => {
-            if (e.target.classList.contains('add-to-cart-btn')) {
+            // Handle 'Add to Cart' button click specifically
+            if (e.target.matches('.add-to-cart-btn')) {
                 const productId = e.target.dataset.id;
                 addToCart(productId);
+                return; // Stop further processing
+            }
+            
+            // Handle click on the card itself to open the modal
+            const card = e.target.closest('.product-card');
+            if (card && card.dataset.id) {
+                openProductModal(card.dataset.id);
             }
         });
     }
 
     cartBtn?.addEventListener('click', () => cartModal.classList.add('active'));
+    mobileCartBtn?.addEventListener('click', () => cartModal.classList.add('active'));
     closeModalBtn?.addEventListener('click', () => cartModal.classList.remove('active'));
+    closeProductModalBtn?.addEventListener('click', () => productDetailModal.classList.remove('active'));
     checkoutBtn?.addEventListener('click', handleCheckout);
     applyCouponBtn?.addEventListener('click', applyCoupon);
 
