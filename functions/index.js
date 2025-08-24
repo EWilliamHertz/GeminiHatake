@@ -3,15 +3,18 @@
  *
  * This file contains the backend logic for the application.
  * - Handles user registration with a referral code.
- * - Creates Stripe checkout sessions for the shop.
+ * - Creates Stripe checkout sessions for the shop with coupon/referral support.
+ * - Validates Stripe promotion codes.
  * - Automatically counts user posts.
  * - Handles following users and creating notifications.
  * - Automatically deletes product images from Storage when a product is deleted.
- * - NEW: Securely sets admin custom claims for user roles.
+ * - Securely sets admin custom claims for user roles.
  */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+// IMPORTANT: Make sure you have set your Stripe secret key in your Firebase environment configuration
+// firebase functions:config:set stripe.secret="sk_test_..."
 const stripe = require("stripe")(functions.config().stripe.secret);
 
 admin.initializeApp();
@@ -65,7 +68,7 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
                 followers: [], // Initialize followers
                 friendRequests: [],
                 referredBy: referrerId,
-                shopDiscountPercent: 0,
+                shopDiscountPercent: 0, // Starts at 0, increases with referrals
                 referralCount: 0,
                 postCount: 0, // Initialize post count
                 isVerified: false
@@ -99,6 +102,42 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
     }
 });
 
+
+/**
+ * A callable Cloud Function to validate a Stripe promotion code.
+ */
+exports.validateCoupon = functions.https.onCall(async (data, context) => {
+    const { code } = data;
+    if (!code) {
+        return { success: false, message: 'No coupon code provided.' };
+    }
+
+    try {
+        const promotionCodes = await stripe.promotionCodes.list({
+            code: code.toUpperCase(),
+            active: true,
+            limit: 1,
+        });
+
+        if (promotionCodes.data.length > 0) {
+            const promoCode = promotionCodes.data[0];
+            const coupon = promoCode.coupon;
+
+            if (coupon.valid) {
+                return { success: true, coupon: { id: coupon.id, percent_off: coupon.percent_off } };
+            } else {
+                return { success: false, message: 'This coupon has expired.' };
+            }
+        } else {
+            return { success: false, message: 'Invalid coupon code.' };
+        }
+    } catch (error) {
+        console.error("Error validating coupon:", error);
+        return { success: false, message: 'Could not validate coupon.' };
+    }
+});
+
+
 /**
  * A callable Cloud Function to create a Stripe Checkout session.
  */
@@ -108,7 +147,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to make a purchase.');
     }
 
-    const { cartItems } = data;
+    const { cartItems, couponId, referralDiscountPercent } = data;
 
     if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a valid "cartItems" array.');
@@ -125,22 +164,32 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         mode: 'payment',
         success_url: `https://hatakesocial-88b5e.web.app/shop.html?success=true`,
         cancel_url: `https://hatakesocial-88b5e.web.app/shop.html?canceled=true`,
-        allow_promotion_codes: true,
+        allow_promotion_codes: true, // Allows users to enter codes on Stripe's page as a fallback
         customer_email: context.auth.token.email,
         client_reference_id: context.auth.uid
     };
 
-    const userRef = db.collection('users').doc(context.auth.uid);
-    const userSnap = await userRef.get();
-    const userData = userSnap.data();
+    if (couponId) {
+        // If a valid coupon from your Stripe dashboard is passed
+        sessionData.discounts = [{ coupon: couponId }];
 
-    if (userData && userData.shopDiscountPercent > 0) {
-        const coupon = await stripe.coupons.create({
-            percent_off: userData.shopDiscountPercent,
-            duration: 'once',
-            name: `Referral discount for ${context.auth.token.email}`
-        });
-        sessionData.discounts = [{ coupon: coupon.id }];
+    } else if (referralDiscountPercent > 0) {
+        // Create a coupon on the fly for the referral discount
+        const userRef = db.collection('users').doc(context.auth.uid);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+        
+        // Security check: ensure the requested discount is not more than allowed
+        if (userData && referralDiscountPercent <= userData.shopDiscountPercent) {
+            const coupon = await stripe.coupons.create({
+                percent_off: referralDiscountPercent,
+                duration: 'once',
+                name: `Referral discount for ${context.auth.token.email}`
+            });
+            sessionData.discounts = [{ coupon: coupon.id }];
+        } else {
+            console.warn(`User ${context.auth.uid} tried to use referral discount of ${referralDiscountPercent}% but is only allowed ${userData.shopDiscountPercent}%.`);
+        }
     }
 
     try {
@@ -151,6 +200,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('internal', 'Unable to create Stripe checkout session.');
     }
 });
+
 
 /**
  * A Firestore trigger to update a user's post count when they create a new post.

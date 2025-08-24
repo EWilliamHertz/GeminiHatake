@@ -1,6 +1,9 @@
 // js/shop.js
 
-document.addEventListener('authReady', () => {
+document.addEventListener('DOMContentLoaded', () => {
+    // This script now runs when the page structure is loaded, which is more reliable.
+
+    // DOM Elements
     const productGrid = document.getElementById('product-grid');
     const cartBtn = document.getElementById('cart-btn');
     const cartModal = document.getElementById('cart-modal');
@@ -8,10 +11,32 @@ document.addEventListener('authReady', () => {
     const cartItemsContainer = document.getElementById('cart-items-container');
     const cartTotalElement = document.getElementById('cart-total');
     const checkoutBtn = document.getElementById('checkout-btn');
+    const applyCouponBtn = document.getElementById('apply-coupon-btn');
+    const couponCodeInput = document.getElementById('coupon-code-input');
+    const couponStatus = document.getElementById('coupon-status');
+    const referralDiscountSlider = document.getElementById('referral-discount-slider');
+    const referralDiscountValue = document.getElementById('referral-discount-value');
+    const referralDiscountSection = document.getElementById('referral-discount-section');
 
+    // State
     let cart = JSON.parse(localStorage.getItem('geminiHatakeCart')) || [];
     let products = [];
+    let appliedCoupon = null;
+    let referralDiscountPercent = 0;
+    
+    // Firebase services are initialized in auth.js, we just need to access them.
+    // We wait for the auth state to be known before accessing them.
+    let db, functions;
+    firebase.auth().onAuthStateChanged(() => {
+        if (!db) { // Initialize only once
+            db = firebase.firestore();
+            functions = firebase.functions();
+            initShop();
+        }
+    });
 
+
+    // --- RENDER FUNCTIONS ---
     const renderProducts = () => {
         if (!productGrid) return;
         productGrid.innerHTML = '';
@@ -46,17 +71,6 @@ document.addEventListener('authReady', () => {
         });
     };
 
-    const saveCart = () => {
-        localStorage.setItem('geminiHatakeCart', JSON.stringify(cart));
-        updateCartUI();
-    };
-
-    const updateCartUI = () => {
-        renderCartItems();
-        updateCartTotal();
-        updateCartButton();
-    };
-
     const renderCartItems = () => {
         if (!cartItemsContainer) return;
         cartItemsContainer.innerHTML = '';
@@ -87,13 +101,44 @@ document.addEventListener('authReady', () => {
         });
     };
 
+    // --- CART LOGIC ---
+    const saveCart = () => {
+        localStorage.setItem('geminiHatakeCart', JSON.stringify(cart));
+        updateCartUI();
+    };
+
+    const updateCartUI = () => {
+        renderCartItems();
+        updateCartTotal();
+        updateCartButton();
+    };
+
     const updateCartTotal = () => {
         if (!cartTotalElement) return;
-        const total = cart.reduce((sum, item) => {
+        const subtotal = cart.reduce((sum, item) => {
             const product = products.find(p => p.id === item.id);
             return sum + (product ? product.price * item.quantity : 0);
         }, 0);
+
+        let discount = 0;
+        if (appliedCoupon) {
+            discount = (subtotal * (appliedCoupon.percent_off / 100));
+        } else if (referralDiscountPercent > 0) {
+            discount = (subtotal * (referralDiscountPercent / 100));
+        }
+
+        const total = subtotal - discount;
+
+        document.getElementById('cart-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+        const discountLine = document.getElementById('discount-line');
+        if (discount > 0) {
+            document.getElementById('cart-discount').textContent = `$${discount.toFixed(2)}`;
+            discountLine.classList.remove('hidden');
+        } else {
+            discountLine.classList.add('hidden');
+        }
         cartTotalElement.textContent = `$${total.toFixed(2)}`;
+        checkoutBtn.disabled = cart.length === 0;
     };
 
     const updateCartButton = () => {
@@ -111,10 +156,13 @@ document.addEventListener('authReady', () => {
 
     const addToCart = (productId) => {
         const product = products.find(p => p.id === productId);
+        if (!product) return;
+
         if (product.stock <= 0) {
-            showToast("This item is out of stock.", "error");
+            alert("This item is out of stock.");
             return;
         }
+
         const existingItem = cart.find(item => item.id === productId);
         if (existingItem) {
             existingItem.quantity++;
@@ -122,7 +170,6 @@ document.addEventListener('authReady', () => {
             cart.push({ id: productId, quantity: 1 });
         }
         saveCart();
-        showToast(`${product.name} added to cart!`, "success");
     };
 
     const removeFromCart = (productId) => {
@@ -130,26 +177,61 @@ document.addEventListener('authReady', () => {
         saveCart();
     };
 
+    // --- COUPON & DISCOUNT LOGIC ---
+    const applyCoupon = async () => {
+        const code = couponCodeInput.value.trim();
+        if (!code) {
+            couponStatus.textContent = "Please enter a coupon code.";
+            couponStatus.className = "text-sm mt-2 h-5 text-red-500";
+            return;
+        }
+
+        try {
+            const validateCoupon = functions.httpsCallable('validateCoupon');
+            const result = await validateCoupon({ code });
+
+            if (result.data.success) {
+                appliedCoupon = result.data.coupon;
+                couponStatus.textContent = `Coupon "${code.toUpperCase()}" applied!`;
+                couponStatus.className = "text-sm mt-2 h-5 text-green-500";
+                referralDiscountSlider.value = 0;
+                referralDiscountPercent = 0;
+                referralDiscountValue.textContent = '0%';
+                updateCartTotal();
+            } else {
+                appliedCoupon = null;
+                couponStatus.textContent = result.data.message;
+                couponStatus.className = "text-sm mt-2 h-5 text-red-500";
+                updateCartTotal();
+            }
+        } catch (error) {
+            console.error("Error validating coupon:", error);
+            couponStatus.textContent = "Could not validate coupon.";
+            couponStatus.className = "text-sm mt-2 h-5 text-red-500";
+        }
+    };
+
+    // --- CHECKOUT LOGIC ---
     const handleCheckout = async () => {
         if (cart.length === 0) {
-            showToast("Your cart is empty.", "info");
+            alert("Your cart is empty.");
             return;
         }
         const user = firebase.auth().currentUser;
         if (!user) {
-            showToast("Please log in to proceed to checkout.", "info");
+            alert("Please log in to proceed to checkout.");
             return;
         }
         
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = 'Processing...';
 
-        const createCheckoutSession = firebase.functions().httpsCallable('createCheckoutSession');
+        const createCheckoutSession = functions.httpsCallable('createCheckoutSession');
         
         const cartItems = cart.map(item => {
             const product = products.find(p => p.id === item.id);
             if (!product || !product.stripePriceId) {
-                throw new Error(`Product "${product.name}" is missing a Stripe Price ID and cannot be purchased.`);
+                throw new Error(`Product "${product.name}" is missing a Stripe Price ID.`);
             }
             return {
                 priceId: product.stripePriceId,
@@ -158,18 +240,30 @@ document.addEventListener('authReady', () => {
         });
 
         try {
-            const result = await createCheckoutSession({ cartItems: cartItems });
-            const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
-            await stripe.redirectToCheckout({ sessionId: result.data.id });
+            const checkoutData = { cartItems };
+            if (appliedCoupon) {
+                checkoutData.couponId = appliedCoupon.id;
+            } else if (referralDiscountPercent > 0) {
+                checkoutData.referralDiscountPercent = referralDiscountPercent;
+            }
+
+            const result = await createCheckoutSession(checkoutData);
+
+            if (result.data && result.data.id) {
+                const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn'); 
+                await stripe.redirectToCheckout({ sessionId: result.data.id });
+            } else {
+                throw new Error(result.data.message || 'Failed to create checkout session.');
+            }
         } catch (error) {
             console.error("Error creating checkout session:", error);
-            showToast(`Checkout Error: ${error.message}`, "error");
+            alert(`Checkout Error: ${error.message}`);
             checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Proceed to Checkout';
+            checkoutBtn.textContent = 'Checkout';
         }
     };
 
-    // --- Event Listeners ---
+    // --- EVENT LISTENERS ---
     if (productGrid) {
         productGrid.addEventListener('click', (e) => {
             if (e.target.classList.contains('add-to-cart-btn')) {
@@ -179,9 +273,19 @@ document.addEventListener('authReady', () => {
         });
     }
 
-    cartBtn?.addEventListener('click', () => openModal(cartModal));
-    closeModalBtn?.addEventListener('click', () => closeModal(cartModal));
+    cartBtn?.addEventListener('click', () => cartModal.classList.add('active'));
+    closeModalBtn?.addEventListener('click', () => cartModal.classList.remove('active'));
     checkoutBtn?.addEventListener('click', handleCheckout);
+    applyCouponBtn?.addEventListener('click', applyCoupon);
+
+    referralDiscountSlider?.addEventListener('input', (e) => {
+        referralDiscountPercent = e.target.value;
+        referralDiscountValue.textContent = `${referralDiscountPercent}%`;
+        couponCodeInput.value = '';
+        appliedCoupon = null;
+        couponStatus.textContent = '';
+        updateCartTotal();
+    });
 
     if (cartItemsContainer) {
         cartItemsContainer.addEventListener('click', (e) => {
@@ -192,17 +296,32 @@ document.addEventListener('authReady', () => {
         });
     }
 
-    // --- Initialization ---
+    // --- INITIALIZATION ---
     const initShop = () => {
+        if (!db) return; // Don't run if firebase isn't ready
+        
         db.collection('products').onSnapshot(snapshot => {
             products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderProducts();
             updateCartUI();
         }, err => {
             console.error("Error fetching products:", err);
-            productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load products.</p>';
+            if(productGrid) productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load products.</p>';
+        });
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists && doc.data().shopDiscountPercent > 0) {
+                        referralDiscountSection.classList.remove('hidden');
+                        referralDiscountSlider.max = doc.data().shopDiscountPercent;
+                    } else {
+                        referralDiscountSection.classList.add('hidden');
+                    }
+                });
+            } else {
+                referralDiscountSection.classList.add('hidden');
+            }
         });
     };
-
-    initShop();
 });
