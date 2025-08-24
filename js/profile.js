@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - Profile Page Script (v23 - Merged)
+ * HatakeSocial - Profile Page Script (v26 - Referrals Tab)
  *
- * - Displays player personality fields (Playstyle, Format, Pet/Nemesis Cards).
- * - Adds a "Trade History" tab with a visual map of completed trades ("Trade Routes").
- * - Fetches completed trades and uses Leaflet.js to display the map.
- * - Includes a hardcoded list of city coordinates for client-side geocoding.
- * - Enhances the user reputation display to include the total number of completed trades.
+ * This script manages all functionality for the user profile page.
+ * - NEW: Adds a "Referrals" tab that links to the new referrals.html page for the logged-in user.
+ * - Displays player personality fields, trade history map, badges, and reputation.
+ * - Dynamically builds the profile page content inside the #profile-container element.
  */
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -13,7 +12,6 @@ document.addEventListener('authReady', (e) => {
     if (!profileContainer) return;
 
     // --- Geocoding Data (Client-Side) ---
-    // A simplified list for demonstration. A real application might use a more extensive list or a geocoding service.
     const cityCoordinates = {
         "stockholm": [59.3293, 18.0686], "gothenburg": [57.7089, 11.9746], "malmö": [55.6050, 13.0038],
         "oslo": [59.9139, 10.7522], "copenhagen": [55.6761, 12.5683], "helsinki": [60.1699, 24.9384],
@@ -153,6 +151,9 @@ document.addEventListener('authReady', (e) => {
                 personalityHTML += '</div>';
             }
 
+            // NEW: Add referrals tab only for the logged-in user viewing their own profile
+            const referralsTabHTML = isOwnProfile ? `<a href="referrals.html" class="profile-tab-button">Referrals</a>` : '';
+
             profileContainer.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
                     <div class="relative">
@@ -204,6 +205,7 @@ document.addEventListener('authReady', (e) => {
                             <button data-tab="wishlist" class="profile-tab-button">Wishlist</button>
                             <button data-tab="trade-history" class="profile-tab-button">Trade History</button>
                             <button data-tab="feedback" class="profile-tab-button">Feedback</button>
+                            ${referralsTabHTML}
                         </nav>
                     </div>
                     <div class="mt-6">
@@ -238,14 +240,16 @@ document.addEventListener('authReady', (e) => {
             }
 
             document.querySelectorAll('.profile-tab-button').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
-                    document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
-                    if(tab.dataset.tab === 'friends') loadProfileFriends(profileUserId);
-                    if(tab.dataset.tab === 'trade-history') loadTradeHistoryAndMap(profileUserId);
-                });
+                if (tab.tagName === 'BUTTON') { // Only add click listeners to actual buttons, not the <a> tag for referrals
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
+                        document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
+                        if(tab.dataset.tab === 'friends') loadProfileFriends(profileUserId);
+                        if(tab.dataset.tab === 'trade-history') loadTradeHistoryAndMap(profileUserId);
+                    });
+                }
             });
 
             if(window.location.hash) {

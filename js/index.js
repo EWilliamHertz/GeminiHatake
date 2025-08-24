@@ -534,7 +534,7 @@ document.addEventListener('authReady', (e) => {
                 const wasHidden = commentsSection.classList.toggle('hidden');
                 if (!wasHidden) {
                     const postDoc = await postRef.get();
-                    renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments);
+                    renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments, postDoc.data());
                 }
             } else if (e.target.closest('.likes-count-display')) {
                 showLikesModal(postId, groupId);

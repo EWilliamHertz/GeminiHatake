@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Referrals - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
+
+    <!-- Header will be dynamically loaded or you can paste your standard header here -->
+    <!-- Header Section -->
+<header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+        <a href="index.html" class="flex items-center">
+            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+            <span class="ml-3 text-3xl font-extrabold text-gray-800 dark:text-white">HatakeSocial</span>
+        </a>
+
+        <div class="hidden md:flex flex-grow justify-center mx-4">
+            <form id="header-search-form" class="relative w-full max-w-md">
+                <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </form>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-4">
+            <nav>
+                <ul class="flex items-center space-x-6">
+                    <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                    <li><a href="community.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Community"><i class="fas fa-users"></i></a></li>
+                    <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                    <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
+                    <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                    <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
+                    <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                    <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
+                    <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
+                    <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                </ul>
+            </nav>
+            <div id="notification-container" class="relative">
+                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl">
+                    <i class="fas fa-bell"></i>
+                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
+                </button>
+                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-20 hidden">
+                    <div class="p-3 font-bold text-lg border-b dark:border-gray-700">Notifications</div>
+                    <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
+                </div>
+            </div>
+            <div class="relative flex items-center">
+                <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
+                <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 ml-2">Register</button>
+                <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-10 hidden">
+                    <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
+                    <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
+                    <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:hidden flex items-center">
+            <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-2xl">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <form id="mobile-search-form" class="relative mb-4">
+                <input type="text" id="mobileSearchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </form>
+            <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Home</a>
+            <a href="community.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Community</a>
+            <a href="deck.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Deck Builder</a>
+            <a href="shop.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Shop</a>
+            <a href="my_collection.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">My Collection</a>
+            <a href="trades.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Trades</a>
+            <a href="marketplace.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Marketplace</a>
+            <a href="events.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Events</a>
+            <a href="messages.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Messages</a>
+            <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
+             <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                <div id="mobile-user-actions">
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <main class="container mx-auto p-4 flex-grow">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-6">My Referrals</h1>
+
+            <!-- Referral Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+                    <h2 class="text-4xl font-extrabold text-blue-600 dark:text-blue-400" id="total-referrals-stat">0</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">Total Referrals</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+                    <h2 class="text-4xl font-extrabold text-green-600 dark:text-green-400" id="completed-referrals-stat">0</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">Completed (Verified)</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+                    <h2 class="text-4xl font-extrabold text-yellow-600 dark:text-yellow-400" id="current-discount-stat">0%</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">Current Shop Discount</p>
+                </div>
+            </div>
+
+            <!-- Referral Link Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-3">Your Unique Referral Link</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Share this link with friends. For each friend that signs up and verifies their account, you'll receive a <strong>1% discount token</strong> in our shop, stackable up to 15%!
+                </p>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="referral-link-input" readonly class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700">
+                    <button id="copy-referral-link-btn" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <p id="copy-feedback" class="text-sm text-green-500 mt-2 hidden">Copied to clipboard!</p>
+            </div>
+
+            <!-- Referred Users List -->
+            <div>
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Referred Users</h3>
+                <div id="referrals-list-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                    <!-- JS will populate this list -->
+                    <div class="p-8 text-center text-gray-500 dark:text-gray-400">Loading your referrals...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+        <div class="container mx-auto py-8 px-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
+                        <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
+                        <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Display Options</h3>
+                    <div class="flex items-center space-x-4">
+                        <div>
+                            <label for="theme-toggle" class="text-sm text-gray-600 dark:text-gray-400">Theme</label>
+                            <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                                <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
+                                <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
+                            </button>
+                        </div>
+                        <div id="currency-selector-container">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                <p>&copy; 2025 Hatake. All Rights Reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>    
+
+    <div id="messenger-widget-container" class="minimized">
+        <div id="messenger-open-btn">
+            <i class="fas fa-comments"></i>
+        </div>
+        <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
+            <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
+                <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
+                <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
+            </div>
+            <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
+                <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/referrals.js"></script> <!-- We will create this script next -->
+    <script src="js/darkmode.js"></script>
+</body>
+</html>

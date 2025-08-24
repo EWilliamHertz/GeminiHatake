@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v22 - Referral Tracking)
+ * HatakeSocial - Core Authentication & UI Script (v26 - Automated Referrals)
  *
- * - **NEW**: Adds a "referrer" field to the registration process to track user acquisition.
- * - Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
- * - Adds logic to toggle the mobile navigation menu.
- * - Replaces alert() with inline error messages for a better UX.
- * - Adds a "Scroll to Top" button for easier navigation.
+ * This script handles all user authentication, session management, and UI updates.
+ * - REMOVED: The manual "referrer" input field logic from the registration process.
+ * - The referral system is now fully automated via URL parameters (`?ref=...`).
+ * - When registering, it calls the 'registerUserWithReferral' Cloud Function if a referral
+ * code is present in the session, ensuring secure and atomic rewards.
+ * - Manages login/register modals, global UI listeners, and mobile navigation.
  */
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
         projectId: "hatakesocial-88b5e",
-        storageBucket: "hatakesocial-88b5e.firebasestorage.app",
+        storageBucket: "hatakesocial-88b5e.appspot.com",
         messagingSenderId: "1091697032506",
         appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
     };
@@ -26,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
+    window.functions = firebase.functions();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
     // --- Internationalization & Currency ---
@@ -39,14 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `0.00 ${toCurrency}`;
             }
             const fromRate = this.conversionRates[fromCurrency];
-            if (fromRate === undefined) {
-                 return `N/A`;
-            }
+            if (fromRate === undefined) return `N/A`;
             const amountInSEK = amount / fromRate;
             const toRate = this.conversionRates[toCurrency];
-             if (toRate === undefined) {
-                 return `N/A`;
-            }
+            if (toRate === undefined) return `N/A`;
             const convertedAmount = amountInSEK * toRate;
             return `${convertedAmount.toFixed(2)} ${toCurrency}`;
         }
@@ -55,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const setupCurrencySelector = () => {
         const container = document.getElementById('currency-selector-container');
         if (!container) return;
-
         container.innerHTML = `
             <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
             <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
@@ -66,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         const selector = document.getElementById('currency-selector');
         selector.value = window.HatakeSocial.currentCurrency;
-
         selector.addEventListener('change', (e) => {
             window.HatakeSocial.currentCurrency = e.target.value;
             localStorage.setItem('hatakeCurrency', e.target.value);
@@ -86,6 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
     
+    // --- Referral Code Handling ---
+    const checkForReferralCode = () => {
+        const params = new URLSearchParams(window.location.search);
+        const refCode = params.get('ref');
+        if (refCode) {
+            console.log(`Referral code found: ${refCode}`);
+            sessionStorage.setItem('referralCode', refCode);
+            openModal(document.getElementById('registerModal'));
+        }
+    };
+
     const setupGlobalListeners = () => {
         const headerSearchForm = document.querySelector('header form#header-search-form'); 
         const loginButton = document.getElementById('loginButton');
@@ -110,61 +117,77 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const errorMessageEl = document.getElementById('login-error-message');
-
             auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    closeModal(loginModal);
-                })
+                .then(() => closeModal(loginModal))
                 .catch(err => {
                     errorMessageEl.textContent = err.message;
                     errorMessageEl.classList.remove('hidden');
                 });
         });
 
-        document.getElementById('registerForm')?.addEventListener('submit', (e) => {
+        // --- MERGED: Registration form now handles referrals via Cloud Function ---
+        document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
             const city = document.getElementById('registerCity')?.value || '';
             const country = document.getElementById('registerCountry')?.value || '';
             const favoriteTcg = document.getElementById('registerFavoriteTcg')?.value || '';
-            const referrer = document.getElementById('registerReferrer')?.value.trim() || '';
-            const displayName = email.split('@')[0];
-            const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
             const errorMessageEl = document.getElementById('register-error-message');
+            
+            // This is the only source for the referrer now
+            const referrerId = sessionStorage.getItem('referralCode');
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(cred => {
+            if (!referrerId) {
+                // Fallback for direct registration without a referral link
+                try {
+                    const cred = await auth.createUserWithEmailAndPassword(email, password);
+                    const displayName = email.split('@')[0];
+                    const handle = displayName.replace(/[^a-zA-Z0-9]/g, '');
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
-                    
-                    // Send the verification email
-                    cred.user.sendEmailVerification();
 
-                    cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
-                    return db.collection('users').doc(cred.user.uid).set({
+                    await cred.user.sendEmailVerification();
+                    await cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
+                    await db.collection('users').doc(cred.user.uid).set({
                         displayName: displayName,
                         displayName_lower: displayName.toLowerCase(),
                         email: email, photoURL: defaultPhotoURL,
                         city: city, country: country, favoriteTcg: favoriteTcg,
-                        referrer: referrer,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        handle: handle,
-                        isAdmin: false,
-                        primaryCurrency: 'SEK'
+                        handle: handle, isAdmin: false, primaryCurrency: 'SEK',
+                        friends: [], shopDiscountPercent: 0, referralCount: 0, referredBy: null
                     });
-                })
-                .then(() => {
-                    closeModal(document.getElementById('registerModal'));
-                    alert("Registration successful! A verification link has been sent to your email. Please verify your account before logging in.");
-                })
-                .catch(err => {
-                    if(errorMessageEl) {
-                        errorMessageEl.textContent = err.message;
-                        errorMessageEl.classList.remove('hidden');
-                    } else {
-                        alert(err.message);
-                    }
+                    
+                    closeModal(registerModal);
+                    sessionStorage.removeItem('referralCode');
+                    alert("Registration successful! A verification link has been sent to your email.");
+                } catch (error) {
+                    errorMessageEl.textContent = error.message;
+                    errorMessageEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            // --- Call the Cloud Function for secure referral registration ---
+            const registerUserWithReferral = functions.httpsCallable('registerUserWithReferral');
+            try {
+                const result = await registerUserWithReferral({
+                    email, password, city, country, favoriteTcg, referrerId
                 });
+                
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                await userCredential.user.sendEmailVerification();
+
+                console.log('Referral registration successful:', result.data);
+                closeModal(registerModal);
+                sessionStorage.removeItem('referralCode');
+                alert("Registration successful! A verification link has been sent to your email.");
+
+            } catch (error) {
+                console.error("Error calling registration function:", error);
+                errorMessageEl.textContent = error.message;
+                errorMessageEl.classList.remove('hidden');
+            }
         });
 
         const handleGoogleAuth = () => {
@@ -180,13 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             email: user.email, photoURL: user.photoURL,
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             handle: handle, bio: "New HatakeSocial user!", favoriteTcg: "Not set", isAdmin: false, primaryCurrency: 'SEK',
-                            referrer: ''
+                            friends: [], shopDiscountPercent: 0, referralCount: 0, referredBy: sessionStorage.getItem('referralCode') || null
                         });
                     }
                 });
             }).then(() => {
                 closeModal(loginModal);
                 closeModal(registerModal);
+                sessionStorage.removeItem('referralCode');
             }).catch(err => alert(err.message));
         };
         
@@ -216,63 +240,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     scrollToTopBtn.classList.add('hidden');
                 }
             });
-
-            scrollToTopBtn.addEventListener('click', () => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
+            scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
         }
 
         if (mobileMenuButton) {
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
+            mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
         }
     };
 
     let friendRequestHandshakeListener = null;
     function listenForAcceptedRequests(user) {
-        if (friendRequestHandshakeListener) {
-            friendRequestHandshakeListener();
-        }
-
-        const sentRequestsRef = db.collection('friendRequests')
-            .where('senderId', '==', user.uid)
-            .where('status', '==', 'accepted');
-
+        if (friendRequestHandshakeListener) friendRequestHandshakeListener();
+        const sentRequestsRef = db.collection('friendRequests').where('senderId', '==', user.uid).where('status', '==', 'accepted');
         friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
-            if (snapshot.empty) {
-                return;
-            }
-
+            if (snapshot.empty) return;
             const batch = db.batch();
             const currentUserRef = db.collection('users').doc(user.uid);
-
             for (const doc of snapshot.docs) {
                 const request = doc.data();
-                const newFriendId = request.receiverId;
-
-                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(newFriendId) });
+                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(request.receiverId) });
                 batch.delete(doc.ref);
-                
-                const notificationData = {
+                const notificationRef = db.collection('users').doc(user.uid).collection('notifications').doc();
+                batch.set(notificationRef, {
                     message: `You are now friends with ${request.receiverName || 'a new user'}.`,
-                    link: `/profile.html?uid=${newFriendId}`,
+                    link: `/profile.html?uid=${request.receiverId}`,
                     isRead: false,
                     timestamp: new Date()
-                };
-                const notificationRef = db.collection('users').doc(user.uid).collection('notifications').doc();
-                batch.set(notificationRef, notificationData);
+                });
             }
-
-            try {
-                await batch.commit();
-                console.log('Friend handshake complete for', snapshot.size, 'requests.');
-            } catch (error) {
-                console.error("Error completing friend handshake:", error);
-            }
-        }, error => {
-            console.error("Error listening for accepted friend requests:", error);
-        });
+            await batch.commit();
+        }, error => console.error("Error listening for accepted friend requests:", error));
     }
 
     auth.onAuthStateChanged(async (user) => {
@@ -281,9 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
                     <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
                         <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
-                        <p class="text-gray-600 dark:text-gray-400 mb-6">
-                            A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox (and spam folder) and click the link to activate your account.
-                        </p>
+                        <p class="text-gray-600 dark:text-gray-400 mb-6">A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox and click the link to activate your account.</p>
                         <div class="space-x-4">
                             <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
                             <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
@@ -296,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(() => alert('A new verification email has been sent.'))
                     .catch(err => alert('Error sending email: ' + err.message));
             });
-    
             document.body.style.opacity = '1';
             return;
         }
@@ -307,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const userDropdown = document.getElementById('userDropdown');
         const sidebarUserInfo = document.getElementById('sidebar-user-info');
         const mobileUserActions = document.getElementById('mobile-user-actions');
-    
         const existingAdminLink = document.getElementById('admin-link-container');
         if (existingAdminLink) existingAdminLink.remove();
         
@@ -331,52 +324,33 @@ document.addEventListener('DOMContentLoaded', () => {
                         <a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a>
                     </div>
                 `;
-                document.getElementById('mobileLogoutButton').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    auth.signOut();
-                });
+                document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
             }
             
             listenForAcceptedRequests(user);
     
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    window.HatakeSocial.currentUserData = userData;
-                    const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                    const name = userData.displayName || 'User';
-                    const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
-    
-                    if (userAvatar) userAvatar.src = photo;
-                    
-                    if (sidebarUserInfo) {
-                        sidebarUserInfo.classList.remove('hidden');
-                        document.getElementById('sidebar-user-avatar').src = photo;
-                        document.getElementById('sidebar-user-name').textContent = name;
-                        document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
-                    }
-    
-                    if (userData.isAdmin === true && userDropdown) {
-                        const adminLinkContainer = document.createElement('div');
-                        adminLinkContainer.id = 'admin-link-container';
-                        adminLinkContainer.innerHTML = `
-                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                            <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <i class="fas fa-user-shield mr-2"></i>Admin
-                            </a>
-                        `;
-                        userDropdown.appendChild(adminLinkContainer);
-                    }
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                window.HatakeSocial.currentUserData = userData;
+                const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                if (userAvatar) userAvatar.src = photo;
+                if (sidebarUserInfo) {
+                    sidebarUserInfo.classList.remove('hidden');
+                    document.getElementById('sidebar-user-avatar').src = photo;
+                    document.getElementById('sidebar-user-name').textContent = userData.displayName;
+                    document.getElementById('sidebar-user-handle').textContent = `@${userData.handle}`;
                 }
-            } catch (error) {
-                console.error("Error fetching user data:", error);
+                if (userData.isAdmin === true && userDropdown) {
+                    const adminLinkContainer = document.createElement('div');
+                    adminLinkContainer.id = 'admin-link-container';
+                    adminLinkContainer.innerHTML = `<div class="border-t my-1 border-gray-200 dark:border-gray-600"></div><a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600"><i class="fas fa-user-shield mr-2"></i>Admin</a>`;
+                    userDropdown.appendChild(adminLinkContainer);
+                }
             }
         } else {
             window.HatakeSocial.currentUserData = null;
-            if (friendRequestHandshakeListener) {
-                friendRequestHandshakeListener();
-            }
+            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
             loginButton?.classList.remove('hidden');
             registerButton?.classList.remove('hidden');
             userAvatar?.classList.add('hidden');
@@ -404,4 +378,5 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setupGlobalListeners();
     setupCurrencySelector();
+    checkForReferralCode();
 });
