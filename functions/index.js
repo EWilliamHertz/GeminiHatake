@@ -2,9 +2,10 @@
  * HatakeSocial - Firebase Cloud Functions
  *
  * This file contains the backend logic for the application.
+ * - NEW: Adds functions to handle following users and creating notifications.
  * - Handles new user registration with a referral code.
  * - Creates Stripe checkout sessions for the shop.
- * - NEW: Automatically counts user posts.
+ * - Automatically counts user posts.
  */
 
 const functions = require("firebase-functions");
@@ -58,6 +59,7 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
                 favoriteTcg: favoriteTcg || null,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 friends: [],
+                followers: [], // Initialize followers
                 friendRequests: [],
                 referredBy: referrerId,
                 shopDiscountPercent: 0,
@@ -119,8 +121,8 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         payment_method_types: ['card'],
         line_items: line_items,
         mode: 'payment',
-        success_url: `https://your-website.com/success.html`,
-        cancel_url: `https://your-website.com/shop.html`,
+        success_url: `https://hatakesocial-88b5e.web.app/shop.html?success=true`,
+        cancel_url: `https://hatakesocial-88b5e.web.app/shop.html?canceled=true`,
         allow_promotion_codes: true,
         customer_email: context.auth.token.email,
         client_reference_id: context.auth.uid
@@ -149,7 +151,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 });
 
 /**
- * NEW: A Firestore trigger to update a user's post count when they create a new post.
+ * A Firestore trigger to update a user's post count when they create a new post.
  */
 exports.onPostCreate = functions.firestore
     .document('posts/{postId}')
@@ -171,6 +173,94 @@ exports.onPostCreate = functions.firestore
             console.log(`Successfully incremented post count for user ${authorId}`);
         } catch (error) {
             console.error(`Failed to increment post count for user ${authorId}`, error);
+        }
+        return null;
+    });
+
+/**
+ * NEW: A callable function to follow or unfollow a user.
+ */
+exports.toggleFollowUser = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to follow users.');
+    }
+
+    const targetUid = data.uid;
+    const currentUid = context.auth.uid;
+
+    if (!targetUid) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing target user UID.');
+    }
+    if (targetUid === currentUid) {
+        throw new functions.https.HttpsError('invalid-argument', 'You cannot follow yourself.');
+    }
+
+    const currentUserRef = db.collection('users').doc(currentUid);
+    const targetUserRef = db.collection('users').doc(targetUid);
+
+    try {
+        const currentUserDoc = await currentUserRef.get();
+        const currentUserData = currentUserDoc.data();
+        const friends = currentUserData.friends || [];
+
+        const isFollowing = friends.includes(targetUid);
+        const batch = db.batch();
+
+        if (isFollowing) {
+            // Unfollow
+            batch.update(currentUserRef, { friends: admin.firestore.FieldValue.arrayRemove(targetUid) });
+            batch.update(targetUserRef, { followers: admin.firestore.FieldValue.arrayRemove(currentUid) });
+        } else {
+            // Follow
+            batch.update(currentUserRef, { friends: admin.firestore.FieldValue.arrayUnion(targetUid) });
+            batch.update(targetUserRef, { followers: admin.firestore.FieldValue.arrayUnion(currentUid) });
+        }
+
+        await batch.commit();
+        return { success: true, nowFollowing: !isFollowing };
+
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while trying to follow the user.');
+    }
+});
+
+/**
+ * NEW: A Firestore trigger that creates a notification when a user is followed.
+ */
+exports.onFollow = functions.firestore
+    .document('users/{userId}')
+    .onUpdate(async (change, context) => {
+        const beforeData = change.before.data();
+        const afterData = change.after.data();
+        
+        const beforeFollowers = beforeData.followers || [];
+        const afterFollowers = afterData.followers || [];
+
+        // Check if a new follower was added
+        if (afterFollowers.length > beforeFollowers.length) {
+            const newFollowerId = afterFollowers.find(uid => !beforeFollowers.includes(uid));
+            if (newFollowerId) {
+                const followedUserId = context.params.userId;
+                
+                // Get the new follower's display name
+                const followerDoc = await db.collection('users').doc(newFollowerId).get();
+                const followerName = followerDoc.data()?.displayName || 'Someone';
+                
+                // Create the notification
+                const notification = {
+                    type: 'follow',
+                    fromId: newFollowerId,
+                    fromName: followerName,
+                    fromAvatar: followerDoc.data()?.photoURL || null,
+                    message: `${followerName} started following you.`,
+                    link: `profile.html?uid=${newFollowerId}`,
+                    isRead: false,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('users').doc(followedUserId).collection('notifications').add(notification);
+            }
         }
         return null;
     });

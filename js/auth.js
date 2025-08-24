@@ -1,14 +1,40 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v22.3 - Defensive Functions Fix)
+ * HatakeSocial - Core Authentication & UI Script (v23 - Merged UI/UX Revamp)
  *
- * - FIX: Adds a defensive check for the `firebase.functions` service to prevent a fatal TypeError when the library is not loaded.
- * - FIX: Ensures all Firebase services are correctly initialized and globally available.
- * - NEW: Adds a "referrer" field to the registration process to track user acquisition.
- * - Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
- * - Adds logic to toggle the mobile navigation menu.
- * - Replaces alert() with inline error messages for a better UX.
- * - Adds a "Scroll to Top" button for easier navigation.
+ * - NEW: Adds a global `showToast` function for non-blocking notifications.
+ * - NEW: Implements the real-time notification bell and dropdown.
+ * - Merges all previous functionality including defensive checks, currency conversion, and friend request handshakes.
  */
+
+// --- NEW: Global Toast Notification Function ---
+const showToast = (message, type = 'info') => {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    
+    container.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    // Animate out and remove after 5 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 5000);
+};
+
+
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
@@ -29,12 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     
-    // FIX: Add a defensive check for the functions library.
     if (typeof firebase.functions === 'function') {
         window.functions = firebase.functions();
     } else {
         window.functions = null;
-        console.warn('Firebase Functions library not loaded. Some features (e.g., checkout) may not work.');
+        console.warn('Firebase Functions library not loaded. Some features may not work.');
     }
 
     const googleProvider = new firebase.auth.GoogleAuthProvider();
@@ -148,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(cred => {
                     const defaultPhotoURL = `https://ui-avatars.com/api/?name=${displayName.charAt(0)}&background=random&color=fff`;
                     
-                    // Send the verification email
                     cred.user.sendEmailVerification();
 
                     cred.user.updateProfile({ displayName: displayName, photoURL: defaultPhotoURL });
@@ -166,14 +190,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .then(() => {
                     closeModal(document.getElementById('registerModal'));
-                    alert("Registration successful! A verification link has been sent to your email. Please verify your account before logging in.");
+                    showToast("Registration successful! A verification link has been sent to your email.", "success");
                 })
                 .catch(err => {
                     if(errorMessageEl) {
                         errorMessageEl.textContent = err.message;
                         errorMessageEl.classList.remove('hidden');
                     } else {
-                        alert(err.message);
+                        showToast(err.message, "error");
                     }
                 });
         });
@@ -198,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }).then(() => {
                 closeModal(loginModal);
                 closeModal(registerModal);
-            }).catch(err => alert(err.message));
+            }).catch(err => showToast(err.message, "error"));
         };
         
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
@@ -277,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await batch.commit();
-                console.log('Friend handshake complete for', snapshot.size, 'requests.');
             } catch (error) {
                 console.error("Error completing friend handshake:", error);
             }
@@ -285,6 +308,62 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error listening for accepted friend requests:", error);
         });
     }
+
+    let unsubscribeNotifications = null;
+    const setupNotificationBell = (user) => {
+        const bellBtn = document.getElementById('notification-bell-btn');
+        const counter = document.getElementById('notification-count');
+        const dropdown = document.getElementById('notification-dropdown');
+        const list = document.getElementById('notification-list');
+
+        if (!bellBtn || !counter || !dropdown || !list) return;
+
+        const notificationsRef = db.collection('users').doc(user.uid).collection('notifications');
+
+        unsubscribeNotifications = notificationsRef.where('isRead', '==', false)
+            .onSnapshot(snapshot => {
+                const unreadCount = snapshot.size;
+                counter.textContent = unreadCount;
+                if (unreadCount > 0) {
+                    counter.classList.remove('hidden');
+                } else {
+                    counter.classList.add('hidden');
+                }
+            });
+
+        bellBtn.addEventListener('click', async () => {
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                list.innerHTML = '<li>Loading...</li>';
+                const snapshot = await notificationsRef.orderBy('timestamp', 'desc').limit(10).get();
+                list.innerHTML = '';
+                if (snapshot.empty) {
+                    list.innerHTML = '<li class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No notifications yet.</li>';
+                } else {
+                    const batch = db.batch();
+                    snapshot.forEach(doc => {
+                        const notif = doc.data();
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <a href="${notif.link || '#'}" class="notification-item ${!notif.isRead ? '' : 'is-read'}">
+                                <img src="${notif.fromAvatar || 'https://i.imgur.com/B06rBhI.png'}" alt="${notif.fromName}">
+                                <div class="notification-item-content">
+                                    <p>${sanitizeHTML(notif.message)}</p>
+                                    <span class="timestamp">${new Date(notif.timestamp.toDate()).toLocaleString()}</span>
+                                </div>
+                            </a>
+                        `;
+                        list.appendChild(li);
+
+                        if (!notif.isRead) {
+                            batch.update(doc.ref, { isRead: true });
+                        }
+                    });
+                    await batch.commit();
+                }
+            }
+        });
+    };
 
     auth.onAuthStateChanged(async (user) => {
         if (user && !user.emailVerified) {
@@ -304,8 +383,8 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             document.getElementById('resend-verification-btn').addEventListener('click', () => {
                 user.sendEmailVerification()
-                    .then(() => alert('A new verification email has been sent.'))
-                    .catch(err => alert('Error sending email: ' + err.message));
+                    .then(() => showToast('A new verification email has been sent.', 'success'))
+                    .catch(err => showToast('Error sending email: ' + err.message, 'error'));
             });
     
             document.body.style.opacity = '1';
@@ -349,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             listenForAcceptedRequests(user);
+            setupNotificationBell(user);
     
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
@@ -385,9 +465,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             window.HatakeSocial.currentUserData = null;
-            if (friendRequestHandshakeListener) {
-                friendRequestHandshakeListener();
-            }
+            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
+            if (unsubscribeNotifications) unsubscribeNotifications();
+
             loginButton?.classList.remove('hidden');
             registerButton?.classList.remove('hidden');
             userAvatar?.classList.add('hidden');

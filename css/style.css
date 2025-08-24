@@ -1083,3 +1083,99 @@ body {
 .dark .conversation-item.dark\:bg-blue-900\/50 {
     background-color: rgba(30, 58, 138, 0.5);
 }
+/* --- NEW STYLES FOR UI/UX REVAMP --- */
+
+/* --- Skeleton Loader Styles --- */
+@keyframes pulse {
+    50% {
+        opacity: .5;
+    }
+}
+
+/* --- Toast Notification Styles --- */
+.toast {
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    color: white;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+.toast-info { background-color: #3b82f6; } /* blue-500 */
+.toast-success { background-color: #22c55e; } /* green-500 */
+.toast-error { background-color: #ef4444; } /* red-500 */
+.toast-icon {
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+}
+
+/* --- Notification Bell Styles --- */
+#notification-dropdown {
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+#notification-dropdown.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb; /* gray-200 */
+    transition: background-color 0.2s;
+}
+.dark .notification-item {
+    border-bottom-color: #374151; /* gray-700 */
+}
+.notification-item:hover {
+    background-color: #f9fafb; /* gray-50 */
+}
+.dark .notification-item:hover {
+    background-color: #1f2937; /* gray-800 */
+}
+.notification-item.is-read {
+    opacity: 0.7;
+}
+.notification-item img {
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    margin-right: 0.75rem;
+    object-fit: cover;
+}
+.notification-item-content {
+    flex: 1;
+}
+.notification-item-content p {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: #374151; /* gray-700 */
+}
+.dark .notification-item-content p {
+    color: #d1d5db; /* gray-300 */
+}
+.notification-item-content .timestamp {
+    font-size: 0.75rem;
+    color: #6b7280; /* gray-500 */
+    margin-top: 0.25rem;
+}
+
+/* --- Follow Button State --- */
+.follow-btn.following {
+    background-color: #e5e7eb; /* gray-200 */
+    color: #374151; /* gray-700 */
+    border: 1px solid #d1d5db; /* gray-300 */
+}
+.dark .follow-btn.following {
+    background-color: #374151; /* gray-700 */
+    color: #d1d5db; /* gray-300 */
+    border-color: #4b5563; /* gray-600 */
+}
