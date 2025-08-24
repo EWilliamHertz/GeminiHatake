@@ -99,6 +99,8 @@ document.addEventListener('authReady', (e) => {
             completed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
         };
 
+        const formatDisplay = event.format ? event.format.replace('-', ' ') : 'N/A';
+        
         card.innerHTML = `
             <div class="flex justify-between items-start">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white">${event.name}</h3>
@@ -106,7 +108,7 @@ document.addEventListener('authReady', (e) => {
             </div>
             <p class="text-gray-600 dark:text-gray-400 mt-2">${event.game}</p>
             <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">${new Date(event.date.seconds * 1000).toLocaleString()}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">Format: ${event.format.replace('-', ' ')}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">Format: ${formatDisplay}</p>
             <div class="mt-4 pt-4 border-t dark:border-gray-700 flex justify-between items-center">
                 <p class="text-sm text-gray-500 dark:text-gray-400">Organizer: ${event.organizerName}</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">${Object.keys(event.participants || {}).length} participants</p>
@@ -163,8 +165,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="md:col-span-2">
                             <div id="tournament-view-container">
-                                <!-- Bracket or Swiss view will be injected here -->
-                            </div>
+                                </div>
                         </div>
                         <div class="md:col-span-1 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                             <h4 class="font-bold text-lg mb-4 dark:text-white">Participants (${participantUIDs.length})</h4>
@@ -405,8 +406,7 @@ document.addEventListener('authReady', (e) => {
         const p2Wins = parseInt(document.getElementById('player2-wins').value);
         const draws = parseInt(document.getElementById('match-draws').value);
 
-        const eventRef = db.collection('events').doc(eventId);
-        const eventDoc = await eventRef.get();
+        const eventDoc = await db.collection('events').doc(eventId).get();
         const eventData = eventDoc.data();
 
         const round = eventData.rounds[roundIndex];

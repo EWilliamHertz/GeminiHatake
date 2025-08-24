@@ -27,8 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadConversations();
             checkUrlForConversation();
         } else {
-            // Redirect to login if not authenticated
-            window.location.href = '/';
+            // The user's code originally had a redirect here. The new auth.js
+            // handles this more gracefully, but we'll ensure if this script
+            // runs without a user it doesn't cause unexpected behavior.
+            const mainContent = document.querySelector('main.container');
+            if (mainContent) {
+                mainContent.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to view your messages.</p>';
+            }
         }
     });
 
@@ -84,6 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
                           conversationsList.appendChild(conversationElement);
                       }
                   }
+              }, (error) => {
+                if (error.code === 'permission-denied') {
+                    conversationsList.innerHTML = '<p class="text-center text-red-500 p-4">You do not have permission to view messages. Please check your account status or contact support.</p>';
+                } else {
+                    console.error("Error loading conversations: ", error);
+                    conversationsList.innerHTML = '<p>Error loading conversations.</p>';
+                }
               });
         } catch (error) {
             console.error("Error loading conversations: ", error);

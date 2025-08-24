@@ -170,6 +170,11 @@ body {
     color: #333; /* Default text color */
 }
 
+.dark body {
+    color: #d1d5db; /* A light gray for better readability in dark mode */
+}
+
+
 /* Custom scrollbar for better aesthetics */
 ::-webkit-scrollbar {
     width: 8px;
