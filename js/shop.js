@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - Shop Page Script (v5 - Cart & Coupon Fix)
+ * HatakeSocial - Shop Page Script (v5.1 - Firebase Functions Fix)
  *
  * This script is responsible for the shop page functionality.
+ * - FIX: Corrected the Firebase Functions call to use the v9 compat library syntax.
  * - FIX: Corrects event delegation for "Add to Cart" and "View More" buttons.
  * - NEW: Implements client-side logic for a coupon code system.
  * - NEW: Implements shipping logic.
@@ -257,7 +258,7 @@ document.addEventListener('authReady', (e) => {
         // --- End of Shipping Logic for Checkout ---
     
         try {
-            const functions = firebase.functions();
+            const functions = firebase.app().functions('europe-west1'); // Or your region
             const createStripeCheckout = functions.httpsCallable('createStripeCheckout');
     
             const result = await createStripeCheckout({
