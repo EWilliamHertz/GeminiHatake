@@ -307,8 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await createCheckoutSession(checkoutData);
 
             if (result.data && result.data.id) {
-                const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn
-'); 
+                const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn'); 
                 await stripe.redirectToCheckout({ sessionId: result.data.id });
             } else {
                 throw new Error(result.data.message || 'Failed to create checkout session.');
