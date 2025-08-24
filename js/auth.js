@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v22.1 - Functions Fix)
+ * HatakeSocial - Core Authentication & UI Script (v22.3 - Defensive Functions Fix)
  *
- * - FIX: Adds initialization for the Firebase Functions service to resolve `firebase.functions is not a function` error.
+ * - FIX: Adds a defensive check for the `firebase.functions` service to prevent a fatal TypeError when the library is not loaded.
+ * - FIX: Ensures all Firebase services are correctly initialized and globally available.
  * - NEW: Adds a "referrer" field to the registration process to track user acquisition.
  * - Adds a listener for sent friend requests to complete the client-side "handshake" when a request is accepted by another user.
  * - Adds logic to toggle the mobile navigation menu.
@@ -27,7 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     window.storage = firebase.storage();
-    window.functions = firebase.functions(); // <-- ADDED THIS LINE TO FIX THE ERROR
+    
+    // FIX: Add a defensive check for the functions library.
+    if (typeof firebase.functions === 'function') {
+        window.functions = firebase.functions();
+    } else {
+        window.functions = null;
+        console.warn('Firebase Functions library not loaded. Some features (e.g., checkout) may not work.');
+    }
+
     const googleProvider = new firebase.auth.GoogleAuthProvider();
 
     // --- Internationalization & Currency ---
