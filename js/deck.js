@@ -1,11 +1,9 @@
 /**
- * HatakeSocial - Deck Page Script (v27 - Image Fix Applied)
+ * HatakeSocial - Deck Page Script (v28 - AI Playtester)
  *
- * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall, in the deck view and playtester.
- * - Fixes the event listener for the AI Suggestions modal button.
- * - Replaces the exposed API key with a secure placeholder.
- * - The AI now analyzes the current decklist in the builder combined with a user's prompt from the modal.
- * - If the decklist is empty, it will generate a new deck based on the prompt.
+ * - Adds a "Play vs. AI" button to the playtest modal.
+ * - Implements a simple AI opponent that can draw cards, play lands, and play creatures.
+ * - Updates the playtest UI to show the AI's hand and battlefield.
  */
 
 /**
@@ -37,7 +35,6 @@ document.addEventListener('authReady', (e) => {
     const openModal = (modal) => {
         if (modal) {
             modal.classList.remove('hidden');
-            // Using a simple class toggle, assuming CSS handles the display
         }
     };
 
@@ -52,7 +49,7 @@ document.addEventListener('authReady', (e) => {
     let deckToShare = null;
     let fullCollection = [];
     let manaCurveChart = null;
-    let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
+    let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [], ai: { hand: [], battlefield: [], library: [], life: 20, mana: 0 } };
     let currentDeckInView = null;
 
     // --- DOM Elements ---
@@ -81,8 +78,12 @@ document.addEventListener('authReady', (e) => {
     const playtestDrawBtn = document.getElementById('playtest-draw-btn');
     const playtestMulliganBtn = document.getElementById('playtest-mulligan-btn');
     const playtestResetBtn = document.getElementById('playtest-reset-btn');
+    const playAIBtn = document.getElementById('play-ai-btn');
     const battlefieldEl = document.getElementById('playtest-battlefield');
     const handEl = document.getElementById('playtest-hand');
+    const aiPlayArea = document.getElementById('ai-play-area');
+    const aiBattlefieldEl = document.getElementById('ai-battlefield');
+    const aiHandEl = document.getElementById('ai-hand');
     const checkCollectionBtn = document.getElementById('check-collection-btn');
     const missingCardsSection = document.getElementById('missing-cards-section');
     const missingCardsList = document.getElementById('missing-cards-list');
@@ -605,6 +606,16 @@ document.addEventListener('authReady', (e) => {
         playtestState.battlefield.forEach(card => {
             battlefieldEl.appendChild(createPlaytestCard(card));
         });
+
+        aiHandEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">AI Hand</h3>';
+        playtestState.ai.hand.forEach(card => {
+            aiHandEl.appendChild(createPlaytestCard(card));
+        });
+
+        aiBattlefieldEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">AI Battlefield</h3>';
+        playtestState.ai.battlefield.forEach(card => {
+            aiBattlefieldEl.appendChild(createPlaytestCard(card));
+        });
     };
 
     const createPlaytestCard = (card) => {
@@ -769,6 +780,44 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    const initializeAIPlaytest = () => {
+        aiPlayArea.classList.remove('hidden');
+        initializePlaytest();
+        playtestState.ai.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < 7; i++) {
+            if (playtestState.ai.library.length > 0) {
+                playtestState.ai.hand.push(playtestState.ai.library.pop());
+            }
+        }
+        renderPlaytestState();
+    };
+
+    const takeAITurn = () => {
+        // Simple AI logic:
+        // 1. Draw a card
+        if (playtestState.ai.library.length > 0) {
+            playtestState.ai.hand.push(playtestState.ai.library.pop());
+        }
+
+        // 2. Play a land if possible
+        const landInHand = playtestState.ai.hand.find(card => card.type_line.toLowerCase().includes('land'));
+        if (landInHand) {
+            playtestState.ai.battlefield.push(landInHand);
+            playtestState.ai.hand = playtestState.ai.hand.filter(card => card.instanceId !== landInHand.instanceId);
+            playtestState.ai.mana++;
+        }
+
+        // 3. Play a creature if possible
+        const creatureInHand = playtestState.ai.hand.find(card => card.type_line.toLowerCase().includes('creature') && card.cmc <= playtestState.ai.mana);
+        if (creatureInHand) {
+            playtestState.ai.battlefield.push(creatureInHand);
+            playtestState.ai.hand = playtestState.ai.hand.filter(card => card.instanceId !== creatureInHand.instanceId);
+            playtestState.ai.mana -= creatureInHand.cmc;
+        }
+
+        renderPlaytestState();
+    };
+
     // --- All Event Listeners ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -897,8 +946,12 @@ document.addEventListener('authReady', (e) => {
     battlefieldEl.addEventListener('drop', handleDrop);
     handEl.addEventListener('drop', handleDrop);
     testHandBtn.addEventListener('click', initializePlaytest);
+    playAIBtn.addEventListener('click', initializeAIPlaytest);
     closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
-    playtestDrawBtn.addEventListener('click', () => drawCards(1));
+    playtestDrawBtn.addEventListener('click', () => {
+        drawCards(1);
+        takeAITurn();
+    });
     playtestMulliganBtn.addEventListener('click', takeMulligan);
     playtestResetBtn.addEventListener('click', initializePlaytest);
     shareDeckBtn.addEventListener('click', async () => {
@@ -1005,9 +1058,7 @@ document.addEventListener('authReady', (e) => {
                 }
             };
             
-            // SECURITY WARNING: This key has been exposed. It MUST be revoked and replaced.
-            // Go to https://aistudio.google.com/app/apikey to manage your API keys.
-            const apiKey = "AIzaSyA9nej1KT5lqQYACX8n-0UMYvtlz6DAXvc"; // <-- REPLACE WITH YOUR NEW, SECURE KEY
+            const apiKey = "YOUR_API_KEY";
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
             
