@@ -1,12 +1,13 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v22 - Full UI/UX Revamp Merged)
+ * HatakeSocial - Index Page (Feed) Script (v22 - Full UI/UX Revamp Merged & Corrected)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Implements infinite scroll for 'For You' and 'Friends' feeds.
- * - NEW: Uses skeleton loaders instead of "Loading..." text for a better UX.
- * - NEW: Provides real-time feedback on "Follow" buttons and handles follow/unfollow logic.
- * - NEW: Replaces all `alert()` calls with non-blocking toast notifications.
- * - Merges all previous features like post editing, comment deletion, security sanitization, etc.
+ * - FIX: Corrects syntax error from previous merge that caused posts and welcome message to disappear.
+ * - Implements infinite scroll for 'For You' and 'Friends' feeds.
+ * - Uses skeleton loaders instead of "Loading..." text for a better UX.
+ * - Provides real-time feedback on "Follow" buttons and handles follow/unfollow logic.
+ * - Replaces all `alert()` calls with non-blocking toast notifications.
+ * - Preserves all previous features like post editing, comment deletion, security sanitization, etc.
  */
 
 const sanitizeHTML = (str) => {
@@ -428,7 +429,6 @@ document.addEventListener('authReady', (e) => {
                 trendingHashtagsList.appendChild(li);
             });
         } catch(error) {
-            // If trending fails for logged out users, just show a message.
             console.log("Could not load trending hashtags, likely due to permissions for logged out user.");
             trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">Log in to see trending tags.</p>';
         }
@@ -826,3 +826,4 @@ document.addEventListener('authReady', (e) => {
     };
 
     initializeApp();
+});

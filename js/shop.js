@@ -22,7 +22,8 @@ document.addEventListener('authReady', () => {
             priceId: 'price_1RdBmDJqRiYlcnGZjbTO4Lkb',
             name: 'Duffel Bag',
             price: 50.00,
-            imageUrl: 'images/IMG_9987.jpg',
+            // FIX: Replace this with the correct path to your duffel bag image
+            imageUrl: 'images/path/to/your/duffel-bag.jpg',
             description: 'A spacious and durable duffel bag, perfect for carrying all your TCG essentials to tournaments and game nights.',
             stock: 50
         },
@@ -31,7 +32,8 @@ document.addEventListener('authReady', () => {
             priceId: 'price_1RdBfYJqRiYlcnGZnW0ratRw',
             name: 'Playmat',
             price: 25.00,
-            imageUrl: 'images/IMG_9986.jpg',
+            // FIX: Replace this with the correct path to your playmat image
+            imageUrl: 'images/path/to/your/playmat.jpg',
             description: 'A high-quality playmat with a smooth surface and non-slip rubber bottom, featuring exclusive artwork.',
             stock: 100
         },
@@ -40,7 +42,8 @@ document.addEventListener('authReady', () => {
             priceId: 'price_1RdBiwJqRiYlcnGZAI2AggRJ',
             name: 'Binder',
             price: 30.00,
-            imageUrl: 'images/IMG_9985.jpg',
+            // FIX: Replace this with the correct path to your binder image
+            imageUrl: 'images/path/to/your/binder.jpg',
             description: 'A premium 9-pocket binder to protect and display your valuable card collection.',
             stock: 75
         },
@@ -49,7 +52,7 @@ document.addEventListener('authReady', () => {
             priceId: 'price_1RdBhqJqRiYlcnGZNWJN5C5v',
             name: '35pt Toploader (10-pack)',
             price: 5.00,
-            imageUrl: 'images/IMG_9984.jpg',
+            imageUrl: 'images/IMG_9984.jpg', // This image should be correct
             description: 'Protect your standard size cards with these durable 35pt toploaders.',
             stock: 200
         },
@@ -58,7 +61,7 @@ document.addEventListener('authReady', () => {
             priceId: 'price_1RdBgqJqRiYlcnGZdYZdPuXG',
             name: '130pt Toploader (5-pack)',
             price: 5.00,
-            imageUrl: 'images/IMG_9983.jpg',
+            imageUrl: 'images/IMG_9983.jpg', // This image should be correct
             description: 'Thicker toploaders for your most valuable and thicker cards, ensuring maximum protection.',
             stock: 150
         },
@@ -67,7 +70,8 @@ document.addEventListener('authReady', () => {
             priceId: 'price_1RdBgJJqRiYlcnGZOWNzzejD',
             name: 'Deckbox - Susanoo',
             price: 15.00,
-            imageUrl: 'images/IMG_9982.jpg',
+             // FIX: Replace this with the correct path to your deckbox image if it's wrong
+            imageUrl: 'images/path/to/your/deckbox.jpg',
             description: 'A stylish and sturdy deckbox featuring the powerful Susanoo, to keep your deck safe.',
             stock: 100
         }
@@ -208,7 +212,6 @@ document.addEventListener('authReady', () => {
                 cartItems: cartItems,
             });
             
-            // Redirect to Stripe Checkout using your LIVE publishable key
             const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
             await stripe.redirectToCheckout({ sessionId: result.data.id });
 
