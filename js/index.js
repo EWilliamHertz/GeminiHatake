@@ -5,7 +5,7 @@
  * - NEW: Implements infinite scroll for 'For You' and 'Friends' feeds.
  * - NEW: Uses skeleton loaders instead of "Loading..." text for a better UX.
  * - NEW: Provides real-time feedback on "Follow" buttons and handles follow/unfollow logic.
- * - NEW: Replaces all `alert()` and `confirm()` calls with non-blocking toast notifications.
+ * - NEW: Replaces all `alert()` calls with non-blocking toast notifications.
  * - Merges all previous features like post editing, comment deletion, security sanitization, etc.
  */
 
@@ -263,7 +263,7 @@ document.addEventListener('authReady', (e) => {
             snapshot.forEach(doc => {
                 if (doc.id !== user?.uid && count < 5) {
                     const userToFollow = doc.data();
-                    const isFollowing = currentUserFriends.includes(doc.id);
+                    const isFollowing = user ? currentUserFriends.includes(doc.id) : false;
                     const li = document.createElement('li');
                     li.className = 'flex items-center justify-between py-2';
                     li.innerHTML = `
@@ -401,30 +401,37 @@ document.addEventListener('authReady', (e) => {
     
     const loadTrendingHashtags = async () => {
         const trendingHashtagsList = document.getElementById('trending-hashtags-list');
+        if(!trendingHashtagsList) return;
         trendingHashtagsList.innerHTML = '';
 
-        const hashtagCounts = {};
-        const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(100).get();
+        try {
+            const hashtagCounts = {};
+            const postsSnapshot = await db.collection('posts').orderBy('timestamp', 'desc').limit(100).get();
 
-        postsSnapshot.forEach(doc => {
-            const hashtags = doc.data().hashtags || [];
-            hashtags.forEach(tag => {
-                hashtagCounts[tag] = (hashtagCounts[tag] || 0) + 1;
+            postsSnapshot.forEach(doc => {
+                const hashtags = doc.data().hashtags || [];
+                hashtags.forEach(tag => {
+                    hashtagCounts[tag] = (hashtagCounts[tag] || 0) + 1;
+                });
             });
-        });
 
-        const sortedHashtags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const sortedHashtags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-        if(sortedHashtags.length === 0){
-            trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">No trending tags yet.</p>';
-            return;
+            if(sortedHashtags.length === 0){
+                trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">No trending tags yet.</p>';
+                return;
+            }
+
+            sortedHashtags.forEach(([tag, count]) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="search.html?query=%23${tag}" class="block text-blue-600 dark:text-blue-400 hover:underline font-medium">#${tag}</a> <span class="text-gray-500 dark:text-gray-400 text-sm">${count} posts</span>`;
+                trendingHashtagsList.appendChild(li);
+            });
+        } catch(error) {
+            // If trending fails for logged out users, just show a message.
+            console.log("Could not load trending hashtags, likely due to permissions for logged out user.");
+            trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">Log in to see trending tags.</p>';
         }
-
-        sortedHashtags.forEach(([tag, count]) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a href="search.html?query=%23${tag}" class="block text-blue-600 dark:text-blue-400 hover:underline font-medium">#${tag}</a> <span class="text-gray-500 dark:text-gray-400 text-sm">${count} posts</span>`;
-            trendingHashtagsList.appendChild(li);
-        });
     };
 
     const setupEventListeners = () => {
@@ -505,8 +512,9 @@ document.addEventListener('authReady', (e) => {
                     selectedFile = null;
                     postStatusMessage.textContent = '';
                     showToast('Posted successfully!', 'success');
-                    renderPosts(activeFeedType); // Refresh feed
-                    loadTrendingHashtags();
+                    if (activeFeedType === 'for-you') {
+                        renderPosts(activeFeedType);
+                    }
                 } catch (error) { 
                     console.error("Error creating post:", error);
                     showToast(`Error: ${error.message}`, 'error');
@@ -543,7 +551,6 @@ document.addEventListener('authReady', (e) => {
             }
 
             if (e.target.closest('.delete-post-btn')) {
-                // Using a custom confirmation modal would be better, but for now, we'll use the browser's confirm
                 if (window.confirm('Are you sure you want to delete this post?')) {
                     try {
                         await postRef.delete();
@@ -792,18 +799,30 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
-    const initializeFeed = async () => {
-        await checkAdminStatus();
+    const initializeApp = async () => {
+        const createPostSection = document.getElementById('create-post-section');
         if (user) {
+            // User is logged in, load the full experience
+            createPostSection?.classList.remove('hidden');
+            await checkAdminStatus();
             const userDoc = await db.collection('users').doc(user.uid).get();
             currentUserFriends = userDoc.data()?.friends || [];
-            document.getElementById('create-post-section').classList.remove('hidden');
+            renderPosts(activeFeedType);
+            loadTrendingHashtags();
             loadWhoToFollow();
+        } else {
+            // User is logged out, show welcome message
+            createPostSection?.classList.add('hidden');
+            postsContainer.innerHTML = `
+                <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Welcome to HatakeSocial!</h2>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">Please log in or register to view the feed and join the community.</p>
+                </div>
+            `;
+            // Still load public components that don't require auth
+            loadWhoToFollow(); 
         }
-        renderPosts(activeFeedType);
-        loadTrendingHashtags();
         setupEventListeners();
     };
 
-    initializeFeed();
-});
+    initializeApp();
