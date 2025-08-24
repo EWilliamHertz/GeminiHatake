@@ -4,11 +4,11 @@
  * This file contains the backend logic for the application.
  * - Handles new user registration with a referral code.
  * - Creates Stripe checkout sessions for the shop.
+ * - NEW: Automatically counts user posts.
  */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-// SECURE: Initialize Stripe using a Firebase environment variable
 const stripe = require("stripe")(functions.config().stripe.secret);
 
 admin.initializeApp();
@@ -62,6 +62,7 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
                 referredBy: referrerId,
                 shopDiscountPercent: 0,
                 referralCount: 0,
+                postCount: 0, // Initialize post count
                 isVerified: false
             });
 
@@ -103,7 +104,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to make a purchase.');
     }
 
-    const { cartItems, referralCode } = data;
+    const { cartItems } = data;
 
     if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a valid "cartItems" array.');
@@ -118,22 +119,18 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         payment_method_types: ['card'],
         line_items: line_items,
         mode: 'payment',
-        // IMPORTANT: Replace these with your actual website URLs
         success_url: `https://your-website.com/success.html`,
         cancel_url: `https://your-website.com/shop.html`,
-        allow_promotion_codes: true, // This allows the MTGFB code to be used
+        allow_promotion_codes: true,
         customer_email: context.auth.token.email,
         client_reference_id: context.auth.uid
     };
 
-    // This section is for applying the user's personal referral discount.
-    // It checks the user's profile for a discount percentage.
     const userRef = db.collection('users').doc(context.auth.uid);
     const userSnap = await userRef.get();
     const userData = userSnap.data();
 
     if (userData && userData.shopDiscountPercent > 0) {
-        // Create a coupon on the fly for the user's specific discount
         const coupon = await stripe.coupons.create({
             percent_off: userData.shopDiscountPercent,
             duration: 'once',
@@ -141,7 +138,6 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         });
         sessionData.discounts = [{ coupon: coupon.id }];
     }
-
 
     try {
         const session = await stripe.checkout.sessions.create(sessionData);
@@ -151,3 +147,30 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('internal', 'Unable to create Stripe checkout session.');
     }
 });
+
+/**
+ * NEW: A Firestore trigger to update a user's post count when they create a new post.
+ */
+exports.onPostCreate = functions.firestore
+    .document('posts/{postId}')
+    .onCreate(async (snap, context) => {
+        const postData = snap.data();
+        const authorId = postData.authorId;
+
+        if (!authorId) {
+            console.log("Post has no authorId, cannot update count.");
+            return null;
+        }
+
+        const userRef = db.collection('users').doc(authorId);
+
+        try {
+            await userRef.update({
+                postCount: admin.firestore.FieldValue.increment(1)
+            });
+            console.log(`Successfully incremented post count for user ${authorId}`);
+        } catch (error) {
+            console.error(`Failed to increment post count for user ${authorId}`, error);
+        }
+        return null;
+    });

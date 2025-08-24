@@ -1,14 +1,12 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v19 - Merged Edit/Delete Functionality)
+ * HatakeSocial - Index Page (Feed) Script (v20 - Merged Who to Follow)
  *
  * This script handles all logic for the main feed on index.html.
- * - NEW: Adds an "Edit" button to posts for the author or an admin.
- * - NEW: Adds a "Delete" button to comments for the comment author, post author, or an admin.
- * - Implements the backend logic to save edits and deletions to Firestore.
- * - SECURITY FIX: Sanitizes all user-provided data before rendering (display names, photo URLs, post/comment content) to prevent Cross-Site Scripting (XSS).
- * - Renders WTB, WTS, and WTT posts correctly in the main feed.
- * - Displays a friendly welcome message for logged-out users.
- * - Implements autocomplete suggestions for @mentions and [card names].
+ * - NEW: Merged "Who to Follow" logic to suggest users based on post count.
+ * - Includes Edit/Delete functionality for posts and comments.
+ * - SECURITY FIX: Sanitizes all user-provided data before rendering to prevent XSS.
+ * - Renders multiple feed types (For You, Friends, Groups).
+ * - Implements autocomplete for @mentions and [card names].
  * - Implements dynamic trending hashtags.
  */
 
@@ -40,6 +38,8 @@ const formatContent = (str) => {
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
+    const db = firebase.firestore();
+    const storage = firebase.storage();
     const postsContainer = document.getElementById('postsContainer');
     if (!postsContainer) return;
 
@@ -372,6 +372,52 @@ document.addEventListener('authReady', (e) => {
         });
     };
 
+    // --- Who to Follow (NEW) ---
+    const loadWhoToFollow = async () => {
+        const whoToFollowContainer = document.getElementById('who-to-follow-list');
+        if (!whoToFollowContainer) return;
+        whoToFollowContainer.innerHTML = '<li>Loading...</li>';
+
+        try {
+            // Query for users with the highest postCount
+            const snapshot = await db.collection('users')
+                                     .orderBy('postCount', 'desc')
+                                     .limit(6) // Fetch a bit more to filter out the current user
+                                     .get();
+
+            whoToFollowContainer.innerHTML = '';
+            let count = 0;
+            snapshot.forEach(doc => {
+                // Don't suggest the current user and limit to 5 suggestions
+                if (doc.id !== user?.uid && count < 5) {
+                    const userToFollow = doc.data();
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center justify-between py-2';
+                    li.innerHTML = `
+                        <div class="flex items-center">
+                            <img src="${sanitizeHTML(userToFollow.photoURL) || 'https://placehold.co/40x40'}" alt="${sanitizeHTML(userToFollow.displayName)}" class="w-10 h-10 rounded-full mr-3 object-cover">
+                            <div>
+                                <a href="/profile.html?uid=${doc.id}" class="font-semibold text-gray-800 dark:text-white hover:underline">${sanitizeHTML(userToFollow.displayName)}</a>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">@${sanitizeHTML(userToFollow.handle)}</p>
+                            </div>
+                        </div>
+                        <button class="follow-btn px-3 py-1 bg-blue-500 text-white text-sm font-semibold rounded-full hover:bg-blue-600" data-uid="${doc.id}">Follow</button>
+                    `;
+                    whoToFollowContainer.appendChild(li);
+                    count++;
+                }
+            });
+
+            if (count === 0) {
+                 whoToFollowContainer.innerHTML = '<li class="text-gray-500 dark:text-gray-400">No suggestions right now.</li>';
+            }
+
+        } catch (error) {
+            console.error("Error loading who to follow:", error);
+            whoToFollowContainer.innerHTML = '<li class="text-red-500">Could not load suggestions.</li>';
+        }
+    };
+
     const setupEventListeners = () => {
         const feedTabs = document.getElementById('feed-tabs');
         const postContentInput = document.getElementById('postContent');
@@ -383,7 +429,7 @@ document.addEventListener('authReady', (e) => {
         const uploadVideoBtn = document.getElementById('uploadVideoBtn');
         let selectedFile = null;
 
-        feedTabs.addEventListener('click', (e) => {
+        feedTabs?.addEventListener('click', (e) => {
             const button = e.target.closest('.feed-tab-button');
             if (button) {
                 document.querySelectorAll('.feed-tab-button').forEach(btn => btn.classList.remove('active'));
@@ -699,5 +745,8 @@ document.addEventListener('authReady', (e) => {
     // --- Initial Load ---
     renderPosts(activeFeedType);
     loadTrendingHashtags();
+    if (user) {
+        loadWhoToFollow();
+    }
     setupEventListeners();
 });
