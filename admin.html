@@ -99,7 +99,32 @@
         <div id="admin-dashboard-container" class="hidden space-y-8">
             <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-8">Admin Dashboard</h1>
 
-            <!-- User Management Section -->
+            <!-- Product Management Section (NEW) -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Product Management</h2>
+                    <button id="add-product-btn" class="bg-green-600 text-white px-5 py-2 rounded-full font-semibold hover:bg-green-700">
+                        <i class="fas fa-plus mr-2"></i>Add New Product
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Product</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stock</th>
+                                <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <!-- Product rows will be populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- User Management Section (Existing) -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">User Management</h2>
                 <div class="overflow-x-auto">
@@ -121,7 +146,7 @@
                 </div>
             </div>
             
-            <!-- NEW: Reported Posts Section -->
+            <!-- Reported Posts Section (Existing) -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Reported Posts</h2>
                 <div class="overflow-x-auto">
@@ -147,7 +172,55 @@
             <a href="index.html" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Go to Home</a>
         </div>
     </main>
-  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+
+    <!-- Add/Edit Product Modal (NEW & IMPROVED) -->
+    <div id="product-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg">
+            <button class="close-button" id="close-product-modal">&times;</button>
+            <h2 id="product-modal-title" class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Add New Product</h2>
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="product-id">
+                <div>
+                    <label for="product-name" class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Product Name:</label>
+                    <input type="text" id="product-name" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="product-price" class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Price (USD):</label>
+                        <input type="number" id="product-price" step="0.01" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                    </div>
+                    <div>
+                        <label for="product-stock" class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Stock:</label>
+                        <input type="number" id="product-stock" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                    </div>
+                </div>
+                <div>
+                    <label for="product-description" class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Description:</label>
+                    <textarea id="product-description" rows="3" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="stripe-product-id" class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Stripe Product ID:</label>
+                        <input type="text" id="stripe-product-id" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="prod_...">
+                    </div>
+                    <div>
+                        <label for="stripe-price-id" class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Stripe Price ID:</label>
+                        <input type="text" id="stripe-price-id" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="price_...">
+                    </div>
+                </div>
+                 <div>
+                    <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Product Gallery Images:</label>
+                    <input type="file" id="product-gallery-images" accept="image/*" multiple class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800">
+                    <div id="gallery-previews" class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                        <!-- Image previews will be added here -->
+                    </div>
+                </div>
+                <p id="product-form-error" class="text-red-500 text-sm text-center hidden"></p>
+                <button type="submit" id="save-product-btn" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-full hover:bg-blue-700">Save Product</button>
+            </form>
+        </div>
+    </div>
+<footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
     <div class="container mx-auto py-8 px-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
@@ -180,6 +253,7 @@
                         </button>
                     </div>
                     <div id="currency-selector-container">
+                        <!-- Currency selector will be loaded by auth.js -->
                     </div>
                 </div>
             </div>
@@ -217,9 +291,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/notifications.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/darkmode.js"></script>
     <script src="js/messenger.js"></script>

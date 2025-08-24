@@ -2,10 +2,11 @@
  * HatakeSocial - Firebase Cloud Functions
  *
  * This file contains the backend logic for the application.
- * - NEW: Adds functions to handle following users and creating notifications.
- * - Handles new user registration with a referral code.
+ * - Handles user registration with a referral code.
  * - Creates Stripe checkout sessions for the shop.
  * - Automatically counts user posts.
+ * - Handles following users and creating notifications.
+ * - Automatically deletes product images from Storage when a product is deleted.
  */
 
 const functions = require("firebase-functions");
@@ -14,6 +15,7 @@ const stripe = require("stripe")(functions.config().stripe.secret);
 
 admin.initializeApp();
 const db = admin.firestore();
+const storage = admin.storage();
 
 /**
  * A callable Cloud Function to handle new user registration with a referral code.
@@ -96,7 +98,6 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
     }
 });
 
-
 /**
  * A callable Cloud Function to create a Stripe Checkout session.
  */
@@ -178,7 +179,7 @@ exports.onPostCreate = functions.firestore
     });
 
 /**
- * NEW: A callable function to follow or unfollow a user.
+ * A callable function to follow or unfollow a user.
  */
 exports.toggleFollowUser = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
@@ -226,7 +227,7 @@ exports.toggleFollowUser = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * NEW: A Firestore trigger that creates a notification when a user is followed.
+ * A Firestore trigger that creates a notification when a user is followed.
  */
 exports.onFollow = functions.firestore
     .document('users/{userId}')
@@ -264,3 +265,28 @@ exports.onFollow = functions.firestore
         }
         return null;
     });
+
+/**
+ * A Firestore trigger that cleans up a product's images from Cloud Storage when it's deleted.
+ */
+exports.onProductDelete = functions.firestore
+    .document('products/{productId}')
+    .onDelete(async (snap, context) => {
+        const productId = context.params.productId;
+        const bucket = storage.bucket();
+        const directory = `products/${productId}/`;
+
+        console.log(`Deleting all images in directory: ${directory}`);
+
+        try {
+            await bucket.deleteFiles({
+                prefix: directory,
+            });
+            console.log(`Successfully deleted all images for product ${productId}.`);
+            return null;
+        } catch (error) {
+            console.error(`Failed to delete images for product ${productId}.`, error);
+            return null;
+        }
+    });
+
