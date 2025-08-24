@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addToCart(id);
         });
 
-        productDetailModal.classList.add('active');
+        productDetailModal.classList.add('open');
     };
 
     // --- CART LOGIC ---
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (existingItem) {
             existingItem.quantity++;
         } else {
-            cart.push({ id: productId, quantity: 1 });
+            cart.push({ id: productId, quantity: 1, priceId: product.stripePriceId });
         }
         saveCart();
         alert(`${product.name} has been added to your cart.`);
@@ -338,10 +338,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    cartBtn?.addEventListener('click', () => cartModal.classList.add('active'));
-    mobileCartBtn?.addEventListener('click', () => cartModal.classList.add('active'));
-    closeModalBtn?.addEventListener('click', () => cartModal.classList.remove('active'));
-    closeProductModalBtn?.addEventListener('click', () => productDetailModal.classList.remove('active'));
+    cartBtn?.addEventListener('click', () => cartModal.classList.add('open'));
+    mobileCartBtn?.addEventListener('click', () => cartModal.classList.add('open'));
+    closeModalBtn?.addEventListener('click', () => cartModal.classList.remove('open'));
+    closeProductModalBtn?.addEventListener('click', () => productDetailModal.classList.remove('open'));
     checkoutBtn?.addEventListener('click', handleCheckout);
     applyCouponBtn?.addEventListener('click', applyCoupon);
 
