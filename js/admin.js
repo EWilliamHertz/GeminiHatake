@@ -1,15 +1,13 @@
 /**
- * HatakeSocial - Admin Dashboard Script (v3 - Product Management)
+ * HatakeSocial - Admin Dashboard Script (v5 - Final Fix)
  *
- * This script handles all logic for the admin.html page.
- * - NEW: Adds full CRUD (Create, Read, Update, Delete) functionality for shop products.
- * - NEW: Allows manual entry/editing of Stripe Product and Price IDs.
- * - NEW: Supports uploading multiple gallery images for each product.
- * - Verifies admin status.
- * - Provides tools to manage users and reported posts.
+ * - FIX: Removed the self-admin change prevention to allow the initial admin to set their own custom claim.
+ * - Calls a secure Cloud Function (`setUserAdminClaim`) to manage user roles.
+ * - Includes full product management (CRUD), user management, and report handling.
  */
 document.addEventListener('authReady', async (e) => {
     const user = e.detail.user;
+    const functions = firebase.functions();
     const adminContainer = document.getElementById('admin-dashboard-container');
     const accessDeniedContainer = document.getElementById('admin-access-denied');
     const userTableBody = document.getElementById('user-management-table');
@@ -29,8 +27,8 @@ document.addEventListener('authReady', async (e) => {
     const galleryImageInput = document.getElementById('product-gallery-images');
 
     let currentProducts = [];
-    let newImageFiles = []; // To hold new files for upload
-    let existingImageUrls = []; // To hold URLs of images already uploaded
+    let newImageFiles = [];
+    let existingImageUrls = [];
 
     if (!user) {
         accessDeniedContainer.classList.remove('hidden');
@@ -38,7 +36,6 @@ document.addEventListener('authReady', async (e) => {
         return;
     }
 
-    // --- Verify Admin Status ---
     const userDoc = await db.collection('users').doc(user.uid).get();
     const isAdmin = userDoc.exists && userDoc.data().isAdmin === true;
 
@@ -287,13 +284,11 @@ document.addEventListener('authReady', async (e) => {
     addProductBtn.addEventListener('click', () => openProductModal());
     closeProductModalBtn.addEventListener('click', () => closeModal(productModal));
     productForm.addEventListener('submit', handleFormSubmit);
-
     galleryImageInput.addEventListener('change', (e) => {
         newImageFiles.push(...Array.from(e.target.files));
         renderGalleryPreviews();
-        galleryImageInput.value = ''; // Clear the input
+        galleryImageInput.value = '';
     });
-
     galleryPreviews.addEventListener('click', (e) => {
         if (e.target.closest('.delete-existing-img-btn')) {
             const urlToDelete = e.target.closest('.delete-existing-img-btn').dataset.url;
@@ -306,7 +301,6 @@ document.addEventListener('authReady', async (e) => {
             renderGalleryPreviews();
         }
     });
-
     productsTableBody.addEventListener('click', (e) => {
         if (e.target.closest('.edit-product-btn')) {
             const btn = e.target.closest('.edit-product-btn');
@@ -320,27 +314,36 @@ document.addEventListener('authReady', async (e) => {
     });
 
     userTableBody.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('toggle-admin-btn')) {
-            const button = e.target;
+        if (e.target.closest('.toggle-admin-btn')) {
+            const button = e.target.closest('.toggle-admin-btn');
             const userIdToUpdate = button.dataset.uid;
             const currentIsAdmin = button.dataset.isAdmin === 'true';
             
+            // **FIXED**: This block was preventing the first admin from setting their own claim.
+            // It has been removed to allow self-assignment of the admin role.
+            /*
             if (userIdToUpdate === user.uid) {
                 showToast("You cannot change your own admin status.", "error");
                 return;
             }
-
+            */
+            
             const action = currentIsAdmin ? 'revoke admin status from' : 'make';
             if (confirm(`Are you sure you want to ${action} this user?`)) {
+                button.disabled = true;
+                button.textContent = 'Updating...';
                 try {
-                    await db.collection('users').doc(userIdToUpdate).update({
-                        isAdmin: !currentIsAdmin
-                    });
-                    showToast('User role updated successfully.', 'success');
-                    loadUsers();
+                    // Call the cloud function to set custom claims
+                    const setUserAdminClaim = functions.httpsCallable('setUserAdminClaim');
+                    await setUserAdminClaim({ targetUid: userIdToUpdate, isAdmin: !currentIsAdmin });
+                    
+                    showToast('User role updated successfully. The user must log out and log back in for the change to take full effect.', 'success');
+                    loadUsers(); // This will refresh the user list to show the change
                 } catch (error) {
                     console.error("Error updating user role:", error);
-                    showToast("Failed to update user role.", "error");
+                    showToast(`Failed to update user role: ${error.message}`, "error");
+                    button.disabled = false;
+                    button.textContent = currentIsAdmin ? 'Revoke Admin' : 'Make Admin';
                 }
             }
         }

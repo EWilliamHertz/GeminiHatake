@@ -7,6 +7,7 @@
  * - Automatically counts user posts.
  * - Handles following users and creating notifications.
  * - Automatically deletes product images from Storage when a product is deleted.
+ * - NEW: Securely sets admin custom claims for user roles.
  */
 
 const functions = require("firebase-functions");
@@ -290,3 +291,41 @@ exports.onProductDelete = functions.firestore
         }
     });
 
+/**
+ * A callable Cloud Function to set the admin custom claim on a user.
+ * The caller of this function must already be an admin.
+ */
+exports.setUserAdminClaim = functions.https.onCall(async (data, context) => {
+    // 1. Check if the user calling the function is an admin.
+    if (context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError(
+            'permission-denied', 
+            'Only admins can set user roles.'
+        );
+    }
+
+    const { targetUid, isAdmin } = data;
+
+    // 2. Validate the incoming data.
+    if (typeof targetUid !== 'string' || typeof isAdmin !== 'boolean') {
+        throw new functions.https.HttpsError(
+            'invalid-argument', 
+            'The function must be called with a "targetUid" string and an "isAdmin" boolean.'
+        );
+    }
+
+    try {
+        // 3. Set the custom claim on the target user's auth token.
+        await admin.auth().setCustomUserClaims(targetUid, { admin: isAdmin });
+        
+        // 4. Also update the Firestore document to keep everything in sync.
+        await db.collection('users').doc(targetUid).update({ isAdmin: isAdmin });
+
+        console.log(`Successfully set admin claim for ${targetUid} to ${isAdmin}`);
+        return { success: true, message: `User role for ${targetUid} updated.` };
+
+    } catch (error) {
+        console.error("Error setting custom claim:", error);
+        throw new functions.https.HttpsError('internal', 'An internal error occurred while setting the user role.');
+    }
+});
