@@ -1,272 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Messages - HatakeSocial</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
-    
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
 
-   <!-- Header Section -->
-<header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
-    <div class="container mx-auto px-4 flex justify-between items-center">
-        <a href="index.html" class="flex items-center">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
-            <span class="ml-3 text-3xl font-extrabold text-gray-800 dark:text-white">HatakeSocial</span>
-        </a>
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
 
-        <div class="hidden md:flex flex-grow justify-center mx-4">
-            <form id="header-search-form" class="relative w-full max-w-md">
-                <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </form>
-        </div>
-
-        <div class="hidden md:flex items-center space-x-4">
-            <nav>
-                <ul class="flex items-center space-x-6">
-                    <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
-                    <li><a href="community.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Community"><i class="fas fa-users"></i></a></li>
-                    <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
-                    <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                    <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
-                    <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                    <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
-                    <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
-                    <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
-                    <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
-                </ul>
+    <div class="flex h-screen">
+        <!-- Sidebar (Copied from your existing structure for consistency) -->
+        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
+            <div class="h-16 flex items-center justify-center text-2xl font-bold text-blue-600 dark:text-blue-400">
+                HatakeSocial
+            </div>
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <a href="index.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6"></i> Feed</a>
+                <a href="messages.html" class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md"><i class="fas fa-comments w-6"></i> Messages</a>
+                <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-layer-group w-6"></i> My Collection</a>
+                <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6"></i> Deck Builder</a>
+                <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6"></i> Marketplace</a>
+                <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6"></i> Trades</a>
+                <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6"></i> Profile</a>
+                <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6"></i> Settings</a>
             </nav>
-            <div id="notification-container" class="relative">
-                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl">
-                    <i class="fas fa-bell"></i>
-                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
-                </button>
-                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-20 hidden">
-                    <div class="p-3 font-bold text-lg border-b dark:border-gray-700">Notifications</div>
-                    <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
-                </div>
+            <div id="sidebar-user-info" class="p-4 border-t border-gray-200 dark:border-gray-700 hidden">
+                <!-- User info will be populated by auth.js -->
             </div>
-            <div class="relative flex items-center">
-                <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
-                <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 ml-2">Register</button>
-                <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
-                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-10 hidden">
-                    <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
-                    <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
-                    <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
-                </div>
-            </div>
-        </div>
+        </aside>
 
-        <div class="md:hidden flex items-center">
-            <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-2xl">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-    </div>
-
-    <div id="mobile-menu" class="hidden md:hidden">
-        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <form id="mobile-search-form" class="relative mb-4">
-                <input type="text" id="mobileSearchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </form>
-            <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Home</a>
-            <a href="community.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Community</a>
-            <a href="deck.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Deck Builder</a>
-            <a href="shop.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Shop</a>
-            <a href="my_collection.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">My Collection</a>
-            <a href="trades.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Trades</a>
-            <a href="marketplace.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Marketplace</a>
-            <a href="events.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Events</a>
-            <a href="messages.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Messages</a>
-            <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
-             <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
-                <div id="mobile-user-actions">
-                </div>
-            </div>
-        </div>
-    </div>
-</header><!-- Modals -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
-            <button class="close-button" id="closeLoginModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-                </div>
-                <div>
-                    <label for="loginPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" class="w-5 h-5 mr-2"> Sign in with Google
-                </button>
-            </form>
-        </div>
-    </div>
-    <div id="registerModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
-            <button class="close-button" id="closeRegisterModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Register for HatakeSocial</h2>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label for="registerEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-                </div>
-                <div>
-                    <label for="registerPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                 <div>
-                    <label for="registerCity" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">City:</label>
-                    <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
-                </div>
-                <div>
-                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
-                    <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
-                </div>
-                <div>
-                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
-                    <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Main Messaging Interface -->
-    <main class="container mx-auto p-4 flex-grow">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl h-[calc(100vh-150px)] flex">
-            <!-- Conversations List -->
-            <div class="w-1/3 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-                <div class="p-4 border-b dark:border-gray-700 relative">
-                    <input type="text" id="user-search-input" placeholder="Search users to message..." class="w-full p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div id="user-search-results" class="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-700 shadow-lg rounded-md max-h-60 overflow-y-auto z-20 hidden"></div>
-                </div>
-                <div class="border-b border-gray-200 dark:border-gray-700">
-                    <nav class="flex -mb-px" aria-label="Tabs">
-                        <button class="message-tab-button active w-1/2" data-tab="users">Users</button>
-                        <button class="message-tab-button w-1/2" data-tab="groups">Groups</button>
-                    </nav>
-                </div>
-                <div id="conversations-list" class="flex-grow overflow-y-auto">
-                    <!-- Conversations will be loaded here by JS -->
-                </div>
-            </div>
-
-            <!-- Chat Area -->
-            <div id="chat-area" class="w-2/3 flex flex-col">
-                <div id="chat-welcome-screen" class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                    <i class="fas fa-comments text-6xl mb-4"></i>
-                    <h2 class="text-2xl">Select a conversation to start chatting</h2>
-                </div>
-                <div id="chat-view" class="hidden flex-col h-full">
-                    <!-- Chat Header -->
-                    <div class="p-4 border-b dark:border-gray-700 flex items-center">
-                        <img id="chat-header-avatar" src="https://placehold.co/40x40" class="h-10 w-10 rounded-full mr-3 object-cover">
-                        <h3 id="chat-header-name" class="font-bold text-lg text-gray-800 dark:text-white"></h3>
-                    </div>
-                    <!-- Messages Container -->
-                    <div id="messages-container" class="flex-grow p-4 overflow-y-auto">
-                        <!-- Messages will be loaded here -->
-                    </div>
-                    <!-- Message Input -->
-                    <div class="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                        <form id="message-form" class="flex items-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-2">
-                             <input type="text" id="message-input" placeholder="Type a message..." class="w-full bg-transparent focus:outline-none text-gray-800 dark:text-white">
-                             <button type="submit" id="send-message-btn" class="bg-blue-600 text-white rounded-full px-4 py-1 ml-2 font-semibold">Send</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-    
-<div id="messenger-widget-container" class="minimized">
-    <div id="messenger-open-btn">
-        <i class="fas fa-comments"></i>
-    </div>
-
-    <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
-        <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-            <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
-            <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
-        </div>
-        <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-            <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
-                </div>
-        </div>
-    </div>
-</div>
-
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-    <div class="container mx-auto py-8 px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
-                    <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
-                    <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
-                    <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Display Options</h3>
-                <div class="flex items-center space-x-4">
-                    <div>
-                        <label for="theme-toggle" class="text-sm text-gray-600 dark:text-gray-400">Theme</label>
-                        <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
-                            <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
-                            <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="h-16 flex items-center justify-between px-4">
+                    <div class="lg:hidden">
+                        <button id="mobile-menu-button" class="text-gray-500 focus:outline-none">
+                            <i class="fas fa-bars text-xl"></i>
                         </button>
                     </div>
-                    <div id="currency-selector-container">
+                    <h1 class="text-xl font-bold">Messages</h1>
+                    <div class="flex items-center space-x-4">
+                        <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Login</button>
+                        <button id="registerButton" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600">Register</button>
+                        <div class="relative">
+                            <img id="userAvatar" src="" alt="User Avatar" class="h-10 w-10 rounded-full cursor-pointer hidden">
+                            <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 hidden">
+                                <!-- Dropdown items -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="lg:hidden hidden bg-white dark:bg-gray-800">
+                <!-- Mobile nav links here -->
+            </div>
+
+            <!-- Chat Layout -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Conversations List -->
+                <div id="conversations-list" class="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <button id="new-conversation-btn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                            New Message
+                        </button>
+                    </div>
+                    <div id="conversations-container" class="flex-1 overflow-y-auto">
+                        <!-- Conversation items will be dynamically inserted here -->
+                        <p class="p-4 text-center text-gray-500">Loading conversations...</p>
+                    </div>
+                </div>
+
+                <!-- Chat Window -->
+                <div id="chat-window" class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+                    <!-- Placeholder shown when no conversation is selected -->
+                    <div id="chat-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-4">
+                        <i class="fas fa-comments text-6xl text-gray-300 dark:text-gray-600"></i>
+                        <h2 class="mt-4 text-2xl font-semibold">Select a conversation</h2>
+                        <p class="text-gray-500 dark:text-gray-400">Choose from your existing conversations or start a new one.</p>
+                    </div>
+
+                    <!-- Active chat view (hidden by default) -->
+                    <div id="active-chat-container" class="hidden flex-1 flex flex-col">
+                        <!-- Chat Header -->
+                        <div id="chat-header" class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <!-- Recipient info will be populated here -->
+                        </div>
+
+                        <!-- Messages Area -->
+                        <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4">
+                            <!-- Messages will be appended here -->
+                        </div>
+
+                        <!-- Message Input Form -->
+                        <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                            <form id="message-form" class="flex items-center space-x-3">
+                                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <button type="submit" class="bg-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-blue-700">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-            <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-            <div class="flex space-x-6 mt-4 md:mt-0">
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
+        </main>
+    </div>
+
+    <!-- New Conversation Modal -->
+    <div id="new-conversation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
+            <input type="text" id="user-search-input" placeholder="Search for a user by handle..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4">
+            <div id="user-search-results" class="max-h-60 overflow-y-auto">
+                <!-- Search results will appear here -->
             </div>
+            <button id="close-modal-btn" class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
         </div>
     </div>
-</footer>
-    
-    <!-- Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+
     <script src="js/auth.js"></script>
-    <script src="js/notifications.js"></script>
     <script src="js/messages.js"></script>
     <script src="js/darkmode.js"></script>
-    <script src="js/messenger.js"></script>
 </body>
 </html>

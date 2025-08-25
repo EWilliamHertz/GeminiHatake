@@ -1,323 +1,269 @@
-// js/messages.js
+/**
+ * HatakeSocial - Real-time Messaging System (v1)
+ *
+ * This script completely revamps the messaging functionality.
+ * - Implements a modern, two-column chat interface.
+ * - Uses Firestore real-time listeners (`onSnapshot`) for conversations and messages.
+ * - Allows users to start new conversations by searching for other users.
+ * - Automatically scrolls to the latest message.
+ * - Provides clear loading and empty states.
+ */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    if (!user) {
+        document.getElementById('chat-window').innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center p-4">
+                <i class="fas fa-lock text-6xl text-gray-300 dark:text-gray-600"></i>
+                <h2 class="mt-4 text-2xl font-semibold">Authentication Required</h2>
+                <p class="text-gray-500 dark:text-gray-400">Please log in to view your messages.</p>
+            </div>
+        `;
+        document.getElementById('conversations-list').classList.add('hidden');
+        return;
+    }
+
     const db = firebase.firestore();
-    let currentUser = null;
-    let currentConversationId = null;
-    let currentConversationData = null;
-    let unsubscribeConversation = null;
-    let usersCache = {}; // Cache for user data
+    let activeConversationId = null;
+    let unsubscribeMessages = null;
+    let unsubscribeConversations = null;
 
-    const conversationsList = document.getElementById('conversations-list');
-    const chatWindow = document.getElementById('chat-window');
+    // --- DOM Elements ---
+    const conversationsContainer = document.getElementById('conversations-container');
+    const chatPlaceholder = document.getElementById('chat-placeholder');
+    const activeChatContainer = document.getElementById('active-chat-container');
     const chatHeader = document.getElementById('chat-header');
     const messagesContainer = document.getElementById('messages-container');
+    const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
-    const sendMessageBtn = document.getElementById('send-message-btn');
     const newConversationBtn = document.getElementById('new-conversation-btn');
     const newConversationModal = document.getElementById('new-conversation-modal');
-    const closeBtn = document.querySelector('.close-btn');
-    const searchUserInput = document.getElementById('search-user-input');
-    const searchResults = document.getElementById('search-results');
-    const createConversationBtn = document.getElementById('create-conversation-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const userSearchInput = document.getElementById('user-search-input');
+    const userSearchResults = document.getElementById('user-search-results');
 
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user;
-            await loadConversations();
-            checkUrlForConversation();
-        } else {
-            // The user's code originally had a redirect here. The new auth.js
-            // handles this more gracefully, but we'll ensure if this script
-            // runs without a user it doesn't cause unexpected behavior.
-            const mainContent = document.querySelector('main.container');
-            if (mainContent) {
-                mainContent.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to view your messages.</p>';
-            }
-        }
-    });
 
-    const getUserData = async (userId) => {
-        if (usersCache[userId]) {
-            return usersCache[userId];
-        }
-        try {
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (userDoc.exists) {
-                const userData = userDoc.data();
-                usersCache[userId] = userData;
-                return userData;
-            }
-        } catch (error) {
-            console.error("Error fetching user data:", error);
-        }
-        return { displayName: 'Unknown User', photoURL: 'images/default-avatar.png' }; // Default data
-    };
+    /**
+     * Fetches and displays the list of the current user's conversations.
+     */
+    const listenForConversations = () => {
+        if (unsubscribeConversations) unsubscribeConversations();
 
-    const loadConversations = async () => {
-        if (!currentUser) return;
-        conversationsList.innerHTML = 'Loading conversations...';
-        try {
-            db.collection('conversations')
-              .where('participants', 'array-contains', currentUser.uid)
-              .orderBy('updatedAt', 'desc')
-              .onSnapshot(async (snapshot) => {
-                  if (snapshot.empty) {
-                      conversationsList.innerHTML = '<p>No conversations yet. Start a new one!</p>';
-                      return;
-                  }
-                  conversationsList.innerHTML = '';
-                  for (const doc of snapshot.docs) {
-                      const conversation = doc.data();
-                      const conversationId = doc.id;
-                      const otherParticipantId = conversation.participants.find(id => id !== currentUser.uid);
-                      
-                      if (otherParticipantId) {
-                          const otherUserData = await getUserData(otherParticipantId);
-                          const conversationElement = document.createElement('div');
-                          conversationElement.classList.add('conversation-item');
-                          conversationElement.dataset.id = conversationId;
-                          
-                          conversationElement.innerHTML = `
-                              <img src="${otherUserData.photoURL || 'images/default-avatar.png'}" alt="${otherUserData.displayName}" class="avatar">
-                              <div>
-                                  <strong>${otherUserData.displayName}</strong>
-                                  <p>${conversation.lastMessage ? (conversation.lastMessage.length > 30 ? conversation.lastMessage.substring(0, 30) + '...' : conversation.lastMessage) : 'No messages yet'}</p>
-                              </div>
-                          `;
-                          conversationElement.addEventListener('click', () => selectConversation(conversationId));
-                          conversationsList.appendChild(conversationElement);
-                      }
-                  }
-              }, (error) => {
-                if (error.code === 'permission-denied') {
-                    conversationsList.innerHTML = '<p class="text-center text-red-500 p-4">You do not have permission to view messages. Please check your account status or contact support.</p>';
-                } else {
-                    console.error("Error loading conversations: ", error);
-                    conversationsList.innerHTML = '<p>Error loading conversations.</p>';
+        unsubscribeConversations = db.collection('conversations')
+            .where('participants', 'array-contains', user.uid)
+            .orderBy('lastUpdated', 'desc')
+            .onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    conversationsContainer.innerHTML = '<p class="p-4 text-center text-gray-500">No conversations yet.</p>';
+                    return;
                 }
-              });
-        } catch (error) {
-            console.error("Error loading conversations: ", error);
-            conversationsList.innerHTML = '<p>Error loading conversations.</p>';
-        }
+                conversationsContainer.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const convo = doc.data();
+                    const otherUserId = convo.participants.find(p => p !== user.uid);
+                    
+                    // We need to fetch the other user's details
+                    db.collection('users').doc(otherUserId).get().then(userDoc => {
+                        if (userDoc.exists) {
+                            const otherUserData = userDoc.data();
+                            const convoElement = document.createElement('div');
+                            convoElement.className = 'conversation-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700';
+                            convoElement.dataset.conversationId = doc.id;
+
+                            convoElement.innerHTML = `
+                                <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
+                                <div class="flex-1 truncate">
+                                    <p class="font-semibold">${otherUserData.displayName}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
+                                </div>
+                            `;
+                            convoElement.addEventListener('click', () => selectConversation(doc.id, otherUserData));
+                            conversationsContainer.appendChild(convoElement);
+                        }
+                    });
+                });
+            });
     };
 
-    const selectConversation = async (conversationId) => {
-        if (unsubscribeConversation) {
-            unsubscribeConversation();
-        }
+    /**
+     * Handles the UI and logic when a user clicks on a conversation.
+     * @param {string} conversationId - The ID of the selected conversation.
+     * @param {object} otherUser - The user object of the other participant.
+     */
+    const selectConversation = (conversationId, otherUser) => {
+        activeConversationId = conversationId;
 
-        currentConversationId = conversationId;
-        chatWindow.style.display = 'flex';
-
-        const conversationRef = db.collection('conversations').doc(conversationId);
-        
-        unsubscribeConversation = conversationRef.onSnapshot(async (doc) => {
-            if (doc.exists) {
-                currentConversationData = doc.data();
-                const otherParticipantId = currentConversationData.participants.find(id => id !== currentUser.uid);
-                const otherUserData = await getUserData(otherParticipantId);
-
-                chatHeader.innerHTML = `<h3>Chat with ${otherUserData.displayName}</h3>`;
-                renderMessages(currentConversationData.messages);
-            }
+        // Highlight the selected conversation
+        document.querySelectorAll('.conversation-item').forEach(el => {
+            el.classList.toggle('bg-blue-100', el.dataset.conversationId === conversationId);
+            el.classList.toggle('dark:bg-blue-900/50', el.dataset.conversationId === conversationId);
         });
-        
-        // Update URL without reloading
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?with=' + currentConversationId;
-        window.history.pushState({path:newUrl},'',newUrl);
+
+        chatPlaceholder.classList.add('hidden');
+        activeChatContainer.classList.remove('hidden');
+        activeChatContainer.classList.add('flex');
+
+        // Populate header
+        chatHeader.innerHTML = `
+            <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
+            <div>
+                <p class="font-bold">${otherUser.displayName}</p>
+                <p class="text-xs text-gray-500">@${otherUser.handle}</p>
+            </div>
+        `;
+
+        listenForMessages(conversationId);
     };
 
-    const renderMessages = async (messages) => {
-        messagesContainer.innerHTML = '';
-        if (!messages || messages.length === 0) {
-            messagesContainer.innerHTML = '<p>No messages yet. Say hello!</p>';
-            return;
-        }
+    /**
+     * Listens for new messages in the active conversation and renders them.
+     * @param {string} conversationId - The ID of the conversation to listen to.
+     */
+    const listenForMessages = (conversationId) => {
+        if (unsubscribeMessages) unsubscribeMessages();
+        messagesContainer.innerHTML = ''; // Clear previous messages
 
-        for (const message of messages) {
-            const senderData = await getUserData(message.senderId);
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            if (message.senderId === currentUser.uid) {
-                messageElement.classList.add('sent');
-            } else {
-                messageElement.classList.add('received');
-            }
-            
-            const timestamp = message.timestamp?.toDate ? message.timestamp.toDate().toLocaleTimeString() : new Date().toLocaleTimeString();
+        unsubscribeMessages = db.collection('conversations').doc(conversationId).collection('messages')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const message = change.doc.data();
+                        renderMessage(message);
+                    }
+                });
+                scrollToBottom();
+            });
+    };
 
-            messageElement.innerHTML = `
-                <img src="${senderData.photoURL || 'images/default-avatar.png'}" alt="${senderData.displayName}" class="avatar">
-                <div class="message-content">
-                    <p>${message.content}</p>
-                    <span class="timestamp">${timestamp}</span>
-                </div>
-            `;
-            messagesContainer.appendChild(messageElement);
-        }
+    /**
+     * Renders a single message bubble in the chat window.
+     * @param {object} message - The message data object.
+     */
+    const renderMessage = (message) => {
+        const messageWrapper = document.createElement('div');
+        const messageBubble = document.createElement('div');
+        
+        const isCurrentUser = message.senderId === user.uid;
+        
+        messageWrapper.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+        messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
+        
+        messageBubble.textContent = message.text;
+        messageWrapper.appendChild(messageBubble);
+        messagesContainer.appendChild(messageWrapper);
+    };
+
+    /**
+     * Scrolls the message container to the bottom.
+     */
+    const scrollToBottom = () => {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     };
 
-    const sendMessage = async () => {
-        const content = messageInput.value.trim();
-        if (!content || !currentConversationId || !currentConversationData) return;
+    /**
+     * Handles the submission of the message form.
+     */
+    messageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = messageInput.value.trim();
+        if (text === '' || !activeConversationId) return;
 
-        const conversationRef = db.collection('conversations').doc(currentConversationId);
-        const newMessage = {
-            content: content,
-            senderId: currentUser.uid,
-            timestamp: new Date()
+        messageInput.value = '';
+
+        const messageData = {
+            text: text,
+            senderId: user.uid,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         };
+
+        // Add the message and update the conversation's last message in a batch
+        const convoRef = db.collection('conversations').doc(activeConversationId);
+        const messageRef = convoRef.collection('messages').doc();
         
-        const originalInput = content;
-        messageInput.value = ''; // Clear input immediately for better UX
+        const batch = db.batch();
+        batch.set(messageRef, messageData);
+        batch.update(convoRef, {
+            lastMessage: text,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
-        try {
-            await conversationRef.update({
-                messages: firebase.firestore.FieldValue.arrayUnion(newMessage),
-                lastMessage: content,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // Send notifications to other participants
-            const recipients = currentConversationData.participants.filter(id => id !== currentUser.uid);
-            for (const recipientId of recipients) {
-                // Create a snippet of the message for the notification
-                const snippet = content.length > 50 ? content.substring(0, 47) + '...' : content;
-                await createNotification(
-                    recipientId,
-                    `${currentUser.displayName}: ${snippet}`,
-                    `/messages.html?conversationId=${currentConversationId}`
-                );
-            }
-        } catch (error) {
-            console.error("Error sending message:", error);
-            // Restore input if sending failed
-            messageInput.value = originalInput;
-            // Optionally show an error message to the user
-            alert("Could not send message. Please try again.");
-        }
-    };
-    
-    const createNotification = async (userId, message, link) => {
-        if (!userId || !message) return;
-        try {
-            await db.collection('notifications').add({
-                userId: userId,
-                message: message,
-                link: link,
-                read: false,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (error) {
-            console.error("Error creating notification:", error);
-        }
-    };
-
-    const checkUrlForConversation = () => {
-        const params = new URLSearchParams(window.location.search);
-        const conversationId = params.get('conversationId') || params.get('with');
-        if (conversationId) {
-            // Validate that the current user is part of this conversation
-            db.collection('conversations').doc(conversationId).get().then(doc => {
-                if (doc.exists && doc.data().participants.includes(currentUser.uid)) {
-                    selectConversation(conversationId);
-                } else {
-                    console.warn("User is not a participant of the requested conversation or it does not exist.");
-                }
-            });
-        }
-    };
-
-    // Event Listeners
-    sendMessageBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            sendMessage();
-        }
+        await batch.commit();
+        scrollToBottom();
     });
 
-    newConversationBtn.addEventListener('click', () => {
-        newConversationModal.style.display = 'block';
-    });
-
-    closeBtn.addEventListener('click', () => {
-        newConversationModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target == newConversationModal) {
-            newConversationModal.style.display = 'none';
-        }
-    });
+    // --- New Conversation Modal Logic ---
+    newConversationBtn.addEventListener('click', () => newConversationModal.classList.remove('hidden'));
+    closeModalBtn.addEventListener('click', () => newConversationModal.classList.add('hidden'));
 
     let searchTimeout;
-    searchUserInput.addEventListener('input', () => {
+    userSearchInput.addEventListener('keyup', () => {
         clearTimeout(searchTimeout);
-        const searchTerm = searchUserInput.value.trim();
-        if (searchTerm.length < 2) {
-            searchResults.innerHTML = '';
+        const query = userSearchInput.value.trim().toLowerCase();
+        if (query.length < 2) {
+            userSearchResults.innerHTML = '';
             return;
         }
-        searchResults.innerHTML = 'Searching...';
         searchTimeout = setTimeout(async () => {
-            try {
-                const usersRef = db.collection('users');
-                const snapshot = await usersRef.where('displayName', '>=', searchTerm).where('displayName', '<=', searchTerm + '\uf8ff').get();
-                
-                searchResults.innerHTML = '';
-                if (snapshot.empty) {
-                    searchResults.innerHTML = 'No users found.';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    if (doc.id !== currentUser.uid) { // Don't show current user in results
-                        const user = doc.data();
-                        const userElement = document.createElement('div');
-                        userElement.classList.add('search-result-item');
-                        userElement.innerHTML = `
-                            <span>${user.displayName}</span>
-                            <button data-id="${doc.id}" data-name="${user.displayName}">Start Chat</button>
-                        `;
-                        searchResults.appendChild(userElement);
-                    }
-                });
-            } catch (error) {
-                console.error("Error searching users:", error);
-                searchResults.innerHTML = 'Error searching for users.';
+            userSearchResults.innerHTML = '<p class="text-gray-500">Searching...</p>';
+            const usersRef = db.collection('users');
+            const snapshot = await usersRef
+                .where('handle', '>=', query)
+                .where('handle', '<=', query + '\uf8ff')
+                .limit(10)
+                .get();
+            
+            userSearchResults.innerHTML = '';
+            if (snapshot.empty) {
+                userSearchResults.innerHTML = '<p class="text-gray-500">No users found.</p>';
+                return;
             }
+            snapshot.forEach(doc => {
+                const foundUser = doc.data();
+                if (doc.id === user.uid) return; // Don't show current user
+
+                const resultEl = document.createElement('div');
+                resultEl.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md';
+                resultEl.innerHTML = `
+                    <img src="${foundUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover mr-3">
+                    <div>
+                        <p class="font-semibold">${foundUser.displayName}</p>
+                        <p class="text-sm text-gray-500">@${foundUser.handle}</p>
+                    </div>
+                `;
+                resultEl.addEventListener('click', () => startConversation(doc.id, foundUser));
+                userSearchResults.appendChild(resultEl);
+            });
         }, 500);
     });
 
-    searchResults.addEventListener('click', async (event) => {
-        if (event.target.tagName === 'BUTTON') {
-            const userId = event.target.dataset.id;
-            
-            // Check if a conversation already exists
-            const existingConversation = await db.collection('conversations')
-                .where('participants', '==', [currentUser.uid, userId].sort())
-                .get();
+    /**
+     * Starts a new conversation with a selected user or opens an existing one.
+     * @param {string} otherUserId - The UID of the user to start a conversation with.
+     * @param {object} otherUserData - The full user data object.
+     */
+    const startConversation = async (otherUserId, otherUserData) => {
+        newConversationModal.classList.add('hidden');
+        userSearchInput.value = '';
+        userSearchResults.innerHTML = '';
 
-            if (!existingConversation.empty) {
-                // Conversation exists, select it
-                const conversationId = existingConversation.docs[0].id;
-                selectConversation(conversationId);
-            } else {
-                // Create a new conversation
-                const newConversationRef = await db.collection('conversations').add({
-                    participants: [currentUser.uid, userId].sort(), // Store sorted to make querying easier
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    messages: [],
-                    lastMessage: ''
-                });
-                selectConversation(newConversationRef.id);
-            }
-            newConversationModal.style.display = 'none';
-            searchUserInput.value = '';
-            searchResults.innerHTML = '';
+        // Generate a consistent conversation ID
+        const conversationId = [user.uid, otherUserId].sort().join('_');
+        const convoRef = db.collection('conversations').doc(conversationId);
+        
+        const doc = await convoRef.get();
+        if (!doc.exists) {
+            // Create a new conversation
+            await convoRef.set({
+                participants: [user.uid, otherUserId],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: ''
+            });
         }
-    });
+        
+        selectConversation(conversationId, otherUserData);
+    };
+
+    // --- Initial Load ---
+    listenForConversations();
 });
