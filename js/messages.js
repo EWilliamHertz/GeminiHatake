@@ -1,12 +1,12 @@
 /**
- * HatakeSocial - Real-time Messaging System (v1)
+ * HatakeSocial - Real-time Messaging System (v2 - Robust Error Handling)
  *
  * This script completely revamps the messaging functionality.
+ * - FIX: Adds robust error handling and pre-send authentication checks to diagnose permission issues.
+ * - FIX: Disables input during message submission to prevent errors.
  * - Implements a modern, two-column chat interface.
  * - Uses Firestore real-time listeners (`onSnapshot`) for conversations and messages.
  * - Allows users to start new conversations by searching for other users.
- * - Automatically scrolls to the latest message.
- * - Provides clear loading and empty states.
  */
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
@@ -61,7 +61,8 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                     const convo = doc.data();
                     const otherUserId = convo.participants.find(p => p !== user.uid);
                     
-                    // We need to fetch the other user's details
+                    if (!otherUserId) return;
+
                     db.collection('users').doc(otherUserId).get().then(userDoc => {
                         if (userDoc.exists) {
                             const otherUserData = userDoc.data();
@@ -81,6 +82,9 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                         }
                     });
                 });
+            }, error => {
+                console.error("Firestore Error: Failed to listen for conversations.", error);
+                conversationsContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load conversations. This is likely a permissions issue.</p>';
             });
     };
 
@@ -92,7 +96,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const selectConversation = (conversationId, otherUser) => {
         activeConversationId = conversationId;
 
-        // Highlight the selected conversation
         document.querySelectorAll('.conversation-item').forEach(el => {
             el.classList.toggle('bg-blue-100', el.dataset.conversationId === conversationId);
             el.classList.toggle('dark:bg-blue-900/50', el.dataset.conversationId === conversationId);
@@ -102,7 +105,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         activeChatContainer.classList.remove('hidden');
         activeChatContainer.classList.add('flex');
 
-        // Populate header
         chatHeader.innerHTML = `
             <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
             <div>
@@ -120,7 +122,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
      */
     const listenForMessages = (conversationId) => {
         if (unsubscribeMessages) unsubscribeMessages();
-        messagesContainer.innerHTML = ''; // Clear previous messages
+        messagesContainer.innerHTML = '';
 
         unsubscribeMessages = db.collection('conversations').doc(conversationId).collection('messages')
             .orderBy('timestamp', 'asc')
@@ -132,6 +134,9 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                     }
                 });
                 scrollToBottom();
+            }, error => {
+                console.error(`Firestore Error: Failed to listen for messages in ${conversationId}.`, error);
+                messagesContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load messages.</p>';
             });
     };
 
@@ -153,42 +158,53 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         messagesContainer.appendChild(messageWrapper);
     };
 
-    /**
-     * Scrolls the message container to the bottom.
-     */
     const scrollToBottom = () => {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     };
 
-    /**
-     * Handles the submission of the message form.
-     */
     messageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            showToast("You are not signed in. Please refresh and log in.", "error");
+            return;
+        }
+
         const text = messageInput.value.trim();
         if (text === '' || !activeConversationId) return;
 
+        const originalMessage = text;
         messageInput.value = '';
+        messageInput.disabled = true;
 
         const messageData = {
-            text: text,
-            senderId: user.uid,
+            text: originalMessage,
+            senderId: currentUser.uid,
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // Add the message and update the conversation's last message in a batch
         const convoRef = db.collection('conversations').doc(activeConversationId);
         const messageRef = convoRef.collection('messages').doc();
         
         const batch = db.batch();
         batch.set(messageRef, messageData);
         batch.update(convoRef, {
-            lastMessage: text,
+            lastMessage: originalMessage,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        await batch.commit();
-        scrollToBottom();
+        try {
+            await batch.commit();
+            scrollToBottom();
+        } catch (error) {
+            console.error("Firestore Error: Failed to send message.", error);
+            showToast(`Error: Could not send message. Check Firestore rules.`, "error");
+            messageInput.value = originalMessage; // Restore message on failure
+        } finally {
+            messageInput.disabled = false;
+            messageInput.focus();
+        }
     });
 
     // --- New Conversation Modal Logic ---
@@ -204,64 +220,65 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             return;
         }
         searchTimeout = setTimeout(async () => {
-            userSearchResults.innerHTML = '<p class="text-gray-500">Searching...</p>';
-            const usersRef = db.collection('users');
-            const snapshot = await usersRef
-                .where('handle', '>=', query)
-                .where('handle', '<=', query + '\uf8ff')
-                .limit(10)
-                .get();
-            
-            userSearchResults.innerHTML = '';
-            if (snapshot.empty) {
-                userSearchResults.innerHTML = '<p class="text-gray-500">No users found.</p>';
-                return;
-            }
-            snapshot.forEach(doc => {
-                const foundUser = doc.data();
-                if (doc.id === user.uid) return; // Don't show current user
+            userSearchResults.innerHTML = '<p class="text-gray-500 p-2">Searching...</p>';
+            try {
+                const snapshot = await db.collection('users')
+                    .where('handle', '>=', query)
+                    .where('handle', '<=', query + '\uf8ff')
+                    .limit(10)
+                    .get();
+                
+                userSearchResults.innerHTML = '';
+                if (snapshot.empty) {
+                    userSearchResults.innerHTML = '<p class="text-gray-500 p-2">No users found.</p>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const foundUser = doc.data();
+                    if (doc.id === user.uid) return;
 
-                const resultEl = document.createElement('div');
-                resultEl.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md';
-                resultEl.innerHTML = `
-                    <img src="${foundUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover mr-3">
-                    <div>
-                        <p class="font-semibold">${foundUser.displayName}</p>
-                        <p class="text-sm text-gray-500">@${foundUser.handle}</p>
-                    </div>
-                `;
-                resultEl.addEventListener('click', () => startConversation(doc.id, foundUser));
-                userSearchResults.appendChild(resultEl);
-            });
+                    const resultEl = document.createElement('div');
+                    resultEl.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md';
+                    resultEl.innerHTML = `
+                        <img src="${foundUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover mr-3">
+                        <div>
+                            <p class="font-semibold">${foundUser.displayName}</p>
+                            <p class="text-sm text-gray-500">@${foundUser.handle}</p>
+                        </div>
+                    `;
+                    resultEl.addEventListener('click', () => startConversation(doc.id, foundUser));
+                    userSearchResults.appendChild(resultEl);
+                });
+            } catch (error) {
+                 console.error("Firestore Error: Failed to search users.", error);
+                 userSearchResults.innerHTML = '<p class="text-red-500 p-2">Error searching users.</p>';
+            }
         }, 500);
     });
 
-    /**
-     * Starts a new conversation with a selected user or opens an existing one.
-     * @param {string} otherUserId - The UID of the user to start a conversation with.
-     * @param {object} otherUserData - The full user data object.
-     */
     const startConversation = async (otherUserId, otherUserData) => {
         newConversationModal.classList.add('hidden');
         userSearchInput.value = '';
         userSearchResults.innerHTML = '';
 
-        // Generate a consistent conversation ID
         const conversationId = [user.uid, otherUserId].sort().join('_');
         const convoRef = db.collection('conversations').doc(conversationId);
         
-        const doc = await convoRef.get();
-        if (!doc.exists) {
-            // Create a new conversation
-            await convoRef.set({
-                participants: [user.uid, otherUserId],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                lastMessage: ''
-            });
+        try {
+            const doc = await convoRef.get();
+            if (!doc.exists) {
+                await convoRef.set({
+                    participants: [user.uid, otherUserId],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessage: ''
+                });
+            }
+            selectConversation(conversationId, otherUserData);
+        } catch (error) {
+            console.error("Firestore Error: Failed to start conversation.", error);
+            showToast(`Error: Could not start conversation. Check permissions.`, "error");
         }
-        
-        selectConversation(conversationId, otherUserData);
     };
 
     // --- Initial Load ---
