@@ -1,11 +1,10 @@
 /**
- * HatakeSocial - Deck Page Script (v30 - Final Tab & Listener Fix)
+ * HatakeSocial - Deck Page Script (v31 - Final Fix & Secure AI)
  *
- * - FIX: Rewrites deck list event handling using event delegation to solve unresponsive buttons after filtering.
- * - FIX: Reinforces tab switching logic to be more robust.
+ * - FIX: Reverted tab switching and event listener logic to the last known working version to ensure stability.
+ * - SECURE: Implements the secure Gemini API call via a Firebase Cloud Function, removing the client-side API key.
  * - Adds a "Play vs. AI" button to the playtest modal.
  * - Implements a simple AI opponent that can draw cards, play lands, and play creatures.
- * - Secures Gemini API key by using a Firebase Cloud Function proxy.
  */
 
 /**
@@ -58,8 +57,7 @@ document.addEventListener('authReady', (e) => {
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
-    const myDecksListContainer = document.getElementById('my-decks-list');
-    const communityDecksListContainer = document.getElementById('community-decks-list');
+    const tabContents = document.querySelectorAll('.tab-content');
     const deckFilters = document.getElementById('deck-filters');
     const tcgFilterButtons = document.getElementById('tcg-filter-buttons');
     const formatFilterContainer = document.getElementById('format-filter-container');
@@ -440,34 +438,45 @@ document.addEventListener('authReady', (e) => {
     };
 
     const loadMyDecks = async (tcg = 'all', format = 'all') => {
-        if (!user) { myDecksListContainer.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
-        myDecksListContainer.innerHTML = '<p>Loading...</p>';
+        const myDecksList = document.getElementById('my-decks-list');
+        if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
+        myDecksList.innerHTML = '<p>Loading...</p>';
         let query = db.collection('users').doc(user.uid).collection('decks');
         if(tcg !== 'all') query = query.where('tcg', '==', tcg);
         if(format !== 'all') query = query.where('format', '==', format);
         const snapshot = await query.orderBy('createdAt', 'desc').get();
 
-        if (snapshot.empty) { myDecksListContainer.innerHTML = '<p>No decks found for the selected filters.</p>'; return; }
-        myDecksListContainer.innerHTML = '';
+        if (snapshot.empty) { myDecksList.innerHTML = '<p>No decks found for the selected filters.</p>'; return; }
+        myDecksList.innerHTML = '';
         snapshot.forEach(doc => {
             const deck = doc.data();
             const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
             const deckCard = document.createElement('div');
             deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-            deckCard.dataset.deckId = doc.id; // Store id for delegation
             
             deckCard.innerHTML = `
-                <div class="deck-view-trigger cursor-pointer hover:opacity-80">
+                <div class="cursor-pointer hover:opacity-80" data-deck-id="${doc.id}">
                     <h3 class="text-xl font-bold dark:text-white">${deck.name}</h3>
                     <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
                     <p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>
                 </div>
                 <div class="mt-2 flex space-x-2">
-                    <button class="edit-deck-btn text-sm text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white">Edit</button>
-                    <button class="delete-deck-btn text-sm text-red-500 hover:text-red-700">Delete</button>
+                    <button class="edit-deck-btn text-sm text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white" data-deck-id="${doc.id}">Edit</button>
+                    <button class="delete-deck-btn text-sm text-red-500 hover:text-red-700" data-deck-id="${doc.id}">Delete</button>
                 </div>
             `;
-            myDecksListContainer.appendChild(deckCard);
+            
+            deckCard.querySelector('.cursor-pointer').addEventListener('click', () => viewDeck(deck, doc.id));
+            deckCard.querySelector('.edit-deck-btn').addEventListener('click', () => editDeck(deck, doc.id));
+            deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
+                if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
+                    await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
+                    await db.collection('publicDecks').doc(doc.id).delete().catch(()=>{});
+                    alert('Deck deleted successfully.');
+                    loadMyDecks();
+                }
+            });
+            myDecksList.appendChild(deckCard);
         });
     };
     
@@ -491,7 +500,8 @@ document.addEventListener('authReady', (e) => {
     };
     
     const loadCommunityDecks = async (tcg = 'all', format = 'all') => {
-        communityDecksListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
+        const communityDecksList = document.getElementById('community-decks-list');
+        communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading community decks...</p>';
         
         try {
             let query = db.collection('publicDecks');
@@ -503,7 +513,7 @@ document.addEventListener('authReady', (e) => {
             const snapshot = await query.limit(50).get();
 
             if (snapshot.empty) {
-                communityDecksListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No community decks found for the selected filters.</p>';
+                communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No community decks found for the selected filters.</p>';
                 return;
             }
 
@@ -512,14 +522,15 @@ document.addEventListener('authReady', (e) => {
 
         } catch (error) {
             console.error("Error loading community decks:", error);
-            communityDecksListContainer.innerHTML = `<p class="text-red-500 p-4 text-center">An error occurred while loading decks. A database index might be required for this filter combination.</p>`;
+            communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An error occurred while loading decks. A database index might be required for this filter combination.</p>`;
         }
     };
     
     const renderCommunityDecks = (decks) => {
-        communityDecksListContainer.innerHTML = '';
+        const communityDecksList = document.getElementById('community-decks-list');
+        communityDecksList.innerHTML = '';
         if (decks.length === 0) {
-            communityDecksListContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No decks found for the selected filters.</p>';
+            communityDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No decks found for the selected filters.</p>';
             return;
         }
         decks.forEach(deckData => {
@@ -528,21 +539,23 @@ document.addEventListener('authReady', (e) => {
                 return acc + (parseFloat(price) * card.quantity);
             }, 0);
             const deckCard = document.createElement('div');
-            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl deck-view-trigger';
-            deckCard.dataset.deckId = deckData.id;
+            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl';
             deckCard.innerHTML = `<h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3><p class="text-sm text-gray-500 dark:text-gray-400">by ${deckData.authorName || 'Anonymous'}</p><p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>`;
-            communityDecksListContainer.appendChild(deckCard);
+            deckCard.addEventListener('click', () => viewDeck(deckData, deckData.id));
+            communityDecksList.appendChild(deckCard);
         });
     };
 
     const applyDeckFilters = () => {
         const tcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
         const format = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
-        const activeTabContent = document.querySelector('.tab-content:not(.hidden)');
+        const activeTab = document.querySelector('.tab-button.text-blue-600');
 
-        if(activeTabContent.id === 'content-my-decks') {
+        if (!activeTab) return;
+
+        if(activeTab.id === 'tab-my-decks') {
             loadMyDecks(tcg, format);
-        } else if (activeTabContent.id === 'content-community-decks') {
+        } else if (activeTab.id === 'tab-community-decks') {
             loadCommunityDecks(tcg, format);
         }
     };
@@ -786,12 +799,10 @@ document.addEventListener('authReady', (e) => {
 
     const takeAITurn = () => {
         // Simple AI logic:
-        // 1. Draw a card
         if (playtestState.ai.library.length > 0) {
             playtestState.ai.hand.push(playtestState.ai.library.pop());
         }
 
-        // 2. Play a land if possible
         const landInHand = playtestState.ai.hand.find(card => card.type_line.toLowerCase().includes('land'));
         if (landInHand) {
             playtestState.ai.battlefield.push(landInHand);
@@ -799,7 +810,6 @@ document.addEventListener('authReady', (e) => {
             playtestState.ai.mana++;
         }
 
-        // 3. Play a creature if possible
         const creatureInHand = playtestState.ai.hand.find(card => card.type_line.toLowerCase().includes('creature') && card.cmc <= playtestState.ai.mana);
         if (creatureInHand) {
             playtestState.ai.battlefield.push(creatureInHand);
@@ -813,52 +823,11 @@ document.addEventListener('authReady', (e) => {
     // --- All Event Listeners ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            const tabId = tab.id;
-            if (tabId === 'tab-deck-view') return; // Prevent direct clicks on the view tab
-            switchTab(tabId);
-            if (tabId === 'tab-my-decks' || tabId === 'tab-community-decks') {
-                applyDeckFilters();
-            }
+            if (tab.id === 'tab-deck-view') return;
+            switchTab(tab.id);
+            applyDeckFilters();
         });
     });
-    
-    // EVENT DELEGATION for My Decks List
-    myDecksListContainer.addEventListener('click', async (e) => {
-        const target = e.target;
-        const deckCard = target.closest('[data-deck-id]');
-        if (!deckCard) return;
-        const deckId = deckCard.dataset.deckId;
-
-        const deckDoc = await db.collection('users').doc(user.uid).collection('decks').doc(deckId).get();
-        if (!deckDoc.exists) return;
-        const deckData = deckDoc.data();
-
-        if (target.closest('.deck-view-trigger')) {
-            viewDeck(deckData, deckId);
-        } else if (target.classList.contains('edit-deck-btn')) {
-            editDeck(deckData, deckId);
-        } else if (target.classList.contains('delete-deck-btn')) {
-            if (confirm(`Are you sure you want to delete the deck "${deckData.name}"? This cannot be undone.`)) {
-                await db.collection('users').doc(user.uid).collection('decks').doc(deckId).delete();
-                await db.collection('publicDecks').doc(deckId).delete().catch(() => {}); // Ignore error if not public
-                alert('Deck deleted successfully.');
-                loadMyDecks(); // Refresh list
-            }
-        }
-    });
-
-    // EVENT DELEGATION for Community Decks List
-    communityDecksListContainer.addEventListener('click', async (e) => {
-        const deckCard = e.target.closest('[data-deck-id]');
-        if (!deckCard) return;
-        const deckId = deckCard.dataset.deckId;
-
-        const deckDoc = await db.collection('publicDecks').doc(deckId).get();
-        if (deckDoc.exists) {
-            viewDeck(deckDoc.data(), deckId);
-        }
-    });
-
     collectionSearchInput.addEventListener('input', () => {
         const searchTerm = collectionSearchInput.value.toLowerCase();
         const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
@@ -1082,17 +1051,21 @@ document.addEventListener('authReady', (e) => {
 
         try {
             const getAiSuggestions = functions.httpsCallable('getAiSuggestions');
-            
             const result = await getAiSuggestions({ prompt: prompt });
-
             const geminiResponse = result.data;
 
             if (geminiResponse.candidates && geminiResponse.candidates[0].content && geminiResponse.candidates[0].content.parts[0]) {
                 const responseText = geminiResponse.candidates[0].content.parts[0].text;
                 
                 if (wantsJson) {
-                    const categorizedSuggestions = JSON.parse(responseText);
-                    renderCategorizedSuggestions(categorizedSuggestions);
+                    // It's safer to parse inside a try-catch block
+                    try {
+                        const categorizedSuggestions = JSON.parse(responseText);
+                        renderCategorizedSuggestions(categorizedSuggestions);
+                    } catch (parseError) {
+                        console.error("Failed to parse AI JSON response:", parseError);
+                        aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">The AI returned an invalid format. Please try rephrasing your request.</p><div class="mt-2 p-2 bg-gray-100 dark:bg-gray-700 text-xs rounded">${responseText}</div>`;
+                    }
                 } else {
                     const formattedResponse = responseText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                     aiSuggestionsOutputModal.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
@@ -1103,7 +1076,7 @@ document.addEventListener('authReady', (e) => {
                      throw new Error(`API Error: ${geminiResponse.error.message}`);
                 }
                  if (geminiResponse.candidates && geminiResponse.candidates[0].finishReason) {
-                    throw new Error(`Generation stopped. Reason: ${geminiResponse.candidates[0].finishReason}. Check safety settings in Google AI Studio.`);
+                    throw new Error(`Generation stopped. Reason: ${geminiResponse.candidates[0].finishReason}. Check safety settings.`);
                 }
                 throw new Error('Unexpected response structure from Gemini API.');
             }
@@ -1129,14 +1102,15 @@ document.addEventListener('authReady', (e) => {
 
     // --- Initial Load ---
     const urlParams = new URLSearchParams(window.location.search);
-    const deckIdParam = urlParams.get('deckId');
-    if (deckIdParam) {
-        const publicDeckRef = db.collection('publicDecks').doc(deckIdParam);
+    const deckId = urlParams.get('deckId');
+    if (deckId) {
+        const userDeckRef = user ? db.collection('users').doc(user.uid).collection('decks').doc(deckId) : null;
+        const publicDeckRef = db.collection('publicDecks').doc(deckId);
+
         publicDeckRef.get().then(doc => {
             if (doc.exists) {
                 viewDeck(doc.data(), doc.id);
-            } else if (user) {
-                const userDeckRef = db.collection('users').doc(user.uid).collection('decks').doc(deckIdParam);
+            } else if (userDeckRef) {
                 userDeckRef.get().then(userDoc => {
                     if (userDoc.exists) {
                         viewDeck(userDoc.data(), userDoc.id);
@@ -1144,13 +1118,10 @@ document.addEventListener('authReady', (e) => {
                 });
             }
         });
-    } else {
-        // Default to the community decks tab if no specific deck is loaded
-        switchTab('tab-community-decks');
-        applyDeckFilters();
     }
 
     if (user) {
         loadMyDecks();
     }
+    loadCommunityDecks();
 });
