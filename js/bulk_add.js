@@ -1,8 +1,9 @@
 /**
- * HatakeSocial - Bulk Add from Text Script (v2 - Image Fix Applied)
+ * HatakeSocial - Bulk Add from Text Script (v3 - Secure AI Suggestions)
  *
  * This script handles all logic for the bulk_add.html page.
- * - FIX: Implements a helper function `getCardImageUrl` to correctly display images for all card types, including double-faced and split cards from Scryfall.
+ * - Adds a secure AI suggestion feature, proxied through a Firebase Cloud Function.
+ * - Implements a helper function `getCardImageUrl` to correctly display images for all card types.
  * - Parses a user's pasted text list of cards.
  * - Fetches potential matches from the Scryfall API.
  * - Presents a step-by-step UI for the user to confirm each card and its details.
@@ -32,6 +33,8 @@ function getCardImageUrl(cardData, size = 'normal') {
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
+    const db = firebase.firestore();
+    const functions = firebase.functions();
     const container = document.getElementById('bulk-add-container');
     if (!container) return;
 
@@ -51,6 +54,14 @@ document.addEventListener('authReady', (e) => {
     const progressText = document.getElementById('progress-text');
     const summaryText = document.getElementById('summary-text');
     
+    // --- AI Modal Elements (assuming they exist in the HTML) ---
+    const openAiSuggestionsBtn = document.getElementById('open-ai-suggestions-btn');
+    const aiSuggestionsModal = document.getElementById('ai-suggestions-modal');
+    const closeAiSuggestionsModalBtn = document.getElementById('close-ai-suggestions-modal-btn');
+    const getAiSuggestionsBtn = document.getElementById('get-ai-suggestions-btn');
+    const aiSuggestionsPrompt = document.getElementById('ai-suggestions-prompt');
+    const aiSuggestionsOutput = document.getElementById('ai-suggestions-output');
+
     // --- State ---
     let linesToProcess = [];
     let confirmedCards = [];
@@ -257,4 +268,47 @@ document.addEventListener('authReady', (e) => {
         
         renderConfirmationStep();
     });
+
+    // --- AI Suggestions Modal Logic (SECURE) ---
+    if (openAiSuggestionsBtn && aiSuggestionsModal) {
+        const openModal = (modal) => modal.classList.remove('hidden');
+        const closeModal = (modal) => modal.classList.add('hidden');
+
+        openAiSuggestionsBtn.addEventListener('click', () => {
+            openModal(aiSuggestionsModal);
+        });
+
+        closeAiSuggestionsModalBtn.addEventListener('click', () => {
+            closeModal(aiSuggestionsModal);
+        });
+
+        getAiSuggestionsBtn.addEventListener('click', async () => {
+            const prompt = aiSuggestionsPrompt.value.trim();
+            if (!prompt) {
+                aiSuggestionsOutput.innerHTML = `<p class="text-red-500">Please enter a prompt for the AI.</p>`;
+                return;
+            }
+
+            aiSuggestionsOutput.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI is thinking...</p></div>';
+
+            try {
+                const getAiSuggestions = functions.httpsCallable('getAiSuggestions');
+                const result = await getAiSuggestions({ prompt: prompt });
+                const geminiResponse = result.data;
+
+                if (geminiResponse.candidates && geminiResponse.candidates[0].content && geminiResponse.candidates[0].content.parts[0]) {
+                    const text = geminiResponse.candidates[0].content.parts[0].text;
+                    const formattedText = text.replace(/```/g, '').replace(/json/g, '').trim().replace(/\n/g, '<br>');
+                    aiSuggestionsOutput.innerHTML = `<div class="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">${formattedText}</div>`;
+                } else {
+                    console.error("Unexpected response structure:", geminiResponse);
+                    aiSuggestionsOutput.innerHTML = `<p class="text-red-500">Could not parse the AI's response.</p>`;
+                }
+
+            } catch (error) {
+                console.error("Error calling getAiSuggestions function:", error);
+                aiSuggestionsOutput.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+            }
+        });
+    }
 });

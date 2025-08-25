@@ -1,9 +1,10 @@
 /**
- * HatakeSocial - Deck Page Script (v28 - AI Playtester)
+ * HatakeSocial - Deck Page Script (v28 - AI Playtester & Secure API)
  *
  * - Adds a "Play vs. AI" button to the playtest modal.
  * - Implements a simple AI opponent that can draw cards, play lands, and play creatures.
  * - Updates the playtest UI to show the AI's hand and battlefield.
+ * - Secures Gemini API key by using a Firebase Cloud Function proxy.
  */
 
 /**
@@ -28,6 +29,8 @@ function getCardImageUrl(cardData, size = 'normal') {
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
+    const db = firebase.firestore();
+    const functions = firebase.functions();
     const deckBuilderForm = document.getElementById('deck-builder-form');
     if (!deckBuilderForm) return;
 
@@ -1005,7 +1008,7 @@ document.addEventListener('authReady', (e) => {
         closeModal(importDeckModal);
     });
     
-    // --- AI MODAL LOGIC ---
+    // --- AI MODAL LOGIC (SECURE) ---
     openAiModalBtn.addEventListener('click', () => {
         openModal(aiSuggestionsModal);
     });
@@ -1030,56 +1033,36 @@ document.addEventListener('authReady', (e) => {
         }
 
         let prompt = `You are an expert ${tcg} deck builder providing advice. The user wants help with the ${format} format.`;
+        const wantsJson = !currentDecklist && userPrompt;
 
         if (currentDecklist) {
             prompt += ` The user has provided the following decklist:\n\n${currentDecklist}\n\n`;
             prompt += `Based on this decklist and their request, please provide suggestions. The user's specific request is: "${userPrompt}"`;
         } else {
             prompt += ` The user wants to build a new deck based on this prompt: "${userPrompt}".`;
-             // Add specific rules for Commander format
             if (format === 'Commander') {
                 prompt += ` You MUST build a valid Commander deck. This means the final list must contain exactly 100 cards total. The commander must be a Legendary Creature. With the exception of basic lands, EVERY other card must be a unique singleton (only one copy of each card name). Ensure you include an appropriate number of lands, typically between 35 and 40.`;
-            }
-            // Add specific rules for 60-card formats
-            else if (['Standard', 'Modern', 'Legacy', 'Vintage', 'Pauper'].includes(format)) {
+            } else if (['Standard', 'Modern', 'Legacy', 'Vintage', 'Pauper'].includes(format)) {
                 prompt += ` You MUST build a valid ${format} deck. This means the main deck must contain exactly 60 cards. Do NOT create a sideboard. No more than 4 copies of any card are allowed, except for basic lands.`;
             }
-             prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names and values are an array of strings, with each string being "quantity x Card Name".`;
+            prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names and values are an array of strings, with each string being "quantity x Card Name".`;
         }
 
         aiSuggestionsOutputModal.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
 
         try {
-            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-            const payload = { 
-                contents: chatHistory,
-                generationConfig: {
-                    ...( (!currentDecklist && userPrompt) && { responseMimeType: "application/json" } )
-                }
-            };
+            const getAiSuggestions = functions.httpsCallable('getAiSuggestions');
             
-            const apiKey = "YOUR_API_KEY";
-            
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-            
-            const apiResponse = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            // Call the secure cloud function, passing the prompt and whether we expect JSON
+            const result = await getAiSuggestions({ prompt: prompt, wantsJson: wantsJson });
 
-            if (!apiResponse.ok) {
-                const errorBody = await apiResponse.json();
-                console.error("Gemini API Error Body:", errorBody);
-                throw new Error(`Gemini API request failed with status: ${apiResponse.status}. ${errorBody?.error?.message || 'Check console for details.'}`);
-            }
+            // The actual response from Gemini is nested in result.data
+            const geminiResponse = result.data;
 
-            const result = await apiResponse.json();
-            
-            if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
-                const responseText = result.candidates[0].content.parts[0].text;
+            if (geminiResponse.candidates && geminiResponse.candidates[0].content && geminiResponse.candidates[0].content.parts[0]) {
+                const responseText = geminiResponse.candidates[0].content.parts[0].text;
                 
-                if (!currentDecklist && userPrompt) {
+                if (wantsJson) {
                     const categorizedSuggestions = JSON.parse(responseText);
                     renderCategorizedSuggestions(categorizedSuggestions);
                 } else {
@@ -1087,12 +1070,12 @@ document.addEventListener('authReady', (e) => {
                     aiSuggestionsOutputModal.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
                 }
             } else {
-                console.error("Unexpected API response:", result);
-                if (result.error) {
-                     throw new Error(`API Error: ${result.error.message}`);
+                console.error("Unexpected API response:", geminiResponse);
+                if (geminiResponse.error) {
+                     throw new Error(`API Error: ${geminiResponse.error.message}`);
                 }
-                 if (result.candidates && result.candidates[0].finishReason) {
-                    throw new Error(`Generation stopped. Reason: ${result.candidates[0].finishReason}. Check safety settings in Google AI Studio.`);
+                 if (geminiResponse.candidates && geminiResponse.candidates[0].finishReason) {
+                    throw new Error(`Generation stopped. Reason: ${geminiResponse.candidates[0].finishReason}. Check safety settings in Google AI Studio.`);
                 }
                 throw new Error('Unexpected response structure from Gemini API.');
             }

@@ -10,15 +10,63 @@
  * - Automatically deletes product images from Storage when a product is deleted.
  * - Securely sets admin custom claims for user roles.
  * - Manages a secure escrow trading system with Stripe Connect.
+ * - Proxies requests to the Gemini API to protect the API key.
  */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
+const fetch = require("node-fetch");
 
 admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
+
+
+/**
+ * A callable Cloud Function to securely access the Gemini API.
+ */
+exports.getAiSuggestions = functions.https.onCall(async (data, context) => {
+    // Ensure the user is authenticated to use this function
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to use this feature.');
+    }
+
+    const prompt = data.prompt;
+    if (!prompt) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "prompt".');
+    }
+
+    // Retrieve the secure API key from environment configuration
+    const apiKey = functions.config().gemini.key;
+    if (!apiKey) {
+        throw new functions.https.HttpsError('internal', 'Gemini API key is not configured.');
+    }
+    
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json();
+            console.error("Gemini API Error:", errorBody);
+            throw new functions.https.HttpsError('internal', 'Failed to get a response from the AI.');
+        }
+
+        const result = await response.json();
+        return result; // Forward the result back to the client
+
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while fetching AI suggestions.');
+    }
+});
+
 
 /**
  * A callable Cloud Function to handle new user registration with a referral code.
