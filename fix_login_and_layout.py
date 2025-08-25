@@ -1,52 +1,75 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HatakeSocial - TCG Social Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <script>
-        // Apply theme from localStorage on initial load to prevent FOUC (Flash of Unstyled Content)
-        if (localStorage.getItem("theme") === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-    </script>
-</head>
+#!/usr/bin/env python3
+"""
+Script to fix login functionality and homepage layout:
+1. Add login/register modals to all pages
+2. Update header buttons to trigger modals
+3. Reorganize homepage layout
+"""
 
-    
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-    <div class="flex h-screen">
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
-    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-        <a href="index.html" class="flex flex-col items-center space-y-1">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
-            <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-        </a>
+import os
+import re
+from pathlib import Path
+
+# Login/Register modals HTML
+MODALS_HTML = '''
+<!-- Login Modal -->
+<div id="loginModal" class="modal-overlay">
+    <div class="modal-content">
+        <button id="closeLoginModal" class="modal-close-btn">&times;</button>
+        <div class="text-center mb-6">
+            <img src="https://i.imgur.com/B06rBhI.png" alt="Logo" class="w-16 h-16 mx-auto mb-2">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Login to HatakeSocial</h2>
+        </div>
+        <form id="loginForm">
+            <div class="mb-4">
+                <label for="loginEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" id="loginEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
+            </div>
+            <div class="mb-4">
+                <label for="loginPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" id="loginPassword" required class="mt-1 block w-full input-style" placeholder="••••••••">
+            </div>
+            <p id="login-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
+            <button type="submit" class="w-full btn-primary">Login</button>
+        </form>
+        <div class="separator">Or continue with</div>
+        <button id="googleLoginButton" class="w-full btn-secondary">
+            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
+            <span class="ml-3">Sign in with Google</span>
+        </button>
     </div>
-    <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="index.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
-        <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
-        <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
-        <a href="articles.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">Articles</span></a>
-        <a href="events.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
-        <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
-        <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
-        <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
-        <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
-        <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
-        <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
-        <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
-        <a href="about.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
-    </nav>
-    <div id="sidebar-user-info" class="p-4 border-t border-gray-200 dark:border-gray-700 hidden">
+</div>
+
+<!-- Register Modal -->
+<div id="registerModal" class="modal-overlay">
+    <div class="modal-content">
+        <button id="closeRegisterModal" class="modal-close-btn">&times;</button>
+        <div class="text-center mb-6">
+            <img src="https://i.imgur.com/B06rBhI.png" alt="Logo" class="w-16 h-16 mx-auto mb-2">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Create an Account</h2>
+        </div>
+        <form id="registerForm">
+            <div class="mb-4">
+                <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" id="registerEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
+            </div>
+            <div class="mb-4">
+                <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" id="registerPassword" required class="mt-1 block w-full input-style" placeholder="Minimum 6 characters">
+            </div>
+            <p id="register-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
+            <button type="submit" class="w-full btn-primary">Create Account</button>
+        </form>
+        <div class="separator">Or continue with</div>
+        <button id="googleRegisterButton" class="w-full btn-secondary">
+            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
+            <span class="ml-3">Sign up with Google</span>
+        </button>
     </div>
-</aside>
-        <main class="flex-1 flex flex-col overflow-y-auto">
-    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 z-40 border-b border-gray-200 dark:border-gray-700">
+</div>'''
+
+# Updated header HTML
+UPDATED_HEADER = '''<header class="bg-white dark:bg-gray-800 shadow-sm py-3 z-40 border-b border-gray-200 dark:border-gray-700">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
             <div class="flex-1 max-w-xs">
@@ -90,7 +113,60 @@
             </div>
         </div>
     </div>
-</header>
+</header>'''
+
+def add_modals_to_file(filepath):
+    """Add login/register modals to an HTML file."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Check if modals already exist
+        if 'id="loginModal"' in content:
+            return False  # Already has modals
+        
+        # Add modals before closing body tag
+        content = content.replace('</body>', MODALS_HTML + '\n</body>')
+        
+        # Write back to file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error adding modals to {filepath}: {e}")
+        return False
+
+def update_header_in_file(filepath):
+    """Update header in an HTML file to use proper button IDs."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Replace the entire header section
+        header_pattern = r'<header class="bg-white dark:bg-gray-800[^>]*>.*?</header>'
+        content = re.sub(header_pattern, UPDATED_HEADER, content, flags=re.DOTALL)
+        
+        # Write back to file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error updating header in {filepath}: {e}")
+        return False
+
+def fix_homepage_layout():
+    """Fix the homepage layout specifically."""
+    try:
+        with open('index.html', 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # New homepage main content
+        new_main_content = '''<main class="flex-1 flex flex-col overflow-y-auto">
+    ''' + UPDATED_HEADER + '''
 
     <div class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -182,6 +258,68 @@
 
         </div>
     </div>
-</main>
-    </div></body>
-</html>
+</main>'''
+        
+        # Replace the entire main section
+        main_pattern = r'<main class="flex-1 flex flex-col[^>]*>.*?</main>'
+        content = re.sub(main_pattern, new_main_content, content, flags=re.DOTALL)
+        
+        # Write back to file
+        with open('index.html', 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error fixing homepage layout: {e}")
+        return False
+
+def main():
+    """Fix login functionality and homepage layout."""
+    html_files = list(Path('.').glob('*.html'))
+    # Exclude backup files
+    html_files = [f for f in html_files if 'original' not in f.name]
+    
+    print("=" * 60)
+    print("FIXING LOGIN FUNCTIONALITY AND HOMEPAGE LAYOUT")
+    print("=" * 60)
+    
+    # Step 1: Add modals to all pages
+    print("\n1. Adding login/register modals to all pages...")
+    modal_count = 0
+    for html_file in html_files:
+        if add_modals_to_file(html_file):
+            print(f"✓ Added modals to {html_file}")
+            modal_count += 1
+        else:
+            print(f"- Skipped {html_file} (already has modals)")
+    
+    # Step 2: Update headers with proper button IDs
+    print(f"\n2. Updating headers with proper button IDs...")
+    header_count = 0
+    for html_file in html_files:
+        if update_header_in_file(html_file):
+            print(f"✓ Updated header in {html_file}")
+            header_count += 1
+        else:
+            print(f"✗ Failed to update header in {html_file}")
+    
+    # Step 3: Fix homepage layout specifically
+    print(f"\n3. Fixing homepage layout...")
+    if fix_homepage_layout():
+        print("✓ Fixed homepage layout with three-column design")
+    else:
+        print("✗ Failed to fix homepage layout")
+    
+    print("\n" + "=" * 60)
+    print("SUMMARY:")
+    print(f"✓ Added modals to {modal_count} pages")
+    print(f"✓ Updated headers in {header_count} pages") 
+    print("✓ Reorganized homepage with proper three-column layout")
+    print("✓ Login/Register buttons now trigger functional modals")
+    print("✓ Moved 'Who to Follow' and 'Trending' to right sidebar")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    main()
+

@@ -40,41 +40,43 @@
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
             <div class="flex-1 max-w-xs">
-                <div class="relative">
+                <form id="header-search-form" class="relative">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3">
                         <i class="fas fa-search text-gray-400"></i>
                     </span>
-                    <input id="search-input" type="text" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
+                    <input id="searchBar" type="text" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </form>
             </div>
 
-            <div class="flex items-center space-x-4">
-                <!-- Guest/Logged-out buttons -->
-                <div id="logged-out-links" class="flex items-center space-x-4">
-                    <a href="auth.html" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">Login</a>
-                    <a href="auth.html#register" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Register</a>
+            <div class="flex items-center space-x-2">
+                
+                <div id="logged-out-links">
+                    <button id="loginButton" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">Login</button>
+                    <button id="registerButton" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Register</button>
                 </div>
 
-                <!-- Logged-in user elements -->
-                <div id="logged-in-links" class="hidden flex items-center space-x-4">
-                    <div id="notification-container" class="relative">
-                        <button id="notification-bell" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-blue-500">
+                <div id="logged-in-links" class="hidden items-center space-x-4">
+                     <div class="relative">
+                        <button id="notification-bell-btn" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 focus:outline-none">
                             <i class="fas fa-bell"></i>
-                            <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"></span>
+                            <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hidden"></span>
                         </button>
                         <div id="notification-dropdown" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                            <ul id="notification-list"></ul>
                         </div>
-                    </div>
+                     </div>
                     
-                    <div id="user-dropdown-container" class="relative">
-                        <button id="user-dropdown-button" class="flex items-center space-x-2 focus:outline-none">
-                            <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar">
-                            <span id="user-name" class="hidden sm:inline font-medium"></span>
-                        </button>
-                        <div id="user-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                    <div class="relative">
+                        <button><img id="userAvatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar"></button>
+                        <div id="userDropdown" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                            <a href="profile.html" class="dropdown-item">My Profile</a>
+                            <a href="settings.html" class="dropdown-item">Settings</a>
+                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                            <a href="#" id="logoutButton" class="dropdown-item">Logout</a>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -204,5 +206,61 @@
     <script src="js/referrals.js"></script> <!-- We will create this script next -->
     <script src="js/darkmode.js"></script>
         </main>
-    </div></body>
+    </div>
+<!-- Login Modal -->
+<div id="loginModal" class="modal-overlay">
+    <div class="modal-content">
+        <button id="closeLoginModal" class="modal-close-btn">&times;</button>
+        <div class="text-center mb-6">
+            <img src="https://i.imgur.com/B06rBhI.png" alt="Logo" class="w-16 h-16 mx-auto mb-2">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Login to HatakeSocial</h2>
+        </div>
+        <form id="loginForm">
+            <div class="mb-4">
+                <label for="loginEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" id="loginEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
+            </div>
+            <div class="mb-4">
+                <label for="loginPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" id="loginPassword" required class="mt-1 block w-full input-style" placeholder="••••••••">
+            </div>
+            <p id="login-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
+            <button type="submit" class="w-full btn-primary">Login</button>
+        </form>
+        <div class="separator">Or continue with</div>
+        <button id="googleLoginButton" class="w-full btn-secondary">
+            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
+            <span class="ml-3">Sign in with Google</span>
+        </button>
+    </div>
+</div>
+
+<!-- Register Modal -->
+<div id="registerModal" class="modal-overlay">
+    <div class="modal-content">
+        <button id="closeRegisterModal" class="modal-close-btn">&times;</button>
+        <div class="text-center mb-6">
+            <img src="https://i.imgur.com/B06rBhI.png" alt="Logo" class="w-16 h-16 mx-auto mb-2">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Create an Account</h2>
+        </div>
+        <form id="registerForm">
+            <div class="mb-4">
+                <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" id="registerEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
+            </div>
+            <div class="mb-4">
+                <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" id="registerPassword" required class="mt-1 block w-full input-style" placeholder="Minimum 6 characters">
+            </div>
+            <p id="register-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
+            <button type="submit" class="w-full btn-primary">Create Account</button>
+        </form>
+        <div class="separator">Or continue with</div>
+        <button id="googleRegisterButton" class="w-full btn-secondary">
+            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
+            <span class="ml-3">Sign up with Google</span>
+        </button>
+    </div>
+</div>
+</body>
 </html>
