@@ -1,11 +1,11 @@
 /**
- * HatakeSocial - Real-time Messaging System (v5 - Timestamps & UI Polish)
+ * HatakeSocial - Real-time Messaging System (v6 - Real-time Timestamp Fix)
  *
  * This script completely revamps the messaging functionality.
- * - NEW: Adds timestamps to individual messages.
- * - NEW: Adds timestamps to the conversation list.
- * - FIX: Corrected Firestore paths to match the TOP-LEVEL `conversations` collection structure.
- * - FIX: Adds robust error handling and pre-send authentication checks.
+ * - FIX: Handles 'modified' changes in the message listener to display timestamps immediately after server confirmation.
+ * - FIX: Adds unique IDs to message elements to allow for targeted updates.
+ * - NEW: Adds timestamps to individual messages and the conversation list.
+ * - Uses the correct TOP-LEVEL `conversations` collection structure.
  */
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
@@ -40,21 +40,13 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const userSearchInput = document.getElementById('user-search-input');
     const userSearchResults = document.getElementById('user-search-results');
 
-    /**
-     * Formats a Firestore timestamp into a human-readable time string.
-     * @param {firebase.firestore.Timestamp} timestamp - The Firestore timestamp object.
-     * @returns {string} - Formatted time (e.g., "5:46 PM").
-     */
     const formatTimestamp = (timestamp) => {
         if (!timestamp || !timestamp.toDate) {
-            return '';
+            return ''; // Return empty string if timestamp isn't a valid Firestore Timestamp yet
         }
         return timestamp.toDate().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     };
 
-    /**
-     * Fetches and displays the list of the current user's conversations.
-     */
     const listenForConversations = () => {
         if (unsubscribeConversations) unsubscribeConversations();
 
@@ -133,8 +125,10 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             .onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added') {
-                        const message = change.doc.data();
-                        renderMessage(message);
+                        renderMessage(change.doc.id, change.doc.data());
+                    }
+                    if (change.type === 'modified') {
+                        updateMessage(change.doc.id, change.doc.data());
                     }
                 });
                 scrollToBottom();
@@ -144,8 +138,9 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             });
     };
 
-    const renderMessage = (message) => {
+    const renderMessage = (messageId, message) => {
         const messageWrapper = document.createElement('div');
+        messageWrapper.id = `message-${messageId}`; // Assign an ID
         const isCurrentUser = message.senderId === user.uid;
         
         messageWrapper.className = `flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`;
@@ -155,12 +150,27 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         messageBubble.textContent = message.text;
 
         const timestampEl = document.createElement('p');
-        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2';
+        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2 timestamp'; // Add a class to find it later
         timestampEl.textContent = formatTimestamp(message.timestamp);
         
         messageWrapper.appendChild(messageBubble);
         messageWrapper.appendChild(timestampEl);
         messagesContainer.appendChild(messageWrapper);
+    };
+
+    /**
+     * Finds an existing message element and updates its timestamp.
+     * @param {string} messageId - The ID of the message document.
+     * @param {object} message - The updated message data.
+     */
+    const updateMessage = (messageId, message) => {
+        const messageWrapper = document.getElementById(`message-${messageId}`);
+        if (messageWrapper) {
+            const timestampEl = messageWrapper.querySelector('.timestamp');
+            if (timestampEl) {
+                timestampEl.textContent = formatTimestamp(message.timestamp);
+            }
+        }
     };
 
     const scrollToBottom = () => {
