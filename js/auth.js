@@ -1,12 +1,12 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v24 - Functions SDK Fix)
+ * HatakeSocial - Core Authentication & UI Script (v26 - Defensive UI Fix)
  *
- * - FIX: Adds a defensive check to ensure the Firebase Functions library is loaded before trying to initialize it. This prevents crashes on pages that might not include the functions SDK.
- * - NEW: Adds a global `showToast` function for non-blocking notifications.
- * - NEW: Implements the real-time notification bell and dropdown.
+ * - FIX: Adds defensive checks around UI element manipulation (e.g., sidebar avatar). This prevents the script from crashing on pages that don't have those specific elements, like the messages page.
+ * - FIX: Ensures the Firebase Functions library is loaded before use.
+ * - Implements a global toast notification system and real-time notification bell.
  */
 
-// --- NEW: Global Toast Notification Function ---
+// --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -22,12 +22,10 @@ const showToast = (message, type = 'info') => {
     
     container.appendChild(toast);
 
-    // Animate in
     setTimeout(() => {
         toast.classList.add('show');
     }, 100);
 
-    // Animate out and remove after 5 seconds
     setTimeout(() => {
         toast.classList.remove('show');
         toast.addEventListener('transitionend', () => toast.remove());
@@ -55,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     
-    // --- FIX: Defensive check for Functions library ---
     if (typeof firebase.functions === 'function') {
         window.functions = firebase.functions();
     } else {
@@ -450,11 +447,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
                     if (userAvatar) userAvatar.src = photo;
                     
+                    // --- FIX: Add checks for sidebar elements before manipulating them ---
                     if (sidebarUserInfo) {
                         sidebarUserInfo.classList.remove('hidden');
-                        document.getElementById('sidebar-user-avatar').src = photo;
-                        document.getElementById('sidebar-user-name').textContent = name;
-                        document.getElementById('sidebar-user-handle').textContent = `@${handle}`;
+                        const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+                        const sidebarName = document.getElementById('sidebar-user-name');
+                        const sidebarHandle = document.getElementById('sidebar-user-handle');
+
+                        if (sidebarAvatar) sidebarAvatar.src = photo;
+                        if (sidebarName) sidebarName.textContent = name;
+                        if (sidebarHandle) sidebarHandle.textContent = `@${handle}`;
                     }
     
                     if (userData.isAdmin === true && userDropdown) {

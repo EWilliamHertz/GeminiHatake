@@ -1,12 +1,11 @@
 /**
- * HatakeSocial - Real-time Messaging System (v2 - Robust Error Handling)
+ * HatakeSocial - Real-time Messaging System (v5 - Timestamps & UI Polish)
  *
  * This script completely revamps the messaging functionality.
- * - FIX: Adds robust error handling and pre-send authentication checks to diagnose permission issues.
- * - FIX: Disables input during message submission to prevent errors.
- * - Implements a modern, two-column chat interface.
- * - Uses Firestore real-time listeners (`onSnapshot`) for conversations and messages.
- * - Allows users to start new conversations by searching for other users.
+ * - NEW: Adds timestamps to individual messages.
+ * - NEW: Adds timestamps to the conversation list.
+ * - FIX: Corrected Firestore paths to match the TOP-LEVEL `conversations` collection structure.
+ * - FIX: Adds robust error handling and pre-send authentication checks.
  */
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
@@ -41,6 +40,17 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const userSearchInput = document.getElementById('user-search-input');
     const userSearchResults = document.getElementById('user-search-results');
 
+    /**
+     * Formats a Firestore timestamp into a human-readable time string.
+     * @param {firebase.firestore.Timestamp} timestamp - The Firestore timestamp object.
+     * @returns {string} - Formatted time (e.g., "5:46 PM").
+     */
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp || !timestamp.toDate) {
+            return '';
+        }
+        return timestamp.toDate().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    };
 
     /**
      * Fetches and displays the list of the current user's conversations.
@@ -73,7 +83,10 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                             convoElement.innerHTML = `
                                 <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
                                 <div class="flex-1 truncate">
-                                    <p class="font-semibold">${otherUserData.displayName}</p>
+                                    <div class="flex justify-between items-center">
+                                        <p class="font-semibold">${otherUserData.displayName}</p>
+                                        <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
+                                    </div>
                                     <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
                                 </div>
                             `;
@@ -88,11 +101,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             });
     };
 
-    /**
-     * Handles the UI and logic when a user clicks on a conversation.
-     * @param {string} conversationId - The ID of the selected conversation.
-     * @param {object} otherUser - The user object of the other participant.
-     */
     const selectConversation = (conversationId, otherUser) => {
         activeConversationId = conversationId;
 
@@ -116,10 +124,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         listenForMessages(conversationId);
     };
 
-    /**
-     * Listens for new messages in the active conversation and renders them.
-     * @param {string} conversationId - The ID of the conversation to listen to.
-     */
     const listenForMessages = (conversationId) => {
         if (unsubscribeMessages) unsubscribeMessages();
         messagesContainer.innerHTML = '';
@@ -140,21 +144,22 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             });
     };
 
-    /**
-     * Renders a single message bubble in the chat window.
-     * @param {object} message - The message data object.
-     */
     const renderMessage = (message) => {
         const messageWrapper = document.createElement('div');
-        const messageBubble = document.createElement('div');
-        
         const isCurrentUser = message.senderId === user.uid;
         
-        messageWrapper.className = `flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
-        messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
+        messageWrapper.className = `flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`;
         
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
         messageBubble.textContent = message.text;
+
+        const timestampEl = document.createElement('p');
+        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2';
+        timestampEl.textContent = formatTimestamp(message.timestamp);
+        
         messageWrapper.appendChild(messageBubble);
+        messageWrapper.appendChild(timestampEl);
         messagesContainer.appendChild(messageWrapper);
     };
 
@@ -200,7 +205,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         } catch (error) {
             console.error("Firestore Error: Failed to send message.", error);
             showToast(`Error: Could not send message. Check Firestore rules.`, "error");
-            messageInput.value = originalMessage; // Restore message on failure
+            messageInput.value = originalMessage;
         } finally {
             messageInput.disabled = false;
             messageInput.focus();
@@ -267,12 +272,13 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         try {
             const doc = await convoRef.get();
             if (!doc.exists) {
-                await convoRef.set({
+                const convoData = {
                     participants: [user.uid, otherUserId],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                     lastMessage: ''
-                });
+                };
+                await convoRef.set(convoData);
             }
             selectConversation(conversationId, otherUserData);
         } catch (error) {
