@@ -6,12 +6,15 @@
     <title>Shop - HatakeSocial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Toastify CSS for notifications -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900">
 
     
-   <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+   <!-- Header Section -->
+<header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
     <div class="container mx-auto px-4 flex justify-between items-center">
         <a href="index.html" class="flex items-center">
             <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
@@ -53,7 +56,7 @@
             <div class="relative flex items-center">
                 <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
                 <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 ml-2">Register</button>
-                <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                <img src="https://placehold.co/40x40/7c3aed/ffffff?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
                 <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-10 hidden">
                     <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
                     <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
@@ -96,6 +99,7 @@
     <main class="container mx-auto px-4 py-8">
         <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-8">Our Products</h1>
         <div id="product-grid" class="product-grid">
+            <!-- Products will be loaded here by js/shop.js -->
             <div class="text-center p-10 col-span-full">
                 <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
                 <p class="mt-2 text-gray-600 dark:text-gray-400">Loading Products...</p>
@@ -103,14 +107,17 @@
         </div>
     </main>
 
+    <!-- Product Detail Modal -->
     <div id="product-detail-modal" class="modal-overlay product-detail-modal">
         <div class="modal-content">
             <button id="close-product-modal" class="close-button">&times;</button>
             <div id="modal-body" class="modal-body">
-                </div>
+                <!-- Content will be injected by JS -->
+            </div>
         </div>
     </div>
     
+    <!-- Cart Modal -->
     <div id="cart-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-lg">
              <button id="close-cart-modal" class="close-button">&times;</button>
@@ -261,12 +268,15 @@
     </div>
 </footer>    
 
+    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
     <script src="https://js.stripe.com/v3/"></script>
+    <!-- Toastify JS for notifications -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="js/auth.js"></script>
     <script src="js/notifications.js"></script>
     <script src="js/shop.js"></script>

@@ -1,8 +1,6 @@
 // js/shop.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // This script now runs when the page structure is loaded, which is more reliable.
-
     // DOM Elements
     const productGrid = document.getElementById('product-grid');
     const cartBtn = document.getElementById('cart-btn');
@@ -22,15 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeProductModalBtn = document.getElementById('close-product-modal');
     const modalBody = document.getElementById('modal-body');
 
-
     // State
     let cart = JSON.parse(localStorage.getItem('geminiHatakeCart')) || [];
     let products = [];
     let appliedCoupon = null;
     let referralDiscountPercent = 0;
     
-    // Firebase services are initialized in auth.js, we just need to access them.
-    // We wait for the auth state to be known before accessing them.
+    // Firebase services
     let db, functions;
     firebase.auth().onAuthStateChanged(() => {
         if (!db) { // Initialize only once
@@ -53,9 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
         products.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card dark:bg-gray-800 cursor-pointer';
-            card.dataset.id = product.id; // Set the product ID on the card itself
+            card.dataset.id = product.id;
             
-            const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/300x300?text=No+Image';
+            const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/300x300/2d3748/ffffff?text=No+Image';
             
             card.innerHTML = `
                 <div class="product-image-container">
@@ -89,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cart.forEach(item => {
             const product = products.find(p => p.id === item.id);
             if (product) {
-                const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/64x64';
+                const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/64x64/2d3748/ffffff?text=N/A';
                 const itemElement = document.createElement('div');
                 itemElement.className = 'cart-item';
                 itemElement.innerHTML = `
@@ -121,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ).join('');
             imageGalleryHtml = `${mainImage}<div class="flex gap-2 overflow-x-auto">${thumbnails}</div>`;
         } else {
-            imageGalleryHtml = `<img src="https://placehold.co/600x400?text=No+Image" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4">`;
+            imageGalleryHtml = `<img src="https://placehold.co/600x400/2d3748/ffffff?text=No+Image" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4">`;
         }
 
         modalBody.innerHTML = `
@@ -198,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateCartButton = () => {
         const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
         const cartCounter = document.getElementById('cart-counter');
-        const mobileCartCounter = document.getElementById('mobile-cart-counter'); // Assuming you might add one
         
         if (cartCounter) {
             if (cartItemCount > 0) {
@@ -215,7 +210,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!product) return;
 
         if (product.stock <= 0) {
-            alert("This item is out of stock.");
+            Toastify({
+                text: "This item is out of stock.",
+                duration: 3000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                style: {
+                    background: "linear-gradient(to right, #e53e3e, #c53030)",
+                }
+            }).showToast();
             return;
         }
 
@@ -226,7 +230,17 @@ document.addEventListener('DOMContentLoaded', () => {
             cart.push({ id: productId, quantity: 1, priceId: product.stripePriceId });
         }
         saveCart();
-        alert(`${product.name} has been added to your cart.`);
+        
+        Toastify({
+            text: `${product.name} added to cart!`,
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: "right",
+            style: {
+                background: "linear-gradient(to right, #38a169, #2f855a)",
+            }
+        }).showToast();
     };
 
     const removeFromCart = (productId) => {
@@ -271,12 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CHECKOUT LOGIC ---
     const handleCheckout = async () => {
         if (cart.length === 0) {
-            alert("Your cart is empty.");
+            Toastify({ text: "Your cart is empty.", duration: 3000, close: true, gravity: "top", position: "right", style: { background: "#3498db" } }).showToast();
             return;
         }
         const user = firebase.auth().currentUser;
         if (!user) {
-            alert("Please log in to proceed to checkout.");
+            Toastify({ text: "Please log in to proceed to checkout.", duration: 3000, close: true, gravity: "top", position: "right", style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
             return;
         }
         
@@ -314,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Error creating checkout session:", error);
-            alert(`Checkout Error: ${error.message}`);
+            Toastify({ text: `Checkout Error: ${error.message}`, duration: 5000, close: true, gravity: "top", position: "right", style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = 'Checkout';
         }
@@ -323,14 +337,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EVENT LISTENERS ---
     if (productGrid) {
         productGrid.addEventListener('click', (e) => {
-            // Handle 'Add to Cart' button click specifically
             if (e.target.matches('.add-to-cart-btn')) {
                 const productId = e.target.dataset.id;
                 addToCart(productId);
-                return; // Stop further processing
+                return;
             }
             
-            // Handle click on the card itself to open the modal
             const card = e.target.closest('.product-card');
             if (card && card.dataset.id) {
                 openProductModal(card.dataset.id);
@@ -365,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INITIALIZATION ---
     const initShop = () => {
-        if (!db) return; // Don't run if firebase isn't ready
+        if (!db) return;
         
         db.collection('products').onSnapshot(snapshot => {
             products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
