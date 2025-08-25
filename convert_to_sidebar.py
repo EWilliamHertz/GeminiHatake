@@ -1,25 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Article - HatakeSocial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <style>
-        .ql-editor {
-            padding: 0;
-        }
-        .ql-snow .ql-editor h1, .ql-snow .ql-editor h2 {
-            margin-bottom: 1rem;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-    <div class="flex h-screen">
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
+#!/usr/bin/env python3
+"""
+Script to convert HTML files from top header navigation to sidebar navigation.
+Based on the guide provided by the user.
+"""
+
+import os
+import re
+from pathlib import Path
+
+# The reusable sidebar HTML from the guide
+SIDEBAR_HTML = '''<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
     <div class="h-24 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
         <a href="index.html" class="flex flex-col items-center space-y-1">
             <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-12" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
@@ -43,29 +33,86 @@
     </nav>
     <div id="sidebar-user-info" class="p-4 border-t border-gray-200 dark:border-gray-700 hidden">
     </div>
-</aside>
+</aside>'''
+
+def convert_html_file(filepath):
+    """Convert a single HTML file from header navigation to sidebar navigation."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Step 1: Remove the entire header section
+        header_pattern = r'<header[^>]*>.*?</header>'
+        content = re.sub(header_pattern, '', content, flags=re.DOTALL)
+        
+        # Step 2: Change the body tag and structure
+        # Find the current body tag
+        body_pattern = r'<body[^>]*class="([^"]*)"[^>]*>'
+        body_match = re.search(body_pattern, content)
+        
+        if body_match:
+            # Replace the body tag
+            new_body_tag = '<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">'
+            content = re.sub(body_pattern, new_body_tag, content)
+            
+            # Find everything between <body> and </body>
+            body_content_pattern = r'(<body[^>]*>)(.*?)(</body>)'
+            body_content_match = re.search(body_content_pattern, content, flags=re.DOTALL)
+            
+            if body_content_match:
+                body_start = body_content_match.group(1)
+                body_content = body_content_match.group(2)
+                body_end = body_content_match.group(3)
+                
+                # Remove any mobile menu sections that might be left over
+                mobile_menu_pattern = r'<div id="mobile-menu"[^>]*>.*?</div>'
+                body_content = re.sub(mobile_menu_pattern, '', body_content, flags=re.DOTALL)
+                
+                # Create the new structure
+                new_body_content = f'''
+    <div class="flex h-screen">
+        {SIDEBAR_HTML}
         <main class="flex-1 flex flex-col">
-            <main class="container mx-auto px-4 py-8 flex-grow">
-        <div id="article-container" class="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-            <!-- Article content will be loaded here -->
-        </div>
-    </main>
-
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-        <div class="container mx-auto py-8 px-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-        </div>
-    </footer>
-
-   <!-- Firebase Libraries (use the compat libraries for v8 syntax) -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/articles.js"></script>
-    <script src="js/darkmode.js"></script>
+            {body_content.strip()}
         </main>
-    </div></body>
-</html>
+    </div>'''
+                
+                # Reconstruct the full content
+                content = content.replace(body_content_match.group(0), 
+                                        body_start + new_body_content + body_end)
+        
+        # Write the modified content back to the file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error processing {filepath}: {e}")
+        return False
+
+def main():
+    """Convert all HTML files in the current directory."""
+    html_files = list(Path('.').glob('*.html'))
+    
+    print(f"Found {len(html_files)} HTML files to convert:")
+    for file in html_files:
+        print(f"  - {file}")
+    
+    print("\nConverting files...")
+    print("=" * 60)
+    
+    success_count = 0
+    for html_file in html_files:
+        if convert_html_file(html_file):
+            print(f"✓ Converted {html_file}")
+            success_count += 1
+        else:
+            print(f"✗ Failed to convert {html_file}")
+    
+    print("=" * 60)
+    print(f"Successfully converted {success_count} out of {len(html_files)} files.")
+
+if __name__ == "__main__":
+    main()
+
