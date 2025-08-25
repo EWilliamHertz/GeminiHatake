@@ -1,4 +1,29 @@
-<!DOCTYPE html>
+#!/usr/bin/env python3
+"""
+Script to properly reconstruct messages.html with the correct sidebar and messages content.
+"""
+
+import re
+
+def fix_messages_html():
+    """Reconstruct messages.html with proper structure."""
+    
+    # Read the original messages content
+    with open('messages_original.html', 'r', encoding='utf-8') as f:
+        original_content = f.read()
+    
+    # Extract the messages-specific content (everything inside the main content area)
+    # Look for the chat layout section
+    chat_layout_match = re.search(r'<!-- Chat Layout -->(.*?)(?=<script|</body)', original_content, re.DOTALL)
+    
+    if not chat_layout_match:
+        print("Could not find chat layout in original file")
+        return False
+    
+    chat_layout_content = chat_layout_match.group(1).strip()
+    
+    # Create the new messages.html with proper structure
+    new_messages_content = '''<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
@@ -83,53 +108,7 @@
             </header>
             
             <!-- Chat Layout -->
-<div class="flex-1 flex overflow-hidden">
-                <!-- Conversations List -->
-                <div id="conversations-list" class="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                        <button id="new-conversation-btn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center">
-                            <i class="fas fa-plus mr-2"></i> New Message
-                        </button>
-                    </div>
-                    <div id="conversations-container" class="flex-1 overflow-y-auto">
-                        <p class="p-4 text-center text-gray-500">Loading conversations...</p>
-                    </div>
-                </div>
-
-                <!-- Chat Window -->
-                <div id="chat-window" class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
-                    <div id="chat-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-4">
-                        <i class="fas fa-comments text-6xl text-gray-300 dark:text-gray-600"></i>
-                        <h2 class="mt-4 text-2xl font-semibold">Select a conversation</h2>
-                        <p class="text-gray-500 dark:text-gray-400">Choose from your existing conversations or start a new one.</p>
-                    </div>
-
-                    <div id="active-chat-container" class="hidden flex-1 flex flex-col">
-                        <div id="chat-header" class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"></div>
-                        <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-2"></div>
-                        <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                            <form id="message-form" class="flex items-center space-x-3">
-                                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <button type="submit" class="bg-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-blue-700 flex-shrink-0">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- New Conversation Modal -->
-    <div id="new-conversation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
-            <input type="text" id="user-search-input" placeholder="Search for a user by handle..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4">
-            <div id="user-search-results" class="max-h-60 overflow-y-auto"></div>
-            <button id="close-modal-btn" class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
-        </div>
-    </div>
+''' + chat_layout_content + '''
         </main>
     </div>
 
@@ -147,4 +126,15 @@
     <script src="js/messages.js"></script>
     <script src="js/darkmode.js"></script>
 </body>
-</html>
+</html>'''
+    
+    # Write the new messages.html
+    with open('messages.html', 'w', encoding='utf-8') as f:
+        f.write(new_messages_content)
+    
+    print("✓ Successfully reconstructed messages.html with proper structure")
+    return True
+
+if __name__ == "__main__":
+    fix_messages_html()
+
