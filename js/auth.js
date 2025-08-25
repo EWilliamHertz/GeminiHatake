@@ -42,11 +42,17 @@ document.addEventListener('DOMContentLoaded', () => {
         projectId: "hatakesocial-88b5e",
         storageBucket: "hatakesocial-88b5e.firebasestorage.app",
         messagingSenderId: "1091697032506",
-        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403"
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+        measurementId: "G-EH0PS2Z84J"
     };
 
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
+    }
+    
+    // Initialize Firebase Analytics if available
+    if (typeof firebase.analytics === 'function') {
+        window.analytics = firebase.analytics();
     }
     
     window.auth = firebase.auth();
