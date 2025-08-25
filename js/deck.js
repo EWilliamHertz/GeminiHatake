@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Deck Page Script (v31 - Final Fix & Secure AI)
+ * HatakeSocial - Deck Page Script (v27 - Stable with Secure AI)
  *
- * - FIX: Reverted tab switching and event listener logic to the last known working version to ensure stability.
- * - SECURE: Implements the secure Gemini API call via a Firebase Cloud Function, removing the client-side API key.
- * - Adds a "Play vs. AI" button to the playtest modal.
- * - Implements a simple AI opponent that can draw cards, play lands, and play creatures.
+ * - This version is based on the stable v27 to ensure tab functionality is correct.
+ * - SECURE: Replaces the exposed API key with a secure call to a Firebase Cloud Function.
+ * - The AI can analyze the current decklist or generate a new one from a prompt.
+ * - Implements a helper function `getCardImageUrl` for correct image display.
  */
 
 /**
@@ -52,7 +52,7 @@ document.addEventListener('authReady', (e) => {
     let deckToShare = null;
     let fullCollection = [];
     let manaCurveChart = null;
-    let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [], ai: { hand: [], battlefield: [], library: [], life: 20, mana: 0 } };
+    let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
     let currentDeckInView = null;
 
     // --- DOM Elements ---
@@ -81,12 +81,8 @@ document.addEventListener('authReady', (e) => {
     const playtestDrawBtn = document.getElementById('playtest-draw-btn');
     const playtestMulliganBtn = document.getElementById('playtest-mulligan-btn');
     const playtestResetBtn = document.getElementById('playtest-reset-btn');
-    const playAIBtn = document.getElementById('play-ai-btn');
     const battlefieldEl = document.getElementById('playtest-battlefield');
     const handEl = document.getElementById('playtest-hand');
-    const aiPlayArea = document.getElementById('ai-play-area');
-    const aiBattlefieldEl = document.getElementById('ai-battlefield');
-    const aiHandEl = document.getElementById('ai-hand');
     const checkCollectionBtn = document.getElementById('check-collection-btn');
     const missingCardsSection = document.getElementById('missing-cards-section');
     const missingCardsList = document.getElementById('missing-cards-list');
@@ -471,7 +467,7 @@ document.addEventListener('authReady', (e) => {
             deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
                 if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
                     await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
-                    await db.collection('publicDecks').doc(doc.id).delete().catch(()=>{});
+                    await db.collection('publicDecks').doc(doc.id).delete();
                     alert('Deck deleted successfully.');
                     loadMyDecks();
                 }
@@ -610,16 +606,6 @@ document.addEventListener('authReady', (e) => {
         battlefieldEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Battlefield</h3>';
         playtestState.battlefield.forEach(card => {
             battlefieldEl.appendChild(createPlaytestCard(card));
-        });
-
-        aiHandEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">AI Hand</h3>';
-        playtestState.ai.hand.forEach(card => {
-            aiHandEl.appendChild(createPlaytestCard(card));
-        });
-
-        aiBattlefieldEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">AI Battlefield</h3>';
-        playtestState.ai.battlefield.forEach(card => {
-            aiBattlefieldEl.appendChild(createPlaytestCard(card));
         });
     };
 
@@ -785,41 +771,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const initializeAIPlaytest = () => {
-        aiPlayArea.classList.remove('hidden');
-        initializePlaytest();
-        playtestState.ai.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < 7; i++) {
-            if (playtestState.ai.library.length > 0) {
-                playtestState.ai.hand.push(playtestState.ai.library.pop());
-            }
-        }
-        renderPlaytestState();
-    };
-
-    const takeAITurn = () => {
-        // Simple AI logic:
-        if (playtestState.ai.library.length > 0) {
-            playtestState.ai.hand.push(playtestState.ai.library.pop());
-        }
-
-        const landInHand = playtestState.ai.hand.find(card => card.type_line.toLowerCase().includes('land'));
-        if (landInHand) {
-            playtestState.ai.battlefield.push(landInHand);
-            playtestState.ai.hand = playtestState.ai.hand.filter(card => card.instanceId !== landInHand.instanceId);
-            playtestState.ai.mana++;
-        }
-
-        const creatureInHand = playtestState.ai.hand.find(card => card.type_line.toLowerCase().includes('creature') && card.cmc <= playtestState.ai.mana);
-        if (creatureInHand) {
-            playtestState.ai.battlefield.push(creatureInHand);
-            playtestState.ai.hand = playtestState.ai.hand.filter(card => card.instanceId !== creatureInHand.instanceId);
-            playtestState.ai.mana -= creatureInHand.cmc;
-        }
-
-        renderPlaytestState();
-    };
-
     // --- All Event Listeners ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -948,12 +899,8 @@ document.addEventListener('authReady', (e) => {
     battlefieldEl.addEventListener('drop', handleDrop);
     handEl.addEventListener('drop', handleDrop);
     testHandBtn.addEventListener('click', initializePlaytest);
-    playAIBtn.addEventListener('click', initializeAIPlaytest);
     closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
-    playtestDrawBtn.addEventListener('click', () => {
-        drawCards(1);
-        takeAITurn();
-    });
+    playtestDrawBtn.addEventListener('click', () => drawCards(1));
     playtestMulliganBtn.addEventListener('click', takeMulligan);
     playtestResetBtn.addEventListener('click', initializePlaytest);
     shareDeckBtn.addEventListener('click', async () => {
@@ -1058,13 +1005,12 @@ document.addEventListener('authReady', (e) => {
                 const responseText = geminiResponse.candidates[0].content.parts[0].text;
                 
                 if (wantsJson) {
-                    // It's safer to parse inside a try-catch block
                     try {
                         const categorizedSuggestions = JSON.parse(responseText);
                         renderCategorizedSuggestions(categorizedSuggestions);
                     } catch (parseError) {
-                        console.error("Failed to parse AI JSON response:", parseError);
-                        aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">The AI returned an invalid format. Please try rephrasing your request.</p><div class="mt-2 p-2 bg-gray-100 dark:bg-gray-700 text-xs rounded">${responseText}</div>`;
+                        console.error("Failed to parse AI JSON response:", parseError, "Raw text:", responseText);
+                        aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">The AI returned an invalid format. Please try rephrasing your request.</p>`;
                     }
                 } else {
                     const formattedResponse = responseText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');

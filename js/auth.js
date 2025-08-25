@@ -1,9 +1,9 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v23 - Merged UI/UX Revamp)
+ * HatakeSocial - Core Authentication & UI Script (v24 - Functions SDK Fix)
  *
+ * - FIX: Adds a defensive check to ensure the Firebase Functions library is loaded before trying to initialize it. This prevents crashes on pages that might not include the functions SDK.
  * - NEW: Adds a global `showToast` function for non-blocking notifications.
  * - NEW: Implements the real-time notification bell and dropdown.
- * - Merges all previous functionality including defensive checks, currency conversion, and friend request handshakes.
  */
 
 // --- NEW: Global Toast Notification Function ---
@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.db = firebase.firestore();
     window.storage = firebase.storage();
     
+    // --- FIX: Defensive check for Functions library ---
     if (typeof firebase.functions === 'function') {
         window.functions = firebase.functions();
     } else {
@@ -364,6 +365,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
+    
+    // Basic HTML sanitizer
+    function sanitizeHTML(str) {
+        const temp = document.createElement('div');
+        temp.textContent = str;
+        return temp.innerHTML;
+    }
+
 
     auth.onAuthStateChanged(async (user) => {
         if (user && !user.emailVerified) {
