@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Trades - HatakeSocial</title>
+    <title>Secure Trades - HatakeSocial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
         #card-quick-view-tooltip {
@@ -22,97 +23,80 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
 
-    
-
-   <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
-    <div class="container mx-auto px-4 flex justify-between items-center">
-        <a href="index.html" class="flex items-center">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
-            <span class="ml-3 text-3xl font-extrabold text-gray-800 dark:text-white">HatakeSocial</span>
-        </a>
-
-        <div class="hidden md:flex flex-grow justify-center mx-4">
-            <form id="header-search-form" class="relative w-full max-w-md">
-                <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </form>
-        </div>
-
-        <div class="hidden md:flex items-center space-x-4">
-            <nav>
-                <ul class="flex items-center space-x-6">
-                    <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
-                    <li><a href="community.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Community"><i class="fas fa-users"></i></a></li>
-                    <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
-                    <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
-                    <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
-                    <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
-                    <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
-                    <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
-                    <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
-                    <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
-                </ul>
-            </nav>
-            <div id="notification-container" class="relative">
-                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl">
-                    <i class="fas fa-bell"></i>
-                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
+    <header class="bg-white dark:bg-gray-800 shadow-sm py-3 sticky top-0 z-50 border-b border-gray-200 dark:border-gray-700">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-10 w-auto rounded-md">
+                <span class="ml-3 text-3xl font-extrabold text-gray-800 dark:text-white">HatakeSocial</span>
+            </a>
+            <div class="hidden md:flex flex-grow justify-center mx-4">
+                <form id="header-search-form" class="relative w-full max-w-md">
+                    <input type="text" id="searchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </form>
+            </div>
+            <div class="hidden md:flex items-center space-x-4">
+                <nav>
+                    <ul class="flex items-center space-x-6">
+                        <li><a href="index.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Home"><i class="fas fa-home"></i></a></li>
+                        <li><a href="community.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Community"><i class="fas fa-users"></i></a></li>
+                        <li><a href="deck.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Deck Builder"><i class="fas fa-layer-group"></i></a></li>
+                        <li><a href="shop.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Shop"><i class="fas fa-store"></i></a></li>
+                        <li><a href="my_collection.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="My Collection"><i class="fas fa-box-open"></i></a></li>
+                        <li><a href="trades.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Trades"><i class="fas fa-exchange-alt"></i></a></li>
+                        <li><a href="marketplace.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Marketplace"><i class="fas fa-shopping-cart"></i></a></li>
+                        <li><a href="events.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Events"><i class="fas fa-calendar-alt"></i></a></li>
+                        <li><a href="messages.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Messages"><i class="fas fa-envelope"></i></a></li>
+                        <li><a href="settings.html" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl" title="Settings"><i class="fas fa-cog"></i></a></li>
+                    </ul>
+                </nav>
+                <div id="notification-container" class="relative">
+                    <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-xl">
+                        <i class="fas fa-bell"></i>
+                        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden"></span>
+                    </button>
+                    <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-20 hidden">
+                        <div class="p-3 font-bold text-lg border-b dark:border-gray-700">Notifications</div>
+                        <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
+                    </div>
+                </div>
+                <div class="relative flex items-center">
+                    <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
+                    <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 ml-2">Register</button>
+                    <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
+                    <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-10 hidden">
+                        <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
+                        <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
+                        <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
+                        <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-2xl">
+                    <i class="fas fa-bars"></i>
                 </button>
-                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border dark:border-gray-700 z-20 hidden">
-                    <div class="p-3 font-bold text-lg border-b dark:border-gray-700">Notifications</div>
-                    <div id="notification-list" class="max-h-96 overflow-y-auto"></div>
-                </div>
-            </div>
-            <div class="relative flex items-center">
-                <button id="loginButton" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Login</button>
-                <button id="registerButton" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700 ml-2">Register</button>
-                <img src="https://placehold.co/40x40?text=U" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 cursor-pointer hidden object-cover" id="userAvatar">
-                <div id="userDropdown" class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-10 hidden">
-                    <a href="profile.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Profile</a>
-                    <a href="settings.html" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Settings</a>
-                    <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                    <a href="#" id="logoutButton" class="block px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
-                </div>
             </div>
         </div>
+    </header>
 
-        <div class="md:hidden flex items-center">
-            <button id="mobile-menu-button" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 text-2xl">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-    </div>
-
-    <div id="mobile-menu" class="hidden md:hidden">
-        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <form id="mobile-search-form" class="relative mb-4">
-                <input type="text" id="mobileSearchBar" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </form>
-            <a href="index.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Home</a>
-            <a href="community.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Community</a>
-            <a href="deck.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Deck Builder</a>
-            <a href="shop.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Shop</a>
-            <a href="my_collection.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">My Collection</a>
-            <a href="trades.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Trades</a>
-            <a href="marketplace.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Marketplace</a>
-            <a href="events.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Events</a>
-            <a href="messages.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Messages</a>
-            <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
-             <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
-                <div id="mobile-user-actions">
-                </div>
-            </div>
-        </div>
-    </div>
-</header>    <main class="container mx-auto px-4 py-8 flex-grow">
+    <main class="container mx-auto px-4 py-8 flex-grow">
         <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
-            <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">My Trades</h1>
+            <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Secure Trades</h1>
             <button id="propose-new-trade-btn" class="hidden px-6 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700">
                 <i class="fas fa-plus mr-2"></i>Propose a New Trade
             </button>
         </div>
-        
+
+        <!-- Seller Onboarding Section -->
+        <div id="seller-onboarding-section" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 hidden">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Become a Seller</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">To sell cards and receive payments, you need to set up a Stripe account. This is a secure one-time process.</p>
+            <button id="onboard-seller-btn" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700">
+                <i class="fab fa-stripe-s mr-2"></i>Set Up Payments with Stripe
+            </button>
+        </div>
+
         <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 text-blue-800 dark:text-blue-200 p-4 rounded-r-lg mb-6" role="alert">
             <div class="flex">
                 <div class="py-1"><i class="fas fa-shield-alt text-2xl mr-4"></i></div>
@@ -122,7 +106,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
             <nav class="flex -mb-px space-x-8" aria-label="Tabs">
@@ -141,31 +124,26 @@
         </div>
     </main>
 
+    <!-- Modals -->
     <div id="propose-trade-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-6xl dark:bg-gray-800">
             <button id="close-trade-modal" class="close-button">&times;</button>
             <h2 class="text-2xl font-bold mb-4 dark:text-white">Propose a New Trade</h2>
             <input type="hidden" id="counter-offer-original-id">
-            
             <div class="mb-4">
                 <label for="trade-partner-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select a Trade Partner</label>
                 <input type="text" id="trade-partner-search" placeholder="Search for a user by their handle..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
                 <div id="trade-partner-results" class="bg-white dark:bg-gray-600 absolute shadow-lg rounded-md mt-1 w-full max-h-40 overflow-y-auto z-20 hidden"></div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div id="receiver-trade-section" class="flex flex-col opacity-50 pointer-events-none">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="font-bold text-lg dark:text-white">They Offer:</h3>
-                        <button type="button" data-side="receiver" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50">
-                            <i class="fas fa-magic"></i> Auto-Balance
-                        </button>
+                        <button type="button" data-side="receiver" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50"><i class="fas fa-magic"></i> Auto-Balance</button>
                         <div class="text-sm font-semibold dark:text-gray-300">Value: <span id="receiver-value" class="text-green-600 dark:text-green-400">0.00 SEK</span></div>
                     </div>
                     <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
-                        <div class="mb-2">
-                            <input type="text" id="their-collection-search" placeholder="Search their collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600">
-                        </div>
+                        <div class="mb-2"><input type="text" id="their-collection-search" placeholder="Search their collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600"></div>
                         <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
                             <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="list" data-side="receiver">List</button>
                             <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="binder" data-side="receiver">Binder</button>
@@ -178,23 +156,18 @@
                         </div>
                     </div>
                      <div class="mt-4">
-                        <label for="receiver-money" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Money they add (optional)</label>
+                        <label for="receiver-money" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Money they add (SEK)</label>
                         <input type="number" id="receiver-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" placeholder="0.00" step="0.01">
                     </div>
                 </div>
-
                 <div id="proposer-trade-section" class="flex flex-col">
                      <div class="flex justify-between items-center mb-2">
                         <h3 class="font-bold text-lg dark:text-white">You Offer:</h3>
-                        <button type="button" data-side="proposer" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50">
-                            <i class="fas fa-magic"></i> Auto-Balance
-                        </button>
+                        <button type="button" data-side="proposer" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50"><i class="fas fa-magic"></i> Auto-Balance</button>
                         <div class="text-sm font-semibold dark:text-gray-300">Value: <span id="proposer-value" class="text-green-600 dark:text-green-400">0.00 SEK</span></div>
                     </div>
                     <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
-                        <div class="mb-2">
-                            <input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600">
-                        </div>
+                        <div class="mb-2"><input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600"></div>
                         <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
                             <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="list" data-side="proposer">List</button>
                             <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="binder" data-side="proposer">Binder</button>
@@ -207,12 +180,11 @@
                         </div>
                     </div>
                      <div class="mt-4">
-                        <label for="proposer-money" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Money you add (optional)</label>
+                        <label for="proposer-money" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Money you add (SEK)</label>
                         <input type="number" id="proposer-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" placeholder="0.00" step="0.01">
                     </div>
                 </div>
             </div>
-
             <div class="mt-6 border-t pt-6 dark:border-gray-600">
                  <label for="trade-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes (Optional)</label>
                  <textarea id="trade-notes" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600"></textarea>
@@ -222,7 +194,6 @@
             </div>
         </div>
     </div>
-    
     <div id="auto-balance-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-md dark:bg-gray-800">
             <button id="close-balance-modal" class="close-button">&times;</button>
@@ -234,28 +205,21 @@
                     <label for="balance-percentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Match Percentage</label>
                     <div class="relative mt-1">
                         <input type="number" id="balance-percentage" value="100" min="1" max="1000" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 pr-8">
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 sm:text-sm">%</span>
-                        </div>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><span class="text-gray-500 sm:text-sm">%</span></div>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">e.g., 100% to match value, 110% to offer more.</p>
                 </div>
-                <div class="text-right pt-2">
-                    <button type="submit" class="px-6 py-2 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700">Balance Now</button>
-                </div>
+                <div class="text-right pt-2"><button type="submit" class="px-6 py-2 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700">Balance Now</button></div>
             </form>
         </div>
     </div>
-
     <div id="feedback-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-lg dark:bg-gray-800">
             <button id="close-feedback-modal" class="close-button">&times;</button>
             <h2 class="text-2xl font-bold mb-4 dark:text-white">Leave Feedback</h2>
             <form id="feedback-form" class="space-y-6">
-                <input type="hidden" id="feedback-trade-id">
-                <input type="hidden" id="feedback-for-user-id">
+                <input type="hidden" id="feedback-trade-id"><input type="hidden" id="feedback-for-user-id">
                 <p class="dark:text-gray-300">How was your trade with <strong id="feedback-for-user-name" class="dark:text-white"></strong>?</p>
-                
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Accuracy</label>
@@ -272,19 +236,14 @@
                         <input type="hidden" class="rating-value-input" id="rating-packaging" value="0">
                     </div>
                 </div>
-
                 <div>
                     <label for="feedback-comment" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Comment (optional)</label>
                     <textarea id="feedback-comment" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600"></textarea>
                 </div>
-
-                <div class="mt-6 text-right">
-                    <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Submit Feedback</button>
-                </div>
+                <div class="mt-6 text-right"><button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Submit Feedback</button></div>
             </form>
         </div>
     </div>
-    
     <div id="dispute-modal" class="modal-overlay">
         <div class="modal-content w-full max-w-lg dark:bg-gray-800">
             <button id="close-dispute-modal" class="close-button">&times;</button>
@@ -305,128 +264,35 @@
                     <label for="dispute-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Details</label>
                     <textarea id="dispute-details" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" required></textarea>
                 </div>
-                <div class="text-right">
-                     <button type="submit" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Submit Dispute</button>
-                </div>
+                <div class="text-right"><button type="submit" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Submit Dispute</button></div>
+            </form>
+        </div>
+    </div>
+    <!-- Trade Payment Modal -->
+    <div id="trade-payment-modal" class="modal-overlay">
+        <div class="modal-content w-full max-w-md">
+            <button id="close-payment-modal" class="close-button">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Secure Trade Payment</h2>
+            <p class="mb-4 text-gray-600 dark:text-gray-400">You are paying <span id="seller-name-modal" class="font-bold"></span>. The funds will be held by HatakeSocial until you confirm delivery.</p>
+            <form id="payment-form">
+                <div id="payment-element" class="mb-4"></div>
+                <button id="submit-payment-btn" class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700 disabled:opacity-50">
+                    <span id="button-text">Pay Now</span>
+                    <i id="payment-spinner" class="fas fa-spinner fa-spin hidden"></i>
+                </button>
+                <div id="payment-message" class="hidden text-center text-red-500 mt-2"></div>
             </form>
         </div>
     </div>
 
-
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-    <div class="container mx-auto py-8 px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
-                    <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
-                    <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
-                    <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Display Options</h3>
-                <div class="flex items-center space-x-4">
-                    <div>
-                        <label for="theme-toggle" class="text-sm text-gray-600 dark:text-gray-400">Theme</label>
-                        <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
-                            <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
-                            <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
-                        </button>
-                    </div>
-                    <div id="currency-selector-container">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-            <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-            <div class="flex space-x-6 mt-4 md:mt-0">
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
-            </div>
-        </div>
-    </div>
-</footer>
-    
-    <div id="messenger-widget-container" class="minimized">
-        <div id="messenger-open-btn">
-            <i class="fas fa-comments"></i>
-        </div>
-        <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
-            <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-                <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
-                <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
-            </div>
-            <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-                <div id="widget-conversations-list" class="flex-grow overflow-y-auto"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="loginModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
-            <button class="close-button" id="closeLoginModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Login to HatakeSocial</h2>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label for="loginEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="loginEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-                </div>
-                <div>
-                    <label for="loginPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="loginPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-blue-700 transition duration-300">Login</button>
-            </form>
-        </div>
-    </div>
-    <div id="registerModal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
-            <button class="close-button" id="closeRegisterModal">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">Register for HatakeSocial</h2>
-            <form id="registerForm" class="space-y-4">
-                <div>
-                    <label for="registerEmail" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Email:</label>
-                    <input type="email" id="registerEmail" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your email" required>
-                </div>
-                <div>
-                    <label for="registerPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                 <div>
-                    <label for="registerCity" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">City:</label>
-                    <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
-                </div>
-                <div>
-                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
-                    <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
-                </div>
-                <div>
-                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
-                    <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
-            </form>
-        </div>
-    </div>
-
+    <!-- Scripts -->
+    <script src="https://js.stripe.com/v3/"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="js/auth.js"></script>
     <script src="js/trades.js"></script>
     <script src="js/notifications.js"></script>
