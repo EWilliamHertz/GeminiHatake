@@ -59,21 +59,30 @@
             </div>
 
             <div class="flex items-center space-x-4">
-                <div id="notification-container" class="relative hidden">
-                    <button id="notification-bell" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-blue-500">
-                        <i class="fas fa-bell"></i>
-                        <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"></span>
-                    </button>
-                    <div id="notification-dropdown" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
-                    </div>
+                <!-- Guest/Logged-out buttons -->
+                <div id="logged-out-links" class="flex items-center space-x-4">
+                    <a href="auth.html" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">Login</a>
+                    <a href="auth.html#register" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Register</a>
                 </div>
-                
-                <div id="user-dropdown-container" class="relative">
-                    <button id="user-dropdown-button" class="flex items-center space-x-2 focus:outline-none">
-                        <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar">
-                        <span id="user-name" class="hidden sm:inline font-medium"></span>
-                    </button>
-                    <div id="user-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+
+                <!-- Logged-in user elements -->
+                <div id="logged-in-links" class="hidden flex items-center space-x-4">
+                    <div id="notification-container" class="relative">
+                        <button id="notification-bell" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-blue-500">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"></span>
+                        </button>
+                        <div id="notification-dropdown" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                        </div>
+                    </div>
+                    
+                    <div id="user-dropdown-container" class="relative">
+                        <button id="user-dropdown-button" class="flex items-center space-x-2 focus:outline-none">
+                            <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar">
+                            <span id="user-name" class="hidden sm:inline font-medium"></span>
+                        </button>
+                        <div id="user-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -83,26 +92,8 @@
             <!-- Header Section -->
 
 
-    <div id="home-page" class="flex-grow container mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-        <aside class="md:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-fit sticky top-24 hidden md:block" id="left-sidebar">
-            <div class="flex items-center mb-6 hidden" id="sidebar-user-info">
-                <img src="https://placehold.co/64x64?text=P" alt="User Profile" class="h-16 w-16 rounded-full border-2 border-blue-500 mr-4" id="sidebar-user-avatar">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800 dark:text-white" id="sidebar-user-name">User</h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm" id="sidebar-user-handle">@handle</p>
-                </div>
-            </div>
-            <nav>
-                <ul class="space-y-4">
-                    <li><a href="index.html" class="flex items-center text-blue-600 dark:text-blue-400 font-medium text-lg"><i class="fas fa-stream mr-3 text-xl"></i> Feed</a></li>
-                    <li><a href="my_collection.html" class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium text-lg"><i class="fas fa-box-open mr-3 text-xl"></i> My Collection</a></li>
-                    <li><a href="trades.html" class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium text-lg"><i class="fas fa-exchange-alt mr-3 text-xl"></i> Trades</a></li>
-                    <li><a href="marketplace.html" class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium text-lg"><i class="fas fa-shopping-cart mr-3 text-xl"></i> Marketplace</a></li>
-                    <li><a href="events.html" class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium text-lg"><i class="fas fa-calendar-alt mr-3 text-xl"></i> Events</a></li>
-                    <li><a href="settings.html" class="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium text-lg"><i class="fas fa-cog mr-3 text-xl"></i> Settings</a></li>
-                </ul>
-            </nav>
-        </aside>
+    <div id="home-page" class="container mx-auto px-4 py-8">
+        
 
         <section class="md:col-span-2 space-y-6">
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="create-post-section">

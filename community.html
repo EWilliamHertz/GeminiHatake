@@ -49,21 +49,30 @@
             </div>
 
             <div class="flex items-center space-x-4">
-                <div id="notification-container" class="relative hidden">
-                    <button id="notification-bell" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-blue-500">
-                        <i class="fas fa-bell"></i>
-                        <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"></span>
-                    </button>
-                    <div id="notification-dropdown" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
-                    </div>
+                <!-- Guest/Logged-out buttons -->
+                <div id="logged-out-links" class="flex items-center space-x-4">
+                    <a href="auth.html" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">Login</a>
+                    <a href="auth.html#register" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Register</a>
                 </div>
-                
-                <div id="user-dropdown-container" class="relative">
-                    <button id="user-dropdown-button" class="flex items-center space-x-2 focus:outline-none">
-                        <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar">
-                        <span id="user-name" class="hidden sm:inline font-medium"></span>
-                    </button>
-                    <div id="user-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+
+                <!-- Logged-in user elements -->
+                <div id="logged-in-links" class="hidden flex items-center space-x-4">
+                    <div id="notification-container" class="relative">
+                        <button id="notification-bell" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800 focus:ring-blue-500">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"></span>
+                        </button>
+                        <div id="notification-dropdown" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                        </div>
+                    </div>
+                    
+                    <div id="user-dropdown-container" class="relative">
+                        <button id="user-dropdown-button" class="flex items-center space-x-2 focus:outline-none">
+                            <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar">
+                            <span id="user-name" class="hidden sm:inline font-medium"></span>
+                        </button>
+                        <div id="user-dropdown-menu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
+                        </div>
                     </div>
                 </div>
             </div>
