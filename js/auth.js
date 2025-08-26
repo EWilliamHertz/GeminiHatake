@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Merged Authentication & Global UI Script (v29 - Shopping Cart)
+ * HatakeSocial - Merged Authentication & Global UI Script (v30 - Login Fix)
  *
- * This script combines the features of the v26 core script with the dynamic UI generation
- * from v18, ensuring compatibility with the existing HTML structure.
+ * This script corrects a race condition where login/register modals would close
+ * before the UI had a chance to update, making it seem like the login failed.
  *
- * - NEW: Dynamically injects a shopping cart icon into the header for logged-in users.
+ * - FIX: Modals are now closed from within the `onAuthStateChanged` listener,
+ * ensuring the UI is ready to update when a user session is confirmed.
  * - Merged Features:
  * - Full Firebase configuration and initialization within DOMContentLoaded.
  * - Robust email verification flow on login.
@@ -13,7 +14,6 @@
  * - Real-time notification listener for the bell icon and dropdown content.
  * - Friend request handshake logic.
  * - Global utilities like `showToast`, modal handlers, and currency conversion.
- * - Defensive UI checks to prevent errors on pages with missing elements.
  */
 
 // --- Global Toast Notification Function ---
@@ -83,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+
 
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
@@ -150,8 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const setupGlobalListeners = () => {
         const headerSearchForm = document.querySelector('header form#header-search-form'); 
-        const loginModal = document.getElementById('loginModal');
-        const registerModal = document.getElementById('registerModal');
         const googleLoginButton = document.getElementById('googleLoginButton');
         const googleRegisterButton = document.getElementById('googleRegisterButton');
         const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -167,9 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const errorMessageEl = document.getElementById('login-error-message');
 
             auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    closeModal(loginModal);
-                })
                 .catch(err => {
                     errorMessageEl.textContent = err.message;
                     errorMessageEl.classList.remove('hidden');
@@ -208,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 })
                 .then(() => {
-                    closeModal(document.getElementById('registerModal'));
                     showToast("Registration successful! A verification link has been sent to your email.", "success");
                 })
                 .catch(err => {
@@ -238,9 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                 });
-            }).then(() => {
-                closeModal(loginModal);
-                closeModal(registerModal);
             }).catch(err => showToast(err.message, "error"));
         };
         
@@ -361,6 +355,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const mobileUserActions = document.getElementById('mobile-user-actions');
         
         if (user) {
+            // User is logged in, close modals
+            closeModal(loginModal);
+            closeModal(registerModal);
+            
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists) {
@@ -376,14 +374,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 1. Populate Header User Actions (Dynamic Injection)
                 if (userActions) {
                     userActions.innerHTML = `
-                        <!-- Cart Icon -->
                         <div class="relative">
                             <button id="cart-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
                                 <i class="fas fa-shopping-cart"></i>
                                 <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
                             </button>
                         </div>
-                        <!-- Notification Bell -->
                         <div class="relative">
                             <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl"><i class="fas fa-bell"></i><span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
                             <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
@@ -392,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
                             </div>
                         </div>
-                        <!-- Profile Dropdown -->
                         <div class="relative">
                             <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-transparent hover:border-blue-500"></button>
                             <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
