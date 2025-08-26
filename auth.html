@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        // Tailwind dark mode configuration
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
+        
+        <div class="text-center">
+            <a href="index.html" title="Back to Home">
+                <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="w-20 h-20 mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/80x80?text=Logo';">
+            </a>
+            <h2 id="form-title" class="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+                Login to Your Account
+            </h2>
+        </div>
+
+        <form id="login-form" class="mt-8 space-y-6">
+            <div class="space-y-4 rounded-md shadow-sm">
+                <div>
+                    <label for="login-email" class="sr-only">Email address</label>
+                    <input id="login-email" name="email" type="email" autocomplete="email" required class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Email address">
+                </div>
+                <div>
+                    <label for="login-password" class="sr-only">Password</label>
+                    <input id="login-password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Password">
+                </div>
+            </div>
+            <p id="login-error" class="text-sm text-red-500 mt-2 h-4"></p>
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Sign in
+                </button>
+            </div>
+        </form>
+
+        <form id="register-form" class="mt-8 space-y-6 hidden">
+             <div class="space-y-4 rounded-md shadow-sm">
+                <div>
+                    <label for="register-username" class="sr-only">Display Name</label>
+                    <input id="register-username" name="username" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Display Name">
+                </div>
+                <div>
+                    <label for="register-email" class="sr-only">Email address</label>
+                    <input id="register-email" name="email" type="email" autocomplete="email" required class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Email address">
+                </div>
+                <div>
+                    <label for="register-password" class="sr-only">Password</label>
+                    <input id="register-password" name="password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Password (min. 6 characters)">
+                </div>
+            </div>
+            <p id="register-error" class="text-sm text-red-500 mt-2 h-4"></p>
+            <div>
+                <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Create Account
+                </button>
+            </div>
+        </form>
+
+        <div class="relative py-3">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                    Or continue with
+                </span>
+            </div>
+        </div>
+
+        <div>
+            <button id="google-signin-button" class="w-full inline-flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
+                <span class="ml-3">Sign in with Google</span>
+            </button>
+        </div>
+
+        <div class="text-sm text-center">
+            <a href="#" id="toggle-to-register" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+                Don't have an account? Register
+            </a>
+            <a href="#" id="toggle-to-login" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 hidden">
+                Already have an account? Sign in
+            </a>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+    <script src="js/darkmode.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

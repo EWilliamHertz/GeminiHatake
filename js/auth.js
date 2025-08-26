@@ -3,6 +3,7 @@
  *
  * - FIX: Adds defensive checks around UI element manipulation (e.g., sidebar avatar). This prevents the script from crashing on pages that don't have those specific elements, like the messages page.
  * - FIX: Ensures the Firebase Functions library is loaded before use.
+ * - FIX: Corrects the form submission handlers to prevent page refresh.
  * - Implements a global toast notification system and real-time notification bell.
  */
 
