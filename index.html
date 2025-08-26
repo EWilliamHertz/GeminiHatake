@@ -42,6 +42,7 @@
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
+            
             <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <div class="flex items-center">
                     <button id="sidebar-toggle" class="lg:hidden mr-4 text-gray-600 dark:text-gray-300">
@@ -54,11 +55,10 @@
                     </div>
                 </div>
 
-                <!-- User Actions: Avatar, Notifications -->
                 <div id="user-actions" class="flex items-center space-x-5">
-                    <!-- This will be populated by auth.js -->
-                </div>
+                    </div>
             </header>
+    
 
             <!-- Page Content -->
             <main class="flex-1 overflow-y-auto p-6">
@@ -110,6 +110,7 @@
     </div>
 
     <!-- Modals -->
+    
     <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between items-center">
@@ -131,6 +132,20 @@
                 <h2 class="text-xl font-bold">Register</h2>
                 <button id="closeRegisterModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
             </div>
+            <form id="registerForm" class="mt-4 space-y-4">
+                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
+                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
+                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
+            </form>
+        </div>
+    </div>
+    
             <form id="registerForm" class="mt-4 space-y-4">
                  <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
                  <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>

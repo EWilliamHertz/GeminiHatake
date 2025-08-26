@@ -49,51 +49,23 @@
     </div>
 </aside>
         <main class="flex-1 flex flex-col overflow-y-auto">
-            <header class="bg-white dark:bg-gray-800 shadow-sm py-3 z-40 border-b border-gray-200 dark:border-gray-700">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between">
-            <div class="flex-1 max-w-xs">
-                <form id="header-search-form" class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </span>
-                    <input id="searchBar" type="text" placeholder="Search..." class="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </form>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                
-                <div id="logged-out-links">
-                    <button id="loginButton" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400">Login</button>
-                    <button id="registerButton" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Register</button>
-                </div>
-
-                <div id="logged-in-links" class="hidden items-center space-x-4">
-                     <div class="relative">
-                        <button id="notification-bell-btn" class="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-blue-500 focus:outline-none">
-                            <i class="fas fa-bell"></i>
-                            <span id="notification-count" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hidden"></span>
-                        </button>
-                        <div id="notification-dropdown" class="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
-                            <ul id="notification-list"></ul>
-                        </div>
-                     </div>
-                    
+            
+            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="flex items-center">
+                    <button id="sidebar-toggle" class="lg:hidden mr-4 text-gray-600 dark:text-gray-300">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
                     <div class="relative">
-                        <button><img id="userAvatar" class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/40" alt="User Avatar"></button>
-                        <div id="userDropdown" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 hidden">
-                            <a href="profile.html" class="dropdown-item">My Profile</a>
-                            <a href="settings.html" class="dropdown-item">Settings</a>
-                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                            <a href="#" id="logoutButton" class="dropdown-item">Logout</a>
-                        </div>
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="main-search-bar" placeholder="Search for cards, users, or articles..." class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="main-search-results" class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden"></div>
                     </div>
                 </div>
 
-            </div>
-        </div>
-    </div>
-</header>
+                <div id="user-actions" class="flex items-center space-x-5">
+                    </div>
+            </header>
+    
             <main class="container mx-auto px-4 py-8 flex-grow">
         <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
             <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Secure Trades</h1>
@@ -316,41 +288,42 @@
         </main>
     </div>
 <!-- Login Modal -->
-<div id="loginModal" class="modal-overlay">
-    <div class="modal-content">
-        <button id="closeLoginModal" class="modal-close-btn">&times;</button>
-        <div class="text-center mb-6">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="Logo" class="w-16 h-16 mx-auto mb-2">
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Login to HatakeSocial</h2>
-        </div>
-        <form id="loginForm">
-            <div class="mb-4">
-                <label for="loginEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input type="email" id="loginEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
-            </div>
-            <div class="mb-4">
-                <label for="loginPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                <input type="password" id="loginPassword" required class="mt-1 block w-full input-style" placeholder="••••••••">
-            </div>
-            <p id="login-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
-            <button type="submit" class="w-full btn-primary">Login</button>
-        </form>
-        <div class="separator">Or continue with</div>
-        <button id="googleLoginButton" class="w-full btn-secondary">
-            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
-            <span class="ml-3">Sign in with Google</span>
-        </button>
-    </div>
-</div>
 
-<!-- Register Modal -->
-<div id="registerModal" class="modal-overlay">
-    <div class="modal-content">
-        <button id="closeRegisterModal" class="modal-close-btn">&times;</button>
-        <div class="text-center mb-6">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="Logo" class="w-16 h-16 mx-auto mb-2">
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Create an Account</h2>
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Login</h2>
+                <button id="closeLoginModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
+            </div>
+            <form id="loginForm" class="mt-4 space-y-4">
+                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
+                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
+            </form>
         </div>
+    </div>
+     <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Register</h2>
+                <button id="closeRegisterModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
+            </div>
+            <form id="registerForm" class="mt-4 space-y-4">
+                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
+                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
+                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
+            </form>
+        </div>
+    </div>
+    
         <form id="registerForm">
             <div class="mb-4">
                 <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
