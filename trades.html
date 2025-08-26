@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Trades - HatakeSocial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        #card-quick-view-tooltip {
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Secure Trades - HatakeSocial
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <style>
+   #card-quick-view-tooltip {
             position: absolute;
             z-index: 100;
             pointer-events: none;
@@ -19,355 +22,602 @@
             width: 223px;
             height: 310px;
         }
-    </style>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-    <div class="flex h-screen">
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
+  </style>
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
+  <div class="flex h-screen">
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
     <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-        <a href="index.html" class="flex flex-col items-center space-y-1">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
-            <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-        </a>
+     <a class="flex flex-col items-center space-y-1" href="index.html">
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
     </div>
     <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="index.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
-        <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
-        <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
-        <a href="articles.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">Articles</span></a>
-        <a href="events.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
-        <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
-        <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
-        <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
-        <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
-        <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
-        <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
-        <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
-        <a href="about.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="index.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
     </nav>
-    <div id="sidebar-user-info" class="p-4 border-t border-gray-200 dark:border-gray-700 hidden">
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
     </div>
-</aside>
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            
-            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <div class="flex items-center">
-                    <button id="sidebar-toggle" class="lg:hidden mr-4 text-gray-600 dark:text-gray-300">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="main-search-bar" placeholder="Search for cards, users, or articles..." class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div id="main-search-results" class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden"></div>
-                    </div>
-                </div>
-
-                <div id="user-actions" class="flex items-center space-x-5">
-                    </div>
-            </header>
-    
-            <main class="container mx-auto px-4 py-8 flex-grow">
-        <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
-            <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Secure Trades</h1>
-            <button id="propose-new-trade-btn" class="hidden px-6 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700">
-                <i class="fas fa-plus mr-2"></i>Propose a New Trade
-            </button>
-        </div>
-
-        <!-- Seller Onboarding Section -->
-        <div id="seller-onboarding-section" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 hidden">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Become a Seller</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">To sell cards and receive payments, you need to set up a Stripe account. This is a secure one-time process.</p>
-            <button id="onboard-seller-btn" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700">
-                <i class="fab fa-stripe-s mr-2"></i>Set Up Payments with Stripe
-            </button>
-        </div>
-
-        <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 text-blue-800 dark:text-blue-200 p-4 rounded-r-lg mb-6" role="alert">
-            <div class="flex">
-                <div class="py-1"><i class="fas fa-shield-alt text-2xl mr-4"></i></div>
-                <div>
-                    <p class="font-bold">HatakeSocial Buyer Protection</p>
-                    <p class="text-sm">All trades involving cash are protected by our Trustee service. Funds are held securely until both parties confirm shipment and receipt, ensuring a safe transaction for everyone.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-            <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                <button data-tab="incoming" class="trade-tab-button active">Incoming Offers</button>
-                <button data-tab="outgoing" class="trade-tab-button">Outgoing Offers</button>
-                <button data-tab="history" class="trade-tab-button">Trade History</button>
-                <button data-tab="analysis" class="trade-tab-button">Trade Analysis</button>
-            </nav>
-        </div>
-
-        <div>
-            <div id="tab-content-incoming" class="trade-tab-content space-y-6"></div>
-            <div id="tab-content-outgoing" class="trade-tab-content hidden space-y-6"></div>
-            <div id="tab-content-history" class="trade-tab-content hidden space-y-6"></div>
-            <div id="tab-content-analysis" class="trade-tab-content hidden space-y-6"></div>
-        </div>
+   </aside>
+   <main class="flex-1 flex flex-col overflow-y-auto">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+       <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
+       </div>
+      </div>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+     </div>
+    </header>
+    <main class="container mx-auto px-4 py-8 flex-grow">
+     <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
+      <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">
+       Secure Trades
+      </h1>
+      <button class="hidden px-6 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700" id="propose-new-trade-btn">
+       <i class="fas fa-plus mr-2">
+       </i>
+       Propose a New Trade
+      </button>
+     </div>
+     <!-- Seller Onboarding Section -->
+     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 hidden" id="seller-onboarding-section">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+       Become a Seller
+      </h2>
+      <p class="text-gray-600 dark:text-gray-400 mb-4">
+       To sell cards and receive payments, you need to set up a Stripe account. This is a secure one-time process.
+      </p>
+      <button class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700" id="onboard-seller-btn">
+       <i class="fab fa-stripe-s mr-2">
+       </i>
+       Set Up Payments with Stripe
+      </button>
+     </div>
+     <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 text-blue-800 dark:text-blue-200 p-4 rounded-r-lg mb-6" role="alert">
+      <div class="flex">
+       <div class="py-1">
+        <i class="fas fa-shield-alt text-2xl mr-4">
+        </i>
+       </div>
+       <div>
+        <p class="font-bold">
+         HatakeSocial Buyer Protection
+        </p>
+        <p class="text-sm">
+         All trades involving cash are protected by our Trustee service. Funds are held securely until both parties confirm shipment and receipt, ensuring a safe transaction for everyone.
+        </p>
+       </div>
+      </div>
+     </div>
+     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+      <nav aria-label="Tabs" class="flex -mb-px space-x-8">
+       <button class="trade-tab-button active" data-tab="incoming">
+        Incoming Offers
+       </button>
+       <button class="trade-tab-button" data-tab="outgoing">
+        Outgoing Offers
+       </button>
+       <button class="trade-tab-button" data-tab="history">
+        Trade History
+       </button>
+       <button class="trade-tab-button" data-tab="analysis">
+        Trade Analysis
+       </button>
+      </nav>
+     </div>
+     <div>
+      <div class="trade-tab-content space-y-6" id="tab-content-incoming">
+      </div>
+      <div class="trade-tab-content hidden space-y-6" id="tab-content-outgoing">
+      </div>
+      <div class="trade-tab-content hidden space-y-6" id="tab-content-history">
+      </div>
+      <div class="trade-tab-content hidden space-y-6" id="tab-content-analysis">
+      </div>
+     </div>
     </main>
-
     <!-- Modals -->
-    <div id="propose-trade-modal" class="modal-overlay">
-        <div class="modal-content w-full max-w-6xl dark:bg-gray-800">
-            <button id="close-trade-modal" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Propose a New Trade</h2>
-            <input type="hidden" id="counter-offer-original-id">
-            <div class="mb-4">
-                <label for="trade-partner-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select a Trade Partner</label>
-                <input type="text" id="trade-partner-search" placeholder="Search for a user by their handle..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600">
-                <div id="trade-partner-results" class="bg-white dark:bg-gray-600 absolute shadow-lg rounded-md mt-1 w-full max-h-40 overflow-y-auto z-20 hidden"></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div id="receiver-trade-section" class="flex flex-col opacity-50 pointer-events-none">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-lg dark:text-white">They Offer:</h3>
-                        <button type="button" data-side="receiver" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50"><i class="fas fa-magic"></i> Auto-Balance</button>
-                        <div class="text-sm font-semibold dark:text-gray-300">Value: <span id="receiver-value" class="text-green-600 dark:text-green-400">0.00 SEK</span></div>
-                    </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
-                        <div class="mb-2"><input type="text" id="their-collection-search" placeholder="Search their collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600"></div>
-                        <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
-                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="list" data-side="receiver">List</button>
-                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="binder" data-side="receiver">Binder</button>
-                        </div>
-                        <div id="their-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-600"></div>
-                        <div id="their-collection-binder" class="h-48 overflow-y-auto border rounded-md p-2 bg-white dark:bg-gray-800 dark:border-gray-600 hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
-                        <div class="mt-4 flex-grow">
-                             <h4 class="font-semibold mb-2 dark:text-gray-200">Selected for Trade:</h4>
-                             <div id="receiver-selected-cards" class="space-y-1"><p class="text-sm text-gray-500 italic">Select a trade partner first.</p></div>
-                        </div>
-                    </div>
-                     <div class="mt-4">
-                        <label for="receiver-money" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Money they add (SEK)</label>
-                        <input type="number" id="receiver-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" placeholder="0.00" step="0.01">
-                    </div>
-                </div>
-                <div id="proposer-trade-section" class="flex flex-col">
-                     <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-lg dark:text-white">You Offer:</h3>
-                        <button type="button" data-side="proposer" class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50"><i class="fas fa-magic"></i> Auto-Balance</button>
-                        <div class="text-sm font-semibold dark:text-gray-300">Value: <span id="proposer-value" class="text-green-600 dark:text-green-400">0.00 SEK</span></div>
-                    </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
-                        <div class="mb-2"><input type="text" id="my-collection-search" placeholder="Search your collection..." class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600"></div>
-                        <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
-                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="list" data-side="proposer">List</button>
-                            <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-view="binder" data-side="proposer">Binder</button>
-                        </div>
-                        <div id="my-collection-list" class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-600"></div>
-                        <div id="my-collection-binder" class="h-48 overflow-y-auto border rounded-md p-2 bg-white dark:bg-gray-800 dark:border-gray-600 hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"></div>
-                        <div class="mt-4 flex-grow">
-                             <h4 class="font-semibold mb-2 dark:text-gray-200">Selected for Trade:</h4>
-                             <div id="proposer-selected-cards" class="space-y-1"><p class="text-sm text-gray-500 italic">No cards selected.</p></div>
-                        </div>
-                    </div>
-                     <div class="mt-4">
-                        <label for="proposer-money" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Money you add (SEK)</label>
-                        <input type="number" id="proposer-money" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" placeholder="0.00" step="0.01">
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6 border-t pt-6 dark:border-gray-600">
-                 <label for="trade-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes (Optional)</label>
-                 <textarea id="trade-notes" rows="2" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600"></textarea>
-            </div>
-            <div class="mt-6 text-right">
-                <button id="send-trade-offer-btn" class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700">Send Trade Offer</button>
-            </div>
+    <div class="modal-overlay" id="propose-trade-modal">
+     <div class="modal-content w-full max-w-6xl dark:bg-gray-800">
+      <button class="close-button" id="close-trade-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Propose a New Trade
+      </h2>
+      <input id="counter-offer-original-id" type="hidden"/>
+      <div class="mb-4">
+       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="trade-partner-search">
+        Select a Trade Partner
+       </label>
+       <input class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="trade-partner-search" placeholder="Search for a user by their handle..." type="text"/>
+       <div class="bg-white dark:bg-gray-600 absolute shadow-lg rounded-md mt-1 w-full max-h-40 overflow-y-auto z-20 hidden" id="trade-partner-results">
+       </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+       <div class="flex flex-col opacity-50 pointer-events-none" id="receiver-trade-section">
+        <div class="flex justify-between items-center mb-2">
+         <h3 class="font-bold text-lg dark:text-white">
+          They Offer:
+         </h3>
+         <button class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50" data-side="receiver" type="button">
+          <i class="fas fa-magic">
+          </i>
+          Auto-Balance
+         </button>
+         <div class="text-sm font-semibold dark:text-gray-300">
+          Value:
+          <span class="text-green-600 dark:text-green-400" id="receiver-value">
+           0.00 SEK
+          </span>
+         </div>
         </div>
+        <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
+         <div class="mb-2">
+          <input class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600" id="their-collection-search" placeholder="Search their collection..." type="text"/>
+         </div>
+         <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
+          <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-side="receiver" data-view="list">
+           List
+          </button>
+          <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-side="receiver" data-view="binder">
+           Binder
+          </button>
+         </div>
+         <div class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-600" id="their-collection-list">
+         </div>
+         <div class="h-48 overflow-y-auto border rounded-md p-2 bg-white dark:bg-gray-800 dark:border-gray-600 hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" id="their-collection-binder">
+         </div>
+         <div class="mt-4 flex-grow">
+          <h4 class="font-semibold mb-2 dark:text-gray-200">
+           Selected for Trade:
+          </h4>
+          <div class="space-y-1" id="receiver-selected-cards">
+           <p class="text-sm text-gray-500 italic">
+            Select a trade partner first.
+           </p>
+          </div>
+         </div>
+        </div>
+        <div class="mt-4">
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="receiver-money">
+          Money they add (SEK)
+         </label>
+         <input class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="receiver-money" placeholder="0.00" step="0.01" type="number"/>
+        </div>
+       </div>
+       <div class="flex flex-col" id="proposer-trade-section">
+        <div class="flex justify-between items-center mb-2">
+         <h3 class="font-bold text-lg dark:text-white">
+          You Offer:
+         </h3>
+         <button class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-xs hover:bg-purple-700 disabled:opacity-50" data-side="proposer" type="button">
+          <i class="fas fa-magic">
+          </i>
+          Auto-Balance
+         </button>
+         <div class="text-sm font-semibold dark:text-gray-300">
+          Value:
+          <span class="text-green-600 dark:text-green-400" id="proposer-value">
+           0.00 SEK
+          </span>
+         </div>
+        </div>
+        <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex-grow flex flex-col">
+         <div class="mb-2">
+          <input class="w-full p-2 border rounded-md dark:bg-gray-900 dark:border-gray-600" id="my-collection-search" placeholder="Search your collection..." type="text"/>
+         </div>
+         <div class="flex space-x-1 mb-2 rounded-md bg-gray-200 dark:bg-gray-900 p-1">
+          <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-side="proposer" data-view="list">
+           List
+          </button>
+          <button class="view-toggle-btn flex-1 py-1 text-sm rounded-md" data-side="proposer" data-view="binder">
+           Binder
+          </button>
+         </div>
+         <div class="h-48 overflow-y-auto border rounded-md p-2 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-600" id="my-collection-list">
+         </div>
+         <div class="h-48 overflow-y-auto border rounded-md p-2 bg-white dark:bg-gray-800 dark:border-gray-600 hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" id="my-collection-binder">
+         </div>
+         <div class="mt-4 flex-grow">
+          <h4 class="font-semibold mb-2 dark:text-gray-200">
+           Selected for Trade:
+          </h4>
+          <div class="space-y-1" id="proposer-selected-cards">
+           <p class="text-sm text-gray-500 italic">
+            No cards selected.
+           </p>
+          </div>
+         </div>
+        </div>
+        <div class="mt-4">
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="proposer-money">
+          Money you add (SEK)
+         </label>
+         <input class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="proposer-money" placeholder="0.00" step="0.01" type="number"/>
+        </div>
+       </div>
+      </div>
+      <div class="mt-6 border-t pt-6 dark:border-gray-600">
+       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="trade-notes">
+        Notes (Optional)
+       </label>
+       <textarea class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="trade-notes" rows="2"></textarea>
+      </div>
+      <div class="mt-6 text-right">
+       <button class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700" id="send-trade-offer-btn">
+        Send Trade Offer
+       </button>
+      </div>
+     </div>
     </div>
-    <div id="auto-balance-modal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md dark:bg-gray-800">
-            <button id="close-balance-modal" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Auto-Balance Offer</h2>
-            <form id="auto-balance-form" class="space-y-4">
-                <input type="hidden" id="balance-target-side">
-                <p class="text-gray-600 dark:text-gray-300">Automatically add cards to match a percentage of the other side's value.</p>
-                <div>
-                    <label for="balance-percentage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Match Percentage</label>
-                    <div class="relative mt-1">
-                        <input type="number" id="balance-percentage" value="100" min="1" max="1000" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 pr-8">
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><span class="text-gray-500 sm:text-sm">%</span></div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-1">e.g., 100% to match value, 110% to offer more.</p>
-                </div>
-                <div class="text-right pt-2"><button type="submit" class="px-6 py-2 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700">Balance Now</button></div>
-            </form>
+    <div class="modal-overlay" id="auto-balance-modal">
+     <div class="modal-content w-full max-w-md dark:bg-gray-800">
+      <button class="close-button" id="close-balance-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Auto-Balance Offer
+      </h2>
+      <form class="space-y-4" id="auto-balance-form">
+       <input id="balance-target-side" type="hidden"/>
+       <p class="text-gray-600 dark:text-gray-300">
+        Automatically add cards to match a percentage of the other side's value.
+       </p>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="balance-percentage">
+         Match Percentage
+        </label>
+        <div class="relative mt-1">
+         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 pr-8" id="balance-percentage" max="1000" min="1" type="number" value="100"/>
+         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+          <span class="text-gray-500 sm:text-sm">
+           %
+          </span>
+         </div>
         </div>
+        <p class="text-xs text-gray-500 mt-1">
+         e.g., 100% to match value, 110% to offer more.
+        </p>
+       </div>
+       <div class="text-right pt-2">
+        <button class="px-6 py-2 bg-purple-600 text-white font-semibold rounded-full hover:bg-purple-700" type="submit">
+         Balance Now
+        </button>
+       </div>
+      </form>
+     </div>
     </div>
-    <div id="feedback-modal" class="modal-overlay">
-        <div class="modal-content w-full max-w-lg dark:bg-gray-800">
-            <button id="close-feedback-modal" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Leave Feedback</h2>
-            <form id="feedback-form" class="space-y-6">
-                <input type="hidden" id="feedback-trade-id"><input type="hidden" id="feedback-for-user-id">
-                <p class="dark:text-gray-300">How was your trade with <strong id="feedback-for-user-name" class="dark:text-white"></strong>?</p>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Accuracy</label>
-                        <div class="star-rating-container flex items-center justify-center space-x-2 text-3xl text-gray-300" data-rating-type="accuracy">
-                            <i class="far fa-star star-icon cursor-pointer" data-value="1"></i><i class="far fa-star star-icon cursor-pointer" data-value="2"></i><i class="far fa-star star-icon cursor-pointer" data-value="3"></i><i class="far fa-star star-icon cursor-pointer" data-value="4"></i><i class="far fa-star star-icon cursor-pointer" data-value="5"></i>
-                        </div>
-                        <input type="hidden" class="rating-value-input" id="rating-accuracy" value="0">
-                    </div>
-                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Packaging</label>
-                        <div class="star-rating-container flex items-center justify-center space-x-2 text-3xl text-gray-300" data-rating-type="packaging">
-                           <i class="far fa-star star-icon cursor-pointer" data-value="1"></i><i class="far fa-star star-icon cursor-pointer" data-value="2"></i><i class="far fa-star star-icon cursor-pointer" data-value="3"></i><i class="far fa-star star-icon cursor-pointer" data-value="4"></i><i class="far fa-star star-icon cursor-pointer" data-value="5"></i>
-                        </div>
-                        <input type="hidden" class="rating-value-input" id="rating-packaging" value="0">
-                    </div>
-                </div>
-                <div>
-                    <label for="feedback-comment" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Comment (optional)</label>
-                    <textarea id="feedback-comment" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600"></textarea>
-                </div>
-                <div class="mt-6 text-right"><button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700">Submit Feedback</button></div>
-            </form>
+    <div class="modal-overlay" id="feedback-modal">
+     <div class="modal-content w-full max-w-lg dark:bg-gray-800">
+      <button class="close-button" id="close-feedback-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Leave Feedback
+      </h2>
+      <form class="space-y-6" id="feedback-form">
+       <input id="feedback-trade-id" type="hidden"/>
+       <input id="feedback-for-user-id" type="hidden"/>
+       <p class="dark:text-gray-300">
+        How was your trade with
+        <strong class="dark:text-white" id="feedback-for-user-name">
+        </strong>
+        ?
+       </p>
+       <div class="space-y-4">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Item Accuracy
+         </label>
+         <div class="star-rating-container flex items-center justify-center space-x-2 text-3xl text-gray-300" data-rating-type="accuracy">
+          <i class="far fa-star star-icon cursor-pointer" data-value="1">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="2">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="3">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="4">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="5">
+          </i>
+         </div>
+         <input class="rating-value-input" id="rating-accuracy" type="hidden" value="0"/>
         </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Packaging
+         </label>
+         <div class="star-rating-container flex items-center justify-center space-x-2 text-3xl text-gray-300" data-rating-type="packaging">
+          <i class="far fa-star star-icon cursor-pointer" data-value="1">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="2">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="3">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="4">
+          </i>
+          <i class="far fa-star star-icon cursor-pointer" data-value="5">
+          </i>
+         </div>
+         <input class="rating-value-input" id="rating-packaging" type="hidden" value="0"/>
+        </div>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="feedback-comment">
+         Comment (optional)
+        </label>
+        <textarea class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="feedback-comment" rows="3"></textarea>
+       </div>
+       <div class="mt-6 text-right">
+        <button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
+         Submit Feedback
+        </button>
+       </div>
+      </form>
+     </div>
     </div>
-    <div id="dispute-modal" class="modal-overlay">
-        <div class="modal-content w-full max-w-lg dark:bg-gray-800">
-            <button id="close-dispute-modal" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Report a Problem with Trade</h2>
-            <form id="dispute-form" class="space-y-4">
-                <input type="hidden" id="dispute-trade-id">
-                <p class="text-sm text-gray-600 dark:text-gray-400">Please describe the issue in detail. A moderator will review the case and contact both parties.</p>
-                <div>
-                     <label for="dispute-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason</label>
-                     <select id="dispute-reason" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" required>
-                         <option>Items not received</option>
-                         <option>Items not as described (condition, foil, etc.)</option>
-                         <option>Received wrong items</option>
-                         <option>Other</option>
-                     </select>
-                </div>
-                <div>
-                    <label for="dispute-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Details</label>
-                    <textarea id="dispute-details" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" required></textarea>
-                </div>
-                <div class="text-right"><button type="submit" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700">Submit Dispute</button></div>
-            </form>
-        </div>
+    <div class="modal-overlay" id="dispute-modal">
+     <div class="modal-content w-full max-w-lg dark:bg-gray-800">
+      <button class="close-button" id="close-dispute-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Report a Problem with Trade
+      </h2>
+      <form class="space-y-4" id="dispute-form">
+       <input id="dispute-trade-id" type="hidden"/>
+       <p class="text-sm text-gray-600 dark:text-gray-400">
+        Please describe the issue in detail. A moderator will review the case and contact both parties.
+       </p>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="dispute-reason">
+         Reason
+        </label>
+        <select class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="dispute-reason" required="">
+         <option>
+          Items not received
+         </option>
+         <option>
+          Items not as described (condition, foil, etc.)
+         </option>
+         <option>
+          Received wrong items
+         </option>
+         <option>
+          Other
+         </option>
+        </select>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="dispute-details">
+         Details
+        </label>
+        <textarea class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="dispute-details" required="" rows="5"></textarea>
+       </div>
+       <div class="text-right">
+        <button class="px-6 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700" type="submit">
+         Submit Dispute
+        </button>
+       </div>
+      </form>
+     </div>
     </div>
     <!-- Trade Payment Modal -->
-    <div id="trade-payment-modal" class="modal-overlay">
-        <div class="modal-content w-full max-w-md">
-            <button id="close-payment-modal" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold mb-4 dark:text-white">Secure Trade Payment</h2>
-            <p class="mb-4 text-gray-600 dark:text-gray-400">You are paying <span id="seller-name-modal" class="font-bold"></span>. The funds will be held by HatakeSocial until you confirm delivery.</p>
-            <form id="payment-form">
-                <div id="payment-element" class="mb-4"></div>
-                <button id="submit-payment-btn" class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700 disabled:opacity-50">
-                    <span id="button-text">Pay Now</span>
-                    <i id="payment-spinner" class="fas fa-spinner fa-spin hidden"></i>
-                </button>
-                <div id="payment-message" class="hidden text-center text-red-500 mt-2"></div>
-            </form>
-        </div>
+    <div class="modal-overlay" id="trade-payment-modal">
+     <div class="modal-content w-full max-w-md">
+      <button class="close-button" id="close-payment-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Secure Trade Payment
+      </h2>
+      <p class="mb-4 text-gray-600 dark:text-gray-400">
+       You are paying
+       <span class="font-bold" id="seller-name-modal">
+       </span>
+       . The funds will be held by HatakeSocial until you confirm delivery.
+      </p>
+      <form id="payment-form">
+       <div class="mb-4" id="payment-element">
+       </div>
+       <button class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700 disabled:opacity-50" id="submit-payment-btn">
+        <span id="button-text">
+         Pay Now
+        </span>
+        <i class="fas fa-spinner fa-spin hidden" id="payment-spinner">
+        </i>
+       </button>
+       <div class="hidden text-center text-red-500 mt-2" id="payment-message">
+       </div>
+      </form>
+     </div>
     </div>
-
     <!-- Scripts -->
-    <script src="https://js.stripe.com/v3/"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/trades.js"></script>
-    <script src="js/notifications.js"></script>
-    <script src="js/darkmode.js"></script>
-    <script src="js/messenger.js"></script>
-        </main>
+    <script src="https://js.stripe.com/v3/">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js" type="text/javascript">
+    </script>
+    <script src="js/auth.js">
+    </script>
+    <script src="js/trades.js">
+    </script>
+    <script src="js/notifications.js">
+    </script>
+    <script src="js/darkmode.js">
+    </script>
+    <script src="js/messenger.js">
+    </script>
+   </main>
+  </div>
+  <!-- Login Modal -->
+  <div class="separator">
+   Or continue with
+  </div>
+  <button class="w-full btn-secondary" id="googleRegisterButton">
+   <img alt="Google icon" class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+   <span class="ml-3">
+    Sign up with Google
+   </span>
+  </button>
+  <div class="modal" id="authModal">
+   <div class="modal-content">
+    <span class="close-button">
+     ×
+    </span>
+    <div class="auth-form" id="login-form-modal">
+     <h2>
+      Login
+     </h2>
+     <form>
+      <input id="loginEmail" placeholder="Email" required="" type="email"/>
+      <input id="loginPassword" placeholder="Password" required="" type="password"/>
+      <button id="loginUser" type="button">
+       Login
+      </button>
+     </form>
     </div>
-<!-- Login Modal -->
-
-    
-            <form id="loginForm" class="mt-4 space-y-4">
-                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
-            </form>
-        </div>
+    <div class="auth-form" id="register-form-modal" style="display:none;">
+     <h2>
+      Register
+     </h2>
+     <form>
+      <input id="registerUsername" placeholder="Username" required="" type="text"/>
+      <input id="registerEmail" placeholder="Email" required="" type="email"/>
+      <input id="registerPassword" placeholder="Password" required="" type="password"/>
+      <button id="registerUser" type="button">
+       Register
+      </button>
+     </form>
     </div>
-     
-            <form id="registerForm" class="mt-4 space-y-4">
-                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
-                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
-            </form>
-        </div>
+    <div class="modal-switch">
+     <p id="switchToRegister">
+      Don't have an account?
+      <a href="#">
+       Register
+      </a>
+     </p>
+     <p id="switchToLogin" style="display:none;">
+      Already have an account?
+      <a href="#">
+       Login
+      </a>
+     </p>
     </div>
-    
-        <form id="registerForm">
-            <div class="mb-4">
-                <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input type="email" id="registerEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
-            </div>
-            <div class="mb-4">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                <input type="password" id="registerPassword" required class="mt-1 block w-full input-style" placeholder="Minimum 6 characters">
-            </div>
-            <p id="register-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
-            <button type="submit" class="w-full btn-primary">Create Account</button>
-        </form>
-        <div class="separator">Or continue with</div>
-        <button id="googleRegisterButton" class="w-full btn-secondary">
-            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
-            <span class="ml-3">Sign up with Google</span>
-        </button>
-    </div>
-</div>
-
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Login</h2>
-                <button id="closeLoginModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
-            </div>
-            <form id="loginForm" class="mt-4 space-y-4">
-                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
-            </form>
-        </div>
-    </div>
-     <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Register</h2>
-                <button id="closeRegisterModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
-            </div>
-            <form id="registerForm" class="mt-4 space-y-4">
-                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
-                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
-            </form>
-        </div>
-    </div>
-    
-</body>
+   </div>
+  </div>
+ </body>
 </html>

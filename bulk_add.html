@@ -1,201 +1,290 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bulk Add Cards - HatakeSocial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-    <div class="flex h-screen">
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Bulk Add Cards - HatakeSocial
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
+  <div class="flex h-screen">
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
     <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-        <a href="index.html" class="flex flex-col items-center space-y-1">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
-            <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-        </a>
+     <a class="flex flex-col items-center space-y-1" href="index.html">
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
     </div>
     <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="index.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
-        <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
-        <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
-        <a href="articles.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">Articles</span></a>
-        <a href="events.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
-        <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
-        <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
-        <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
-        <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
-        <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
-        <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
-        <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
-        <a href="about.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="index.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
     </nav>
-    <div id="sidebar-user-info" class="p-4 border-t border-gray-200 dark:border-gray-700 hidden">
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
     </div>
-</aside>
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            
-            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <div class="flex items-center">
-                    <button id="sidebar-toggle" class="lg:hidden mr-4 text-gray-600 dark:text-gray-300">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="main-search-bar" placeholder="Search for cards, users, or articles..." class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div id="main-search-results" class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden"></div>
-                    </div>
-                </div>
-
-                <div id="user-actions" class="flex items-center space-x-5">
-                    </div>
-            </header>
-    
-            <main class="flex-grow container mx-auto px-4 py-8">
-        <div id="bulk-add-container" class="max-w-4xl mx-auto">
-            <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
-                <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Bulk Add from Text</h1>
-                <a href="my_collection.html" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Collection
-                </a>
-            </div>
-
-            <div id="step-1-input" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                <h2 class="text-2xl font-bold mb-4 dark:text-white">Step 1: Paste Your Card List</h2>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                    Paste your list below. Each card should be on a new line. You can use formats like:
-                    <br><code>4 Brainstorm</code>
-                    <br><code>1 Mox Opal [SOM]</code>
-                    <br><code>Lightning Bolt (SLD) 123</code>
-                </p>
-                <form id="paste-form">
-                    <textarea id="card-list-input" class="w-full h-64 p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="1x Sol Ring&#10;4x Counterspell&#10;..."></textarea>
-                    <button type="submit" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-cogs mr-2"></i>Process List
-                    </button>
-                </form>
-            </div>
-
-            <div id="step-2-confirm" class="hidden mt-8">
-                <h2 class="text-2xl font-bold mb-4 dark:text-white text-center">Step 2: Confirm Your Cards</h2>
-                <div id="progress-bar-container" class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700">
-                    <div id="progress-bar" class="bg-green-600 h-4 rounded-full" style="width: 0%"></div>
-                </div>
-                <p id="progress-text" class="text-center text-gray-600 dark:text-gray-400 mb-6">Processing card 1 of X...</p>
-
-                <div id="card-confirmation-area" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    </div>
-            </div>
-            
-            <div id="step-3-complete" class="hidden mt-8 text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-                <i class="fas fa-check-circle text-green-500 text-6xl mb-4"></i>
-                <h2 class="text-3xl font-bold mb-4 dark:text-white">Bulk Add Complete!</h2>
-                <p id="summary-text" class="text-gray-600 dark:text-gray-400 mb-6">Successfully added X cards to your collection.</p>
-                <a href="my_collection.html" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">
-                    Go to My Collection
-                </a>
-            </div>
-        </div>
-    </main>
-
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-        </footer>
-
-    <!-- Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/bulk_add.js"></script>
-    <script src="js/darkmode.js"></script>
-        </main>
-    </div>
-<!-- Login Modal -->
-
-    
-            <form id="loginForm" class="mt-4 space-y-4">
-                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
-            </form>
-        </div>
-    </div>
-     
-            <form id="registerForm" class="mt-4 space-y-4">
-                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
-                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
-            </form>
-        </div>
-    </div>
-    
-        <form id="registerForm">
-            <div class="mb-4">
-                <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input type="email" id="registerEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
-            </div>
-            <div class="mb-4">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                <input type="password" id="registerPassword" required class="mt-1 block w-full input-style" placeholder="Minimum 6 characters">
-            </div>
-            <p id="register-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
-            <button type="submit" class="w-full btn-primary">Create Account</button>
-        </form>
-        <div class="separator">Or continue with</div>
-        <button id="googleRegisterButton" class="w-full btn-secondary">
-            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
-            <span class="ml-3">Sign up with Google</span>
+   </aside>
+   <main class="flex-1 flex flex-col overflow-y-auto">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+       <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
+       </div>
+      </div>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+     </div>
+    </header>
+    <main class="flex-grow container mx-auto px-4 py-8">
+     <div class="max-w-4xl mx-auto" id="bulk-add-container">
+      <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+       <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">
+        Bulk Add from Text
+       </h1>
+       <a class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" href="my_collection.html">
+        <i class="fas fa-arrow-left mr-2">
+        </i>
+        Back to Collection
+       </a>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="step-1-input">
+       <h2 class="text-2xl font-bold mb-4 dark:text-white">
+        Step 1: Paste Your Card List
+       </h2>
+       <p class="text-gray-600 dark:text-gray-400 mb-4">
+        Paste your list below. Each card should be on a new line. You can use formats like:
+        <br/>
+        <code>
+         4 Brainstorm
+        </code>
+        <br/>
+        <code>
+         1 Mox Opal [SOM]
+        </code>
+        <br/>
+        <code>
+         Lightning Bolt (SLD) 123
+        </code>
+       </p>
+       <form id="paste-form">
+        <textarea class="w-full h-64 p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="card-list-input" placeholder="1x Sol Ring
+4x Counterspell
+..."></textarea>
+        <button class="mt-4 w-full bg-blue-600 text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors" type="submit">
+         <i class="fas fa-cogs mr-2">
+         </i>
+         Process List
         </button>
-    </div>
-</div>
-
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Login</h2>
-                <button id="closeLoginModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
-            </div>
-            <form id="loginForm" class="mt-4 space-y-4">
-                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
-            </form>
+       </form>
+      </div>
+      <div class="hidden mt-8" id="step-2-confirm">
+       <h2 class="text-2xl font-bold mb-4 dark:text-white text-center">
+        Step 2: Confirm Your Cards
+       </h2>
+       <div class="w-full bg-gray-200 rounded-full h-4 mb-4 dark:bg-gray-700" id="progress-bar-container">
+        <div class="bg-green-600 h-4 rounded-full" id="progress-bar" style="width: 0%">
         </div>
+       </div>
+       <p class="text-center text-gray-600 dark:text-gray-400 mb-6" id="progress-text">
+        Processing card 1 of X...
+       </p>
+       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="card-confirmation-area">
+       </div>
+      </div>
+      <div class="hidden mt-8 text-center bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md" id="step-3-complete">
+       <i class="fas fa-check-circle text-green-500 text-6xl mb-4">
+       </i>
+       <h2 class="text-3xl font-bold mb-4 dark:text-white">
+        Bulk Add Complete!
+       </h2>
+       <p class="text-gray-600 dark:text-gray-400 mb-6" id="summary-text">
+        Successfully added X cards to your collection.
+       </p>
+       <a class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" href="my_collection.html">
+        Go to My Collection
+       </a>
+      </div>
+     </div>
+    </main>
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+    </footer>
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+    </script>
+    <script src="js/auth.js">
+    </script>
+    <script src="js/bulk_add.js">
+    </script>
+    <script src="js/darkmode.js">
+    </script>
+   </main>
+  </div>
+  <!-- Login Modal -->
+  <div class="separator">
+   Or continue with
+  </div>
+  <button class="w-full btn-secondary" id="googleRegisterButton">
+   <img alt="Google icon" class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+   <span class="ml-3">
+    Sign up with Google
+   </span>
+  </button>
+  <div class="modal" id="authModal">
+   <div class="modal-content">
+    <span class="close-button">
+     ×
+    </span>
+    <div class="auth-form" id="login-form-modal">
+     <h2>
+      Login
+     </h2>
+     <form>
+      <input id="loginEmail" placeholder="Email" required="" type="email"/>
+      <input id="loginPassword" placeholder="Password" required="" type="password"/>
+      <button id="loginUser" type="button">
+       Login
+      </button>
+     </form>
     </div>
-     <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Register</h2>
-                <button id="closeRegisterModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
-            </div>
-            <form id="registerForm" class="mt-4 space-y-4">
-                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
-                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
-            </form>
-        </div>
+    <div class="auth-form" id="register-form-modal" style="display:none;">
+     <h2>
+      Register
+     </h2>
+     <form>
+      <input id="registerUsername" placeholder="Username" required="" type="text"/>
+      <input id="registerEmail" placeholder="Email" required="" type="email"/>
+      <input id="registerPassword" placeholder="Password" required="" type="password"/>
+      <button id="registerUser" type="button">
+       Register
+      </button>
+     </form>
     </div>
-    
-</body>
+    <div class="modal-switch">
+     <p id="switchToRegister">
+      Don't have an account?
+      <a href="#">
+       Register
+      </a>
+     </p>
+     <p id="switchToLogin" style="display:none;">
+      Already have an account?
+      <a href="#">
+       Login
+      </a>
+     </p>
+    </div>
+   </div>
+  </div>
+ </body>
 </html>

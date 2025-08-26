@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HatakeSocial - Deck Builder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        #card-quick-view-tooltip {
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   HatakeSocial - Deck Builder
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+  </script>
+  <style>
+   #card-quick-view-tooltip {
             position: absolute;
             z-index: 100;
             pointer-events: none; /* Allows mouse events to pass through to elements below */
@@ -19,438 +23,691 @@
             width: 223px; /* Standard card width */
             height: 310px; /* Standard card height */
         }
-    </style>
-</head>
-    
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-    <div class="flex h-screen">
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
+  </style>
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
+  <div class="flex h-screen">
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
     <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-        <a href="index.html" class="flex flex-col items-center space-y-1">
-            <img src="https://i.imgur.com/B06rBhI.png" alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
-            <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-        </a>
+     <a class="flex flex-col items-center space-y-1" href="index.html">
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
     </div>
     <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="index.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
-        <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
-        <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
-        <a href="articles.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">Articles</span></a>
-        <a href="events.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
-        <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
-        <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
-        <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
-        <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
-        <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
-        <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
-        <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
-        <a href="about.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="index.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
     </nav>
-    <div id="sidebar-user-info" class="p-4 border-t border-gray-200 dark:border-gray-700 hidden">
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
     </div>
-</aside>
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            
-            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <div class="flex items-center">
-                    <button id="sidebar-toggle" class="lg:hidden mr-4 text-gray-600 dark:text-gray-300">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="main-search-bar" placeholder="Search for cards, users, or articles..." class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div id="main-search-results" class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden"></div>
-                    </div>
-                </div>
-
-                <div id="user-actions" class="flex items-center space-x-5">
-                    </div>
-            </header>
-    
-            <main class="flex-grow container mx-auto px-4 py-8">
-        <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-            <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                <button id="tab-builder" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">Deck Builder</button>
-                <button id="tab-my-decks" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">My Decks</button>
-                <button id="tab-community-decks" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">Community Decks</button>
-                <button id="tab-deck-view" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hidden">Deck View</button>
-            </nav>
+   </aside>
+   <main class="flex-1 flex flex-col overflow-y-auto">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+       <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
+       </div>
+      </div>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+     </div>
+    </header>
+    <main class="flex-grow container mx-auto px-4 py-8">
+     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+      <nav aria-label="Tabs" class="flex -mb-px space-x-8">
+       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600" id="tab-builder">
+        Deck Builder
+       </button>
+       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-my-decks">
+        My Decks
+       </button>
+       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-community-decks">
+        Community Decks
+       </button>
+       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hidden" id="tab-deck-view">
+        Deck View
+       </button>
+      </nav>
+     </div>
+     <div class="hidden mb-6" id="deck-filters">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+       <div class="mb-4">
+        <h3 class="font-bold text-lg mb-2 dark:text-white">
+         Filter by Game
+        </h3>
+        <div class="flex flex-wrap gap-2" id="tcg-filter-buttons">
+         <button class="tcg-filter-btn filter-btn-active" data-tcg="all">
+          All
+         </button>
+         <button class="tcg-filter-btn" data-tcg="Magic: The Gathering">
+          Magic: The Gathering
+         </button>
+         <button class="tcg-filter-btn" data-tcg="Pokémon">
+          Pokémon
+         </button>
+         <button class="tcg-filter-btn" data-tcg="Flesh and Blood">
+          Flesh and Blood
+         </button>
+         <button class="tcg-filter-btn" data-tcg="Yu-Gi-Oh!">
+          Yu-Gi-Oh!
+         </button>
         </div>
-
-        <div id="deck-filters" class="hidden mb-6">
-            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-                <div class="mb-4">
-                    <h3 class="font-bold text-lg mb-2 dark:text-white">Filter by Game</h3>
-                    <div id="tcg-filter-buttons" class="flex flex-wrap gap-2">
-                        <button class="tcg-filter-btn filter-btn-active" data-tcg="all">All</button>
-                        <button class="tcg-filter-btn" data-tcg="Magic: The Gathering">Magic: The Gathering</button>
-                        <button class="tcg-filter-btn" data-tcg="Pokémon">Pokémon</button>
-                        <button class="tcg-filter-btn" data-tcg="Flesh and Blood">Flesh and Blood</button>
-                        <button class="tcg-filter-btn" data-tcg="Yu-Gi-Oh!">Yu-Gi-Oh!</button>
-                    </div>
-                </div>
-                <div id="format-filter-container" class="hidden">
-                    <h3 class="font-bold text-lg mb-2 dark:text-white">Filter by Format</h3>
-                    <div id="format-filter-buttons" class="flex flex-wrap gap-2"></div>
-                </div>
-            </div>
+       </div>
+       <div class="hidden" id="format-filter-container">
+        <h3 class="font-bold text-lg mb-2 dark:text-white">
+         Filter by Format
+        </h3>
+        <div class="flex flex-wrap gap-2" id="format-filter-buttons">
         </div>
-
+       </div>
+      </div>
+     </div>
+     <div>
+      <div class="tab-content" id="content-builder">
+       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-            <div id="content-builder" class="tab-content">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                            <div class="flex justify-between items-center mb-4">
-                                <h1 id="builder-title" class="text-3xl font-bold text-gray-800 dark:text-white">Create New Deck</h1>
-                                <button id="import-deck-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700 text-sm">
-                                    <i class="fas fa-upload mr-2"></i>Import Deck List
-                                </button>
-                            </div>
-                            <form id="deck-builder-form">
-                                <input type="hidden" id="editing-deck-id">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <input type="text" id="deck-name-input" class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Enter Deck Name" required>
-                                    <select id="deck-tcg-select" class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                                        <option value="" disabled selected>Select a Game</option>
-                                        <option value="Magic: The Gathering">Magic: The Gathering</option>
-                                        <option value="Pokémon">Pokémon</option>
-                                        <option value="Flesh and Blood">Flesh and Blood</option>
-                                        <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
-                                    </select>
-                                </div>
-                                <div id="deck-format-select-container" class="mb-4 hidden">
-                                    <select id="deck-format-select" class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"></select>
-                                </div>
-                                <div class="mb-4">
-                                    <textarea id="deck-bio-input" class="w-full p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" rows="3" placeholder="Enter a short description for your deck..."></textarea>
-                                </div>
-                                <textarea id="decklist-input" class="w-full h-40 p-3 border border-gray-300 rounded-md resize-y mb-4 dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="Paste your decklist here...&#10;Example:&#10;4 Sol Ring&#10;1 Black Lotus"></textarea>
-                                
-                                <div class="mb-4">
-                                    <label for="deck-primer-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Deck Primer / Guide (Optional)</label>
-                                    <textarea id="deck-primer-input" class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" placeholder="Explain your deck's strategy, key card choices, mulligan decisions, and sideboard guide..."></textarea>
-                                </div>
-
-                                <div class="my-4">
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="checkbox" id="deck-public-checkbox" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" checked>
-                                        <span class="text-gray-700 dark:text-gray-300">Make this deck public for the community to see</span>
-                                    </label>
-                                </div>
-
-                               <div class="flex items-center space-x-2 pt-4">
-                                    <button id="build-deck-btn" type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                                        <i class="fas fa-hammer mr-2"></i> Build & Price Deck
-                                    </button>
-                                    <button id="open-ai-modal-btn" type="button" class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700">
-                                        <i class="fas fa-magic mr-2"></i> AI Suggestions
-                                    </button>
-                                </div>
-                                 <button id="write-primer-btn" type="button" class="hidden w-full mt-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center">
-                                    <i class="fas fa-pen-alt mr-2"></i> Write a Primer Article
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Add from Collection</h2>
-                        <input type="text" id="deck-builder-collection-search" class="w-full p-2 border rounded-md mb-4 dark:bg-gray-700 dark:border-gray-600" placeholder="Search your collection...">
-                        <div id="deck-builder-collection-list" class="h-96 overflow-y-auto pr-2"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="content-my-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4 dark:text-white">My Decks</h2><div id="my-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
-            <div id="content-community-decks" class="tab-content hidden"><h2 class="text-3xl font-bold mb-4 dark:text-white">Community Decks</h2><div id="community-decks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
-            
-            <div id="content-deck-view" class="tab-content hidden">
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <div class="flex flex-wrap justify-between items-start mb-4 gap-4">
-                        <div>
-                            <h2 id="deck-view-name" class="text-3xl font-bold text-gray-800 dark:text-white mb-1"></h2>
-                            <p id="deck-view-author" class="text-md text-gray-500 dark:text-gray-400"></p>
-                            <p class="text-lg text-gray-500 dark:text-gray-400">Format: <span id="deck-view-format" class="font-semibold"></span></p>
-                            <p class="text-lg text-gray-500 dark:text-gray-400">Total Price: <span id="deck-view-price" class="font-bold text-blue-600 dark:text-blue-400"></span></p>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button id="check-collection-btn" class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700 flex items-center">
-                                <i class="fas fa-check-double mr-2"></i> Check Collection
-                            </button>
-                            <button id="test-hand-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full shadow-md hover:bg-yellow-600 flex items-center">
-                                <i class="fas fa-hand-sparkles mr-2"></i> Test Hand
-                            </button>
-                            <button id="share-deck-to-feed-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 flex items-center">
-                                <i class="fas fa-share-square mr-2"></i> Share to Feed
-                            </button>
-                        </div>
-                    </div>
-                    <p id="deck-view-bio" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg italic"></p>
-                    
-                    <div id="deck-legality-section" class="mb-6"></div>
-
-                    <div id="missing-cards-section" class="hidden mb-8">
-                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Missing Cards</h3>
-                        <div id="missing-cards-list" class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg space-y-2">
-                            </div>
-                    </div>
-
-                    <div id="deck-stats-section" class="mb-8">
-                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Deck Statistics</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h4 class="font-semibold mb-2 dark:text-gray-200">Mana Curve</h4>
-                                <canvas id="mana-curve-chart"></canvas>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold mb-2 dark:text-gray-200">Card Types</h4>
-                                <div id="card-types-stats" class="space-y-2"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="deck-primer-display-section" class="hidden my-8">
-                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-t dark:border-gray-700 pt-6">Deck Primer & Guide</h3>
-                        <div id="deck-view-primer" class="prose dark:prose-invert max-w-none p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg whitespace-pre-wrap">
-                            </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div id="deck-view-list" class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6"></div>
-                        <div id="deck-view-image-container" class="md:col-span-1">
-                            <img id="deck-view-featured-card" src="https://placehold.co/223x310?text=Card+Image" alt="Featured Card" class="w-full rounded-lg shadow-xl sticky top-24">
-                        </div>
-                    </div>
-                 </div>
-            </div>
+         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+          <div class="flex justify-between items-center mb-4">
+           <h1 class="text-3xl font-bold text-gray-800 dark:text-white" id="builder-title">
+            Create New Deck
+           </h1>
+           <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700 text-sm" id="import-deck-btn">
+            <i class="fas fa-upload mr-2">
+            </i>
+            Import Deck List
+           </button>
+          </div>
+          <form id="deck-builder-form">
+           <input id="editing-deck-id" type="hidden"/>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <input class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-name-input" placeholder="Enter Deck Name" required="" type="text"/>
+            <select class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-tcg-select" required="">
+             <option disabled="" selected="" value="">
+              Select a Game
+             </option>
+             <option value="Magic: The Gathering">
+              Magic: The Gathering
+             </option>
+             <option value="Pokémon">
+              Pokémon
+             </option>
+             <option value="Flesh and Blood">
+              Flesh and Blood
+             </option>
+             <option value="Yu-Gi-Oh!">
+              Yu-Gi-Oh!
+             </option>
+            </select>
+           </div>
+           <div class="mb-4 hidden" id="deck-format-select-container">
+            <select class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-format-select">
+            </select>
+           </div>
+           <div class="mb-4">
+            <textarea class="w-full p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" id="deck-bio-input" placeholder="Enter a short description for your deck..." rows="3"></textarea>
+           </div>
+           <textarea class="w-full h-40 p-3 border border-gray-300 rounded-md resize-y mb-4 dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="decklist-input" placeholder="Paste your decklist here...
+Example:
+4 Sol Ring
+1 Black Lotus"></textarea>
+           <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="deck-primer-input">
+             Deck Primer / Guide (Optional)
+            </label>
+            <textarea class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" id="deck-primer-input" placeholder="Explain your deck's strategy, key card choices, mulligan decisions, and sideboard guide..."></textarea>
+           </div>
+           <div class="my-4">
+            <label class="flex items-center space-x-2 cursor-pointer">
+             <input checked="" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="deck-public-checkbox" type="checkbox"/>
+             <span class="text-gray-700 dark:text-gray-300">
+              Make this deck public for the community to see
+             </span>
+            </label>
+           </div>
+           <div class="flex items-center space-x-2 pt-4">
+            <button class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700" id="build-deck-btn" type="submit">
+             <i class="fas fa-hammer mr-2">
+             </i>
+             Build &amp; Price Deck
+            </button>
+            <button class="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700" id="open-ai-modal-btn" type="button">
+             <i class="fas fa-magic mr-2">
+             </i>
+             AI Suggestions
+            </button>
+           </div>
+           <button class="hidden w-full mt-2 bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center" id="write-primer-btn" type="button">
+            <i class="fas fa-pen-alt mr-2">
+            </i>
+            Write a Primer Article
+           </button>
+          </form>
+         </div>
         </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+         <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+          Add from Collection
+         </h2>
+         <input class="w-full p-2 border rounded-md mb-4 dark:bg-gray-700 dark:border-gray-600" id="deck-builder-collection-search" placeholder="Search your collection..." type="text"/>
+         <div class="h-96 overflow-y-auto pr-2" id="deck-builder-collection-list">
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="tab-content hidden" id="content-my-decks">
+       <h2 class="text-3xl font-bold mb-4 dark:text-white">
+        My Decks
+       </h2>
+       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="my-decks-list">
+       </div>
+      </div>
+      <div class="tab-content hidden" id="content-community-decks">
+       <h2 class="text-3xl font-bold mb-4 dark:text-white">
+        Community Decks
+       </h2>
+       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="community-decks-list">
+       </div>
+      </div>
+      <div class="tab-content hidden" id="content-deck-view">
+       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <div class="flex flex-wrap justify-between items-start mb-4 gap-4">
+         <div>
+          <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-1" id="deck-view-name">
+          </h2>
+          <p class="text-md text-gray-500 dark:text-gray-400" id="deck-view-author">
+          </p>
+          <p class="text-lg text-gray-500 dark:text-gray-400">
+           Format:
+           <span class="font-semibold" id="deck-view-format">
+           </span>
+          </p>
+          <p class="text-lg text-gray-500 dark:text-gray-400">
+           Total Price:
+           <span class="font-bold text-blue-600 dark:text-blue-400" id="deck-view-price">
+           </span>
+          </p>
+         </div>
+         <div class="flex space-x-2">
+          <button class="px-4 py-2 bg-purple-600 text-white font-semibold rounded-full shadow-md hover:bg-purple-700 flex items-center" id="check-collection-btn">
+           <i class="fas fa-check-double mr-2">
+           </i>
+           Check Collection
+          </button>
+          <button class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full shadow-md hover:bg-yellow-600 flex items-center" id="test-hand-btn">
+           <i class="fas fa-hand-sparkles mr-2">
+           </i>
+           Test Hand
+          </button>
+          <button class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 flex items-center" id="share-deck-to-feed-btn">
+           <i class="fas fa-share-square mr-2">
+           </i>
+           Share to Feed
+          </button>
+         </div>
+        </div>
+        <p class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg italic" id="deck-view-bio">
+        </p>
+        <div class="mb-6" id="deck-legality-section">
+        </div>
+        <div class="hidden mb-8" id="missing-cards-section">
+         <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+          Missing Cards
+         </h3>
+         <div class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg space-y-2" id="missing-cards-list">
+         </div>
+        </div>
+        <div class="mb-8" id="deck-stats-section">
+         <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+          Deck Statistics
+         </h3>
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+           <h4 class="font-semibold mb-2 dark:text-gray-200">
+            Mana Curve
+           </h4>
+           <canvas id="mana-curve-chart">
+           </canvas>
+          </div>
+          <div>
+           <h4 class="font-semibold mb-2 dark:text-gray-200">
+            Card Types
+           </h4>
+           <div class="space-y-2" id="card-types-stats">
+           </div>
+          </div>
+         </div>
+        </div>
+        <div class="hidden my-8" id="deck-primer-display-section">
+         <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 border-t dark:border-gray-700 pt-6">
+          Deck Primer &amp; Guide
+         </h3>
+         <div class="prose dark:prose-invert max-w-none p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg whitespace-pre-wrap" id="deck-view-primer">
+         </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+         <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6" id="deck-view-list">
+         </div>
+         <div class="md:col-span-1" id="deck-view-image-container">
+          <img alt="Featured Card" class="w-full rounded-lg shadow-xl sticky top-24" id="deck-view-featured-card" src="https://placehold.co/223x310?text=Card+Image"/>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
     </main>
-
-    <div id="import-deck-modal" class="modal-overlay hidden">
-        <div class="modal-content w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg">
-            <button id="close-import-modal" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Import Decklist</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">You can paste your decklist directly or upload a file (.txt, .csv, .dek).</p>
-            <textarea id="import-deck-textarea" class="w-full h-48 p-3 border rounded-md resize-y dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" placeholder="Paste your decklist here..."></textarea>
-            <div class="my-4 text-center text-gray-500 font-semibold">OR</div>
-            <input type="file" id="import-deck-file-input" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" accept=".txt,.csv,.dek">
-            <div class="text-right mt-6">
-                <button id="process-import-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Import Deck</button>
-            </div>
-        </div>
+    <div class="modal-overlay hidden" id="import-deck-modal">
+     <div class="modal-content w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg">
+      <button class="close-button" id="close-import-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+       Import Decklist
+      </h2>
+      <p class="text-gray-600 dark:text-gray-400 mb-4">
+       You can paste your decklist directly or upload a file (.txt, .csv, .dek).
+      </p>
+      <textarea class="w-full h-48 p-3 border rounded-md resize-y dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="import-deck-textarea" placeholder="Paste your decklist here..."></textarea>
+      <div class="my-4 text-center text-gray-500 font-semibold">
+       OR
+      </div>
+      <input accept=".txt,.csv,.dek" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="import-deck-file-input" type="file"/>
+      <div class="text-right mt-6">
+       <button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="process-import-btn">
+        Import Deck
+       </button>
+      </div>
+     </div>
     </div>
-    <div id="playtest-modal" class="modal-overlay hidden">
-        <div class="modal-content w-full max-w-7xl h-5/6 bg-gray-800 text-white flex flex-col">
-            <button id="close-playtest-modal" class="close-button text-white">&times;</button>
-            <div id="playtest-controls" class="flex-shrink-0 p-2 border-b border-gray-600 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <button id="playtest-draw-btn" class="playtest-btn">Draw Card</button>
-                    <button id="playtest-mulligan-btn" class="playtest-btn">Mulligan</button>
-                    <button id="playtest-reset-btn" class="playtest-btn bg-red-600 hover:bg-red-700">Reset</button>
-                    <button id="play-ai-btn" class="playtest-btn bg-purple-600 hover:bg-purple-700">Play vs. AI</button>
-                </div>
-                <div id="playtest-deck-info" class="text-sm">
-                    Library: <span id="library-count">0</span> | Hand: <span id="hand-count">0</span>
-                </div>
-            </div>
-            <div class="flex-grow p-4 grid grid-rows-2 gap-4">
-                <div id="ai-play-area" class="hidden">
-                    <div id="ai-battlefield" class="playtest-zone bg-gray-700/50 rounded-lg overflow-auto p-2">
-                        <h3 class="text-xs uppercase font-bold text-gray-400">AI Battlefield</h3>
-                    </div>
-                    <div id="ai-hand" class="playtest-zone bg-gray-900/50 rounded-lg overflow-auto p-2 mt-4">
-                        <h3 class="text-xs uppercase font-bold text-gray-400">AI Hand</h3>
-                    </div>
-                </div>
-                <div id="playtest-battlefield" class="playtest-zone bg-gray-700/50 rounded-lg overflow-auto p-2">
-                    <h3 class="text-xs uppercase font-bold text-gray-400">Battlefield</h3>
-                </div>
-                <div id="playtest-hand" class="playtest-zone bg-gray-900/50 rounded-lg overflow-auto p-2">
-                     <h3 class="text-xs uppercase font-bold text-gray-400">Hand</h3>
-                </div>
-            </div>
+    <div class="modal-overlay hidden" id="playtest-modal">
+     <div class="modal-content w-full max-w-7xl h-5/6 bg-gray-800 text-white flex flex-col">
+      <button class="close-button text-white" id="close-playtest-modal">
+       ×
+      </button>
+      <div class="flex-shrink-0 p-2 border-b border-gray-600 flex items-center justify-between" id="playtest-controls">
+       <div class="flex items-center space-x-2">
+        <button class="playtest-btn" id="playtest-draw-btn">
+         Draw Card
+        </button>
+        <button class="playtest-btn" id="playtest-mulligan-btn">
+         Mulligan
+        </button>
+        <button class="playtest-btn bg-red-600 hover:bg-red-700" id="playtest-reset-btn">
+         Reset
+        </button>
+        <button class="playtest-btn bg-purple-600 hover:bg-purple-700" id="play-ai-btn">
+         Play vs. AI
+        </button>
+       </div>
+       <div class="text-sm" id="playtest-deck-info">
+        Library:
+        <span id="library-count">
+         0
+        </span>
+        | Hand:
+        <span id="hand-count">
+         0
+        </span>
+       </div>
+      </div>
+      <div class="flex-grow p-4 grid grid-rows-2 gap-4">
+       <div class="hidden" id="ai-play-area">
+        <div class="playtest-zone bg-gray-700/50 rounded-lg overflow-auto p-2" id="ai-battlefield">
+         <h3 class="text-xs uppercase font-bold text-gray-400">
+          AI Battlefield
+         </h3>
         </div>
+        <div class="playtest-zone bg-gray-900/50 rounded-lg overflow-auto p-2 mt-4" id="ai-hand">
+         <h3 class="text-xs uppercase font-bold text-gray-400">
+          AI Hand
+         </h3>
+        </div>
+       </div>
+       <div class="playtest-zone bg-gray-700/50 rounded-lg overflow-auto p-2" id="playtest-battlefield">
+        <h3 class="text-xs uppercase font-bold text-gray-400">
+         Battlefield
+        </h3>
+       </div>
+       <div class="playtest-zone bg-gray-900/50 rounded-lg overflow-auto p-2" id="playtest-hand">
+        <h3 class="text-xs uppercase font-bold text-gray-400">
+         Hand
+        </h3>
+       </div>
+      </div>
+     </div>
     </div>
-
-    <div id="ai-suggestions-modal" class="modal-overlay hidden">
-        <div class="modal-content w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg">
-            <button id="close-ai-modal-btn" class="close-button">&times;</button>
-            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">AI Deck Advisor</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="ai-modal-prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Your Prompt</label>
-                    <textarea id="ai-modal-prompt" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" placeholder="e.g., 'Make this deck more aggressive', 'Suggest budget alternatives for expensive cards', or 'Build a new Elfball deck around Lathril'"></textarea>
-                </div>
-                <button id="get-ai-suggestions-modal-btn" class="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 flex items-center justify-center">
-                    <i class="fas fa-lightbulb mr-2"></i> Get Suggestions
-                </button>
-                <div id="ai-suggestions-output-modal" class="mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg min-h-[200px] max-h-[40vh] overflow-y-auto">
-                    <p class="text-gray-500 dark:text-gray-400">Your suggestions will appear here.</p>
-                </div>
-            </div>
-        </div>
+    <div class="modal-overlay hidden" id="ai-suggestions-modal">
+     <div class="modal-content w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg">
+      <button class="close-button" id="close-ai-modal-btn">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+       AI Deck Advisor
+      </h2>
+      <div class="space-y-4">
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="ai-modal-prompt">
+         Your Prompt
+        </label>
+        <textarea class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="ai-modal-prompt" placeholder="e.g., 'Make this deck more aggressive', 'Suggest budget alternatives for expensive cards', or 'Build a new Elfball deck around Lathril'" rows="3"></textarea>
+       </div>
+       <button class="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 flex items-center justify-center" id="get-ai-suggestions-modal-btn">
+        <i class="fas fa-lightbulb mr-2">
+        </i>
+        Get Suggestions
+       </button>
+       <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg min-h-[200px] max-h-[40vh] overflow-y-auto" id="ai-suggestions-output-modal">
+        <p class="text-gray-500 dark:text-gray-400">
+         Your suggestions will appear here.
+        </p>
+       </div>
+      </div>
+     </div>
     </div>
-    
-    
-    
-            <form id="loginForm" class="mt-4 space-y-4">
-                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
-            </form>
-        </div>
+   </main>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerPassword">
+    Password:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="registerPassword" placeholder="Enter your password" required="" type="password"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerCity">
+    City:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerCity" placeholder="Enter your city" required="" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerCountry">
+    Country:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerCountry" placeholder="Enter your country" required="" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerFavoriteTcg">
+    Favorite TCG:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerFavoriteTcg" placeholder="e.g., Magic: The Gathering" required="" type="text"/>
+  </div>
+  <button class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300" type="submit">
+   Register
+  </button>
+  <div class="minimized" id="messenger-widget-container">
+   <div id="messenger-open-btn">
+    <i class="fas fa-comments">
+    </i>
+   </div>
+   <div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+    <div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+     <span class="font-bold truncate" id="widget-main-header-text">
+      Messages
+     </span>
+     <i class="fas fa-chevron-down" id="widget-toggle-icon">
+     </i>
     </div>
-     
-            <form id="registerForm" class="mt-4 space-y-4">
-                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
-                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
-            </form>
-        </div>
+    <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
+     <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+     </div>
     </div>
-    
-                <div>
-                    <label for="registerPassword" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Password:</label>
-                    <input type="password" id="registerPassword" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your password" required>
-                </div>
-                 <div>
-                    <label for="registerCity" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">City:</label>
-                    <input type="text" id="registerCity" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your city" required>
-                </div>
-                <div>
-                    <label for="registerCountry" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Country:</label>
-                    <input type="text" id="registerCountry" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="Enter your country" required>
-                </div>
-                <div>
-                    <label for="registerFavoriteTcg" class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">Favorite TCG:</label>
-                    <input type="text" id="registerFavoriteTcg" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" placeholder="e.g., Magic: The Gathering" required>
-                </div>
-                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300">Register</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="messenger-widget-container" class="minimized">
-        <div id="messenger-open-btn">
-            <i class="fas fa-comments"></i>
-        </div>
-
-        <div id="messenger-widget" class="fixed bottom-0 right-5 w-80 z-[1000]">
-            <div id="messenger-widget-header" class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center">
-                <span id="widget-main-header-text" class="font-bold truncate">Messages</span>
-                <i id="widget-toggle-icon" class="fas fa-chevron-down"></i>
-            </div>
-            <div id="messenger-widget-body" class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col">
-                <div id="widget-conversations-list" class="flex-grow overflow-y-auto">
-                    </div>
-            </div>
-        </div>
-    </div>
-
-    
+   </div>
+  </div>
   <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-    <div class="container mx-auto py-8 px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">HatakeSocial</h3>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">The all-in-one platform for TCG enthusiasts.</p>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Company</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="about.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">About Us</a></li>
-                    <li><a href="partner.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Partners</a></li>
-                    <li><a href="contact.html" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Contact</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Privacy Policy</a></li>
-                    <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-blue-500">Terms of Service</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="font-bold text-gray-900 dark:text-white mb-4">Display Options</h3>
-                <div class="flex items-center space-x-4">
-                    <div>
-                        <label for="theme-toggle" class="text-sm text-gray-600 dark:text-gray-400">Theme</label>
-                        <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
-                            <i id="theme-toggle-sun-icon" class="fas fa-sun hidden"></i>
-                            <i id="theme-toggle-moon-icon" class="fas fa-moon hidden"></i>
-                        </button>
-                    </div>
-                    <div id="currency-selector-container">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-            <p>&copy; 2025 Hatake. All Rights Reserved.</p>
-            <div class="flex space-x-6 mt-4 md:mt-0">
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="hover:text-gray-900 dark:hover:text-white"><i class="fab fa-instagram"></i></a>
-            </div>
-        </div>
+   <div class="container mx-auto py-8 px-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+     <div>
+      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       HatakeSocial
+      </h3>
+      <p class="text-gray-600 dark:text-gray-400 text-sm">
+       The all-in-one platform for TCG enthusiasts.
+      </p>
+     </div>
+     <div>
+      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Company
+      </h3>
+      <ul class="space-y-2 text-sm">
+       <li>
+        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
+         About Us
+        </a>
+       </li>
+       <li>
+        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
+         Partners
+        </a>
+       </li>
+       <li>
+        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
+         Contact
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div>
+      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Legal
+      </h3>
+      <ul class="space-y-2 text-sm">
+       <li>
+        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+         Privacy Policy
+        </a>
+       </li>
+       <li>
+        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+         Terms of Service
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div>
+      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Display Options
+      </h3>
+      <div class="flex items-center space-x-4">
+       <div>
+        <label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
+         Theme
+        </label>
+        <button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+         <i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
+         </i>
+         <i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
+         </i>
+        </button>
+       </div>
+       <div id="currency-selector-container">
+       </div>
+      </div>
+     </div>
     </div>
-</footer>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-    
-    <script src="js/auth.js"></script>
-    <script src="js/deck.js"></script>
-    <script src="js/notifications.js"></script>
-    <script src="js/darkmode.js"></script>
-    <script src="js/messenger.js"></script>
-        </main>
+    <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+     <p>
+      © 2025 Hatake. All Rights Reserved.
+     </p>
+     <div class="flex space-x-6 mt-4 md:mt-0">
+      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
+       <i class="fab fa-twitter">
+       </i>
+      </a>
+      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
+       <i class="fab fa-facebook-f">
+       </i>
+      </a>
+      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
+       <i class="fab fa-instagram">
+       </i>
+      </a>
+     </div>
     </div>
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Login</h2>
-                <button id="closeLoginModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
-            </div>
-            <form id="loginForm" class="mt-4 space-y-4">
-                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
-                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
-            </form>
-        </div>
+   </div>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+  </script>
+  <script src="js/auth.js">
+  </script>
+  <script src="js/deck.js">
+  </script>
+  <script src="js/notifications.js">
+  </script>
+  <script src="js/darkmode.js">
+  </script>
+  <script src="js/messenger.js">
+  </script>
+  <div class="modal" id="authModal">
+   <div class="modal-content">
+    <span class="close-button">
+     ×
+    </span>
+    <div class="auth-form" id="login-form-modal">
+     <h2>
+      Login
+     </h2>
+     <form>
+      <input id="loginEmail" placeholder="Email" required="" type="email"/>
+      <input id="loginPassword" placeholder="Password" required="" type="password"/>
+      <button id="loginUser" type="button">
+       Login
+      </button>
+     </form>
     </div>
-     <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Register</h2>
-                <button id="closeRegisterModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white">&times;</button>
-            </div>
-            <form id="registerForm" class="mt-4 space-y-4">
-                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
-                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
-                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
-                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
-            </form>
-        </div>
+    <div class="auth-form" id="register-form-modal" style="display:none;">
+     <h2>
+      Register
+     </h2>
+     <form>
+      <input id="registerUsername" placeholder="Username" required="" type="text"/>
+      <input id="registerEmail" placeholder="Email" required="" type="email"/>
+      <input id="registerPassword" placeholder="Password" required="" type="password"/>
+      <button id="registerUser" type="button">
+       Register
+      </button>
+     </form>
     </div>
-    
-</body>
+    <div class="modal-switch">
+     <p id="switchToRegister">
+      Don't have an account?
+      <a href="#">
+       Register
+      </a>
+     </p>
+     <p id="switchToLogin" style="display:none;">
+      Already have an account?
+      <a href="#">
+       Login
+      </a>
+     </p>
+    </div>
+   </div>
+  </div>
+ </body>
 </html>
