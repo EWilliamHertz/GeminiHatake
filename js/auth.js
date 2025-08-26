@@ -1,17 +1,32 @@
 /**
- * HatakeSocial - Core Authentication & UI Script (v26 - Defensive UI Fix)
+ * HatakeSocial - Merged Authentication & Global UI Script (v29 - Shopping Cart)
  *
- * - FIX: Adds defensive checks around UI element manipulation (e.g., sidebar avatar). This prevents the script from crashing on pages that don't have those specific elements, like the messages page.
- * - FIX: Ensures the Firebase Functions library is loaded before use.
- * - FIX: Corrects the form submission handlers to prevent page refresh.
- * - Implements a global toast notification system and real-time notification bell.
+ * This script combines the features of the v26 core script with the dynamic UI generation
+ * from v18, ensuring compatibility with the existing HTML structure.
+ *
+ * - NEW: Dynamically injects a shopping cart icon into the header for logged-in users.
+ * - Merged Features:
+ * - Full Firebase configuration and initialization within DOMContentLoaded.
+ * - Robust email verification flow on login.
+ * - Dynamic injection of the header's notification bell and profile dropdown upon user login.
+ * - When logged out, header buttons now trigger login/register modals instead of navigating.
+ * - Real-time notification listener for the bell icon and dropdown content.
+ * - Friend request handshake logic.
+ * - Global utilities like `showToast`, modal handlers, and currency conversion.
+ * - Defensive UI checks to prevent errors on pages with missing elements.
  */
 
 // --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
+    let container = document.getElementById('toast-container');
+    if (!container) { // Create container if it doesn't exist
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-5 right-5 z-50';
+        document.body.appendChild(toastContainer);
+        container = toastContainer;
+    }
+    
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     
@@ -37,6 +52,7 @@ const showToast = (message, type = 'info') => {
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
+    // --- Firebase Initialization ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
         authDomain: "hatakesocial-88b5e.firebaseapp.com",
@@ -51,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         firebase.initializeApp(firebaseConfig);
     }
     
-    // Initialize Firebase Analytics if available
     if (typeof firebase.analytics === 'function') {
         window.analytics = firebase.analytics();
     }
@@ -117,7 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.openModal = (modal) => { 
         if (modal) {
-            modal.classList.add('open');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
             const errorMsg = modal.querySelector('[id$="-error-message"]');
             if (errorMsg) {
                 errorMsg.classList.add('hidden');
@@ -125,15 +141,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     };
-    window.closeModal = (modal) => { if (modal) modal.classList.remove('open'); };
+    window.closeModal = (modal) => { 
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    };
     
     const setupGlobalListeners = () => {
         const headerSearchForm = document.querySelector('header form#header-search-form'); 
-        const loginButton = document.getElementById('loginButton');
-        const registerButton = document.getElementById('registerButton');
-        const logoutButton = document.getElementById('logoutButton');
-        const userAvatar = document.getElementById('userAvatar');
-        const userDropdown = document.getElementById('userDropdown');
         const loginModal = document.getElementById('loginModal');
         const registerModal = document.getElementById('registerModal');
         const googleLoginButton = document.getElementById('googleLoginButton');
@@ -141,8 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
 
-        if (loginButton) loginButton.addEventListener('click', () => openModal(loginModal));
-        if (registerButton) registerButton.addEventListener('click', () => openModal(registerModal));
         document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
         document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
 
@@ -233,9 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
-        if (logoutButton) logoutButton.addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
-        if (userAvatar) userAvatar.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
-
         if (headerSearchForm) {
             headerSearchForm.addEventListener('submit', (e) => {
                 e.preventDefault(); 
@@ -280,9 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .where('status', '==', 'accepted');
 
         friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
-            if (snapshot.empty) {
-                return;
-            }
+            if (snapshot.empty) return;
 
             const batch = db.batch();
             const currentUserRef = db.collection('users').doc(user.uid);
@@ -313,71 +322,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error listening for accepted friend requests:", error);
         });
     }
-
-    let unsubscribeNotifications = null;
-    const setupNotificationBell = (user) => {
-        const bellBtn = document.getElementById('notification-bell-btn');
-        const counter = document.getElementById('notification-count');
-        const dropdown = document.getElementById('notification-dropdown');
-        const list = document.getElementById('notification-list');
-
-        if (!bellBtn || !counter || !dropdown || !list) return;
-
-        const notificationsRef = db.collection('users').doc(user.uid).collection('notifications');
-
-        unsubscribeNotifications = notificationsRef.where('isRead', '==', false)
-            .onSnapshot(snapshot => {
-                const unreadCount = snapshot.size;
-                counter.textContent = unreadCount;
-                if (unreadCount > 0) {
-                    counter.classList.remove('hidden');
-                } else {
-                    counter.classList.add('hidden');
-                }
-            });
-
-        bellBtn.addEventListener('click', async () => {
-            dropdown.classList.toggle('hidden');
-            if (!dropdown.classList.contains('hidden')) {
-                list.innerHTML = '<li>Loading...</li>';
-                const snapshot = await notificationsRef.orderBy('timestamp', 'desc').limit(10).get();
-                list.innerHTML = '';
-                if (snapshot.empty) {
-                    list.innerHTML = '<li class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No notifications yet.</li>';
-                } else {
-                    const batch = db.batch();
-                    snapshot.forEach(doc => {
-                        const notif = doc.data();
-                        const li = document.createElement('li');
-                        li.innerHTML = `
-                            <a href="${notif.link || '#'}" class="notification-item ${!notif.isRead ? '' : 'is-read'}">
-                                <img src="${notif.fromAvatar || 'https://i.imgur.com/B06rBhI.png'}" alt="${notif.fromName}">
-                                <div class="notification-item-content">
-                                    <p>${sanitizeHTML(notif.message)}</p>
-                                    <span class="timestamp">${new Date(notif.timestamp.toDate()).toLocaleString()}</span>
-                                </div>
-                            </a>
-                        `;
-                        list.appendChild(li);
-
-                        if (!notif.isRead) {
-                            batch.update(doc.ref, { isRead: true });
-                        }
-                    });
-                    await batch.commit();
-                }
-            }
-        });
-    };
     
-    // Basic HTML sanitizer
     function sanitizeHTML(str) {
         const temp = document.createElement('div');
         temp.textContent = str;
         return temp.innerHTML;
     }
 
-
+    let unsubscribeNotifications = null;
     auth.onAuthStateChanged(async (user) => {
         if (user && !user.emailVerified) {
             document.body.innerHTML = `
@@ -404,113 +356,143 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
     
-        const loginButton = document.getElementById('loginButton');
-        const registerButton = document.getElementById('registerButton');
-        const userAvatar = document.getElementById('userAvatar');
-        const userDropdown = document.getElementById('userDropdown');
-        const sidebarUserInfo = document.getElementById('sidebar-user-info');
+        const userActions = document.getElementById('user-actions');
+        const authContainerSidebar = document.getElementById('auth-container-sidebar');
         const mobileUserActions = document.getElementById('mobile-user-actions');
-    
-        const existingAdminLink = document.getElementById('admin-link-container');
-        if (existingAdminLink) existingAdminLink.remove();
         
         if (user) {
-            loginButton?.classList.add('hidden');
-            registerButton?.classList.add('hidden');
-            userAvatar?.classList.remove('hidden');
-            
-            if (mobileUserActions) {
-                mobileUserActions.innerHTML = `
-                    <div class="flex items-center space-x-4 px-3 py-2">
-                        <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover">
-                        <div>
-                            <div class="font-medium text-base text-gray-800 dark:text-white">${user.displayName}</div>
-                            <div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div>
-                        </div>
-                    </div>
-                    <div class="mt-3 space-y-1">
-                        <a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a>
-                        <a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a>
-                        <a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a>
-                    </div>
-                `;
-                document.getElementById('mobileLogoutButton').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    auth.signOut();
-                });
-            }
-            
-            listenForAcceptedRequests(user);
-            setupNotificationBell(user);
-    
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    window.HatakeSocial.currentUserData = userData;
-                    const photo = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                    const name = userData.displayName || 'User';
-                    const handle = userData.handle || name.toLowerCase().replace(/\s/g, '');
-    
-                    if (userAvatar) userAvatar.src = photo;
-                    
-                    // --- FIX: Add checks for sidebar elements before manipulating them ---
-                    if (sidebarUserInfo) {
-                        sidebarUserInfo.classList.remove('hidden');
-                        const sidebarAvatar = document.getElementById('sidebar-user-avatar');
-                        const sidebarName = document.getElementById('sidebar-user-name');
-                        const sidebarHandle = document.getElementById('sidebar-user-handle');
-
-                        if (sidebarAvatar) sidebarAvatar.src = photo;
-                        if (sidebarName) sidebarName.textContent = name;
-                        if (sidebarHandle) sidebarHandle.textContent = `@${handle}`;
-                    }
-    
-                    if (userData.isAdmin === true && userDropdown) {
-                        const adminLinkContainer = document.createElement('div');
-                        adminLinkContainer.id = 'admin-link-container';
-                        adminLinkContainer.innerHTML = `
-                            <div class="border-t my-1 border-gray-200 dark:border-gray-600"></div>
-                            <a href="admin.html" class="block px-4 py-2 text-red-600 dark:text-red-400 font-bold hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <i class="fas fa-user-shield mr-2"></i>Admin
-                            </a>
-                        `;
-                        userDropdown.appendChild(adminLinkContainer);
-                    }
+                if (!userDoc.exists) {
+                    console.warn("User document not found. Signing out.");
+                    auth.signOut();
+                    return;
                 }
+                const userData = userDoc.data();
+                window.HatakeSocial.currentUserData = userData;
+                const isAdmin = userData.isAdmin === true;
+                const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+
+                // 1. Populate Header User Actions (Dynamic Injection)
+                if (userActions) {
+                    userActions.innerHTML = `
+                        <!-- Cart Icon -->
+                        <div class="relative">
+                            <button id="cart-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                            </button>
+                        </div>
+                        <!-- Notification Bell -->
+                        <div class="relative">
+                            <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl"><i class="fas fa-bell"></i><span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
+                            <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                                <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
+                                <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
+                                <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
+                            </div>
+                        </div>
+                        <!-- Profile Dropdown -->
+                        <div class="relative">
+                            <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-transparent hover:border-blue-500"></button>
+                            <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                                <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
+                                <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                                ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
+                                <hr class="border-gray-200 dark:border-gray-600">
+                                <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                            </div>
+                        </div>`;
+                    
+                    document.getElementById('cart-btn').addEventListener('click', () => openModal(document.getElementById('cartModal')));
+                    document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
+                    document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
+                    document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
+                }
+
+                // 2. Setup Notification Listener
+                if (unsubscribeNotifications) unsubscribeNotifications();
+                unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                    const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
+                    const countEl = document.getElementById('notification-count');
+                    const listEl = document.getElementById('notification-list');
+                    if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
+                    if (listEl) {
+                        if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; } 
+                        else {
+                            listEl.innerHTML = '';
+                            snapshot.docs.slice(0, 5).forEach(doc => {
+                                const notif = doc.data();
+                                const el = document.createElement('a');
+                                el.href = notif.link || '#';
+                                el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
+                                el.innerHTML = `<div class="flex-shrink-0 mr-3"><div class="w-3 h-3 rounded-full ${!notif.isRead ? 'bg-blue-500' : 'bg-transparent'} mt-1.5"></div></div><div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
+                                el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
+                                listEl.appendChild(el);
+                            });
+                        }
+                    }
+                }, err => console.error("Notification listener error:", err));
+
+                // 3. Populate Sidebar
+                if (authContainerSidebar) {
+                    authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
+                    document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
+                }
+
+                // 4. Populate Mobile Menu
+                if (mobileUserActions) {
+                    mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
+                    document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
+                }
+                
+                listenForAcceptedRequests(user);
+
             } catch (error) {
-                console.error("Error fetching user data:", error);
+                console.error("Error during authenticated state setup:", error);
+                showToast("Could not load your profile.", "error");
+                auth.signOut();
             }
         } else {
+            // --- User is Logged Out ---
             window.HatakeSocial.currentUserData = null;
             if (friendRequestHandshakeListener) friendRequestHandshakeListener();
             if (unsubscribeNotifications) unsubscribeNotifications();
 
-            loginButton?.classList.remove('hidden');
-            registerButton?.classList.remove('hidden');
-            userAvatar?.classList.add('hidden');
-            userDropdown?.classList.add('hidden');
-            sidebarUserInfo?.classList.add('hidden');
+            const loginButtonsHTML = `
+                <div class="space-x-2">
+                    <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Login</button>
+                    <button id="header-register-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button>
+                </div>`;
+            if (userActions) {
+                userActions.innerHTML = loginButtonsHTML;
+                document.getElementById('header-login-btn').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+                document.getElementById('header-register-btn').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+            }
+            if (authContainerSidebar) {
+                authContainerSidebar.innerHTML = loginButtonsHTML;
+                document.getElementById('header-login-btn').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+                document.getElementById('header-register-btn').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+            }
     
             if (mobileUserActions) {
-                mobileUserActions.innerHTML = `
-                    <div class="space-y-2">
-                        <button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button>
-                        <button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button>
-                    </div>
-                `;
+                mobileUserActions.innerHTML = `<div class="space-y-2"><button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button><button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button></div>`;
                 document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(document.getElementById('loginModal')));
                 document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(document.getElementById('registerModal')));
             }
         }
         
-        const event = new CustomEvent('authReady', { detail: { user } });
-        document.dispatchEvent(event);
-    
+        document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
     
     setupGlobalListeners();
     setupCurrencySelector();
+
+    // Global click listener to close dropdowns
+    window.addEventListener('click', () => {
+        document.getElementById('profile-dropdown')?.classList.add('hidden');
+        document.getElementById('notification-dropdown')?.classList.add('hidden');
+    });
 });

@@ -1,13 +1,12 @@
 /**
- * HatakeSocial - Index Page (Feed) Script (v22 - Full UI/UX Revamp Merged & Corrected)
+ * HatakeSocial - Index Page (Feed) Script (v23 - Firestore Indexing Fix & UI Improvements)
  *
  * This script handles all logic for the main feed on index.html.
- * - FIX: Corrects syntax error from previous merge that caused posts and welcome message to disappear.
+ * - FIX: Adds robust error handling for Firestore queries. If a required index is missing for the feed, it displays an error message with a direct link to create it in the Firebase console.
  * - Implements infinite scroll for 'For You' and 'Friends' feeds.
  * - Uses skeleton loaders instead of "Loading..." text for a better UX.
  * - Provides real-time feedback on "Follow" buttons and handles follow/unfollow logic.
  * - Replaces all `alert()` calls with non-blocking toast notifications.
- * - Preserves all previous features like post editing, comment deletion, security sanitization, etc.
  */
 
 const sanitizeHTML = (str) => {
@@ -26,12 +25,38 @@ const formatContent = (str) => {
         .replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
 };
 
+// --- Firestore Index Error Helpers ---
+const generateIndexCreationLink = (collection, fields) => {
+    const projectId = firebase.app().options.projectId;
+    let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+    fields.forEach(field => {
+        url += `&fields=${field.name},${field.order.toUpperCase()}`;
+    });
+    return url;
+};
+
+const displayIndexError = (container, link) => {
+    const errorMessage = `
+        <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+            <p class="font-bold text-red-700 dark:text-red-300">Database Query Error</p>
+            <p class="text-red-600 dark:text-red-400 mt-2">The feed could not be loaded because a required database index is missing.</p>
+            <a href="${link}" target="_blank" rel="noopener noreferrer" 
+               class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
+               Click Here to Create the Index
+            </a>
+            <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
+        </div>
+     `;
+    container.innerHTML = errorMessage;
+};
+
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const db = firebase.firestore();
     const storage = firebase.storage();
     const functions = firebase.functions();
-    const postsContainer = document.getElementById('postsContainer');
+    const postsContainer = document.getElementById('feed-container'); 
     if (!postsContainer) return;
 
     // --- State for Infinite Scroll ---
@@ -154,11 +179,22 @@ document.addEventListener('authReady', (e) => {
     };
 
     const showSkeletonLoaders = (count) => {
-        const template = document.getElementById('skeleton-post-template');
-        if (!template) return;
         postsContainer.innerHTML = '';
         for (let i = 0; i < count; i++) {
-            postsContainer.appendChild(template.content.cloneNode(true));
+            const skeleton = document.createElement('div');
+            skeleton.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+            skeleton.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <div class="h-10 w-10 rounded-full skeleton"></div>
+                    <div class="ml-4 flex-grow">
+                        <div class="h-4 w-1/3 skeleton"></div>
+                        <div class="h-3 w-1/4 skeleton mt-2"></div>
+                    </div>
+                </div>
+                <div class="h-4 w-full skeleton mb-2"></div>
+                <div class="h-4 w-5/6 skeleton"></div>
+            `;
+            postsContainer.appendChild(skeleton);
         }
     };
 
@@ -182,7 +218,10 @@ document.addEventListener('authReady', (e) => {
                         allPostsLoaded = true;
                         return;
                     }
-                    query = db.collection('posts').where('authorId', 'in', currentUserFriends).orderBy('timestamp', 'desc');
+                    // Firestore requires the first orderBy field to be the same as the inequality field.
+                    // To sort by timestamp, we'd need a composite index on [authorId, timestamp].
+                    // For simplicity, we'll fetch and sort client-side for the friends feed. A more scalable solution would use cloud functions to create a custom feed.
+                    query = db.collection('posts').where('authorId', 'in', currentUserFriends);
                     break;
                 case 'groups':
                     const groupPosts = await fetchGroupsFeed();
@@ -200,7 +239,7 @@ document.addEventListener('authReady', (e) => {
                     break;
             }
 
-            if (lastVisiblePost) {
+            if (lastVisiblePost && feedType !== 'friends') {
                 query = query.startAfter(lastVisiblePost);
             }
 
@@ -209,8 +248,14 @@ document.addEventListener('authReady', (e) => {
             if (!loadMore) {
                 postsContainer.innerHTML = ''; // Clear skeletons
             }
+            
+            let posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            if (snapshot.empty) {
+            if (feedType === 'friends') {
+                 posts.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+            }
+
+            if (posts.length === 0) {
                 allPostsLoaded = true;
                 if (!loadMore) {
                     postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">No posts yet. Be the first to share something!</p>';
@@ -219,17 +264,28 @@ document.addEventListener('authReady', (e) => {
             }
 
             lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
-            snapshot.forEach(doc => {
-                const post = { id: doc.id, ...doc.data() };
+            posts.forEach(post => {
                 postsContainer.appendChild(createPostElement(post));
             });
 
         } catch (error) {
             console.error("Error loading posts:", error);
-            if (!loadMore) {
-                 postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts.</p>`;
+            if (error.code === 'failed-precondition') {
+                let indexLink;
+                if (activeFeedType === 'friends') {
+                    // This error suggests a composite index is needed for the friends feed
+                    indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
+                } else {
+                    // This is for the default 'for-you' feed
+                    indexLink = generateIndexCreationLink('posts', [{ name: 'timestamp', order: 'desc' }]);
+                }
+                displayIndexError(postsContainer, indexLink);
+            } else {
+                if (!loadMore) {
+                    postsContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error: Could not load posts.</p>`;
+                }
+                showToast("Error loading feed.", "error");
             }
-            showToast("Error loading feed.", "error");
         } finally {
             isFetchingPosts = false;
         }
@@ -253,9 +309,9 @@ document.addEventListener('authReady', (e) => {
     };
     
     const loadWhoToFollow = async () => {
-        const whoToFollowContainer = document.getElementById('who-to-follow-list');
+        const whoToFollowContainer = document.getElementById('who-to-follow-container');
         if (!whoToFollowContainer) return;
-        whoToFollowContainer.innerHTML = '<li>Loading...</li>';
+        whoToFollowContainer.innerHTML = '<p class="text-sm text-gray-500">Loading...</p>';
 
         try {
             const snapshot = await db.collection('users').orderBy('postCount', 'desc').limit(6).get();
@@ -265,9 +321,9 @@ document.addEventListener('authReady', (e) => {
                 if (doc.id !== user?.uid && count < 5) {
                     const userToFollow = doc.data();
                     const isFollowing = user ? currentUserFriends.includes(doc.id) : false;
-                    const li = document.createElement('li');
-                    li.className = 'flex items-center justify-between py-2';
-                    li.innerHTML = `
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between';
+                    div.innerHTML = `
                         <div class="flex items-center">
                             <img src="${sanitizeHTML(userToFollow.photoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(userToFollow.displayName)}" class="w-10 h-10 rounded-full mr-3 object-cover">
                             <div>
@@ -277,18 +333,18 @@ document.addEventListener('authReady', (e) => {
                         </div>
                         <button class="follow-btn px-3 py-1 text-sm font-semibold rounded-full transition-colors ${isFollowing ? 'following' : 'bg-blue-500 text-white hover:bg-blue-600'}" data-uid="${doc.id}">${isFollowing ? 'Following' : 'Follow'}</button>
                     `;
-                    whoToFollowContainer.appendChild(li);
+                    whoToFollowContainer.appendChild(div);
                     count++;
                 }
             });
 
             if (count === 0) {
-                 whoToFollowContainer.innerHTML = '<li class="text-gray-500 dark:text-gray-400">No suggestions right now.</li>';
+                 whoToFollowContainer.innerHTML = '<p class="text-sm text-gray-500">No suggestions right now.</p>';
             }
 
         } catch (error) {
             console.error("Error loading who to follow:", error);
-            whoToFollowContainer.innerHTML = '<li class="text-red-500">Could not load suggestions.</li>';
+            whoToFollowContainer.innerHTML = '<p class="text-sm text-red-500">Could not load suggestions.</p>';
         }
     };
 
@@ -401,9 +457,9 @@ document.addEventListener('authReady', (e) => {
     };
     
     const loadTrendingHashtags = async () => {
-        const trendingHashtagsList = document.getElementById('trending-hashtags-list');
-        if(!trendingHashtagsList) return;
-        trendingHashtagsList.innerHTML = '';
+        const trendingHashtagsContainer = document.getElementById('trending-hashtags-container');
+        if(!trendingHashtagsContainer) return;
+        trendingHashtagsContainer.innerHTML = '';
 
         try {
             const hashtagCounts = {};
@@ -419,18 +475,20 @@ document.addEventListener('authReady', (e) => {
             const sortedHashtags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
             if(sortedHashtags.length === 0){
-                trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">No trending tags yet.</p>';
+                trendingHashtagsContainer.innerHTML = '<p class="text-sm text-gray-500">No trending tags yet.</p>';
                 return;
             }
 
             sortedHashtags.forEach(([tag, count]) => {
-                const li = document.createElement('li');
-                li.innerHTML = `<a href="search.html?query=%23${tag}" class="block text-blue-600 dark:text-blue-400 hover:underline font-medium">#${tag}</a> <span class="text-gray-500 dark:text-gray-400 text-sm">${count} posts</span>`;
-                trendingHashtagsList.appendChild(li);
+                const tagEl = document.createElement('a');
+                tagEl.href=`search.html?query=%23${tag}`;
+                tagEl.className = "block text-blue-500 hover:underline";
+                tagEl.innerHTML = `#${tag} <span class="text-gray-500 dark:text-gray-400 text-sm">(${count} posts)</span>`;
+                trendingHashtagsContainer.appendChild(tagEl);
             });
         } catch(error) {
             console.log("Could not load trending hashtags, likely due to permissions for logged out user.");
-            trendingHashtagsList.innerHTML = '<p class="text-sm text-gray-500">Log in to see trending tags.</p>';
+            trendingHashtagsContainer.innerHTML = '<p class="text-sm text-gray-500">Log in to see trending tags.</p>';
         }
     };
 
@@ -442,8 +500,7 @@ document.addEventListener('authReady', (e) => {
         const postStatusMessage = document.getElementById('postStatusMessage');
         const postImageUpload = document.getElementById('postImageUpload');
         const uploadImageBtn = document.getElementById('uploadImageBtn');
-        const uploadVideoBtn = document.getElementById('uploadVideoBtn');
-        const whoToFollowList = document.getElementById('who-to-follow-list');
+        const whoToFollowContainer = document.getElementById('who-to-follow-container');
         let selectedFile = null;
 
         feedTabs?.addEventListener('click', (e) => {
@@ -524,7 +581,6 @@ document.addEventListener('authReady', (e) => {
                 }
             });
             uploadImageBtn?.addEventListener('click', () => postImageUpload.click());
-            uploadVideoBtn?.addEventListener('click', () => postImageUpload.click());
             postImageUpload?.addEventListener('change', e => {
                 selectedFile = e.target.files[0];
                 if (selectedFile) {
@@ -551,7 +607,7 @@ document.addEventListener('authReady', (e) => {
             }
 
             if (e.target.closest('.delete-post-btn')) {
-                if (window.confirm('Are you sure you want to delete this post?')) {
+                if (confirm('Are you sure you want to delete this post?')) {
                     try {
                         await postRef.delete();
                         postElement.remove();
@@ -648,7 +704,7 @@ document.addEventListener('authReady', (e) => {
             }
             
             if (e.target.closest('.delete-comment-btn')) {
-                if (window.confirm('Are you sure you want to delete this comment?')) {
+                if (confirm('Are you sure you want to delete this comment?')) {
                     const deleteBtn = e.target.closest('.delete-comment-btn');
                     const commentTimestamp = parseInt(deleteBtn.dataset.timestamp, 10);
                     
@@ -758,7 +814,7 @@ document.addEventListener('authReady', (e) => {
             }
         });
 
-        whoToFollowList?.addEventListener('click', async (e) => {
+        whoToFollowContainer?.addEventListener('click', async (e) => {
             const followBtn = e.target.closest('.follow-btn');
             if (followBtn && user) {
                 const targetUid = followBtn.dataset.uid;
@@ -802,7 +858,6 @@ document.addEventListener('authReady', (e) => {
     const initializeApp = async () => {
         const createPostSection = document.getElementById('create-post-section');
         if (user) {
-            // User is logged in, load the full experience
             createPostSection?.classList.remove('hidden');
             await checkAdminStatus();
             const userDoc = await db.collection('users').doc(user.uid).get();
@@ -811,7 +866,6 @@ document.addEventListener('authReady', (e) => {
             loadTrendingHashtags();
             loadWhoToFollow();
         } else {
-            // User is logged out, show welcome message
             createPostSection?.classList.add('hidden');
             postsContainer.innerHTML = `
                 <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -819,7 +873,6 @@ document.addEventListener('authReady', (e) => {
                     <p class="mt-2 text-gray-600 dark:text-gray-400">Please log in or register to view the feed and join the community.</p>
                 </div>
             `;
-            // Still load public components that don't require auth
             loadWhoToFollow(); 
         }
         setupEventListeners();
