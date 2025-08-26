@@ -198,6 +198,51 @@
     </div>
 <!-- Login Modal -->
 
+    
+            <form id="loginForm" class="mt-4 space-y-4">
+                <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <input type="password" id="loginPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <p id="login-error-message" class="text-red-500 text-sm hidden"></p>
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Login</button>
+                <button type="button" id="googleLoginButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Login with Google</button>
+            </form>
+        </div>
+    </div>
+     
+            <form id="registerForm" class="mt-4 space-y-4">
+                 <input type="email" id="registerEmail" placeholder="Email" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                 <input type="password" id="registerPassword" placeholder="Password" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" required>
+                 <input type="text" id="registerCity" placeholder="City" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerCountry" placeholder="Country" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerFavoriteTcg" placeholder="Favorite TCG" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <input type="text" id="registerReferrer" placeholder="Referrer (Optional)" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                 <p id="register-error-message" class="text-red-500 text-sm hidden"></p>
+                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Register</button>
+                 <button type="button" id="googleRegisterButton" class="w-full bg-red-600 text-white font-semibold py-2 rounded-md hover:bg-red-700">Register with Google</button>
+            </form>
+        </div>
+    </div>
+    
+        <form id="registerForm">
+            <div class="mb-4">
+                <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                <input type="email" id="registerEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
+            </div>
+            <div class="mb-4">
+                <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                <input type="password" id="registerPassword" required class="mt-1 block w-full input-style" placeholder="Minimum 6 characters">
+            </div>
+            <p id="register-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
+            <button type="submit" class="w-full btn-primary">Create Account</button>
+        </form>
+        <div class="separator">Or continue with</div>
+        <button id="googleRegisterButton" class="w-full btn-secondary">
+            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
+            <span class="ml-3">Sign up with Google</span>
+        </button>
+    </div>
+</div>
+
     <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between items-center">
@@ -233,25 +278,6 @@
         </div>
     </div>
     
-        <form id="registerForm">
-            <div class="mb-4">
-                <label for="registerEmail" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                <input type="email" id="registerEmail" required class="mt-1 block w-full input-style" placeholder="you@example.com">
-            </div>
-            <div class="mb-4">
-                <label for="registerPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                <input type="password" id="registerPassword" required class="mt-1 block w-full input-style" placeholder="Minimum 6 characters">
-            </div>
-            <p id="register-error-message" class="text-sm text-red-500 h-4 mb-2 hidden"></p>
-            <button type="submit" class="w-full btn-primary">Create Account</button>
-        </form>
-        <div class="separator">Or continue with</div>
-        <button id="googleRegisterButton" class="w-full btn-secondary">
-            <img class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google icon">
-            <span class="ml-3">Sign up with Google</span>
-        </button>
-    </div>
-</div>
 </body>
 </html>
 
