@@ -1179,3 +1179,106 @@ body {
     color: #d1d5db; /* gray-300 */
     border-color: #4b5563; /* gray-600 */
 }
+
+
+/* --- Modal Input and Button Styles --- */
+.input-style {
+    @apply px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.separator {
+    @apply relative text-center text-gray-500 dark:text-gray-400 my-4;
+}
+
+.separator::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+    z-index: 1;
+}
+
+.dark .separator::before {
+    background: #4b5563;
+}
+
+.separator {
+    background: white;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.dark .separator {
+    background: #1f2937;
+}
+
+.modal-close-btn {
+    @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold cursor-pointer;
+    background: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close-btn:hover {
+    @apply bg-gray-100 dark:bg-gray-700 rounded-full;
+}
+
+
+/* --- Modal Input and Button Styles --- */
+.input-style {
+    @apply px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.separator {
+    @apply relative text-center text-gray-500 dark:text-gray-400 my-4;
+}
+
+.separator::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+    z-index: 1;
+}
+
+.dark .separator::before {
+    background: #4b5563;
+}
+
+.separator {
+    background: white;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.dark .separator {
+    background: #1f2937;
+}
+
+.modal-close-btn {
+    @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold cursor-pointer;
+    background: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close-btn:hover {
+    @apply bg-gray-100 dark:bg-gray-700 rounded-full;
+}
+
