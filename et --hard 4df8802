@@ -1,0 +1,1085 @@
+[33mcc73860[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m temp update
+[33mff48484[m fixed layout nav. bar
+[33m96e01f7[m fixed sidebar and shop cart
+[33m6432e74[m Standardize header across all HTML pages, fixed shop cart
+[33m243dd97[m Standardize header across all HTML pages
+[33m4df8802[m updated auth.js
+[33m9e259c7[m index attempt
+[33m944ce24[m fixed index.html
+[33m677c840[m fixed index header
+[33m6783535[m Merge remote changes with login fixes
+[33mccb8873[m FIXED: Login/Register buttons now work on all pages
+[33m5e3e929[m changes
+[33m481eb55[m Fixed login functionality and reorganized homepage layout
+[33m8555b7c[m CRITICAL FIX: Removed duplicate sidebars and added Login/Register buttons
+[33m08452e2[m Fixed Firebase configuration and added Analytics support
+[33m5df88b3[m Fixed duplicate sidebar navigation in messages.html
+[33m45f7b65[m Made logo bigger in sidebar navigation
+[33mbe8c289[m Added profile avatar and notification bell to sidebar navigation
+[33m994293c[m Changed navigation menu from top header to sidebar navigation
+[33mb5be23d[m trying new sidebar navigation in messages.html, fixed timestamps
+[33mb2f79fc[m trying new sidebar navigation, timestamps for messages, auth.js fix
+[33mcef1e1b[m added debugging to messages
+[33mf4d3673[m edited messages.html/js
+[33m6bacf7f[m Fix Firebase Functions script tag issue
+[33m96ee501[m changed auth.js
+[33mb5ae17c[m reverted deck.js to older version w/ cloud secret API
+[33m9911a31[m fixed deck.js
+[33m6372b18[m removed api keys, reverted them and created new one with cloud service
+[33m34c7f3d[m fixed escrow + trade settings
+[33me9260e4[m fixed escrow services, trial push
+[33mf481d5e[m fixed shop
+[33me555c65[m removed spacebar in shop.js
+[33m7fae1f0[m fixed shop stripe pub key
+[33m55067c9[m fixed shop
+[33m0b419c3[m fixed shop
+[33m205c5e5[m reconfigured admin and shop
+[33m562b5c2[m fixed admin
+[33mf6fa8a8[m fixed admin + shop
+[33m6aa3207[m added shop to admin, fixed things
+[33mca10bfe[m fixed shop and index.js
+[33macb0818[m fixed login message
+[33m25a39b5[m toast, notification, follow
+[33m110bea6[m updated follow list
+[33m6fb3d6c[m shop
+[33mb0b4f23[m darkmode fix
+[33m5b7d1a4[m fixed auth.js
+[33m033290f[m fixed auth.js
+[33m8d78f17[m AI playtesting
+[33m6cd9f6a[m added referall logic
+[33m043e39e[m Update my_collection.html
+[33m7210500[m Update collection.js
+[33mdd197c2[m Update my_collection.html
+[33m7515526[m Update collection.js MAYBE REVERT
+[33mda841ac[m Update trades.js
+[33m0e6e412[m Update collection.js SMALLER FILE MAYBE REVERT
+[33m2dbd995[m Update collection.js
+[33m3147fdc[m Update collection.js
+[33me195443[m Update collection.js
+[33mdc02c60[m Update collection.js
+[33mcb7c76f[m Update card-view.js
+[33m9da541c[m Update collection.js
+[33mae6ea56[m Update collection.js
+[33m828ca5c[m Update collection.js
+[33mfacd097[m Update collection.js
+[33mef68f4e[m Update settings.js
+[33m27cbb85[m Update collection.js
+[33m323938f[m Update bulk_add.js
+[33mc07333f[m Update card-view.js
+[33m4679f90[m Update deck.js
+[33m79e2d85[m Update marketplace.js
+[33ma9741eb[m Update collection.js
+[33mfffff5d[m Update deck.js
+[33mc886184[m Update deck.js
+[33m1b7d26e[m Update deck.js
+[33ma605f36[m Update deck.html
+[33mbe64e3e[m Update deck.html
+[33m1954f17[m Update deck.html
+[33m034f0dc[m Update deck.js
+[33m998c3a3[m Update deck.js
+[33mc0ef8b3[m Update deck.js
+[33mb6a8fa4[m Update deck.js
+[33m58f7b30[m Update deck.js
+[33m77f87ea[m Update deck.js
+[33me8554d4[m Update deck.js
+[33macf62b9[m Update deck.js
+[33md1cb4c0[m Update deck.js
+[33m1f641b3[m Update trades.js
+[33m4eed169[m Update deck.js
+[33m951cf51[m Update deck.html
+[33m1843789[m Update community.js
+[33mc0ce4c4[m Update community.js
+[33m43bae27[m Update community.html
+[33m2219ab8[m Create articles.js
+[33m0e64955[m Create view-article.html
+[33ma8c1433[m Create create-article.html
+[33mb907776[m Create articles.html
+[33mda72d72[m Update events.js
+[33m037f36c[m Update events.html
+[33m40bae0a[m Update trades.html
+[33me315bba[m Update trades.js
+[33m5424667[m Update trades.html
+[33m59d2c8f[m Update deck.js
+[33m1f11ee8[m Update deck.js
+[33md7c0dac[m Update deck.js
+[33m7e6b90d[m Update deck.js
+[33m5b0c2ef[m Update deck.html
+[33m3fe6e63[m Update deck.js
+[33m5fa8824[m Update deck.html
+[33mc4a255a[m Update messages.js
+[33m5e22c0f[m Update marketplace.js
+[33m53bd64b[m Update marketplace.js
+[33mdc50e38[m Update collection.js
+[33m84b785d[m Update marketplace.js
+[33m20a981b[m Update collection.js
+[33maae332d[m Update my_collection.html
+[33m7dc33c6[m Update card-view.js
+[33mab97203[m Update bulk_add.html
+[33mca2c0a6[m Update my_collection.html
+[33m6ce8483[m Create bulk_add.js
+[33m27b0fb7[m Create bulk_add.html
+[33mb402cf7[m Update card-view.js
+[33m4725fed[m Update collection.js
+[33md04c0cb[m Update my_collection.html
+[33meed947c[m Update collection.js
+[33m702b79e[m Update collection.js
+[33mcfb0463[m Update my_collection.html
+[33mb7b2e17[m Update trades.js
+[33m13e72ff[m Update trades.html
+[33m9416ba8[m Update collection.js
+[33m75b05fd[m Update my_collection.html
+[33m95f5459[m Update collection.js
+[33mfb4f974[m Update card-view.js
+[33m1d3c9e6[m Update collection.js
+[33m84b390b[m Update my_collection.html
+[33m190fe56[m Update collection.js
+[33me698ecd[m Update my_collection.html
+[33maa9e6f8[m Update marketplace.js
+[33mbe6aaf8[m Update marketplace.js
+[33m352e34e[m Update collection.js
+[33m5a06c9d[m Update trades.js
+[33m7ed9299[m Update trades.js
+[33m5e6cc0d[m Update trades.js
+[33m405bdba[m Update trades.js
+[33m15d3afb[m Update my_collection.html
+[33m99e8aa8[m Update trades.js
+[33m57f0578[m Update footer: Replace Theme section with Display Options and add currency selector container
+[33mc4da6a6[m Update auth.js
+[33ma3a6b5c[m Update trades.js
+[33mf663b46[m Update trades.js
+[33m3095aa1[m Update trades.js
+[33m07172f5[m Update settings.js
+[33m6a76aac[m Update settings.html
+[33ma805d9c[m Update trades.js
+[33madb24a8[m Update trades.js
+[33mb7bbaad[m Update collection.js
+[33maeb85c3[m Update marketplace.js
+[33mc57ead5[m Update auth.js
+[33m5b25751[m Update collection.js
+[33m9b157fe[m Update collection.js
+[33me79919c[m Update my_collection.html
+[33m02ee7f7[m Update auth.js
+[33m6b51360[m Update events.js
+[33m28ca485[m Update marketplace.js
+[33m323100e[m Update card-view.js
+[33md144288[m Update marketplace.js
+[33med2d133[m Update trades.js
+[33m90a23a2[m Update trades.js MAYBE REVERT, TEST
+[33mda6da69[m Update index.html
+[33m79acb29[m Update auth.js
+[33m7813fb4[m Update my_collection.html
+[33ma2c9305[m Update collection.js
+[33madc8b0b[m Update trades.js
+[33md3f3b5a[m Update events.js
+[33m1b1141a[m Update events.html
+[33m6f5949e[m Update trades.js
+[33m5af5579[m Update trades.html
+[33m386c9d5[m Update deck.js
+[33me317220[m Update deck.html
+[33md5ad8b6[m Update deck.html
+[33mfb952c1[m Update my_collection.html
+[33m456ba19[m Update collection.js
+[33m6cebb3c[m Update booster.html
+[33m2ddebf5[m Update booster.html
+[33mb1d87b5[m Update booster.html
+[33m0e30992[m Update booster.html
+[33m2db620f[m Update booster.html
+[33m9d4f546[m Update booster.html
+[33mafa7c58[m Update booster.js
+[33m22676e7[m Update booster.js
+[33maee9c64[m Update booster.js
+[33meb8dfbf[m Update booster.js
+[33m21af592[m Update booster.html
+[33m0481e5d[m Update booster.js
+[33m1091006[m Update booster.js
+[33m2cf2f37[m Update booster.js
+[33maaaf7e4[m Update my_collection.html
+[33m1a3b4b7[m Update index.js
+[33mc5ca405[m Update collection.js
+[33m436ee6e[m Update messenger.js
+[33m67c9a91[m Update index.js
+[33m9f8510c[m Update index.js
+[33m5c20607[m Update shop.html
+[33mab43439[m Update partner.html
+[33m4eee9f9[m Update my_collection.html
+[33m4e02d52[m Update messages.html
+[33m50f3344[m Update marketplace.html
+[33m73f906d[m Update index.js
+[33mf7f6ed5[m Update collection.js
+[33m1bba2d2[m Update trades.html
+[33m62e5409[m Update shop.html
+[33mb15232d[m Update settings.html
+[33m1414144[m Update search.html
+[33m24a721f[m Update profile.html
+[33m3d9c161[m Update partner.html
+[33mffe223c[m Update index.js
+[33m0c157db[m Update notifications.html
+[33m7d06b0b[m Update my_collection.html
+[33m0c2f91f[m Update messages.html
+[33m024f518[m Update marketplace.html
+[33m9cf2cfa[m Update index.html
+[33m406d48a[m Update events.html
+[33m47f5670[m Update deck.html
+[33mf6600e3[m Update contact.html
+[33m24b4ea4[m Update community.html
+[33md78554f[m Update card-view.html
+[33mcd10d85[m Update booster.html
+[33m8aa5c93[m Update admin.html
+[33m086ec40[m Update about.html
+[33m8f01e8c[m Update collection.js
+[33m33ca48d[m Update card-view.js
+[33mfa32473[m Update marketplace.js
+[33m60658a6[m Update deck.js
+[33m458cc0c[m Update collection.js
+[33ma685780[m Update trades.js
+[33m0d1c69a[m Update auth.js
+[33m8f4138f[m Update collection.js
+[33mc3a47e3[m Update auth.js
+[33m04381bb[m Update auth.js
+[33m003a47c[m Update card-view.js
+[33mac7df22[m Update collection.js
+[33m124fd60[m Update marketplace.js
+[33mdc7325f[m Update collection.js
+[33m7a2b9bd[m Update trades.js
+[33mc951cad[m Update card-view.js
+[33mdacd708[m Update deck.js
+[33m3b45e9d[m Update auth.js
+[33mb5739f7[m Update card-view.js
+[33mcca07ba[m Update deck.js
+[33mf19974d[m Update trades.js
+[33m1d92f01[m Update marketplace.js
+[33mdef2c5b[m Update collection.js
+[33m2cf8f55[m Update auth.js
+[33m8d6fa1c[m Update card-view.js
+[33m336fe72[m Update deck.js
+[33m22b1077[m Update trades.js
+[33m1bbb7dc[m Update collection.js
+[33m6dec2d2[m Update auth.js
+[33mb28b22f[m Update auth.js
+[33m2aad544[m Update collection.js
+[33mc783310[m Update auth.js
+[33md7d47e0[m Update trades.js
+[33m1df0cbb[m Update my_collection.html
+[33m6239e1e[m Update collection.js
+[33m8e30850[m Update collection.js
+[33m4260cad[m Update collection.js
+[33m3b0d0d8[m Update collection.js
+[33m1d0f326[m Update collection.js
+[33m63788d3[m Update collection.js
+[33m36254b6[m Update shop.js
+[33me630746[m Update marketplace.js
+[33mfcd64a3[m Update collection.js
+[33mf269e34[m Update marketplace.html
+[33m99226c4[m Update collection.js
+[33m559f5ce[m Update shop.js
+[33m1635c3e[m Update shop.html
+[33m7377612[m Rename IMG_4832.jpeg to IMG_3159.jpeg
+[33m0b262c5[m Add files via upload
+[33m4962b1e[m Update marketplace.js
+[33m5d2566c[m Update marketplace.js
+[33m004c99f[m Update marketplace.js GEMINI
+[33mffccc29[m Update marketplace.js DEEPSEEK
+[33m342f066[m Update marketplace.js
+[33m308f584[m Update marketplace.html
+[33m2b2613d[m Update marketplace.js
+[33m2a5b7e7[m Update marketplace.js
+[33m99e88a6[m Update marketplace.html BACK UP
+[33me981c7c[m Update marketplace.js
+[33ma042206[m Update marketplace.js
+[33mb169b3f[m Update marketplace.html
+[33mca3c135[m Update marketplace.js
+[33m923305d[m Update marketplace.html
+[33m1bd4468[m Update style.css
+[33m8d30ac6[m Update messages.js
+[33m9965dd8[m Update messages.js
+[33mf838723[m Update messages.js
+[33mb932508[m Update community.js
+[33mdd20b30[m Update community.html
+[33me8e0b5e[m Update profile.js
+[33mf5d5cb8[m Update profile.html
+[33m61122aa[m Update deck.js
+[33m0dfe2f1[m Update deck.html
+[33mbe4ddb2[m Update deck.js
+[33mf009b56[m Update deck.html
+[33mbf8054b[m Update booster.js
+[33mbf375c8[m Update booster.js
+[33m944ff49[m Update booster.html
+[33m8c223bd[m Update booster.js
+[33m03acc04[m Update collection.js
+[33m7232601[m Create booster.js
+[33m7dd28ab[m Create booster.html
+[33maefda40[m Update my_collection.html
+[33mc63d80d[m Update collection.js
+[33m4f4ea16[m Update collection.js
+[33me746d74[m Update my_collection.html
+[33m1ff1c40[m Update profile.js
+[33m04c8ba0[m Update settings.js
+[33m7b4de0d[m Update settings.html
+[33m4182d2d[m Update trades.js
+[33m3aaadf4[m Update trades.html
+[33m808aef6[m Update trades.html
+[33m0736165[m Update shop.html
+[33m4ed98c7[m Update deck.js
+[33m33bc5c2[m Update deck.html
+[33ma8af93c[m Update profile.js
+[33m636f593[m Update auth.js
+[33m5b1af7d[m Update community.js
+[33mf01db20[m Delete js/friends.js
+[33md927acd[m Delete js/groups.js
+[33m05b5e38[m Update profile.js
+[33m487fa62[m Update trades.js
+[33m01ed841[m Update settings.js
+[33m7b3dae3[m Update shop.js
+[33m4cd5ca4[m Update settings.html
+[33md48dfda[m Update deck.js
+[33mc6144fd[m Update deck.html
+[33m7b0ce86[m Update marketplace.js
+[33m9338004[m Update marketplace.html
+[33m63cd88e[m Update marketplace.js
+[33mb06afa0[m Update marketplace.js
+[33m8f813e7[m Update marketplace.html
+[33m3f16e6c[m Update marketplace.js
+[33m9c1e258[m Update marketplace.html
+[33m067ec3c[m Update settings.html
+[33m671441d[m Update marketplace.html
+[33m0a57f91[m Update marketplace.js
+[33m94d5457[m Update marketplace.js
+[33m821436c[m Update marketplace.html
+[33m09e620f[m Update shop.html
+[33mbc11e6f[m Update trades.js
+[33m52a06e4[m Update index.html
+[33m78e1c87[m Update notifications.html
+[33m5f600fc[m Update admin.html
+[33m9ef2ef6[m Update trades.html
+[33m3485866[m Update shop.html
+[33mfb539c0[m Update settings.html
+[33md59e13a[m Update search.html
+[33m951bcc6[m Update profile.html
+[33m4847ffc[m Update partner.html
+[33m1394631[m Update notifications.html
+[33md985c9c[m Update my_collection.html
+[33m81dc34e[m Update messages.html
+[33m14021da[m Update marketplace.html
+[33mfe127b7[m Update index.html
+[33m4802a27[m Delete groups.html
+[33md790b54[m Delete friends.html
+[33m774c76a[m Update events.html
+[33m301b8c2[m Update deck.html
+[33m1bf7f90[m Update contact.html
+[33m18584e5[m Update community.html
+[33mcdd9d9d[m Update card-view.html
+[33me58b845[m Update admin.html
+[33mde5e855[m Update about.html
+[33ma05d84d[m Update community.js
+[33m4c34f9b[m Create community.js
+[33m28f08ed[m Update community.html
+[33m2fb2cb1[m Create community.html
+[33m7fcc589[m Update settings.html
+[33m77c4bb6[m Update groups.js
+[33m9144f6c[m Update groups.html
+[33m342a538[m Update groups.js
+[33m7479880[m Update groups.js
+[33m362f310[m Update friends.js
+[33m8442903[m Update groups.js
+[33m3bf6e89[m Update profile.js
+[33ma723456[m Update profile.html
+[33m0df5133[m Delete js/script.js
+[33m6577b71[m Delete js/main.js
+[33me281ab3[m Update auth.js
+[33m7e55e0c[m Update friends.js
+[33mda06c3b[m Update profile.js
+[33md5d7629[m Update friends.js
+[33ma7741a6[m Update profile.js
+[33m83dc811[m Update friends.js
+[33m4a80c94[m Update groups.js
+[33me247834[m Update index.js
+[33m2c820b9[m Update index.html
+[33m7206f5c[m Update groups.js
+[33m4b43a53[m Update groups.html
+[33m2e4b9ca[m Update index.js
+[33m2c45dd2[m Update index.html
+[33m39b0954[m Update index.html
+[33m9a30525[m Update notifications.js
+[33mdcaeb35[m Create notifications.html
+[33md13bf97[m Update index.js
+[33m70e9ce6[m Update index.html
+[33m432aa2d[m Update friends.js
+[33m65e2fe3[m Update friends.html
+[33m644eae6[m Update trades.js
+[33m01d7bc0[m Update marketplace.html
+[33m989b4f3[m Update profile.js
+[33m7fe29af[m Update trades.js
+[33m4812457[m Update marketplace.js
+[33m1d72231[m Update trades.js
+[33m825c83b[m Update marketplace.js
+[33m71f169a[m Update profile.js
+[33m92d39ae[m Update profile.js
+[33m74fa2d1[m Update marketplace.html
+[33m74582e4[m Update marketplace.js
+[33m17e1568[m Update marketplace.js
+[33m2237edd[m Update index.js
+[33m093bb76[m Update index.js
+[33mcf3d6ac[m Update collection.js
+[33me8b566c[m Update my_collection.html
+[33m1885b19[m Update auth.js
+[33m5cf3aaa[m Update style.css
+[33m4248ba9[m Update search.js
+[33m6d81e46[m Update search.html
+[33mb3ecce5[m Update deck.js
+[33m00e7044[m Update deck.html
+[33mc766e4f[m Update my_collection.html
+[33m4decc8f[m Update collection.js
+[33m545832e[m Update my_collection.html
+[33m3fb1355[m Update trades.js
+[33mea99099[m Update trades.html
+[33m0ea58c6[m Update collection.js
+[33m01d086a[m Update my_collection.html
+[33m4ebd55d[m Update trades.js
+[33m79165b7[m Update trades.html
+[33mdc9b7f0[m Update messages.js
+[33m2a85456[m Update friends.js
+[33m6322dad[m Update trades.js
+[33m69c813f[m Update shop.js
+[33m8374008[m Update profile.js
+[33mb040e14[m Update friends.js
+[33m69ab085[m Update friends.js
+[33mce3dc98[m Update search.js
+[33mf1a61ed[m Update messages.js
+[33me9612a5[m Update deck.js
+[33m12f5aaa[m Update marketplace.js
+[33meb4abc7[m Update deck.js
+[33m0a576dc[m Update collection.js
+[33mff91083[m Update my_collection.html
+[33mc39e3d6[m Update profile.js
+[33m3d410f9[m Update friends.js
+[33m8dc8d29[m Update friends.html
+[33m06456e3[m Update marketplace.js
+[33mb814e92[m Update marketplace.html
+[33mf37da54[m Update events.js
+[33ma1d1f20[m Update events.html
+[33mf2eed46[m Update search.js
+[33m01e2512[m Update marketplace.js
+[33m750eb1e[m Update deck.js
+[33mbc772af[m Update deck.html
+[33ma909429[m Update profile.js
+[33mc52ae91[m Update messages.js
+[33mef19bbc[m Update messages.html
+[33m76ae39c[m Update groups.js
+[33m8a1d55a[m Update groups.html added trading groups
+[33md066c93[m Update card-view.js
+[33mb89e59e[m Update marketplace.js
+[33mdfe3633[m Update card-view.html
+[33m0a4e35b[m Update admin.js
+[33m04b591b[m Update admin.html
+[33m62d889d[m Update auth.js
+[33md6c9a09[m Update settings.js
+[33m3518d19[m Update settings.html
+[33ma196486[m Update profile.js MAJOR CHANGE
+[33me777a27[m Update trades.js MAJOR CHANGE
+[33m1c646f4[m Update trades.html major change
+[33mc7592c1[m Update index.html
+[33m4914bf9[m Update friends.html
+[33m6e878e2[m Update groups.html
+[33mdc57de5[m Update deck.html
+[33m05ea0de[m Update deck.js
+[33mdc1d9a1[m Update deck.js
+[33madd9ad8[m Update deck.js
+[33mb9a5ef9[m Update deck.js
+[33m20ce1e1[m Update style.css
+[33mc7638be[m Update deck.js
+[33m7926c72[m Update deck.html
+[33m23d84b8[m Update collection.js
+[33m26495ae[m Update marketplace.js DEEPSEEK MAYBE REVERT
+[33me016a1f[m Update marketplace.js
+[33mdda2dd1[m Update card-view.js
+[33md4dff5e[m Update marketplace.js
+[33m66425c5[m Update marketplace.js
+[33mc1f226a[m Update marketplace.js
+[33ma136c0f[m Update card-view.js POSSIBLY REVERT
+[33m577bee1[m Update marketplace.js
+[33m40e579c[m Update marketplace.js
+[33mcad7181[m Update marketplace.js
+[33me56bf51[m Update marketplace.js
+[33ma9e9ecd[m Update marketplace.js
+[33m7b0c8d4[m Update marketplace.js
+[33m46270e2[m Update marketplace.js
+[33m41c9686[m Update marketplace.js
+[33m489f45f[m Update marketplace.js
+[33me89903a[m Update collection.js
+[33m8aa76f2[m Update card-view.js
+[33m69d7769[m Update trades.html
+[33mbf0f442[m Update shop.html
+[33md9b3d74[m Update settings.html
+[33m77af741[m Update profile.html
+[33m3599993[m Update partner.html
+[33m27cf447[m Update my_collection.html
+[33m67a5a9a[m Update messages.html
+[33m7209b51[m Update marketplace.html
+[33me8bc79f[m Update index.html
+[33m54c5c0e[m Update groups.html
+[33m2e1b4ce[m Update friends.html
+[33md221361[m Update events.html
+[33m375bf11[m Update deck.html
+[33m0e6669e[m Update contact.html
+[33md4b6efe[m Update card-view.html
+[33m3b4fbc2[m Update admin.html
+[33m8369454[m Update about.html
+[33m4aad897[m Update search.html
+[33mf80f1fb[m Update search.html
+[33m8797122[m Update admin.html
+[33mc1f00cb[m Updated header navigation with Friends and Notifications icons on all HTML pages.
+[33mf05e7e0[m Create contact.js
+[33m3df6854[m Create contact.html
+[33m20f1f03[m Update card-view.js
+[33mc3f989d[m Update card-view.html
+[33m92fed32[m Update deck.html
+[33m9428b0e[m Update groups.html
+[33m70469df[m Updated header navigation: removed old friends button from profile.html and added new friends link to all HTML files.
+[33md9d9392[m Create friends.js
+[33m2166087[m Create friends.html
+[33m0ad2ee3[m Update index.js
+[33mb8c20df[m Update messages.js
+[33mb52fbd3[m Update auth.js
+[33m8189feb[m Update messages.js
+[33m425cba9[m Update profile.js
+[33m60818c9[m Update trades.js
+[33mf746211[m Update marketplace.js
+[33m924e1b1[m Update marketplace.html
+[33m8c31c53[m Update marketplace.html
+[33m124bbb8[m Update marketplace.html
+[33m97752a6[m Update groups.html
+[33m90dd611[m Update groups.html
+[33ma670d36[m Update groups.html
+[33m6243cc3[m Update marketplace.js
+[33m14a638e[m Update marketplace.html
+[33mc824766[m Update marketplace.js
+[33m2cf5ba6[m Update marketplace.html
+[33m212acbc[m Update groups.html
+[33m6d45f59[m Update groups.js
+[33m06671dc[m Update marketplace.js
+[33m4180753[m Update marketplace.html
+[33m1dde083[m Update deck.js
+[33m8f7e8ff[m Update deck.html
+[33mde78b18[m Update deck.js
+[33m9f96268[m Update deck.html
+[33m3dc22cb[m Update trades.js
+[33mb46cccd[m Update trades.html
+[33mea62b52[m Delete todo.md
+[33m4d2aaac[m Update collection.js
+[33m5efecb3[m Update my_collection.html
+[33md72fe2a[m Update my_collection.html
+[33mab3fff7[m Update admin.html
+[33m3b511b1[m Update index.js
+[33ma0133c5[m Update style.css
+[33md1b315a[m Update index.html
+[33m0321e27[m Update admin.js
+[33mfea79c8[m Update admin.html
+[33me39bec8[m Update index.js
+[33m997993f[m Update index.html
+[33m6f90890[m Update groups.js
+[33m227cb97[m Update marketplace.js
+[33m19f62a4[m Update profile.js
+[33m8cab2d0[m Update style.css
+[33mf44cb84[m Update profile.html
+[33m8b7b0e6[m Update deck.js
+[33mb070d05[m Update deck.html
+[33ma27de66[m Update collection.js
+[33m099782b[m Update my_collection.html
+[33me1828cb[m Update settings.js
+[33mfc6018c[m Update settings.html
+[33m40d258e[m Update events.js
+[33m20782ff[m Update events.html
+[33meac8c13[m Update events.html
+[33md78ef1e[m Update events.js
+[33meb88073[m Update events.html
+[33m3a0418f[m Update index.html
+[33mee5668e[m Update index.js
+[33m07ecc3f[m Update shop.js
+[33m0d4b0a1[m Update marketplace.js
+[33maf14b7e[m Update marketplace.html
+[33m59a9930[m Update trades.js
+[33me434418[m Update trades.html
+[33m9783b72[m Update index.js
+[33m9c4aa83[m Update deck.js
+[33m465d7c9[m Update deck.html
+[33m7793cf9[m Update collection.js
+[33m90b989f[m Update my_collection.html
+[33meb14e56[m Update profile.html
+[33mce5aded[m Delete js/friends.js
+[33m7234716[m Update profile.js
+[33m3825208[m Update profile.html
+[33m218f006[m Create friends.js
+[33mf66cdf9[m TEST MAYBE REVERT
+[33m9550b65[m Update messages.html
+[33m0a442f4[m Update index.html
+[33m90aa21c[m Update messages.js
+[33me3be6d0[m Update auth.js
+[33m83b9725[m Update auth.js. PLEASE WORK
+[33me905dd6[m BACKED UP
+[33m7e72036[m Refactor: Replace document.addEventListener(\'authReady\') with window.HatakeSocial.onAuthReady() in JS files
+[33mbd752b5[m Update collection.js
+[33m654674a[m Update card-view.js
+[33m64e4203[m Update admin.js
+[33mce20515[m Update auth.js
+[33ma585f93[m Update auth.js
+[33mc45e9ef[m Update messages.js
+[33me631c0b[m Update auth.js
+[33m959d6bc[m Update events.js
+[33m77ad6c1[m Update profile.js
+[33m3a64e8a[m Update events.js
+[33m621a125[m Update search.html
+[33m48708e8[m Update marketplace.html
+[33m469443a[m Update events.html
+[33md209b2d[m Update card-view.html
+[33m9d83a6b[m Update admin.html
+[33me13ab51[m Update about.html
+[33m064843d[m Update trades.html
+[33md384014[m Update shop.html
+[33m10c5738[m Update settings.html
+[33mcdb0a93[m Update search.html
+[33m5ca862d[m Update profile.html
+[33md5ca3a6[m Update partner.html
+[33m48b5302[m Update my_collection.html
+[33m1ff6ab1[m Update messages.html
+[33m7aed044[m Update marketplace.html
+[33m84d352f[m Update index.html
+[33mfd9637d[m Update groups.html
+[33ma13181b[m Update events.html
+[33m2676c1c[m Update deck.html
+[33ma347fda[m Update card-view.html
+[33mbe39282[m Update admin.html
+[33mf616f20[m Update about.html
+[33m58b8fd5[m Update messenger.js
+[33me91cc82[m Update style.css
+[33mc2a5672[m Update marketplace.js
+[33mb4973a4[m Update marketplace.js
+[33m67a714b[m Update marketplace.js
+[33m5c87cca[m Update groups.js
+[33m2008299[m Update messages.js
+[33m2830774[m Update groups.html
+[33macf9a89[m Update messages.js
+[33mc0b7a8f[m Update groups.js
+[33m516b738[m Update groups.html
+[33m40cabfd[m Update shop.js
+[33mf80fe16[m Update groups.html
+[33md21baeb[m Update trades.html
+[33mddbba77[m Update search.html
+[33m2b126c6[m Update profile.html
+[33m0a1c3eb[m Update messages.html
+[33m432d7b2[m Update about.html
+[33mf818212[m Update trades.html
+[33m94f729e[m Update shop.html
+[33mafa26e0[m Update settings.html
+[33md919615[m Update search.html
+[33me5772f3[m Update profile.html
+[33mde3434f[m Update partner.html
+[33mf240920[m Update my_collection.html
+[33m9684e9c[m Update messages.html
+[33ma7331b1[m Update marketplace.html
+[33m6db3fde[m Update index.html
+[33m81293ec[m Update groups.html
+[33m7527623[m Update events.html
+[33mb178d55[m Update deck.html
+[33m8a3bbfa[m Update card-view.html
+[33m6c3a86d[m Update admin.html
+[33md72cace[m Update about.html
+[33m9ba1d8c[m Update messages.js
+[33m55f2012[m Update groups.js
+[33m5ee4794[m Update messages.js
+[33md058d7a[m Rename notification.js to notifications.js
+[33m232e55d[m Create notification.js
+[33mbd1490b[m Update marketplace.html
+[33m95ee7a6[m Update admin.html
+[33m7a03bbe[m Update auth.js
+[33mc63a8b9[m Create admin.js
+[33ma280537[m Create admin.html
+[33m02888c2[m Update groups.js
+[33mc231c37[m Update messenger.js
+[33m6f26ae1[m Update messages.js
+[33m2dbd80f[m Update about.html
+[33maca971d[m Update messages.html
+[33ma5e9cde[m Update partner.html
+[33m70b632a[m Update shop.html
+[33mad9d0a1[m Update marketplace.html
+[33m72c1d8f[m Update trades.html
+[33mdf4b659[m Update shop.html
+[33mb6409c9[m Update settings.html
+[33m0993442[m Update profile.html
+[33m95b223b[m Update partner.html
+[33m8dd7ed7[m Update my_collection.html
+[33m3ec039f[m Update marketplace.html
+[33mb7579c2[m Update marketplace.html
+[33m8d04a79[m Update index.html
+[33m8e23fe5[m Update groups.html
+[33m616ec7f[m Update events.html
+[33m15848f6[m Update deck.html
+[33m8fd029b[m Update card-view.html
+[33m13ba190[m Update about.html
+[33m1fca9a5[m Update messages.js
+[33m7ca1ce1[m Update messages.html
+[33m92b76e5[m Create messenger.js
+[33med23e44[m Update index.html
+[33m4710b99[m Update index.html backed up
+[33md0969a3[m Update index.html POSSIBLE REVERT
+[33m7f674bf[m Update partner.html
+[33m6f75764[m Update about.html
+[33m9d6d3e2[m Update index.js
+[33m9f5ad79[m Update trades.html
+[33mc9d21d3[m Update shop.html
+[33mbddee47[m Update settings.html
+[33m100f69d[m Update search.html
+[33m6ad4651[m Update profile.html
+[33mbe9a86e[m Update my_collection.html
+[33m4b4e32f[m Update messages.html
+[33m8afc9e6[m Update marketplace.html
+[33m2c7b4dd[m Update index.html
+[33mcfd7d25[m Update groups.html
+[33mffb595c[m Update events.html
+[33m15050e3[m Update deck.html
+[33md8d8f95[m Update card-view.html
+[33me8a6d01[m Update about.html
+[33m2e85d20[m Create partner.html
+[33m156ed98[m Create darkmode.js
+[33m3d6ca09[m Create about.html
+[33me9b7d6f[m Update trades.js
+[33m2991b18[m Update trades.html
+[33m8f426a1[m Update profile.js
+[33m08af96c[m Update profile.html
+[33m362d90a[m Update groups.js
+[33m845bd1f[m Update settings.html
+[33m5d86169[m Update index.html
+[33m547d680[m Update trades.html
+[33me7c85fa[m Update shop.html
+[33m44e7e1b[m Update settings.html
+[33m8aa6bae[m Update search.html
+[33m012b15a[m Update profile.html
+[33mce488b2[m Update my_collection.html
+[33md679490[m Update messages.html
+[33md8a076b[m Update marketplace.html
+[33m175b2a0[m Update index.html
+[33m8311107[m Update groups.html
+[33ma2c63b2[m Update events.html
+[33m7a2a157[m Update deck.html
+[33mc2b0daa[m Update card-view.html
+[33me01c289[m Update deck.html
+[33maf8a1b4[m Update index.html
+[33m9ca8631[m Create groups.js
+[33m6b8bd66[m Create groups.html
+[33m82d259e[m Update index.js
+[33mdb2f8be[m Update index.html
+[33m5ca4fea[m Update index.js
+[33md8330d0[m Update trades.js
+[33m8832db8[m Update deck.js
+[33m2ca21bf[m Update index.js
+[33mc90ea5a[m Update trades.js
+[33m6434521[m Update deck.js
+[33m89ef72a[m Update trades.js
+[33mcc0b029[m Update deck.js
+[33m0f55454[m Update index.js
+[33mce5f57c[m Update trades.js
+[33m74032a9[m Update index.js
+[33m1a4061f[m Update marketplace.js
+[33m34ec723[m Update marketplace.html
+[33m00628d8[m Update collection.js
+[33m7236f6c[m Update my_collection.html
+[33m82030c7[m Update index.js
+[33m812798e[m Update collection.js
+[33m00f2b92[m Update card-view.js
+[33m09f8873[m Update card-view.html
+[33m708580d[m Update collection.js
+[33ma80f847[m Update my_collection.html
+[33m7cc96e6[m Update settings.js MAYBE REVERT
+[33me2c57f3[m Update auth.js MAYBE REVERT
+[33m5060377[m Update card-view.js
+[33m0fa21bf[m Update card-view.html
+[33m6afae8a[m Update trades.js
+[33m6faef03[m Update marketplace.js
+[33m54f940f[m Update trades.js
+[33m7f70e80[m Update search.js
+[33me3ece44[m Update index.js
+[33m47796ac[m Update marketplace.js CARD VIEW
+[33m62879e7[m Create card-view.js
+[33mf3699b3[m Create card-view.html
+[33m9868de0[m Update trades.js
+[33m069914f[m Update shop.html
+[33m2668db1[m Update settings.html
+[33mb9d19b7[m Update search.html
+[33m9336a7f[m Update messages.html
+[33mea32d82[m Update marketplace.html
+[33m7d80d69[m Update trades.html
+[33m4bffb33[m Update shop.html
+[33mf56329f[m Update settings.html
+[33md61bc01[m Update search.html
+[33mad5dec3[m Update profile.html
+[33madebd24[m Update messages.html
+[33m789df11[m Update marketplace.html
+[33m96cd384[m Update events.html added modal
+[33m4b02f19[m Update shop.js
+[33mf83874f[m Update shop.js
+[33m6639acd[m Update shop.html
+[33m491c07e[m Update marketplace.js
+[33m99b374c[m Update index.js
+[33m1cfa072[m Update trades.js
+[33m8d2b5f6[m Update index.js
+[33mf5604d0[m Update index.js
+[33me653ea8[m Update search.js PLEASE DEPLOY
+[33m402ef84[m Update profile.js PLEASE DEPLOY
+[33mf8743c5[m Update search.js
+[33mf506dad[m Update search.html
+[33mcc1f11f[m Update auth.js
+[33m113bad7[m Update profile.JS DEPLOY PLEASE
+[33m3e54da0[m Update trades.html DEPLOY PLEASE
+[33me7aabd6[m Update profile.js
+[33m97c9dc9[m Update trades.html
+[33m6ce1759[m Update trades.js
+[33m28752bc[m Update trades.html
+[33mf8254c9[m Update search.html
+[33m63c1acc[m Update search.js
+[33mc95be8b[m Update marketplace.js PLEASE DEPLOY
+[33m67385f2[m Update marketplace.js PLEASE DEPLOY
+[33mc991a73[m Update auth.js
+[33mfd8fc24[m Update marketplace.js
+[33m16bf8fa[m Update search.js
+[33mb6d4602[m Update search.html
+[33m41f6486[m Update shop.js
+[33mcb88537[m Update shop.html
+[33m6f944d9[m Update trades.js PLEASE DEPLOY
+[33m80cdd86[m Update shop.js please DEPLOY
+[33mb31dc96[m Update index.js comment + like fix
+[33m1f64133[m Update shop.js
+[33m509295f[m Update settings.js
+[33m1d9bbbd[m Update index.js
+[33m74fc1f4[m Update collection.js
+[33mf06c379[m Update trades.js
+[33m5b47b8a[m Create shop.html
+[33m3c3d28d[m Create shop.js
+[33m0b2884b[m Create search.js
+[33m5658240[m Create search.html
+[33m324e13a[m Update index.js comment fix
+[33m4a1c671[m Update index.js comment fix
+[33m9598675[m Update trades.html
+[33m900a347[m Update trades.js
+[33maa3a8f3[m Update trades.js
+[33md78a144[m Update trades.js
+[33m9d304d7[m Update trades.html
+[33m97fea56[m Update trades.html
+[33m24976a9[m Update trades.js
+[33m359322c[m Update trades.html
+[33mc760380[m Update trades.js
+[33md0cd851[m Rename trades.html to trades.js
+[33mab21980[m Update marketplace.html
+[33mc870838[m Update marketplace.html
+[33m157bd23[m Update marketplace.js
+[33mec0e0d1[m Update marketplace.html
+[33mc80e327[m Update marketplace.js
+[33m2bc7895[m Update marketplace.html
+[33m6eab092[m Update marketplace.html
+[33mfbbb67a[m Update marketplace.js
+[33m155700a[m Update marketplace.html
+[33me4cf022[m Update trades.html
+[33m1200300[m Update trades.html
+[33m7ad3bde[m Create trades.html
+[33m4a16558[m Create trades.html
+[33m5cb682b[m Update marketplace.js
+[33m06e7a4b[m Update profile.html
+[33m087ff46[m Update style.css messages
+[33mef2adfd[m Update messages.js
+[33m9119e83[m Update auth.js
+[33m71f5fdb[m Update marketplace.js
+[33m778fc41[m Update settings.html HEADER CHANGE
+[33m74851a2[m Update profile.html HEADER CHANGE
+[33mb9b5202[m Update my_collection.html HEADER CHANGE
+[33m5a0ae05[m Update messages.html HEADER CHANGE
+[33mae38177[m Update marketplace.html HEADER CHANGE
+[33mb2798e2[m Update index.html HEADER CAHNGE
+[33m0d7fd4b[m Update events.html HEADER CHANGE
+[33m6a8b93c[m Update deck.html HEADER CHANGE
+[33m15edb52[m Update messages.js TEST, MIGHT REVERT
+[33m8707515[m Update messages.js
+[33m48cc7ba[m Update auth.js
+[33mbfbf716[m Update messages.html BACK UP 11:30
+[33m3f4064e[m Update messages.js BACK UP 15:30
+[33ma2d55c0[m Update messages.html back up from 15:30
+[33m57aea92[m Update messages.js
+[33mc41dbac[m Update messages.js
+[33mabf7c30[m Update marketplace.js
+[33m1ecf6db[m Update marketplace.js FINALLY WORKING
+[33mab23e7d[m Update marketplace.js
+[33m6e88a29[m Update marketplace.js
+[33m9d32975[m Update marketplace.js TEMP LINK GENERATING
+[33ma90580f[m Update marketplace.js
+[33m6cc5681[m Update marketplace.js
+[33m8d38d3e[m Update marketplace.html
+[33m89a3ef0[m Update marketplace.js TEMP INDEX LINK REVERT
+[33m74ca3db[m Update marketplace.html
+[33m2c33125[m Update marketplace.js
+[33m8aea478[m Update marketplace.js TEMP REVERT LATER
+[33ma6ddcb4[m Update marketplace.html
+[33md0eb90e[m Update marketplace.js
+[33m3f04c5e[m Update marketplace.html
+[33m3a2eb6a[m Create marketplace.js
+[33m5f952e1[m Create marketplace.html
+[33mcd26435[m Update collection.js
+[33m085ed0d[m Update my_collection.html added card for sale
+[33m3e39d9e[m Create events.js
+[33m2959779[m Create events.html
+[33mfb077f7[m Update profile.js
+[33m6cdb28b[m Update profile.js
+[33mcae7642[m Update messages.js
+[33md28a0f1[m Update auth.js
+[33m1c6552a[m Update messages.js
+[33m73e54b6[m Update auth.js
+[33mb985d4c[m Update profile.js
+[33m500d591[m Update profile.js
+[33mc14d490[m Update my_collection.html
+[33m20e4997[m Update settings.html
+[33m4d1ed8e[m Update profile.html
+[33m2fed05a[m Update my_collection.html
+[33m28833f9[m Update messages.html
+[33macb8943[m Update index.html header
+[33m28ea3d3[m Update deck.html header
+[33m9903fca[m Create settings.js
+[33mf591f75[m Create settings.html
+[33mf39909a[m Update profile.js
+[33m6d75a50[m Update profile.html
+[33m13d96ae[m Update profile.html
+[33ma99aecc[m Update deck.html
+[33me2634a8[m Update index.html
+[33m0ac3799[m Update profile.html
+[33me82989c[m Update profile.js
+[33mb97c0ab[m Create main.js
+[33maf11bfe[m Update profile.js TEMPORARY REVERT LATER
+[33m633142f[m Update profile.html
+[33m3786789[m Update profile.js
+[33mbe615a0[m Update profile.html
+[33m943c94e[m Update profile.js
+[33mde6e307[m Update profile.js index fix
+[33m2d518b3[m Update profile.html header fix
+[33m07bda05[m Update profile.js
+[33me553f82[m Update auth.js
+[33m7763bc0[m Update profile.js
+[33m9482d4e[m Update auth.js
+[33mda93742[m Update index.js
+[33m9516cf1[m Update index.js
+[33m12ca2e0[m Update auth.js
+[33m95f17a3[m Update index.js bump
+[33m6e11dee[m Update profile.js
+[33m84a4f96[m Update index.js
+[33m5790a8e[m Update index.js
+[33mb8a79ff[m Update profile.html script added
+[33m2d6349d[m Update profile.js
+[33m2c83956[m Delete shop.html
+[33m2ca041a[m Update profile.html
+[33mf546452[m Update my_collection.html
+[33m81781fb[m Update messages.html
+[33m09a73e0[m Update index.html
+[33m7aabc5d[m Update deck.html
+[33m1aa8e56[m Update deck.js
+[33mb852df5[m Update auth.js
+[33me7d709f[m Update deck.html
+[33m5f3c401[m Update deck.html
+[33ma4fd955[m Update script.js
+[33md43cd5f[m Update deck.js
+[33m34b4bde[m Update deck.html
+[33m66e4826[m Update deck.js
+[33me1b8cf3[m Update auth.js
+[33m27da1f6[m Update messages.html
+[33mced9a91[m Update profile.html added auth.js /profile.js
+[33m9e4290c[m Update my_collection.html
+[33m09a23ff[m Update index.html
+[33md0c9037[m Update deck.html changed to auth & deck.js
+[33mff70e38[m Create messages.js
+[33m1bc5e1b[m Create profile.js
+[33m4093a40[m Create collection.js
+[33m33f4578[m Create index.js
+[33m7a1c73d[m Create deck.js
+[33medfba04[m Create auth.js
+[33m4b0bbb5[m Update script.js
+[33m702a021[m Update script.js
+[33m58951d6[m Update messages.html
+[33m34bad04[m manus combining old script.js with new from gemini
+[33m4592a64[m Update script.js
+[33m10bc8a1[m Update style.css
+[33m96f23e1[m Update profile.html
+[33m2ed8e5c[m Create messages.html
+[33md86fc37[m Update script.js backup
+[33m8940d7c[m Update script.js
+[33mca56bc4[m Update script.js
+[33mf8040de[m Update style.css added shop
+[33mcc9eff0[m Create shop.html
+[33mcef0036[m Update script.js
+[33m21b504f[m Update script.js
+[33mf8b85f9[m Update script.js
+[33m9d78533[m Update script.js
+[33m2982046[m Update my_collection.html modals fix please
+[33mbbc3719[m Update deck.html fixed register/login modals
+[33mf0e9d3d[m Update script.js
+[33m82ae6ab[m Update script.js fixed modal I hope
+[33m640254c[m Update script.js
+[33m72f9bc2[m Update my_collection.html
+[33maff3e6d[m Update script.js my collection fixes
+[33m8a2e15a[m Update my_collection.html
+[33m2e4adba[m Update script.js added deck + card h over
+[33m49b7685[m Update script.js
+[33m2fab146[m Update script.js be ware, many lines missing
+[33m9bc9441[m Update script.js
+[33m92ab530[m Update my_collection.html
+[33m2242ed7[m Update script.js
+[33m58fd359[m Update my_collection.html
+[33m774de4a[m Update my_collection.html
+[33mad2f790[m Update my_collection.html
+[33m3288902[m Update script.js
+[33m8a7dfc3[m Update my_collection.html
+[33m748a691[m Update script.js added my_collection
+[33mec69065[m Create my_collection.html
+[33mb927bfb[m Create profile.html
+[33m4cb2e76[m Update script.js
+[33m00fd0c1[m Update script.js
+[33ma3e4a99[m Create script.js
+[33m7fbb7be[m Delete js/script.js
+[33mba9fb4b[m Update script.js
+[33m8ec3e0f[m Update script. fixed comment
+[33m1cca245[m Update script.js
+[33m10f3d7a[m Update deck.html
+[33m40292cb[m Update script.js
+[33me32d053[m Update deck.html format + bio + share
+[33m50f131f[m Update script.js
+[33m2a73ba4[m Update script.js
+[33m73792c0[m Update deck.html TCG added
+[33mef54c79[m Add files via upload
+[33ma85d78b[m Update script.js deck list button fix
+[33m06f8e19[m phoebe pictures
+[33m1f8f991[m Create a
+[33mc18f8af[m Update script.js
+[33m75a9e6f[m Update script.js
+[33m924ab2b[m Update deck.html fix
+[33ma6bb3bf[m Update script.js
+[33m980da2e[m Update deck.html
+[33m2784ab0[m Update script.js
+[33m950c420[m Update script.js
+[33mbc0b333[m Update deck.html
+[33m419ef59[m Update script.js
+[33m2434662[m Update deck.html
+[33mf2c6e80[m Update script.js community deck builder
+[33m9b968d5[m Update deck.html community decks
+[33m6133525[m Update script.js deckbuilder
+[33m23a5512[m Update index.html
+[33m3425e98[m Delete profile.html
+[33mdb00c1c[m Create deck.html
+[33m07da46c[m Update script.js test fix posts and anon alias
+[33m5fe5698[m Update script.js anon. alias and posts loading
+[33m769e46e[m Update script.js
+[33m1d44e82[m Update script.js
+[33m7d78577[m Update script.js
+[33m05801bd[m Update script.js fixed avatar and username
+[33m7aca8d9[m Update script.js card brackets
+[33m73071a4[m Update style.css
+[33m01988b4[m Delete shop.html
+[33m98383ed[m Update script.js
+[33mf91f61b[m Update index.html
+[33m5f335c6[m Rename styles.css to style.css
+[33mc99e25f[m Create script.js
+[33m0985528[m Create styles.css
+[33m4420aff[m Create profile.html
+[33mbbf6793[m Create shop.html
+[33m7b4ff83[m Create index.html
