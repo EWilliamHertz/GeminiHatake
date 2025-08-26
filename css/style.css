@@ -1282,3 +1282,215 @@ body {
     @apply bg-gray-100 dark:bg-gray-700 rounded-full;
 }
 
+/* === Modal and Toast Styling === */
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+/* Modal Content */
+.modal-content {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    transform: scale(0.95);
+    opacity: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+.dark .modal-content {
+    background-color: #1f2937; /* gray-800 */
+}
+
+.modal-overlay.open .modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Modal Close Button */
+.modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 1.8rem;
+    color: #9ca3af; /* gray-400 */
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.dark .modal-close-btn {
+    color: #6b7280; /* gray-500 */
+}
+.modal-close-btn:hover {
+    color: #111827; /* gray-900 */
+}
+.dark .modal-close-btn:hover {
+    color: #f9fafb; /* gray-50 */
+}
+
+/* General Input Styling */
+.input-style {
+    appearance: none;
+    border-radius: 0.5rem;
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-width: 1px;
+    border-color: #d1d5db; /* gray-300 */
+    background-color: #f9fafb; /* gray-50 */
+    placeholder-color: #6b7280; /* gray-500 */
+    color: #111827; /* gray-900 */
+}
+.dark .input-style {
+    border-color: #4b5563; /* gray-600 */
+    background-color: #374151; /* gray-700 */
+    placeholder-color: #9ca3af; /* gray-400 */
+    color: #ffffff;
+}
+.input-style:focus {
+    outline: none;
+    --tw-ring-color: #3b82f6; /* blue-500 */
+    box-shadow: 0 0 0 2px var(--tw-ring-color);
+    border-color: #3b82f6; /* blue-500 */
+}
+
+/* Primary and Secondary Buttons */
+.btn-primary {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    color: #ffffff;
+    background-color: #2563eb; /* blue-600 */
+    transition: background-color 0.2s;
+}
+.btn-primary:hover {
+    background-color: #1d4ed8; /* blue-700 */
+}
+
+.btn-secondary {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db; /* gray-300 */
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    color: #374151; /* gray-700 */
+    transition: background-color 0.2s;
+}
+.dark .btn-secondary {
+    border-color: #4b5563; /* gray-600 */
+    background-color: #1f2937; /* gray-800 */
+    color: #d1d5db; /* gray-300 */
+}
+.btn-secondary:hover {
+    background-color: #f9fafb; /* gray-50 */
+}
+.dark .btn-secondary:hover {
+    background-color: #374151; /* gray-700 */
+}
+.btn-secondary-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+
+/* Separator */
+.separator {
+    position: relative;
+    text-align: center;
+    margin: 1.25rem 0;
+    color: #6b7280; /* gray-500 */
+    font-size: 0.75rem;
+}
+.separator::before, .separator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background-color: #d1d5db; /* gray-300 */
+}
+.dark .separator::before, .dark .separator::after {
+    background-color: #4b5563; /* gray-600 */
+}
+.separator::before { left: 0; }
+.separator::after { right: 0; }
+
+/* Dropdown Item */
+.dropdown-item {
+    display: block;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: #374151; /* gray-700 */
+}
+.dark .dropdown-item {
+    color: #d1d5db; /* gray-300 */
+}
+.dropdown-item:hover {
+    background-color: #f3f4f6; /* gray-100 */
+}
+.dark .dropdown-item:hover {
+    background-color: #374151; /* gray-700 */
+}
+
+/* Toast Container */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Toast Styling */
+.toast {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.4s ease-in-out;
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+.toast-icon {
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+.toast-info { background-color: #3b82f6; }
+.toast-success { background-color: #10b981; }
+.toast-error { background-color: #ef4444; }
