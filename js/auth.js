@@ -52,21 +52,11 @@ const showToast = (message, type = 'info') => {
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
 
-    // --- Firebase Initialization ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
-        authDomain: "hatakesocial-88b5e.firebaseapp.com",
-        projectId: "hatakesocial-88b5e",
-        storageBucket: "hatakesocial-88b5e.firebasestorage.app",
-        messagingSenderId: "1091697032506",
-        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
-        measurementId: "G-EH0PS2Z84J"
-    };
-
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    
+// --- Firebase Initialization ---
+if (!firebase.apps.length) {
+    // The configuration is automatically loaded from /__/firebase/init.js
+    firebase.initializeApp();
+}
     if (typeof firebase.analytics === 'function') {
         window.analytics = firebase.analytics();
     }
