@@ -3,7 +3,7 @@
  *
  * This script handles all cart functionality across the entire site.
  * It manages cart state in localStorage, renders the cart modal,
- * updates the cart icon count, and handles adding/removing items.
+ * updates the cart icon count, and handles the checkout process.
  */
 
 // --- Helper Functions ---
@@ -24,12 +24,15 @@ const saveCart = (cart) => {
 const updateCartCount = () => {
     const cart = getCart();
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const cartCountElement = document.getElementById('cart-item-count');
-    if (cartCountElement) {
-        cartCountElement.textContent = totalItems;
-        cartCountElement.classList.toggle('hidden', totalItems === 0);
-    }
+    const cartCountElements = document.querySelectorAll('#cart-counter, #cart-item-count'); // Select all counters
+    cartCountElements.forEach(el => {
+        if (el) {
+            el.textContent = totalItems;
+            el.classList.toggle('hidden', totalItems === 0);
+        }
+    });
 };
+
 
 const renderCartItems = () => {
     const cart = getCart();
@@ -96,8 +99,54 @@ function addToCart(productId, productData) {
     saveCart(cart);
     updateCartCount();
     renderCartItems(); // Re-render if the modal is open
-    showToast(`${productData.name} added to cart!`, 'success');
+    // Ensure showToast is available globally or handle it
+    if (typeof showToast === 'function') {
+        showToast(`${productData.name} added to cart!`, 'success');
+    }
 }
+
+
+// --- Checkout Functionality ---
+async function proceedToCheckout() {
+    const checkoutBtn = document.getElementById('checkout-btn');
+    checkoutBtn.disabled = true;
+    checkoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Redirecting...';
+
+    const cartItems = getCart();
+    if (cartItems.length === 0) {
+        if (typeof showToast === 'function') showToast('Your cart is empty.', 'error');
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Proceed to Checkout';
+        return;
+    }
+
+    try {
+        // IMPORTANT: Replace with your actual Stripe Publishable Key
+        const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
+        const createCheckoutSession = firebase.functions().httpsCallable('createCheckoutSession');
+
+        const response = await createCheckoutSession({
+            cartItems: cartItems
+            // You can add couponId and referralDiscountPercent here if needed
+        });
+
+        const sessionId = response.data.id;
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+
+        if (error) {
+            console.error('Stripe redirect error:', error);
+            if (typeof showToast === 'function') showToast(`Error: ${error.message}`, 'error');
+            checkoutBtn.disabled = false;
+            checkoutBtn.textContent = 'Proceed to Checkout';
+        }
+    } catch (error) {
+        console.error("Error creating checkout session:", error);
+        if (typeof showToast === 'function') showToast('Could not proceed to checkout. Please try again.', 'error');
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Proceed to Checkout';
+    }
+}
+
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -108,9 +157,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // This event listener will be set up on every page by auth.js
     // document.getElementById('cart-btn').addEventListener('click', () => openModal(cartModal));
 
-    if (closeCartModalBtn) {
-        closeCartModalBtn.addEventListener('click', () => closeModal(cartModal));
+    if (closeCartModalBtn && cartModal) {
+        closeCartModalBtn.addEventListener('click', () => {
+             // Basic modal close logic, assuming a 'hidden' class toggles visibility
+            cartModal.classList.add('hidden');
+        });
     }
+
 
     if (cartModal) {
         // Handle removing items from the cart
@@ -122,18 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveCart(cart);
                 renderCartItems();
                 updateCartCount();
-                showToast('Item removed from cart.', 'info');
+                 if (typeof showToast === 'function') showToast('Item removed from cart.', 'info');
             }
         });
     }
-    
+
     if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', () => {
-            // In a real app, you would redirect to a checkout page
-            // For now, we can just show an alert or log to console.
-            console.log("Proceeding to checkout with:", getCart());
-            alert("Checkout functionality is not yet implemented.");
-        });
+        checkoutBtn.addEventListener('click', proceedToCheckout);
     }
 
 
