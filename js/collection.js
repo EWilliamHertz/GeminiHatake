@@ -1,10 +1,8 @@
 /**
- * HatakeSocial - My Collection Page Script (v29.3 - Fully Implemented)
+ * HatakeSocial - My Collection Page Script (v29.5 - Wishlist Click Fix 2)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Replaced the placeholder comment with the full, complete implementation of all functions (Quick Edit, modals, etc.).
- * - FIX: Added defensive checks for all DOM elements before use to prevent script crashes.
- * - FIX: Maintained the race-condition fix for the currency converter.
+ * - FIX: Corrected the event listener logic to properly handle clicks on wishlist items.
  */
 
 // --- Helper Functions (Global Scope) ---
@@ -55,28 +53,28 @@ function closeModal(modal) {
 // --- Main Script ---
 
 document.addEventListener('authReady', (e) => {
-    console.log('[Collection v29.3] Auth ready. Initializing script...');
+    console.log('[Collection v29.5] Auth ready. Initializing script...');
     const user = e.detail.user;
-    const collectionPageContainer = document.getElementById('content-collection');
+    const mainContainer = document.querySelector('main.container');
 
-    if (!collectionPageContainer) {
-        console.error('[Collection v29.3] Critical error: #content-collection container not found. Script cannot run.');
+    if (!mainContainer) {
+        console.error('[Collection v29.5] Critical error: main container not found. Script cannot run.');
         return;
     }
 
     if (!user) {
-        console.log('[Collection v29.3] No user found. Displaying login message.');
-        const mainContent = document.querySelector('main.container');
-        if (mainContent) mainContent.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
+        console.log('[Collection v29.5] No user found. Displaying login message.');
+        mainContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
         return;
     }
-    console.log(`[Collection v29.3] User ${user.uid} authenticated. Setting up page elements.`);
+    console.log(`[Collection v29.5] User ${user.uid} authenticated. Setting up page elements.`);
 
     // --- State ---
     let bulkEditMode = false;
     let quickEditMode = false;
     let selectedCards = new Set();
     let fullCollection = [];
+    let fullWishlist = [];
     let filteredCollection = [];
     let currentView = 'grid';
 
@@ -128,25 +126,25 @@ document.addEventListener('authReady', (e) => {
             const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
             fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             filteredCollection = [...fullCollection];
-            console.log(`[Collection v29.3] Loaded ${fullCollection.length} cards from Firestore.`);
+            console.log(`[Collection v29.5] Loaded ${fullCollection.length} cards from Firestore.`);
             calculateAndDisplayStats(fullCollection);
             populateFilters();
             renderCurrentView();
         } catch (error) {
-            console.error(`[Collection v29.3] Error loading collection:`, error);
+            console.error(`[Collection v29.5] Error loading collection:`, error);
             if (elements.collectionGridView) elements.collectionGridView.innerHTML = `<p class="text-center text-red-500 p-4">Could not load collection. See console for details.</p>`;
         }
     };
-    
+
     const loadWishlistData = async () => {
         if (!elements.wishlistListContainer) return;
         elements.wishlistListContainer.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading wishlist...</p>';
         try {
             const snapshot = await db.collection('users').doc(user.uid).collection('wishlist').orderBy('name').get();
-            const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderWishlist(items);
+            fullWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderWishlist(fullWishlist);
         } catch (error) {
-            console.error(`[Collection v29.3] Error loading wishlist:`, error);
+            console.error(`[Collection v29.5] Error loading wishlist:`, error);
             if(elements.wishlistListContainer) elements.wishlistListContainer.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your wishlist.</p>`;
         }
     };
@@ -191,7 +189,7 @@ document.addEventListener('authReady', (e) => {
         if (statsUniqueCardsEl) statsUniqueCardsEl.textContent = new Set(collectionData.map(c => c.name)).size;
         if (statsTotalValueEl) statsTotalValueEl.textContent = safeFormatPrice(totalValue);
     };
-    
+
     const populateFilters = () => {
         if (!elements.filterSetSelect) return;
         const sets = new Set(fullCollection.map(card => card.setName).filter(Boolean));
@@ -234,7 +232,7 @@ document.addEventListener('authReady', (e) => {
     const renderGridView = () => {
         const container = elements.collectionGridView;
         if (!container) return;
-        
+
         if (elements.collectionTableView) elements.collectionTableView.classList.add('hidden');
         container.classList.remove('hidden');
 
@@ -276,7 +274,7 @@ document.addEventListener('authReady', (e) => {
     const renderListView = () => {
         const container = elements.collectionTableView;
         if (!container) return;
-        
+
         if (elements.collectionGridView) elements.collectionGridView.classList.add('hidden');
         container.classList.remove('hidden');
 
@@ -322,7 +320,7 @@ document.addEventListener('authReady', (e) => {
     const handleCsvUpload = (file) => {
         if (!file) return;
         if (typeof Papa === 'undefined') {
-            console.error("[Collection v29.2] PapaParse library is not loaded. CSV upload is disabled.");
+            console.error("[Collection v29.5] PapaParse library is not loaded. CSV upload is disabled.");
             if (elements.csvStatus) elements.csvStatus.textContent = "Error: CSV parsing library not loaded.";
             return;
         }
@@ -335,13 +333,13 @@ document.addEventListener('authReady', (e) => {
             header: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                console.log("[Collection v29.2] CSV Parsed:", results);
+                console.log("[Collection v29.5] CSV Parsed:", results);
                 if (elements.csvStatus) elements.csvStatus.textContent = `Found ${results.data.length} cards. Importing... This may take a moment.`;
 
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
                 let importedCount = 0;
                 let errorCount = 0;
-                
+
                 const chunks = [];
                 for (let i = 0; i < results.data.length; i += 250) {
                     chunks.push(results.data.slice(i, i + 250));
@@ -363,10 +361,10 @@ document.addEventListener('authReady', (e) => {
                         try {
                             let searchUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
                             if (setName) searchUrl += `&set=${encodeURIComponent(setName)}`;
-                            
+
                             const response = await fetch(searchUrl);
                             await new Promise(resolve => setTimeout(resolve, 100));
-                            
+
                             if (!response.ok) {
                                 console.warn(`Card not found via Scryfall: ${cardName} [${setName || 'any set'}]`);
                                 errorCount++;
@@ -391,7 +389,7 @@ document.addEventListener('authReady', (e) => {
                                 addedAt: new Date(),
                                 forSale: false
                             };
-                            
+
                             const newDocRef = collectionRef.doc();
                             batch.set(newDocRef, cardDoc);
                             importedCount++;
@@ -412,7 +410,7 @@ document.addEventListener('authReady', (e) => {
                 loadCollectionData();
             },
             error: (err) => {
-                console.error("[Collection v29.2] CSV Parsing Error:", err);
+                console.error("[Collection v29.5] CSV Parsing Error:", err);
                 if (elements.csvStatus) {
                     elements.csvStatus.textContent = "Error parsing CSV file.";
                     elements.csvStatus.classList.add('text-red-500');
@@ -420,7 +418,7 @@ document.addEventListener('authReady', (e) => {
             }
         });
     };
-    
+
     const exportCollectionAsText = () => {
         if (fullCollection.length === 0) {
             alert("Your collection is empty.");
@@ -523,7 +521,7 @@ document.addEventListener('authReady', (e) => {
         updateSelectedCount();
         renderCurrentView();
     };
-    
+
     const toggleQuickEditMode = () => {
         quickEditMode = !quickEditMode;
         if (quickEditMode) {
@@ -552,7 +550,7 @@ document.addEventListener('authReady', (e) => {
     const renderQuickEditView = () => {
         const container = elements.collectionTableView;
         if (!container) return;
-        
+
         if (elements.collectionGridView) elements.collectionGridView.classList.add('hidden');
         container.classList.remove('hidden');
 
@@ -593,7 +591,7 @@ document.addEventListener('authReady', (e) => {
         tableHTML += `</tbody></table>`;
         container.innerHTML = tableHTML;
     };
-    
+
     const saveQuickEdits = async () => {
         if (!elements.saveQuickEditsBtn) return;
         elements.saveQuickEditsBtn.disabled = true;
@@ -701,14 +699,14 @@ document.addEventListener('authReady', (e) => {
             alert("Could not delete card.");
         }
     };
-    
+
     // --- Attaching Event Listeners ---
     if (elements.bulkEditBtn) elements.bulkEditBtn.addEventListener('click', toggleBulkEditMode);
     if (elements.quickEditBtn) elements.quickEditBtn.addEventListener('click', toggleQuickEditMode);
     if (elements.saveQuickEditsBtn) elements.saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
     if (elements.exportCollectionBtn) elements.exportCollectionBtn.addEventListener('click', exportCollectionAsText);
 
-    collectionPageContainer.addEventListener('click', (e) => {
+    mainContainer.addEventListener('click', (e) => {
         const target = e.target;
         const cardElement = target.closest('.group[data-id]');
         if (!cardElement) return;
@@ -722,14 +720,21 @@ document.addEventListener('authReady', (e) => {
             handleCardSelection(cardId);
             return;
         }
-        
-        if (target.closest('.edit-card-btn')) openModalHandler(elements.editCardModal, cardId, listType);
-        else if (target.closest('.delete-card-btn')) {
-            if (confirm('Are you sure you want to delete this card?')) deleteCard(cardId, listType);
-        } else if (target.closest('.manage-listing-btn')) openModalHandler(elements.manageListingModal, cardId, listType);
-        else if (!isActionBtn) {
-            const cardData = fullCollection.find(c => c.id === cardId);
-            if (cardData && cardData.scryfallId) window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+
+        if (target.closest('.edit-card-btn')) {
+            openModalHandler(elements.editCardModal, cardId, listType);
+        } else if (target.closest('.delete-card-btn')) {
+            if (confirm('Are you sure you want to delete this card?')) {
+                deleteCard(cardId, listType);
+            }
+        } else if (target.closest('.manage-listing-btn')) {
+            openModalHandler(elements.manageListingModal, cardId, listType);
+        } else if (!isActionBtn) {
+            const cardDataSource = listType === 'collection' ? fullCollection : fullWishlist;
+            const cardData = cardDataSource.find(c => c.id === cardId);
+            if (cardData && cardData.scryfallId) {
+                window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+            }
         }
     });
 
@@ -754,7 +759,7 @@ document.addEventListener('authReady', (e) => {
                 try {
                     await batch.commit();
                     alert(`${selectedCards.size} cards deleted.`);
-                    toggleBulkEditMode(); 
+                    toggleBulkEditMode();
                     loadCollectionData();
                 } catch (error) {
                     console.error("Error deleting selected cards:", error);
@@ -763,7 +768,7 @@ document.addEventListener('authReady', (e) => {
             }
         });
     }
-    
+
     if (elements.editCardForm) {
         elements.editCardForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -822,7 +827,7 @@ document.addEventListener('authReady', (e) => {
         if(elements.filterColorSelect) elements.filterColorSelect.value = 'all';
         applyFilters();
     });
-    
+
     const switchView = (view) => {
         currentView = view;
         if (elements.gridViewBtn && elements.listViewBtn) {
@@ -833,6 +838,7 @@ document.addEventListener('authReady', (e) => {
         }
         renderCurrentView();
     };
+
     if (elements.gridViewBtn) elements.gridViewBtn.addEventListener('click', () => switchView('grid'));
     if (elements.listViewBtn) elements.listViewBtn.addEventListener('click', () => switchView('list'));
 
@@ -840,8 +846,27 @@ document.addEventListener('authReady', (e) => {
     document.getElementById('close-listing-modal')?.addEventListener('click', () => closeModal(elements.manageListingModal));
     document.getElementById('close-list-sale-modal')?.addEventListener('click', () => closeModal(elements.listForSaleModal));
     document.getElementById('close-add-version-modal')?.addEventListener('click', () => closeModal(elements.addVersionModal));
+    
+    // --- Tab Switching Logic ---
+    elements.tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetContentId = `content-${tab.id.split('-')[1]}`;
+            
+            elements.tabs.forEach(t => t.classList.remove('text-blue-600', 'border-blue-600'));
+            tab.classList.add('text-blue-600', 'border-blue-600');
+            
+            elements.tabContents.forEach(content => {
+                if (content.id === targetContentId) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
 
     // --- Initial Load ---
-    console.log('[Collection v29.2] Starting initial data load.');
+    console.log('[Collection v29.5] Starting initial data load.');
     loadCollectionData();
+    loadWishlistData();
 });

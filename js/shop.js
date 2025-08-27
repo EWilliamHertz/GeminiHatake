@@ -1,36 +1,31 @@
-// js/shop.js
+/**
+ * HatakeSocial - Shop Page Script
+ *
+ * This script handles all logic specific to the shop.html page.
+ * It focuses on fetching and displaying products, showing product details,
+ * and initiating the checkout process. It relies on the global `js/cart.js`
+ * for all cart manipulation logic.
+ */
 
 const initializeShop = () => {
-    // DOM Elements
+    // --- DOM Elements ---
     const productGrid = document.getElementById('product-grid');
-    const cartBtn = document.getElementById('cart-btn');
-    const mobileCartBtn = document.getElementById('mobile-cart-btn');
-    const cartModal = document.getElementById('cart-modal');
-    const closeModalBtn = document.getElementById('close-cart-modal');
-    const cartItemsContainer = document.getElementById('cart-items-container');
-    const cartTotalElement = document.getElementById('cart-total');
-    const checkoutBtn = document.getElementById('checkout-btn');
-    const applyCouponBtn = document.getElementById('apply-coupon-btn');
-    const couponCodeInput = document.getElementById('coupon-code-input');
-    const couponStatus = document.getElementById('coupon-status');
-    const referralDiscountSlider = document.getElementById('referral-discount-slider');
-    const referralDiscountValue = document.getElementById('referral-discount-value');
-    const referralDiscountSection = document.getElementById('referral-discount-section');
     const productDetailModal = document.getElementById('product-detail-modal');
     const closeProductModalBtn = document.getElementById('close-product-modal');
     const modalBody = document.getElementById('modal-body');
+    // Note: Cart-specific elements are now managed by js/cart.js
 
-    // State
-    let cart = JSON.parse(localStorage.getItem('geminiHatakeCart')) || [];
+    // --- State ---
     let products = [];
-    let appliedCoupon = null;
-    let referralDiscountPercent = 0;
-    
-    // Firebase services
+
+    // --- Firebase Services ---
     let db, functions;
     if (firebase.apps.length) {
         db = firebase.firestore();
         functions = firebase.functions();
+    } else {
+        console.error("Firebase is not initialized. Shop cannot function.");
+        return;
     }
 
     // --- RENDER FUNCTIONS ---
@@ -38,29 +33,48 @@ const initializeShop = () => {
         if (!productGrid) return;
         productGrid.innerHTML = '';
         if (products.length === 0) {
-            productGrid.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">No products available at the moment.</p>';
+            // Display a skeleton loader while waiting for products
+            for (let i = 0; i < 8; i++) {
+                const skeletonCard = document.createElement('div');
+                skeletonCard.className = 'product-card bg-white dark:bg-gray-800 animate-pulse';
+                skeletonCard.innerHTML = `
+                    <div class="product-image-container bg-gray-300 dark:bg-gray-700"></div>
+                    <div class="product-info">
+                        <div>
+                            <div class="h-6 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                            <div class="h-8 bg-gray-300 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+                            <div class="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/4"></div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="h-10 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                        </div>
+                    </div>
+                `;
+                productGrid.appendChild(skeletonCard);
+            }
             return;
         }
 
         products.forEach(product => {
             const card = document.createElement('div');
-            card.className = 'product-card dark:bg-gray-800 cursor-pointer';
+            card.className = 'product-card bg-white dark:bg-gray-800 cursor-pointer shadow-md hover:shadow-xl transition-shadow duration-300';
             card.dataset.id = product.id;
-            
+
             const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/300x300/2d3748/ffffff?text=No+Image';
-            
+
             card.innerHTML = `
                 <div class="product-image-container">
                     <img src="${thumbnailUrl}" alt="${product.name}" class="product-image">
                 </div>
                 <div class="product-info">
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">${product.name}</h3>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white truncate">${product.name}</h3>
                         <p class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">$${product.price.toFixed(2)}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">${product.stock > 0 ? `${product.stock} available` : 'Out of Stock'}</p>
+                        <p class="text-sm ${product.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">${product.stock > 0 ? `${product.stock} available` : 'Out of Stock'}</p>
                     </div>
                     <div class="mt-4">
                         <button data-id="${product.id}" class="add-to-cart-btn w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${product.stock === 0 ? 'disabled' : ''}>
+                            <i class="fas fa-shopping-cart mr-2"></i>
                             ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                         </button>
                     </div>
@@ -70,50 +84,20 @@ const initializeShop = () => {
         });
     };
 
-    const renderCartItems = () => {
-        if (!cartItemsContainer) return;
-        cartItemsContainer.innerHTML = '';
-        if (cart.length === 0) {
-            cartItemsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>';
-            return;
-        }
-
-        cart.forEach(item => {
-            const product = products.find(p => p.id === item.id);
-            if (product) {
-                const thumbnailUrl = (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : 'https://placehold.co/64x64/2d3748/ffffff?text=N/A';
-                const itemElement = document.createElement('div');
-                itemElement.className = 'cart-item';
-                itemElement.innerHTML = `
-                    <img src="${thumbnailUrl}" alt="${product.name}">
-                    <div class="cart-item-details">
-                        <h4 class="font-semibold dark:text-white">${product.name}</h4>
-                        <p class="text-gray-600 dark:text-gray-400">$${product.price.toFixed(2)} x ${item.quantity}</p>
-                    </div>
-                    <div class="cart-item-actions">
-                        <span class="item-price font-bold dark:text-blue-400">$${(product.price * item.quantity).toFixed(2)}</span>
-                        <button class="remove-item-btn text-red-500 hover:text-red-700" data-id="${item.id}">&times;</button>
-                    </div>
-                `;
-                cartItemsContainer.appendChild(itemElement);
-            }
-        });
-    };
-
     // --- PRODUCT DETAIL MODAL ---
     const openProductModal = (productId) => {
         const product = products.find(p => p.id === productId);
-        if (!product || !modalBody) return;
+        if (!product || !modalBody || !productDetailModal) return;
 
         let imageGalleryHtml = '';
         if (product.galleryImageUrls && product.galleryImageUrls.length > 0) {
-            const mainImage = `<img src="${product.galleryImageUrls[0]}" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4 main-modal-image">`;
+            const mainImage = `<img src="${product.galleryImageUrls[0]}" alt="${product.name}" class="w-full h-64 md:h-80 object-cover rounded-lg mb-4 main-modal-image">`;
             const thumbnails = product.galleryImageUrls.map(url =>
                 `<img src="${url}" alt="Thumbnail" class="w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-blue-500 thumbnail-image">`
             ).join('');
-            imageGalleryHtml = `${mainImage}<div class="flex gap-2 overflow-x-auto">${thumbnails}</div>`;
+            imageGalleryHtml = `${mainImage}<div class="flex gap-2 overflow-x-auto pb-2">${thumbnails}</div>`;
         } else {
-            imageGalleryHtml = `<img src="https://placehold.co/600x400/2d3748/ffffff?text=No+Image" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4">`;
+            imageGalleryHtml = `<div class="w-full h-64 md:h-80 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center"><p class="text-gray-500">No Image</p></div>`;
         }
 
         modalBody.innerHTML = `
@@ -124,221 +108,61 @@ const initializeShop = () => {
                 <div>
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${product.name}</h2>
                     <p class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-4">$${product.price.toFixed(2)}</p>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">${product.description || 'No description available.'}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-300 mb-4">${product.stock > 0 ? `${product.stock} in stock` : 'Out of Stock'}</p>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">${product.description || 'No description available.'}</p>
+                    <p class="text-sm font-medium ${product.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'} mb-4">${product.stock > 0 ? `${product.stock} in stock` : 'Out of Stock'}</p>
                     <button data-id="${product.id}" class="add-to-cart-btn-modal w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${product.stock === 0 ? 'disabled' : ''}>
+                        <i class="fas fa-shopping-cart mr-2"></i>
                         ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                     </button>
                 </div>
             </div>
         `;
 
+        // Add event listeners for new modal content
         modalBody.querySelectorAll('.thumbnail-image').forEach(thumb => {
             thumb.addEventListener('click', () => {
                 modalBody.querySelector('.main-modal-image').src = thumb.src;
             });
         });
-        
+
         modalBody.querySelector('.add-to-cart-btn-modal').addEventListener('click', (e) => {
-            const id = e.target.dataset.id;
-            addToCart(id);
+            const id = e.target.closest('button').dataset.id;
+            const productToAdd = products.find(p => p.id === id);
+            if (productToAdd) {
+                // Use the global addToCart function from js/cart.js
+                window.addToCart(id, {
+                    name: productToAdd.name,
+                    price: productToAdd.price,
+                    imageUrl: (productToAdd.galleryImageUrls && productToAdd.galleryImageUrls.length > 0) ? productToAdd.galleryImageUrls[0] : null,
+                    priceId: productToAdd.stripePriceId
+                });
+            }
         });
 
-        productDetailModal.classList.add('open');
-    };
-
-    // --- CART LOGIC ---
-    const saveCart = () => {
-        localStorage.setItem('geminiHatakeCart', JSON.stringify(cart));
-        updateCartUI();
-    };
-
-    const updateCartUI = () => {
-        renderCartItems();
-        updateCartTotal();
-        updateCartButton();
-    };
-
-    const updateCartTotal = () => {
-        if (!cartTotalElement) return;
-        const subtotal = cart.reduce((sum, item) => {
-            const product = products.find(p => p.id === item.id);
-            return sum + (product ? product.price * item.quantity : 0);
-        }, 0);
-
-        let discount = 0;
-        if (appliedCoupon) {
-            discount = (subtotal * (appliedCoupon.percent_off / 100));
-        } else if (referralDiscountPercent > 0) {
-            discount = (subtotal * (referralDiscountPercent / 100));
-        }
-
-        const total = subtotal - discount;
-
-        document.getElementById('cart-subtotal').textContent = `$${subtotal.toFixed(2)}`;
-        const discountLine = document.getElementById('discount-line');
-        if (discount > 0) {
-            document.getElementById('cart-discount').textContent = `$${discount.toFixed(2)}`;
-            discountLine.classList.remove('hidden');
-        } else {
-            discountLine.classList.add('hidden');
-        }
-        cartTotalElement.textContent = `$${total.toFixed(2)}`;
-        checkoutBtn.disabled = cart.length === 0;
-    };
-
-    const updateCartButton = () => {
-        const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-        const cartCounter = document.getElementById('cart-counter');
-        
-        if (cartCounter) {
-            if (cartItemCount > 0) {
-                cartCounter.textContent = cartItemCount;
-                cartCounter.classList.remove('hidden');
-            } else {
-                cartCounter.classList.add('hidden');
-            }
-        }
-    };
-
-    const addToCart = (productId) => {
-        const product = products.find(p => p.id === productId);
-        if (!product) return;
-
-        if (product.stock <= 0) {
-            Toastify({
-                text: "This item is out of stock.",
-                duration: 3000,
-                close: true,
-                gravity: "top",
-                position: "right",
-                style: {
-                    background: "linear-gradient(to right, #e53e3e, #c53030)",
-                }
-            }).showToast();
-            return;
-        }
-
-        const existingItem = cart.find(item => item.id === productId);
-        if (existingItem) {
-            existingItem.quantity++;
-        } else {
-            cart.push({ id: productId, quantity: 1, priceId: product.stripePriceId });
-        }
-        saveCart();
-        
-        Toastify({
-            text: `${product.name} added to cart!`,
-            duration: 3000,
-            close: true,
-            gravity: "top",
-            position: "right",
-            style: {
-                background: "linear-gradient(to right, #38a169, #2f855a)",
-            }
-        }).showToast();
-    };
-
-    const removeFromCart = (productId) => {
-        cart = cart.filter(item => item.id !== productId);
-        saveCart();
-    };
-
-    // --- COUPON & DISCOUNT LOGIC ---
-    const applyCoupon = async () => {
-        const code = couponCodeInput.value.trim();
-        if (!code) {
-            couponStatus.textContent = "Please enter a coupon code.";
-            couponStatus.className = "text-sm mt-2 h-5 text-red-500";
-            return;
-        }
-
-        try {
-            const validateCoupon = functions.httpsCallable('validateCoupon');
-            const result = await validateCoupon({ code });
-
-            if (result.data.success) {
-                appliedCoupon = result.data.coupon;
-                couponStatus.textContent = `Coupon "${code.toUpperCase()}" applied!`;
-                couponStatus.className = "text-sm mt-2 h-5 text-green-500";
-                referralDiscountSlider.value = 0;
-                referralDiscountPercent = 0;
-                referralDiscountValue.textContent = '0%';
-                updateCartTotal();
-            } else {
-                appliedCoupon = null;
-                couponStatus.textContent = result.data.message;
-                couponStatus.className = "text-sm mt-2 h-5 text-red-500";
-                updateCartTotal();
-            }
-        } catch (error) {
-            console.error("Error validating coupon:", error);
-            couponStatus.textContent = "Could not validate coupon.";
-            couponStatus.className = "text-sm mt-2 h-5 text-red-500";
-        }
-    };
-
-    // --- CHECKOUT LOGIC ---
-    const handleCheckout = async () => {
-        if (cart.length === 0) {
-            Toastify({ text: "Your cart is empty.", duration: 3000, close: true, gravity: "top", position: "right", style: { background: "#3498db" } }).showToast();
-            return;
-        }
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            Toastify({ text: "Please log in to proceed to checkout.", duration: 3000, close: true, gravity: "top", position: "right", style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
-            return;
-        }
-        
-        checkoutBtn.disabled = true;
-        checkoutBtn.textContent = 'Processing...';
-
-        const createCheckoutSession = functions.httpsCallable('createCheckoutSession');
-        
-        const cartItems = cart.map(item => {
-            const product = products.find(p => p.id === item.id);
-            if (!product || !product.stripePriceId) {
-                throw new Error(`Product "${product.name}" is missing a Stripe Price ID.`);
-            }
-            return {
-                priceId: product.stripePriceId,
-                quantity: item.quantity
-            };
-        });
-
-        try {
-            const checkoutData = { cartItems };
-            if (appliedCoupon) {
-                checkoutData.couponId = appliedCoupon.id;
-            } else if (referralDiscountPercent > 0) {
-                checkoutData.referralDiscountPercent = referralDiscountPercent;
-            }
-
-            const result = await createCheckoutSession(checkoutData);
-
-            if (result.data && result.data.id) {
-                const stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn'); 
-                await stripe.redirectToCheckout({ sessionId: result.data.id });
-            } else {
-                throw new Error(result.data.message || 'Failed to create checkout session.');
-            }
-        } catch (error) {
-            console.error("Error creating checkout session:", error);
-            Toastify({ text: `Checkout Error: ${error.message}`, duration: 5000, close: true, gravity: "top", position: "right", style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
-            checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Checkout';
-        }
+        productDetailModal.classList.remove('hidden');
+        productDetailModal.classList.add('flex');
     };
 
     // --- EVENT LISTENERS ---
     if (productGrid) {
         productGrid.addEventListener('click', (e) => {
-            if (e.target.matches('.add-to-cart-btn')) {
-                const productId = e.target.dataset.id;
-                addToCart(productId);
+            const button = e.target.closest('.add-to-cart-btn');
+            if (button) {
+                e.stopPropagation(); // Prevent modal from opening when clicking the button
+                const productId = button.dataset.id;
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                    // Use the global addToCart function from js/cart.js
+                    window.addToCart(productId, {
+                        name: product.name,
+                        price: product.price,
+                        imageUrl: (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : null,
+                        priceId: product.stripePriceId
+                    });
+                }
                 return;
             }
-            
+
             const card = e.target.closest('.product-card');
             if (card && card.dataset.id) {
                 openProductModal(card.dataset.id);
@@ -346,68 +170,40 @@ const initializeShop = () => {
         });
     }
 
-    cartBtn?.addEventListener('click', () => cartModal.classList.add('open'));
-    mobileCartBtn?.addEventListener('click', () => cartModal.classList.add('open'));
-    closeModalBtn?.addEventListener('click', () => cartModal.classList.remove('open'));
-    closeProductModalBtn?.addEventListener('click', () => productDetailModal.classList.remove('open'));
-    checkoutBtn?.addEventListener('click', handleCheckout);
-    applyCouponBtn?.addEventListener('click', applyCoupon);
-
-    referralDiscountSlider?.addEventListener('input', (e) => {
-        referralDiscountPercent = e.target.value;
-        referralDiscountValue.textContent = `${referralDiscountPercent}%`;
-        couponCodeInput.value = '';
-        appliedCoupon = null;
-        couponStatus.textContent = '';
-        updateCartTotal();
-    });
-
-    if (cartItemsContainer) {
-        cartItemsContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-item-btn')) {
-                const productId = e.target.dataset.id;
-                removeFromCart(productId);
-            }
+    if (closeProductModalBtn) {
+        closeProductModalBtn.addEventListener('click', () => {
+            productDetailModal.classList.add('hidden');
+            productDetailModal.classList.remove('flex');
         });
     }
 
     // --- INITIALIZATION ---
     const initShop = () => {
-        if (!db) return;
-        
+        if (!db) {
+            console.error("Firestore is not available. Shop cannot load products.");
+            if(productGrid) productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full">Error: Could not connect to the database.</p>';
+            return;
+        }
+
+        // Initially render skeleton loaders
+        renderProducts();
+
         db.collection('products').onSnapshot(snapshot => {
             products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderProducts();
-            updateCartUI();
         }, err => {
             console.error("Error fetching products:", err);
-            if(productGrid) productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load products.</p>';
-        });
-
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                db.collection('users').doc(user.uid).onSnapshot(doc => {
-                    if (doc.exists && doc.data().shopDiscountPercent > 0) {
-                        referralDiscountSection.classList.remove('hidden');
-                        referralDiscountSlider.max = doc.data().shopDiscountPercent;
-                    } else {
-                        referralDiscountSection.classList.add('hidden');
-                    }
-                });
-            } else {
-                referralDiscountSection.classList.add('hidden');
-            }
+            if(productGrid) productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load products. Please try again later.</p>';
         });
     };
-    
+
     initShop();
 };
 
 // --- SCRIPT EXECUTION ---
-// This robust check ensures the shop initializes correctly,
-// regardless of script loading order.
+// This robust check ensures the shop initializes correctly after Firebase auth is ready.
 if (window.authReady) {
     initializeShop();
 } else {
-    document.addEventListener('authReady', initializeShop);
+    document.addEventListener('authReady', initializeShop, { once: true });
 }
