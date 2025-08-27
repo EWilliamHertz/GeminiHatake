@@ -147,6 +147,14 @@
       </div>
      </div>
      <div class="flex items-center space-x-5" id="user-actions">
+      <div class="space-x-2">
+       <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
+        Login
+       </button>
+       <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="header-register-btn">
+        Register
+       </button>
+      </div>
      </div>
     </header>
     <main class="container mx-auto px-4 py-8 flex-grow">
@@ -617,6 +625,62 @@
       </a>
      </p>
     </div>
+   </div>
+  </div>
+  <!-- Login Modal -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Login
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="loginForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+     <p class="text-red-500 text-sm hidden" id="login-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Login
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Sign in with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <!-- Register Modal -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Register
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="registerForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerReferrer" placeholder="Referrer (Optional)" type="text"/>
+     <p class="text-red-500 text-sm hidden" id="register-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Register
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Register with Google
+     </button>
+    </form>
    </div>
   </div>
  </body>

@@ -16,7 +16,6 @@
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
   <div class="flex h-screen">
-   <!-- Sidebar -->
    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
     <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
      <a class="flex flex-col items-center space-y-1" href="index.html">
@@ -121,12 +120,10 @@
     </nav>
     <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
      <div id="auth-container-sidebar">
-     </div>
+      </div>
     </div>
    </aside>
-   <!-- Main Content -->
    <div class="flex-1 flex flex-col overflow-hidden">
-    <!-- Header -->
     <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
      <div class="flex items-center">
       <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
@@ -142,14 +139,11 @@
       </div>
      </div>
      <div class="flex items-center space-x-5" id="user-actions">
-     </div>
+        </div>
     </header>
-    <!-- Page Content -->
     <main class="flex-1 overflow-y-auto p-6">
      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Center Column: Feed -->
       <div class="lg:col-span-2 space-y-6">
-       <!-- Create Post -->
        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hidden" id="create-post-section">
         <textarea class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="postContent" placeholder="What's on your mind? Use @ to mention, # for tags, and [Card Name] for cards."></textarea>
         <div class="relative" id="autocomplete-suggestions">
@@ -169,7 +163,6 @@
         <p class="text-sm mt-2" id="postStatusMessage">
         </p>
        </div>
-       <!-- Feed Tabs -->
        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full" id="feed-tabs">
         <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold active" data-feed-type="for-you">
          For You
@@ -181,12 +174,9 @@
          Groups
         </button>
        </div>
-       <!-- Feed Container -->
        <div class="space-y-6" id="feed-container">
-        <!-- Posts will be loaded here by index.js -->
-       </div>
+        </div>
       </div>
-      <!-- Right Column -->
       <div class="hidden lg:block space-y-6">
        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
         <h3 class="font-bold text-lg mb-4">
@@ -207,73 +197,71 @@
     </main>
    </div>
   </div>
-  <!-- Modals -->
-  <!-- Toast Notification -->
   <div class="fixed bottom-5 right-5 z-50" id="toast-container">
   </div>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js">
-  </script>
-  <!-- Scripts -->
-  <script src="js/auth.js">
-  </script>
-  <script src="js/index.js">
-  </script>
-  <script src="js/darkmode.js">
-  </script>
-  <div class="modal" id="authModal">
-   <div class="modal-content">
-    <span class="close-button">
-     ×
-    </span>
-    <div class="auth-form" id="login-form-modal">
-     <h2>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
       Login
      </h2>
-     <form>
-      <input id="loginEmail" placeholder="Email" required="" type="email"/>
-      <input id="loginPassword" placeholder="Password" required="" type="password"/>
-      <button id="loginUser" type="button">
-       Login
-      </button>
-     </form>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      &times;
+     </button>
     </div>
-    <div class="auth-form" id="register-form-modal" style="display:none;">
-     <h2>
-      Register
-     </h2>
-     <form>
-      <input id="registerUsername" placeholder="Username" required="" type="text"/>
-      <input id="registerEmail" placeholder="Email" required="" type="email"/>
-      <input id="registerPassword" placeholder="Password" required="" type="password"/>
-      <button id="registerUser" type="button">
-       Register
-      </button>
-     </form>
-    </div>
-    <div class="modal-switch">
-     <p id="switchToRegister">
-      Don't have an account?
-      <a href="#">
-       Register
-      </a>
+    <form class="mt-4 space-y-4" id="loginForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+     <p class="text-red-500 text-sm hidden" id="login-error-message">
      </p>
-     <p id="switchToLogin" style="display:none;">
-      Already have an account?
-      <a href="#">
-       Login
-      </a>
-     </p>
-    </div>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Login
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Sign in with Google
+     </button>
+    </form>
    </div>
   </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Register
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      &times;
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="registerForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerReferrer" placeholder="Referrer (Optional)" type="text"/>
+     <p class="text-red-500 text-sm hidden" id="register-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Register
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Register with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+  
+  <script src="js/auth.js"></script>
+  <script src="js/index.js"></script>
+  <script src="js/darkmode.js"></script>
  </body>
 </html>
