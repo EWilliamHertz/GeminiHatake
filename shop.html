@@ -9,7 +9,6 @@
   <script src="https://cdn.tailwindcss.com">
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
-  <!-- Toastify CSS for notifications -->
   <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css"/>
   <link href="css/style.css" rel="stylesheet"/>
  </head>
@@ -136,6 +135,13 @@
       </div>
      </div>
      <div class="flex items-center space-x-5" id="user-actions">
+        <button class="relative text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400" id="cart-btn">
+            <i class="fas fa-shopping-cart text-2xl"></i>
+            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden" id="cart-counter">0</span>
+        </button>
+        <button class="relative text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 lg:hidden" id="mobile-cart-btn">
+            <i class="fas fa-shopping-cart text-2xl"></i>
+        </button>
       <div class="space-x-2">
        <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
         Login
@@ -146,13 +152,11 @@
       </div>
      </div>
     </header>
-    <!-- Header Section -->
     <main class="container mx-auto px-4 py-8">
      <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-8">
       Our Products
      </h1>
      <div class="product-grid" id="product-grid">
-      <!-- Products will be loaded here by js/shop.js -->
       <div class="text-center p-10 col-span-full">
        <i class="fas fa-spinner fa-spin text-4xl text-blue-500">
        </i>
@@ -162,18 +166,15 @@
       </div>
      </div>
     </main>
-    <!-- Product Detail Modal -->
     <div class="modal-overlay product-detail-modal" id="product-detail-modal">
      <div class="modal-content">
       <button class="close-button" id="close-product-modal">
        ×
       </button>
       <div class="modal-body" id="modal-body">
-       <!-- Content will be injected by JS -->
-      </div>
+       </div>
      </div>
     </div>
-    <!-- Cart Modal -->
     <div class="modal-overlay" id="cart-modal">
      <div class="modal-content w-full max-w-lg">
       <button class="close-button" id="close-cart-modal">
@@ -349,7 +350,6 @@
     </div>
    </div>
   </footer>
-  <!-- Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
@@ -364,7 +364,6 @@
   </script>
   <script src="https://js.stripe.com/v3/">
   </script>
-  <!-- Toastify JS for notifications -->
   <script src="https://cdn.jsdelivr.net/npm/toastify-js" type="text/javascript">
   </script>
   <script src="js/auth.js">
@@ -377,7 +376,6 @@
   </script>
   
   </div>
-  <!-- Login Modal -->
   <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
     <div class="flex justify-between items-center">
@@ -403,7 +401,6 @@
     </form>
    </div>
   </div>
-  <!-- Register Modal -->
   <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
     <div class="flex justify-between items-center">

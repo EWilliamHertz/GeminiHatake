@@ -477,7 +477,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        // This is the crucial part for other scripts
         document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
+        window.authReady = true; // Set the flag
+
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });

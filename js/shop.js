@@ -1,6 +1,6 @@
 // js/shop.js
 
-document.addEventListener('DOMContentLoaded', () => {
+const initializeShop = () => {
     // DOM Elements
     const productGrid = document.getElementById('product-grid');
     const cartBtn = document.getElementById('cart-btn');
@@ -28,14 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Firebase services
     let db, functions;
-    firebase.auth().onAuthStateChanged(() => {
-        if (!db) { // Initialize only once
-            db = firebase.firestore();
-            functions = firebase.functions();
-            initShop();
-        }
-    });
-
+    if (firebase.apps.length) {
+        db = firebase.firestore();
+        functions = firebase.functions();
+    }
 
     // --- RENDER FUNCTIONS ---
     const renderProducts = () => {
@@ -403,4 +399,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
-});
+    
+    initShop();
+};
+
+// --- SCRIPT EXECUTION ---
+// This robust check ensures the shop initializes correctly,
+// regardless of script loading order.
+if (window.authReady) {
+    initializeShop();
+} else {
+    document.addEventListener('authReady', initializeShop);
+}
