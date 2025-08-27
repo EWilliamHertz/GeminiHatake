@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
-   Admin Dashboard - HatakeSocial
+   My Referrals - HatakeSocial
   </title>
   <script src="https://cdn.tailwindcss.com">
   </script>
@@ -144,192 +144,78 @@
       </div>
      </div>
     </header>
+    <!-- Header will be dynamically loaded or you can paste your standard header here -->
     <!-- Header Section -->
-    <!-- Main Admin Content -->
-    <main class="container mx-auto px-4 py-8">
-     <div class="hidden space-y-8" id="admin-dashboard-container">
-      <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-8">
-       Admin Dashboard
+    <main class="container mx-auto p-4 flex-grow">
+     <div class="max-w-4xl mx-auto">
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-6">
+       My Referrals
       </h1>
-      <!-- Product Management Section (NEW) -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-         Product Management
+      <!-- Referral Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+        <h2 class="text-4xl font-extrabold text-blue-600 dark:text-blue-400" id="total-referrals-stat">
+         0
         </h2>
-        <button class="bg-green-600 text-white px-5 py-2 rounded-full font-semibold hover:bg-green-700" id="add-product-btn">
-         <i class="fas fa-plus mr-2">
+        <p class="text-gray-500 dark:text-gray-400 mt-2">
+         Total Referrals
+        </p>
+       </div>
+       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+        <h2 class="text-4xl font-extrabold text-green-600 dark:text-green-400" id="completed-referrals-stat">
+         0
+        </h2>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">
+         Completed (Verified)
+        </p>
+       </div>
+       <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+        <h2 class="text-4xl font-extrabold text-yellow-600 dark:text-yellow-400" id="current-discount-stat">
+         0%
+        </h2>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">
+         Current Shop Discount
+        </p>
+       </div>
+      </div>
+      <!-- Referral Link Section -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+       <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-3">
+        Your Unique Referral Link
+       </h3>
+       <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        Share this link with friends. For each friend that signs up and verifies their account, you'll receive a
+        <strong>
+         1% discount token
+        </strong>
+        in our shop, stackable up to 15%!
+       </p>
+       <div class="flex items-center space-x-2">
+        <input class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700" id="referral-link-input" readonly="" type="text"/>
+        <button class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600" id="copy-referral-link-btn">
+         <i class="fas fa-copy">
          </i>
-         Add New Product
+         Copy
         </button>
        </div>
-       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-         <thead class="bg-gray-50 dark:bg-gray-700">
-          <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Product
-           </th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Price
-           </th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Stock
-           </th>
-           <th class="relative px-6 py-3" scope="col">
-            <span class="sr-only">
-             Actions
-            </span>
-           </th>
-          </tr>
-         </thead>
-         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="products-table-body">
-          <!-- Product rows will be populated by JS -->
-         </tbody>
-        </table>
+       <p class="text-sm text-green-500 mt-2 hidden" id="copy-feedback">
+        Copied to clipboard!
+       </p>
+      </div>
+      <!-- Referred Users List -->
+      <div>
+       <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+        Referred Users
+       </h3>
+       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md" id="referrals-list-container">
+        <!-- JS will populate this list -->
+        <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+         Loading your referrals...
+        </div>
        </div>
       </div>
-      <!-- User Management Section (Existing) -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-       <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-        User Management
-       </h2>
-       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-         <thead class="bg-gray-50 dark:bg-gray-700">
-          <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            User
-           </th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Email
-           </th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Role
-           </th>
-           <th class="relative px-6 py-3" scope="col">
-            <span class="sr-only">
-             Actions
-            </span>
-           </th>
-          </tr>
-         </thead>
-         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="user-management-table">
-          <!-- User rows will be populated by JS -->
-         </tbody>
-        </table>
-       </div>
-      </div>
-      <!-- Reported Posts Section (Existing) -->
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-       <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-        Reported Posts
-       </h2>
-       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-         <thead class="bg-gray-50 dark:bg-gray-700">
-          <tr>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Reported By
-           </th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Reason
-           </th>
-           <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Post Content
-           </th>
-           <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" scope="col">
-            Actions
-           </th>
-          </tr>
-         </thead>
-         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="report-management-table">
-          <!-- Report rows will be populated by JS -->
-         </tbody>
-        </table>
-       </div>
-      </div>
-     </div>
-     <div class="hidden text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg" id="admin-access-denied">
-      <h2 class="text-2xl font-bold text-red-600">
-       Access Denied
-      </h2>
-      <p class="text-gray-600 dark:text-gray-300 mt-2">
-       You do not have permission to view this page.
-      </p>
-      <a class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" href="index.html">
-       Go to Home
-      </a>
      </div>
     </main>
-    <!-- Add/Edit Product Modal (NEW & IMPROVED) -->
-    <div class="modal-overlay" id="product-modal">
-     <div class="modal-content w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg">
-      <button class="close-button" id="close-product-modal">
-       ×
-      </button>
-      <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center" id="product-modal-title">
-       Add New Product
-      </h2>
-      <form class="space-y-4" id="product-form">
-       <input id="product-id" type="hidden"/>
-       <div>
-        <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300" for="product-name">
-         Product Name:
-        </label>
-        <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="product-name" required="" type="text"/>
-       </div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-         <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300" for="product-price">
-          Price (USD):
-         </label>
-         <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="product-price" required="" step="0.01" type="number"/>
-        </div>
-        <div>
-         <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300" for="product-stock">
-          Stock:
-         </label>
-         <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="product-stock" required="" type="number"/>
-        </div>
-       </div>
-       <div>
-        <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300" for="product-description">
-         Description:
-        </label>
-        <textarea class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="product-description" required="" rows="3"></textarea>
-       </div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-         <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300" for="stripe-product-id">
-          Stripe Product ID:
-         </label>
-         <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="stripe-product-id" placeholder="prod_..." type="text"/>
-        </div>
-        <div>
-         <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300" for="stripe-price-id">
-          Stripe Price ID:
-         </label>
-         <input class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="stripe-price-id" placeholder="price_..." type="text"/>
-        </div>
-       </div>
-       <div>
-        <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">
-         Product Gallery Images:
-        </label>
-        <input accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-800" id="product-gallery-images" multiple="" type="file"/>
-        <div class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4" id="gallery-previews">
-         <!-- Image previews will be added here -->
-        </div>
-       </div>
-       <p class="text-red-500 text-sm text-center hidden" id="product-form-error">
-       </p>
-       <button class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-full hover:bg-blue-700" id="save-product-btn" type="submit">
-        Save Product
-       </button>
-      </form>
-     </div>
-    </div>
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
      <div class="container mx-auto py-8 px-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -397,7 +283,6 @@
           </button>
          </div>
          <div id="currency-selector-container">
-          <!-- Currency selector will be loaded by auth.js -->
          </div>
         </div>
        </div>
@@ -442,7 +327,6 @@
       </div>
      </div>
     </div>
-    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
@@ -457,16 +341,25 @@
     </script>
     <script src="js/auth.js">
     </script>
-    <script src="js/admin.js">
+    <script src="js/referrals.js">
     </script>
+    <!-- We will create this script next -->
     <script src="js/darkmode.js">
-    </script>
-    <script src="js/messenger.js">
     </script>
    </main>
   </div>
   <!-- Login Modal -->
+  <div class="separator">
+   Or continue with
+  </div>
+  <button class="w-full btn-secondary" id="googleRegisterButton">
+   <img alt="Google icon" class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+   <span class="ml-3">
+    Sign up with Google
+   </span>
+  </button>
   
+  </div>
   <!-- Login Modal -->
   <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
