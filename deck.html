@@ -398,6 +398,59 @@ Example:
 <img alt="Featured Card" class="w-full rounded-lg shadow-xl sticky top-24" id="deck-view-featured-card" src="https://placehold.co/223x310?text=Card+Image"/>
 </div>
 </div>
+<div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+<h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+          Ratings &amp; Comments
+         </h3>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+<div>
+<h4 class="font-semibold text-lg">
+            Community Rating
+           </h4>
+<div class="flex items-center mt-1">
+<div class="flex text-yellow-400" id="deck-average-rating-stars">
+</div>
+<span class="ml-2 text-gray-600 dark:text-gray-400" id="deck-rating-summary">
+            (No ratings yet)
+           </span>
+</div>
+</div>
+<div>
+<h4 class="font-semibold text-lg">
+            Your Rating
+           </h4>
+<div class="flex text-2xl text-gray-300 dark:text-gray-500 cursor-pointer" id="deck-user-rating-stars">
+<i class="far fa-star" data-value="1">
+</i>
+<i class="far fa-star" data-value="2">
+</i>
+<i class="far fa-star" data-value="3">
+</i>
+<i class="far fa-star" data-value="4">
+</i>
+<i class="far fa-star" data-value="5">
+</i>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
+<h4 class="font-semibold text-lg mb-2">
+           Leave a Comment
+          </h4>
+<form id="deck-comment-form">
+<textarea class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="deck-comment-input" placeholder="Share your thoughts on this deck..." required="" rows="3"></textarea>
+<div class="text-right mt-2">
+<button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" type="submit">
+            Submit Comment
+           </button>
+</div>
+</form>
+</div>
+<div class="space-y-4" id="deck-comments-list">
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -512,25 +565,7 @@ Example:
 </div>
 </main>
 </div>
-<div class="minimized" id="messenger-widget-container">
-<div id="messenger-open-btn">
-<i class="fas fa-comments">
-</i>
-</div>
-<div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
-<div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
-<span class="font-bold truncate" id="widget-main-header-text">
-      Messages
-     </span>
-<i class="fas fa-chevron-down" id="widget-toggle-icon">
-</i>
-</div>
-<div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
-<div class="flex-grow overflow-y-auto" id="widget-conversations-list">
-</div>
-</div>
-</div>
-</div>
+
 <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
 <div class="container mx-auto py-8 px-4">
 <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -643,9 +678,7 @@ Example:
 </script>
 <script src="js/darkmode.js">
 </script>
-<script src="js/messenger.js">
-</script>
-<!-- Login Modal -->
+
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -671,7 +704,6 @@ Example:
 </form>
 </div>
 </div>
-<!-- Register Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -714,7 +746,6 @@ Example:
 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
 </div>
 <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-<!-- Cart items will be dynamically inserted here -->
 <p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
 </div>
 <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">

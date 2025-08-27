@@ -1,10 +1,12 @@
 /**
- * HatakeSocial - Deck Page Script (v27 - Stable with Secure AI)
+ * HatakeSocial - Deck Page Script (v28 - Deck Ratings & Comments)
  *
- * - This version is based on the stable v27 to ensure tab functionality is correct.
- * - SECURE: Replaces the exposed API key with a secure call to a Firebase Cloud Function.
- * - The AI can analyze the current decklist or generate a new one from a prompt.
- * - Implements a helper function `getCardImageUrl` for correct image display.
+ * - NEW: Adds a comprehensive rating and commenting system to the deck view page.
+ * - Users can submit a 1-5 star rating for any public deck.
+ * - Ratings are aggregated and the average is displayed.
+ * - A Firestore transaction is used to safely update aggregate rating data.
+ * - Users can post comments on decks to discuss strategy and provide feedback.
+ * - Ratings and comments are loaded dynamically when a deck is viewed.
  */
 
 /**
@@ -102,6 +104,14 @@ document.addEventListener('authReady', (e) => {
     const getAiSuggestionsModalBtn = document.getElementById('get-ai-suggestions-modal-btn');
     const aiModalPrompt = document.getElementById('ai-modal-prompt');
     const aiSuggestionsOutputModal = document.getElementById('ai-suggestions-output-modal');
+
+    // --- NEW Ratings & Comments Elements ---
+    const deckCommentForm = document.getElementById('deck-comment-form');
+    const deckCommentInput = document.getElementById('deck-comment-input');
+    const deckCommentsList = document.getElementById('deck-comments-list');
+    const deckAverageRatingStars = document.getElementById('deck-average-rating-stars');
+    const deckRatingSummary = document.getElementById('deck-rating-summary');
+    const deckUserRatingStars = document.getElementById('deck-user-rating-stars');
 
 
     // Card Quick View Tooltip Logic
@@ -383,6 +393,7 @@ document.addEventListener('authReady', (e) => {
 
         calculateAndDisplayDeckStats(deck);
         displayLegality(deck);
+        loadRatingsAndComments(deckId);
     };
 
     const calculateAndDisplayDeckStats = (deck) => {
@@ -771,6 +782,143 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    const submitRating = async (deckId, rating) => {
+        if (!user) {
+            alert("Please log in to rate a deck.");
+            return;
+        }
+        const deckRef = db.collection('publicDecks').doc(deckId);
+        const ratingRef = deckRef.collection('ratings').doc(user.uid);
+        try {
+            await db.runTransaction(async (transaction) => {
+                const deckDoc = await transaction.get(deckRef);
+                if (!deckDoc.exists) throw "Deck does not exist!";
+                const ratingDoc = await transaction.get(ratingRef);
+                const deckData = deckDoc.data();
+                const oldRating = ratingDoc.exists ? ratingDoc.data().rating : 0;
+                const isNewRating = !ratingDoc.exists;
+                transaction.set(ratingRef, { rating: rating, ratedAt: new Date() });
+                let ratingCount = deckData.ratingCount || 0;
+                let totalRating = (deckData.averageRating || 0) * ratingCount;
+                if (isNewRating) {
+                    ratingCount++;
+                    totalRating += rating;
+                } else {
+                    totalRating = totalRating - oldRating + rating;
+                }
+                const averageRating = totalRating / ratingCount;
+                transaction.update(deckRef, {
+                    ratingCount: ratingCount,
+                    averageRating: averageRating
+                });
+            });
+            loadRatingsAndComments(deckId);
+        } catch (error) {
+            console.error("Error submitting rating:", error);
+            alert("There was an error submitting your rating.");
+        }
+    };
+
+    const loadRatingsAndComments = async (deckId) => {
+        deckAverageRatingStars.innerHTML = '...';
+        deckRatingSummary.textContent = '';
+        deckCommentsList.innerHTML = '<p>Loading comments...</p>';
+        try {
+            const deckDoc = await db.collection('publicDecks').doc(deckId).get();
+            const deckData = deckDoc.exists ? deckDoc.data() : { averageRating: 0, ratingCount: 0 };
+            let userRating = 0;
+            if (user) {
+                const userRatingDoc = await db.collection('publicDecks').doc(deckId).collection('ratings').doc(user.uid).get();
+                if (userRatingDoc.exists) {
+                    userRating = userRatingDoc.data().rating;
+                }
+            }
+            renderRatings(deckData, userRating);
+            const commentsSnapshot = await db.collection('publicDecks').doc(deckId).collection('comments').orderBy('createdAt', 'desc').get();
+            const comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderComments(comments);
+        } catch (error) {
+            console.error("Error loading ratings and comments:", error);
+            deckCommentsList.innerHTML = '<p class="text-red-500">Could not load comments.</p>';
+        }
+    };
+
+    const renderRatings = (deckData, userRating) => {
+        const avg = deckData.averageRating || 0;
+        const count = deckData.ratingCount || 0;
+        let avgStarsHTML = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= avg) {
+                avgStarsHTML += '<i class="fas fa-star"></i>';
+            } else if (i - 0.5 <= avg) {
+                avgStarsHTML += '<i class="fas fa-star-half-alt"></i>';
+            } else {
+                avgStarsHTML += '<i class="far fa-star"></i>';
+            }
+        }
+        deckAverageRatingStars.innerHTML = avgStarsHTML;
+        deckRatingSummary.textContent = `(${avg.toFixed(1)} from ${count} ratings)`;
+        const userStars = deckUserRatingStars.querySelectorAll('i');
+        userStars.forEach(star => {
+            const value = parseInt(star.dataset.value);
+            if (value <= userRating) {
+                star.classList.replace('far', 'fas');
+                star.classList.add('text-yellow-400');
+            } else {
+                star.classList.replace('fas', 'far');
+                star.classList.remove('text-yellow-400');
+            }
+        });
+    };
+
+    const renderComments = (comments) => {
+        deckCommentsList.innerHTML = '';
+        if (comments.length === 0) {
+            deckCommentsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-4">No comments yet. Be the first to share your thoughts!</p>';
+            return;
+        }
+        comments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.className = 'flex items-start space-x-3 py-2 border-t border-gray-100 dark:border-gray-700';
+            const safeAuthorName = comment.authorName || 'Anonymous';
+            const safeAuthorPhotoURL = comment.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png';
+            const commentDate = comment.createdAt ? new Date(comment.createdAt.toDate()).toLocaleString() : 'Just now';
+            commentEl.innerHTML = `
+                <a href="profile.html?uid=${comment.authorId}">
+                    <img src="${safeAuthorPhotoURL}" alt="${safeAuthorName}" class="h-10 w-10 rounded-full object-cover">
+                </a>
+                <div class="flex-1">
+                    <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
+                        <div class="flex justify-between items-baseline">
+                            <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${safeAuthorName}</a>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">${commentDate}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">${comment.text}</p>
+                    </div>
+                </div>
+            `;
+            deckCommentsList.appendChild(commentEl);
+        });
+    };
+
+    const handleRatingInteraction = (e) => {
+        const deckId = deckToShare?.id;
+        if (!deckId) return;
+        const stars = Array.from(deckUserRatingStars.querySelectorAll('i'));
+        if (!e.target.matches('i')) return;
+        const targetStarValue = parseInt(e.target.dataset.value);
+        if (e.type === 'click') {
+            submitRating(deckId, targetStarValue);
+        } else if (e.type === 'mouseover') {
+            stars.forEach(star => {
+                const value = parseInt(star.dataset.value);
+                star.classList.toggle('text-yellow-300', value <= targetStarValue);
+            });
+        } else if (e.type === 'mouseout') {
+            stars.forEach(star => star.classList.remove('text-yellow-300'));
+        }
+    };
+
     // --- All Event Listeners ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -1044,6 +1192,43 @@ document.addEventListener('authReady', (e) => {
         }
         const deckNameEncoded = encodeURIComponent(deckName);
         window.location.href = `create-article.html?deckId=${deckId}&deckName=${deckNameEncoded}`;
+    });
+
+    deckUserRatingStars.addEventListener('click', handleRatingInteraction);
+    deckUserRatingStars.addEventListener('mouseover', handleRatingInteraction);
+    deckUserRatingStars.addEventListener('mouseout', handleRatingInteraction);
+
+    deckCommentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!user) {
+            alert("Please log in to comment.");
+            return;
+        }
+        const deckId = deckToShare?.id;
+        if (!deckId) return;
+
+        const commentText = deckCommentInput.value.trim();
+        if (!commentText) return;
+
+        const submitBtn = deckCommentForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        try {
+            await db.collection('publicDecks').doc(deckId).collection('comments').add({
+                text: commentText,
+                authorId: user.uid,
+                authorName: user.displayName,
+                authorPhotoURL: user.photoURL,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            deckCommentInput.value = '';
+            loadRatingsAndComments(deckId); // Refresh comments
+        } catch (error) {
+            console.error("Error submitting comment:", error);
+            alert("Could not submit your comment.");
+        } finally {
+            submitBtn.disabled = false;
+        }
     });
 
     // --- Initial Load ---
