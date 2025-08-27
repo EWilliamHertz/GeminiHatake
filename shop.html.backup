@@ -4,15 +4,14 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
-   Card View - HatakeSocial
+   Shop - HatakeSocial
   </title>
   <script src="https://cdn.tailwindcss.com">
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+  <!-- Toastify CSS for notifications -->
+  <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css"/>
   <link href="css/style.css" rel="stylesheet"/>
-  <!-- Chart.js for price graphs -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
   <div class="flex h-screen">
@@ -148,91 +147,142 @@
      </div>
     </header>
     <!-- Header Section -->
-    <main class="container mx-auto px-4 py-8 flex-grow">
-     <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="card-view-container">
-      <!-- Card Image and Details Column -->
-      <div class="md:col-span-1 space-y-4" id="card-info-col">
-       <img alt="Card Image" class="w-full rounded-lg shadow-xl sticky top-24" id="card-image" src="https://placehold.co/370x516/cccccc/969696?text=Loading..."/>
-       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md" id="card-details">
-        <!-- Card details will be loaded here by JS -->
-       </div>
-      </div>
-      <!-- Price and Listings Column -->
-      <div class="md:col-span-2 space-y-8" id="listings-col">
-       <div>
-        <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
-         Price History
-        </h2>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md h-64">
-         <canvas id="price-chart">
-         </canvas>
-        </div>
-       </div>
-       <div>
-        <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
-         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-          Available for Sale
-         </h2>
-         <div class="flex flex-wrap gap-4 items-center" id="filter-controls">
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-condition">
-           <option value="all">
-            All Conditions
-           </option>
-           <option value="Near Mint">
-            Near Mint
-           </option>
-           <option value="Lightly Played">
-            Lightly Played
-           </option>
-           <option value="Moderately Played">
-            Moderately Played
-           </option>
-           <option value="Heavily Played">
-            Heavily Played
-           </option>
-           <option value="Damaged">
-            Damaged
-           </option>
-          </select>
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-foil">
-           <option value="all">
-            Foil &amp; Non-Foil
-           </option>
-           <option value="true">
-            Foil Only
-           </option>
-           <option value="false">
-            Non-Foil Only
-           </option>
-          </select>
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="sort-by">
-           <option value="price-asc">
-            Sort by Price: Low to High
-           </option>
-           <option value="price-desc">
-            Sort by Price: High to Low
-           </option>
-           <option value="rating-desc">
-            Sort by Seller Rating
-           </option>
-          </select>
-         </div>
-        </div>
-        <!-- NEW: Shipping Info Placeholder -->
-        <div class="mb-4" id="shipping-info-placeholder">
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden" id="listings-table-container">
-         <!-- Listings table will be loaded here by JS -->
-        </div>
-       </div>
+    <main class="container mx-auto px-4 py-8">
+     <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-8">
+      Our Products
+     </h1>
+     <div class="product-grid" id="product-grid">
+      <!-- Products will be loaded here by js/shop.js -->
+      <div class="text-center p-10 col-span-full">
+       <i class="fas fa-spinner fa-spin text-4xl text-blue-500">
+       </i>
+       <p class="mt-2 text-gray-600 dark:text-gray-400">
+        Loading Products...
+       </p>
       </div>
      </div>
     </main>
-    <!-- Login & Register Modals -->
+    <!-- Product Detail Modal -->
+    <div class="modal-overlay product-detail-modal" id="product-detail-modal">
+     <div class="modal-content">
+      <button class="close-button" id="close-product-modal">
+       ×
+      </button>
+      <div class="modal-body" id="modal-body">
+       <!-- Content will be injected by JS -->
+      </div>
+     </div>
+    </div>
+    <!-- Cart Modal -->
+    <div class="modal-overlay" id="cart-modal">
+     <div class="modal-content w-full max-w-lg">
+      <button class="close-button" id="close-cart-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Your Cart
+      </h2>
+      <div class="max-h-96 overflow-y-auto pr-2" id="cart-items-container">
+       <p class="text-center text-gray-500 dark:text-gray-400">
+        Your cart is empty.
+       </p>
+      </div>
+      <div class="mt-6 pt-4 border-t dark:border-gray-600">
+       <div id="coupon-section">
+        <div class="flex gap-2">
+         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-500" id="coupon-code-input" placeholder="Enter coupon code (e.g., MTGFB)" type="text"/>
+         <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700 whitespace-nowrap" id="apply-coupon-btn">
+          Apply
+         </button>
+        </div>
+        <p class="text-sm mt-2 h-5" id="coupon-status">
+        </p>
+       </div>
+       <div class="mt-4 hidden" id="referral-discount-section">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="referral-discount-slider">
+         Apply Referral Discount
+        </label>
+        <div class="flex items-center gap-4 mt-1">
+         <input class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700" id="referral-discount-slider" max="15" min="0" type="range" value="0"/>
+         <span class="font-semibold text-lg" id="referral-discount-value">
+          0%
+         </span>
+        </div>
+       </div>
+       <div class="text-right mt-4 space-y-1">
+        <p class="text-lg">
+         Subtotal:
+         <span id="cart-subtotal">
+          $0.00
+         </span>
+        </p>
+        <p class="text-lg text-green-600 hidden" id="discount-line">
+         Discount: -
+         <span id="cart-discount">
+          $0.00
+         </span>
+        </p>
+        <p class="text-xl font-bold dark:text-white">
+         Total:
+         <span id="cart-total">
+          $0.00
+         </span>
+        </p>
+       </div>
+      </div>
+      <button class="w-full mt-6 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
+       Checkout
+      </button>
+     </div>
+    </div>
    </main>
   </div>
-  
-  <!-- Footer -->
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerPassword">
+    Password:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="registerPassword" placeholder="Enter your password" required="" type="password"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerCity">
+    City:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerCity" placeholder="Enter your city" required="" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerCountry">
+    Country:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerCountry" placeholder="Enter your country" required="" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerFavoriteTcg">
+    Favorite TCG:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerFavoriteTcg" placeholder="e.g., Magic: The Gathering" required="" type="text"/>
+  </div>
+  <button class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300" type="submit">
+   Register
+  </button>
+  <div class="minimized" id="messenger-widget-container">
+   <div id="messenger-open-btn">
+    <i class="fas fa-comments">
+    </i>
+   </div>
+   <div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+    <div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+     <span class="font-bold truncate" id="widget-main-header-text">
+      Messages
+     </span>
+     <i class="fas fa-chevron-down" id="widget-toggle-icon">
+     </i>
+    </div>
+    <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
+     <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+     </div>
+    </div>
+   </div>
+  </div>
   <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
    <div class="container mx-auto py-8 px-4">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -325,27 +375,7 @@
     </div>
    </div>
   </footer>
-  <!-- Messenger Widget -->
-  <div class="minimized" id="messenger-widget-container">
-   <div id="messenger-open-btn">
-    <i class="fas fa-comments">
-    </i>
-   </div>
-   <div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
-    <div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
-     <span class="font-bold truncate" id="widget-main-header-text">
-      Messages
-     </span>
-     <i class="fas fa-chevron-down" id="widget-toggle-icon">
-     </i>
-    </div>
-    <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
-     <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
-     </div>
-    </div>
-   </div>
-  </div>
-  <!-- Firebase and custom scripts -->
+  <!-- Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
@@ -358,13 +388,18 @@
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
   </script>
+  <script src="https://js.stripe.com/v3/">
+  </script>
+  <!-- Toastify JS for notifications -->
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js" type="text/javascript">
+  </script>
   <script src="js/auth.js">
   </script>
-  <script src="js/card-view.js">
+  <script src="js/notifications.js">
+  </script>
+  <script src="js/shop.js">
   </script>
   <script src="js/darkmode.js">
-  </script>
-  <script src="js/messenger.js">
   </script>
   
   </div>

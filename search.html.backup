@@ -4,15 +4,12 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
-   Card View - HatakeSocial
+   Search Results - HatakeSocial
   </title>
   <script src="https://cdn.tailwindcss.com">
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
   <link href="css/style.css" rel="stylesheet"/>
-  <!-- Chart.js for price graphs -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
   <div class="flex h-screen">
@@ -148,91 +145,199 @@
      </div>
     </header>
     <!-- Header Section -->
-    <main class="container mx-auto px-4 py-8 flex-grow">
-     <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="card-view-container">
-      <!-- Card Image and Details Column -->
-      <div class="md:col-span-1 space-y-4" id="card-info-col">
-       <img alt="Card Image" class="w-full rounded-lg shadow-xl sticky top-24" id="card-image" src="https://placehold.co/370x516/cccccc/969696?text=Loading..."/>
-       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md" id="card-details">
-        <!-- Card details will be loaded here by JS -->
-       </div>
-      </div>
-      <!-- Price and Listings Column -->
-      <div class="md:col-span-2 space-y-8" id="listings-col">
-       <div>
-        <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
-         Price History
-        </h2>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md h-64">
-         <canvas id="price-chart">
-         </canvas>
-        </div>
-       </div>
-       <div>
-        <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
-         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-          Available for Sale
-         </h2>
-         <div class="flex flex-wrap gap-4 items-center" id="filter-controls">
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-condition">
-           <option value="all">
-            All Conditions
-           </option>
-           <option value="Near Mint">
-            Near Mint
-           </option>
-           <option value="Lightly Played">
-            Lightly Played
-           </option>
-           <option value="Moderately Played">
-            Moderately Played
-           </option>
-           <option value="Heavily Played">
-            Heavily Played
-           </option>
-           <option value="Damaged">
-            Damaged
-           </option>
-          </select>
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-foil">
-           <option value="all">
-            Foil &amp; Non-Foil
-           </option>
-           <option value="true">
-            Foil Only
-           </option>
-           <option value="false">
-            Non-Foil Only
-           </option>
-          </select>
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="sort-by">
-           <option value="price-asc">
-            Sort by Price: Low to High
-           </option>
-           <option value="price-desc">
-            Sort by Price: High to Low
-           </option>
-           <option value="rating-desc">
-            Sort by Seller Rating
-           </option>
-          </select>
-         </div>
-        </div>
-        <!-- NEW: Shipping Info Placeholder -->
-        <div class="mb-4" id="shipping-info-placeholder">
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden" id="listings-table-container">
-         <!-- Listings table will be loaded here by JS -->
-        </div>
-       </div>
-      </div>
-     </div>
-    </main>
-    <!-- Login & Register Modals -->
    </main>
   </div>
-  
-  <!-- Footer -->
+  <div>
+   <label class="block text-gray-700 text-sm font-bold mb-2" for="registerPassword">
+    Password:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="registerPassword" placeholder="Enter your password (min 6 characters)" required="" type="password"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 text-sm font-bold mb-2" for="registerCity">
+    City:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="registerCity" placeholder="Enter your city" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 text-sm font-bold mb-2" for="registerCountry">
+    Country:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="registerCountry" placeholder="Enter your country" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 text-sm font-bold mb-2" for="registerFavoriteTcg">
+    Favorite TCG:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="registerFavoriteTcg" placeholder="e.g., Magic: The Gathering" type="text"/>
+  </div>
+  <button class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300" type="submit">
+   Register
+  </button>
+  <button class="w-full mt-4 flex items-center justify-center px-4 py-2 border border-gray-300 rounded-full shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50" id="googleRegisterButton" type="button">
+   <img alt="Google logo" class="w-5 h-5 mr-2" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"/>
+   Register with Google
+  </button>
+  <main class="container mx-auto px-4 py-8">
+   <h1 class="text-3xl font-bold mb-6">
+    Search Results for "
+    <span id="search-query-display">
+    </span>
+    "
+   </h1>
+   <div class="space-y-8">
+    <div id="users-results-container">
+     <h2 class="text-2xl font-semibold mb-4 border-b pb-2">
+      Users
+     </h2>
+     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="users-results">
+     </div>
+    </div>
+    <div id="decks-results-container">
+     <h2 class="text-2xl font-semibold mb-4 border-b pb-2">
+      Decks
+     </h2>
+     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="decks-results">
+     </div>
+    </div>
+    <div id="cards-results-container">
+     <h2 class="text-2xl font-semibold mb-4 border-b pb-2">
+      Cards in Collections
+     </h2>
+     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="cards-results">
+     </div>
+    </div>
+   </div>
+   <div class="mt-12 pt-8 border-t-2 border-gray-200">
+    <h2 class="text-2xl font-semibold mb-4">
+     Refine Your Search
+    </h2>
+    <div class="bg-white p-6 rounded-lg shadow-md">
+     <form class="space-y-6" id="search-form-page">
+      <div>
+       <label class="block text-sm font-medium text-gray-700 mb-1" for="search-bar-page">
+        Search Term
+       </label>
+       <input class="w-full px-4 py-2 rounded-md bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" id="search-bar-page" placeholder="Search for something else..." type="text"/>
+      </div>
+      <div>
+       <label class="block text-sm font-medium text-gray-700 mb-2">
+        Show results for:
+       </label>
+       <div class="flex flex-wrap gap-x-6 gap-y-2" id="filter-form">
+        <label class="flex items-center space-x-2">
+         <input checked="" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="filter-users" type="checkbox"/>
+         <span>
+          Users
+         </span>
+        </label>
+        <label class="flex items-center space-x-2">
+         <input checked="" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="filter-decks" type="checkbox"/>
+         <span>
+          Decks
+         </span>
+        </label>
+        <label class="flex items-center space-x-2">
+         <input checked="" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="filter-cards" type="checkbox"/>
+         <span>
+          Cards
+         </span>
+        </label>
+       </div>
+      </div>
+      <div class="pt-4 border-t border-gray-200" id="advanced-card-filters">
+       <h3 class="text-lg font-medium text-gray-900 mb-4">
+        Advanced Card Filters
+       </h3>
+       <div class="container mx-auto px-4 py-8">
+        <div>
+         <label class="block text-sm font-medium text-gray-700" for="filter-card-type">
+          Card Type
+         </label>
+         <select class="mt-1 block w-full p-2 border rounded-md" id="filter-card-type">
+          <option value="">
+           Any
+          </option>
+          <option>
+           Creature
+          </option>
+          <option>
+           Instant
+          </option>
+          <option>
+           Sorcery
+          </option>
+          <option>
+           Artifact
+          </option>
+          <option>
+           Enchantment
+          </option>
+          <option>
+           Planeswalker
+          </option>
+          <option>
+           Land
+          </option>
+         </select>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700" for="filter-color">
+          Color
+         </label>
+         <select class="mt-1 block w-full p-2 border rounded-md" id="filter-color">
+          <option value="">
+           Any
+          </option>
+          <option value="W">
+           White
+          </option>
+          <option value="U">
+           Blue
+          </option>
+          <option value="B">
+           Black
+          </option>
+          <option value="R">
+           Red
+          </option>
+          <option value="G">
+           Green
+          </option>
+          <option value="C">
+           Colorless
+          </option>
+         </select>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700" for="filter-mana-value">
+          Mana Value
+         </label>
+         <input class="mt-1 block w-full p-2 border rounded-md" id="filter-mana-value" placeholder="e.g., 3" type="number"/>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700" for="filter-price-range">
+          Price Range (USD)
+         </label>
+         <div class="flex items-center space-x-2 mt-1">
+          <input class="w-full p-2 border rounded-md" id="filter-price-min" placeholder="Min" type="number"/>
+          <span>
+           -
+          </span>
+          <input class="w-full p-2 border rounded-md" id="filter-price-max" placeholder="Max" type="number"/>
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="md:col-span-3 pt-4">
+       <button class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition duration-300" type="submit">
+        Search
+       </button>
+      </div>
+     </form>
+    </div>
+   </div>
+  </main>
   <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
    <div class="container mx-auto py-8 px-4">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -325,7 +430,6 @@
     </div>
    </div>
   </footer>
-  <!-- Messenger Widget -->
   <div class="minimized" id="messenger-widget-container">
    <div id="messenger-open-btn">
     <i class="fas fa-comments">
@@ -345,7 +449,6 @@
     </div>
    </div>
   </div>
-  <!-- Firebase and custom scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
@@ -360,9 +463,11 @@
   </script>
   <script src="js/auth.js">
   </script>
-  <script src="js/card-view.js">
+  <script src="js/notifications.js">
   </script>
-  <script src="js/darkmode.js">
+  <script src="js/notifications.js">
+  </script>
+  <script src="js/search.js">
   </script>
   <script src="js/messenger.js">
   </script>

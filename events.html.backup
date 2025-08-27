@@ -4,15 +4,12 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
-   Card View - HatakeSocial
+   Events - HatakeSocial
   </title>
   <script src="https://cdn.tailwindcss.com">
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
   <link href="css/style.css" rel="stylesheet"/>
-  <!-- Chart.js for price graphs -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
   <div class="flex h-screen">
@@ -147,205 +144,262 @@
       </div>
      </div>
     </header>
-    <!-- Header Section -->
     <main class="container mx-auto px-4 py-8 flex-grow">
-     <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="card-view-container">
-      <!-- Card Image and Details Column -->
-      <div class="md:col-span-1 space-y-4" id="card-info-col">
-       <img alt="Card Image" class="w-full rounded-lg shadow-xl sticky top-24" id="card-image" src="https://placehold.co/370x516/cccccc/969696?text=Loading..."/>
-       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md" id="card-details">
-        <!-- Card details will be loaded here by JS -->
-       </div>
+     <div id="events-main-view">
+      <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
+       <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">
+        Events
+       </h1>
+       <button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full shadow-md hover:bg-green-700" id="create-event-btn">
+        <i class="fas fa-plus mr-2">
+        </i>
+        Create New Event
+       </button>
       </div>
-      <!-- Price and Listings Column -->
-      <div class="md:col-span-2 space-y-8" id="listings-col">
-       <div>
-        <h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
-         Price History
-        </h2>
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md h-64">
-         <canvas id="price-chart">
-         </canvas>
-        </div>
-       </div>
-       <div>
-        <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
-         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-          Available for Sale
-         </h2>
-         <div class="flex flex-wrap gap-4 items-center" id="filter-controls">
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-condition">
-           <option value="all">
-            All Conditions
-           </option>
-           <option value="Near Mint">
-            Near Mint
-           </option>
-           <option value="Lightly Played">
-            Lightly Played
-           </option>
-           <option value="Moderately Played">
-            Moderately Played
-           </option>
-           <option value="Heavily Played">
-            Heavily Played
-           </option>
-           <option value="Damaged">
-            Damaged
-           </option>
-          </select>
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-foil">
-           <option value="all">
-            Foil &amp; Non-Foil
-           </option>
-           <option value="true">
-            Foil Only
-           </option>
-           <option value="false">
-            Non-Foil Only
-           </option>
-          </select>
-          <select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="sort-by">
-           <option value="price-asc">
-            Sort by Price: Low to High
-           </option>
-           <option value="price-desc">
-            Sort by Price: High to Low
-           </option>
-           <option value="rating-desc">
-            Sort by Seller Rating
-           </option>
-          </select>
-         </div>
-        </div>
-        <!-- NEW: Shipping Info Placeholder -->
-        <div class="mb-4" id="shipping-info-placeholder">
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden" id="listings-table-container">
-         <!-- Listings table will be loaded here by JS -->
-        </div>
-       </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="events-list">
+       <!-- Event cards will be loaded here -->
       </div>
+     </div>
+     <div class="hidden" id="event-details-section">
+      <!-- Event details will be loaded here -->
      </div>
     </main>
-    <!-- Login & Register Modals -->
-   </main>
-  </div>
-  
-  <!-- Footer -->
-  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-   <div class="container mx-auto py-8 px-4">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
-       HatakeSocial
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 text-sm">
-       The all-in-one platform for TCG enthusiasts.
-      </p>
-     </div>
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
-       Company
-      </h3>
-      <ul class="space-y-2 text-sm">
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
-         About Us
-        </a>
-       </li>
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
-         Partners
-        </a>
-       </li>
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
-         Contact
-        </a>
-       </li>
-      </ul>
-     </div>
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
-       Legal
-      </h3>
-      <ul class="space-y-2 text-sm">
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
-         Privacy Policy
-        </a>
-       </li>
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
-         Terms of Service
-        </a>
-       </li>
-      </ul>
-     </div>
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
-       Display Options
-      </h3>
-      <div class="flex items-center space-x-4">
+    <div class="modal-overlay" id="create-event-modal">
+     <div class="modal-content w-full max-w-2xl dark:bg-gray-800">
+      <button class="close-button" id="close-event-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-6 dark:text-white">
+       Create New Event
+      </h2>
+      <form class="space-y-4" id="create-event-form">
        <div>
-        <label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
-         Theme
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="event-name">
+         Event Name
         </label>
-        <button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
-         <i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
-         </i>
-         <i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
-         </i>
+        <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="event-name" required="" type="text"/>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="event-game">
+         Game
+        </label>
+        <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="event-game" placeholder="e.g., Magic: The Gathering" required="" type="text"/>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="event-date">
+         Date &amp; Time
+        </label>
+        <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="event-date" required="" type="datetime-local"/>
+       </div>
+       <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="event-format">
+         Tournament Format
+        </label>
+        <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="event-format">
+         <option value="single-elimination">
+          Single Elimination
+         </option>
+         <option value="swiss">
+          Swiss
+         </option>
+         <option value="round-robin">
+          Round Robin
+         </option>
+        </select>
+       </div>
+       <div class="text-right pt-4">
+        <button class="px-8 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700" type="submit">
+         Create Event
         </button>
        </div>
-       <div id="currency-selector-container">
+      </form>
+     </div>
+    </div>
+    <div class="modal-overlay" id="report-match-modal">
+     <div class="modal-content w-full max-w-lg dark:bg-gray-800">
+      <button class="close-button" id="close-match-modal">
+       ×
+      </button>
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Report Match Result
+      </h2>
+      <form id="report-match-form">
+       <input id="match-event-id" type="hidden"/>
+       <input id="match-round-index" type="hidden"/>
+       <input id="match-index" type="hidden"/>
+       <p class="mb-4 dark:text-gray-300">
+        Reporting for:
+        <strong id="match-players-info">
+        </strong>
+       </p>
+       <div class="grid grid-cols-2 gap-4 items-center">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="player1-wins" id="player1-name-label">
+          Player 1 Wins
+         </label>
+         <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="player1-wins" max="3" min="0" required="" type="number"/>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="player2-wins" id="player2-name-label">
+          Player 2 Wins
+         </label>
+         <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="player2-wins" max="3" min="0" required="" type="number"/>
+        </div>
+        <div class="col-span-2">
+         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="match-draws">
+          Draws
+         </label>
+         <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="match-draws" max="3" min="0" required="" type="number" value="0"/>
+        </div>
+       </div>
+       <div class="mt-6 text-right">
+        <button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" type="submit">
+         Submit Result
+        </button>
+       </div>
+      </form>
+     </div>
+    </div>
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+     <div class="container mx-auto py-8 px-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+       <div>
+        <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+         HatakeSocial
+        </h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm">
+         The all-in-one platform for TCG enthusiasts.
+        </p>
+       </div>
+       <div>
+        <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+         Company
+        </h3>
+        <ul class="space-y-2 text-sm">
+         <li>
+          <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
+           About Us
+          </a>
+         </li>
+         <li>
+          <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
+           Partners
+          </a>
+         </li>
+         <li>
+          <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
+           Contact
+          </a>
+         </li>
+        </ul>
+       </div>
+       <div>
+        <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+         Legal
+        </h3>
+        <ul class="space-y-2 text-sm">
+         <li>
+          <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+           Privacy Policy
+          </a>
+         </li>
+         <li>
+          <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+           Terms of Service
+          </a>
+         </li>
+        </ul>
+       </div>
+       <div>
+        <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+         Display Options
+        </h3>
+        <div class="flex items-center space-x-4">
+         <div>
+          <label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
+           Theme
+          </label>
+          <button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+           <i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
+           </i>
+           <i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
+           </i>
+          </button>
+         </div>
+         <div id="currency-selector-container">
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+       <p>
+        © 2025 Hatake. All Rights Reserved.
+       </p>
+       <div class="flex space-x-6 mt-4 md:mt-0">
+        <a class="hover:text-gray-900 dark:hover:text-white" href="#">
+         <i class="fab fa-twitter">
+         </i>
+        </a>
+        <a class="hover:text-gray-900 dark:hover:text-white" href="#">
+         <i class="fab fa-facebook-f">
+         </i>
+        </a>
+        <a class="hover:text-gray-900 dark:hover:text-white" href="#">
+         <i class="fab fa-instagram">
+         </i>
+        </a>
+       </div>
+      </div>
+     </div>
+    </footer>
+    <div class="minimized" id="messenger-widget-container">
+     <div id="messenger-open-btn">
+      <i class="fas fa-comments">
+      </i>
+     </div>
+     <div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+      <div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+       <span class="font-bold truncate" id="widget-main-header-text">
+        Messages
+       </span>
+       <i class="fas fa-chevron-down" id="widget-toggle-icon">
+       </i>
+      </div>
+      <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
+       <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
        </div>
       </div>
      </div>
     </div>
-    <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-     <p>
-      © 2025 Hatake. All Rights Reserved.
-     </p>
-     <div class="flex space-x-6 mt-4 md:mt-0">
-      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
-       <i class="fab fa-twitter">
-       </i>
-      </a>
-      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
-       <i class="fab fa-facebook-f">
-       </i>
-      </a>
-      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
-       <i class="fab fa-instagram">
-       </i>
-      </a>
-     </div>
-    </div>
-   </div>
-  </footer>
-  <!-- Messenger Widget -->
-  <div class="minimized" id="messenger-widget-container">
-   <div id="messenger-open-btn">
-    <i class="fas fa-comments">
-    </i>
-   </div>
-   <div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
-    <div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
-     <span class="font-bold truncate" id="widget-main-header-text">
-      Messages
-     </span>
-     <i class="fas fa-chevron-down" id="widget-toggle-icon">
-     </i>
-    </div>
-    <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
-     <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
-     </div>
-    </div>
-   </div>
+   </main>
   </div>
-  <!-- Firebase and custom scripts -->
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerPassword">
+    Password:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="registerPassword" placeholder="Enter your password" required="" type="password"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerCity">
+    City:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerCity" placeholder="Enter your city" required="" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerCountry">
+    Country:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerCountry" placeholder="Enter your country" required="" type="text"/>
+  </div>
+  <div>
+   <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="registerFavoriteTcg">
+    Favorite TCG:
+   </label>
+   <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 leading-tight focus:outline-none focus:shadow-outline" id="registerFavoriteTcg" placeholder="e.g., Magic: The Gathering" required="" type="text"/>
+  </div>
+  <button class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-full hover:bg-green-700 transition duration-300" type="submit">
+   Register
+  </button>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
@@ -360,7 +414,9 @@
   </script>
   <script src="js/auth.js">
   </script>
-  <script src="js/card-view.js">
+  <script src="js/events.js">
+  </script>
+  <script src="js/notifications.js">
   </script>
   <script src="js/darkmode.js">
   </script>
