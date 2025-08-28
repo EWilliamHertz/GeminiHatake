@@ -1557,3 +1557,16 @@ body.dark-mode .close-button:focus {
     text-decoration: none;
     cursor: pointer;
 }
+.trade-tab-button.active {
+  --tw-text-opacity: 1;
+  color: rgb(59 130 246 / var(--tw-text-opacity));
+  border-bottom-color: rgb(59 130 246 / var(--tw-text-opacity));
+  border-bottom-width: 2px;
+  font-weight: 600;
+}
+
+.dark .trade-tab-button.active {
+    --tw-text-opacity: 1;
+    color: rgb(96 165 250 / var(--tw-text-opacity));
+    border-bottom-color: rgb(96 165 250 / var(--tw-text-opacity));
+}

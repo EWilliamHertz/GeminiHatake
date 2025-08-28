@@ -174,6 +174,11 @@
 </i>
          Security
         </button>
+<button class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700" data-section="display">
+<i class="fas fa-palette mr-2">
+</i>
+         Display
+        </button>
 </nav>
 </aside>
 <div class="md:w-3/4">
@@ -464,6 +469,20 @@
 </div>
 </div>
 </section>
+<section class="settings-section hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="settings-display">
+<h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">
+        Display Options
+    </h2>
+<div class="flex items-center justify-between">
+<label for="theme-toggle-switch" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Dark Mode
+        </label>
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+<i class="fas fa-sun hidden" id="theme-toggle-sun-icon"></i>
+<i class="fas fa-moon" id="theme-toggle-moon-icon"></i>
+</button>
+</div>
+</section>
 </div>
 </div>
 </main>
@@ -520,25 +539,7 @@
 </li>
 </ul>
 </div>
-<div>
-<h3 class="font-bold text-gray-900 dark:text-white mb-4">
-       Display Options
-      </h3>
-<div class="flex items-center space-x-4">
-<div>
-<label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
-         Theme
-        </label>
-<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
-<i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
-</i>
-<i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
-</i>
-</button>
-</div>
 <div id="currency-selector-container">
-</div>
-</div>
 </div>
 </div>
 <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
@@ -581,7 +582,6 @@
 
 <script src="js/darkmode.js">
 </script>
-<!-- Login Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -607,7 +607,6 @@
 </form>
 </div>
 </div>
-<!-- Register Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -650,7 +649,6 @@
 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
 </div>
 <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-<!-- Cart items will be dynamically inserted here -->
 <p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
 </div>
 <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
