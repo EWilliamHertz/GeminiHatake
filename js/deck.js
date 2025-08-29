@@ -609,15 +609,17 @@ document.addEventListener('authReady', (e) => {
         document.getElementById('library-count').textContent = playtestState.library.length;
         document.getElementById('hand-count').textContent = playtestState.hand.length;
 
-        handEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Hand</h3>';
-        playtestState.hand.forEach(card => {
-            handEl.appendChild(createPlaytestCard(card));
-        });
+        const renderZone = (zoneEl, cards) => {
+            // Remove only card images
+            zoneEl.querySelectorAll('img.playtest-card').forEach(img => img.remove());
+            // Add new cards
+            cards.forEach(card => {
+                zoneEl.appendChild(createPlaytestCard(card));
+            });
+        };
 
-        battlefieldEl.innerHTML = '<h3 class="text-xs uppercase font-bold text-gray-400 absolute">Battlefield</h3>';
-        playtestState.battlefield.forEach(card => {
-            battlefieldEl.appendChild(createPlaytestCard(card));
-        });
+        renderZone(handEl, playtestState.hand);
+        renderZone(battlefieldEl, playtestState.battlefield);
     };
 
     const createPlaytestCard = (card) => {

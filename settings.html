@@ -13,8 +13,8 @@
 <link href="css/style.css" rel="stylesheet"/>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-<div class="flex h-screen"><div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
-<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+<div class="flex h-screen">
+<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 hidden lg:flex flex-col">
 <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
 <a class="flex flex-col items-center space-y-1" href="index.html">
 <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
@@ -173,11 +173,6 @@
 <i class="fas fa-shield-alt mr-2">
 </i>
          Security
-        </button>
-<button class="settings-nav-btn w-full text-left px-4 py-2 rounded-md font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700" data-section="display">
-<i class="fas fa-palette mr-2">
-</i>
-         Display
         </button>
 </nav>
 </aside>
@@ -469,26 +464,30 @@
 </div>
 </div>
 </section>
-<section class="settings-section hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="settings-display">
-<h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">
-        Display Options
-    </h2>
-<div class="flex items-center justify-between">
-<label for="theme-toggle-switch" class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Dark Mode
-        </label>
-<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
-<i class="fas fa-sun hidden" id="theme-toggle-sun-icon"></i>
-<i class="fas fa-moon" id="theme-toggle-moon-icon"></i>
-</button>
-</div>
-</section>
 </div>
 </div>
 </main>
 </main>
 </div>
-
+<div class="minimized" id="messenger-widget-container">
+<div id="messenger-open-btn">
+<i class="fas fa-comments">
+</i>
+</div>
+<div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+<div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+<span class="font-bold truncate" id="widget-main-header-text">
+      Messages
+     </span>
+<i class="fas fa-chevron-down" id="widget-toggle-icon">
+</i>
+</div>
+<div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
+<div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+</div>
+</div>
+</div>
+</div>
 <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
 <div class="container mx-auto py-8 px-4">
 <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -539,7 +538,25 @@
 </li>
 </ul>
 </div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Display Options
+      </h3>
+<div class="flex items-center space-x-4">
+<div>
+<label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
+         Theme
+        </label>
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+<i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
+</i>
+<i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
+</i>
+</button>
+</div>
 <div id="currency-selector-container">
+</div>
+</div>
 </div>
 </div>
 <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
@@ -579,9 +596,12 @@
 </script>
 <script src="js/settings.js">
 </script>
-
+<script src="js/messenger.js">
+</script>
 <script src="js/darkmode.js">
 </script>
+
+<!-- Login Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -607,6 +627,7 @@
 </form>
 </div>
 </div>
+<!-- Register Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -642,6 +663,7 @@
 <script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
 <script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
 <script src="/__/firebase/init.js"></script>
+
 <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
 <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
@@ -649,6 +671,7 @@
 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
 </div>
 <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+<!-- Cart items will be dynamically inserted here -->
 <p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
 </div>
 <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -663,23 +686,5 @@
 </div>
 </div>
 </div>
-<script src="js/cart.js"></script><script>
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('-translate-x-full');
-                    sidebarOverlay.classList.toggle('hidden');
-                });
-            }
-
-            if (sidebarOverlay) {
-                sidebarOverlay.addEventListener('click', () => {
-                    sidebar.classList.add('-translate-x-full');
-                    sidebarOverlay.classList.add('hidden');
-                });
-            }
-        </script></body>
+<script src="js/cart.js"></script></body>
 </html>

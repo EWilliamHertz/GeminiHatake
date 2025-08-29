@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -24,7 +23,20 @@
             width: 223px; /* Standard card width */
             height: 310px; /* Standard card height */
         }
-  </style>
+    .playtest-zone {
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        padding-top: 2rem; /* Make space for the title */
+    }
+    .playtest-card {
+        height: 120px; /* Set a fixed height for the cards */
+        margin-right: 5px;
+        margin-bottom: 5px;
+        border-radius: 6px;
+        cursor: grab;
+    }
+</style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
 <div class="flex h-screen"><div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
@@ -522,15 +534,15 @@ Example:
          </h3>
 </div>
 </div>
-<div class="playtest-zone bg-gray-700/50 rounded-lg overflow-auto p-2" id="playtest-battlefield">
-<h3 class="text-xs uppercase font-bold text-gray-400">
-         Battlefield
-        </h3>
+<div class="playtest-zone bg-gray-700/50 rounded-lg overflow-auto p-2 relative" id="playtest-battlefield">
+    <h3 class="text-xs uppercase font-bold text-gray-400 absolute top-2 left-2">
+     Battlefield
+    </h3>
 </div>
-<div class="playtest-zone bg-gray-900/50 rounded-lg overflow-auto p-2" id="playtest-hand">
-<h3 class="text-xs uppercase font-bold text-gray-400">
-         Hand
-        </h3>
+<div class="playtest-zone bg-gray-900/50 rounded-lg overflow-auto p-2 relative" id="playtest-hand">
+    <h3 class="text-xs uppercase font-bold text-gray-400 absolute top-2 left-2">
+     Hand
+    </h3>
 </div>
 </div>
 </div>
