@@ -140,7 +140,8 @@ const initializeShop = () => {
         });
 
         // Use the 'open' class for the modal overlay to ensure it displays correctly
-        productDetailModal.classList.add('open');
+        productDetailModal.classList.remove('hidden');
+        productDetailModal.classList.add('flex');
     };
 
     // --- EVENT LISTENERS ---
@@ -172,8 +173,8 @@ const initializeShop = () => {
 
     if (closeProductModalBtn) {
         closeProductModalBtn.addEventListener('click', () => {
-            // Use the 'open' class for the modal overlay to ensure it closes correctly
-            productDetailModal.classList.remove('open');
+            productDetailModal.classList.add('hidden');
+            productDetailModal.classList.remove('flex');
         });
     }
 
@@ -197,13 +198,24 @@ const initializeShop = () => {
         });
     };
 
-    initShop();
+    // This is a robust check that handles Firebase initialization
+    const loginMessage = document.getElementById('login-message');
+    const handleAuthStatus = () => {
+        if (loginMessage) {
+            if (firebase.auth().currentUser) {
+                loginMessage.classList.add('hidden');
+            } else {
+                loginMessage.classList.remove('hidden');
+            }
+        }
+        initShop();
+    };
+
+    if (window.authReady) {
+        handleAuthStatus();
+    } else {
+        document.addEventListener('authReady', handleAuthStatus, { once: true });
+    }
 };
 
-// --- SCRIPT EXECUTION ---
-// This robust check ensures the shop initializes correctly after Firebase auth is ready.
-if (window.authReady) {
-    initializeShop();
-} else {
-    document.addEventListener('authReady', initializeShop, { once: true });
-}
+initializeShop();
