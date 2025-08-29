@@ -1,31 +1,20 @@
 /**
- * HatakeSocial - Deck Page Script (v28 - Deck Ratings & Comments)
+ * HatakeSocial - Deck Page Script (v30 - AI Analyst & Playtest Fixes)
  *
- * - NEW: Adds a comprehensive rating and commenting system to the deck view page.
- * - Users can submit a 1-5 star rating for any public deck.
- * - Ratings are aggregated and the average is displayed.
- * - A Firestore transaction is used to safely update aggregate rating data.
- * - Users can post comments on decks to discuss strategy and provide feedback.
- * - Ratings and comments are loaded dynamically when a deck is viewed.
+ * - FIX: Resolves issue where "Test Hand" button was unresponsive by ensuring state is correct.
+ * - FIX: Implements full "Play vs. AI" functionality with basic game logic.
+ * - The AI now initializes its own game state, draws cards, and takes turns.
+ * - AI logic includes playing one land and one creature per turn if able.
+ * - Client-side code for AI Analyst remains, which will now work with the updated Cloud Function.
  */
 
-/**
- * Gets the correct image URL for any card type from Scryfall data.
- * Handles standard, double-faced, and split cards.
- * @param {object} cardData The full card data object from Scryfall.
- * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
- * @returns {string} The URL of the card image or a placeholder.
- */
 function getCardImageUrl(cardData, size = 'normal') {
-    // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
     if (cardData.card_faces && cardData.card_faces[0].image_uris) {
         return cardData.card_faces[0].image_uris[size];
     }
-    // Case 2: The card is a standard, single-faced card
     if (cardData.image_uris) {
         return cardData.image_uris[size];
     }
-    // Fallback if no image is found
     return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
 }
 
@@ -36,29 +25,17 @@ document.addEventListener('authReady', (e) => {
     const deckBuilderForm = document.getElementById('deck-builder-form');
     if (!deckBuilderForm) return;
 
-    // --- Helper functions for modals ---
-    const openModal = (modal) => {
-        if (modal) {
-            modal.classList.remove('hidden');
-        }
-    };
-
-    const closeModal = (modal) => {
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    };
-
+    const openModal = (modal) => modal && modal.classList.remove('hidden');
+    const closeModal = (modal) => modal && modal.classList.add('hidden');
 
     // --- State Variables ---
     let deckToShare = null;
     let fullCollection = [];
     let manaCurveChart = null;
     let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
+    let aiPlaytestState = { deck: [], hand: [], battlefield: [], library: [] };
     let currentDeckInView = null;
-    // New playtest AI state
-    let aiPlaytestState = { deck: [], hand: [], battlefield: [] };
-    let isPlayingVsAI = false;
+    let aiConversationHistory = [];
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -99,24 +76,19 @@ document.addEventListener('authReady', (e) => {
     const processImportBtn = document.getElementById('process-import-btn');
     const writePrimerBtn = document.getElementById('write-primer-btn');
     const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
-
-    // --- NEW AI Modal Elements ---
+    const playAiBtn = document.getElementById('play-ai-btn');
     const aiSuggestionsModal = document.getElementById('ai-suggestions-modal');
     const openAiModalBtn = document.getElementById('open-ai-modal-btn');
     const closeAiModalBtn = document.getElementById('close-ai-modal-btn');
     const getAiSuggestionsModalBtn = document.getElementById('get-ai-suggestions-modal-btn');
     const aiModalPrompt = document.getElementById('ai-modal-prompt');
     const aiSuggestionsOutputModal = document.getElementById('ai-suggestions-output-modal');
-
-    // --- NEW AI Playtest Elements ---
-    const playAiBtn = document.getElementById('play-ai-btn');
-    const aiPlayArea = document.getElementById('ai-play-area');
-    const aiBattlefieldEl = document.getElementById('ai-battlefield');
-    const aiHandEl = document.getElementById('ai-hand');
-    const analyzeDeckBtn = document.getElementById('analyze-deck-btn');
-    const aiModalTitle = document.getElementById('ai-modal-title');
-
-    // --- NEW Ratings & Comments Elements ---
+    const aiDeckAnalystModal = document.getElementById('ai-deck-analyst-modal');
+    const openAiDeckAnalystBtn = document.getElementById('ai-deck-analyst-btn');
+    const closeAiAnalystModalBtn = document.getElementById('close-ai-analyst-modal-btn');
+    const aiAnalystChatHistory = document.getElementById('ai-analyst-chat-history');
+    const aiAnalystInput = document.getElementById('ai-analyst-input');
+    const aiAnalystSendBtn = document.getElementById('ai-analyst-send-btn');
     const deckCommentForm = document.getElementById('deck-comment-form');
     const deckCommentInput = document.getElementById('deck-comment-input');
     const deckCommentsList = document.getElementById('deck-comments-list');
@@ -124,36 +96,25 @@ document.addEventListener('authReady', (e) => {
     const deckRatingSummary = document.getElementById('deck-rating-summary');
     const deckUserRatingStars = document.getElementById('deck-user-rating-stars');
 
-
     // Card Quick View Tooltip Logic
     const tooltip = document.createElement('img');
     tooltip.id = 'card-quick-view-tooltip';
     tooltip.classList.add('hidden');
     document.body.appendChild(tooltip);
-
     document.addEventListener('mouseover', (event) => {
         const cardLink = event.target.closest('.card-link');
-        if (cardLink) {
-            const scryfallId = cardLink.dataset.scryfallId;
-            if (scryfallId) {
-                tooltip.src = `https://api.scryfall.com/cards/${scryfallId}?format=image&version=normal`;
-                tooltip.classList.remove('hidden');
-            }
+        if (cardLink && cardLink.dataset.scryfallId) {
+            tooltip.src = `https://api.scryfall.com/cards/${cardLink.dataset.scryfallId}?format=image&version=normal`;
+            tooltip.classList.remove('hidden');
         }
     });
-
     document.addEventListener('mouseout', (event) => {
-        const cardLink = event.target.closest('.card-link');
-        if (cardLink) {
-            tooltip.classList.add('hidden');
-        }
+        if (event.target.closest('.card-link')) tooltip.classList.add('hidden');
     });
-
     document.addEventListener('mousemove', (event) => {
         tooltip.style.left = event.pageX + 20 + 'px';
         tooltip.style.top = event.pageY + 20 + 'px';
     });
-    // End of Tooltip Logic
 
     const formats = {
         "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
@@ -180,25 +141,16 @@ document.addEventListener('authReady', (e) => {
             item.classList.toggle('hover:border-gray-300', !isTarget);
         });
         const targetContentId = tabId.replace('tab-', 'content-');
-        document.querySelectorAll('.tab-content').forEach(content => {
-            if (content.id === targetContentId) {
-                content.classList.remove('hidden');
-            } else {
-                content.classList.add('hidden');
-            }
+        tabContents.forEach(content => {
+            content.classList.toggle('hidden', content.id !== targetContentId);
         });
-        
         if (tabId === 'tab-builder' && !editingDeckIdInput.value) {
-             resetBuilderForm(); 
+            resetBuilderForm();
         }
         if (tabId === 'tab-builder' && user) {
             loadCollectionForDeckBuilder();
         }
-        if (tabId === 'tab-my-decks' || tabId === 'tab-community-decks') {
-            deckFilters.classList.remove('hidden');
-        } else {
-            deckFilters.classList.add('hidden');
-        }
+        deckFilters.classList.toggle('hidden', !['tab-my-decks', 'tab-community-decks'].includes(tabId));
         if (tabId !== 'tab-deck-view') {
             missingCardsSection.classList.add('hidden');
         }
@@ -251,7 +203,6 @@ document.addEventListener('authReady', (e) => {
         const currentList = decklistInput.value;
         const regex = new RegExp(`^(\\d+)\\s+${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'im');
         const match = currentList.match(regex);
-
         if (match) {
             const count = parseInt(match[1], 10);
             const newList = currentList.replace(regex, `${count + 1} ${cardName}`);
@@ -267,17 +218,14 @@ document.addEventListener('authReady', (e) => {
         if (tcg !== "Magic: The Gathering") {
             return { isValid: true, errors: [] };
         }
-
         let errors = [];
         let mainDeckCount = 0;
-        
         cards.forEach(card => {
             mainDeckCount += card.quantity;
             if (card.legalities && card.legalities[format.toLowerCase()] !== 'legal') {
                  errors.push(`- ${card.name} is not legal in ${format}.`);
             }
         });
-
         switch (format) {
             case 'Standard':
             case 'Modern':
@@ -307,7 +255,6 @@ document.addEventListener('authReady', (e) => {
                 }
                 break;
         }
-
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -317,7 +264,6 @@ document.addEventListener('authReady', (e) => {
     const displayLegality = (deck) => {
         const legalityContainer = document.getElementById('deck-legality-section');
         const result = validateDeck(deck.cards, deck.format, deck.tcg);
-        
         if (result.isValid) {
             legalityContainer.innerHTML = `
                 <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
@@ -336,35 +282,23 @@ document.addEventListener('authReady', (e) => {
     };
     
     const viewDeck = (deck, deckId) => {
-        currentDeckInView = deck;
+        currentDeckInView = { ...deck, id: deckId };
         document.getElementById('tab-deck-view').classList.remove('hidden');
         switchTab('tab-deck-view');
         deckToShare = { ...deck, id: deckId };
-
         document.getElementById('deck-view-name').textContent = deck.name;
         document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
         document.getElementById('deck-view-format').textContent = deck.format || 'N/A';
         const bioEl = document.getElementById('deck-view-bio');
-        if (deck.bio) {
-            bioEl.textContent = deck.bio;
-            bioEl.classList.remove('hidden');
-        } else {
-            bioEl.classList.add('hidden');
-        }
-        
+        bioEl.textContent = deck.bio || '';
+        bioEl.classList.toggle('hidden', !deck.bio);
         const primerSection = document.getElementById('deck-primer-display-section');
         const primerContent = document.getElementById('deck-view-primer');
-        if (deck.primer && deck.primer.trim() !== '') {
-            primerContent.textContent = deck.primer;
-            primerSection.classList.remove('hidden');
-        } else {
-            primerSection.classList.add('hidden');
-        }
-        
+        primerContent.textContent = deck.primer || '';
+        primerSection.classList.toggle('hidden', !deck.primer?.trim());
         const listEl = document.getElementById('deck-view-list');
         const featuredCardImg = document.getElementById('deck-view-featured-card');
         listEl.innerHTML = '';
-
         const categorizedCards = {};
         let totalPrice = 0;
         deck.cards.forEach(card => {
@@ -376,128 +310,156 @@ document.addEventListener('authReady', (e) => {
             else if (mainType.includes('Artifact')) category = 'Artifacts';
             else if (mainType.includes('Enchantment')) category = 'Enchantments';
             else if (mainType.includes('Land')) category = 'Lands';
-            
             if (!categorizedCards[category]) categorizedCards[category] = [];
             categorizedCards[category].push(card);
-            totalPrice += parseFloat(card.prices.usd || 0) * card.quantity;
+            totalPrice += (parseFloat(card.prices?.usd || 0) * card.quantity);
         });
-
         document.getElementById('deck-view-price').textContent = `$${totalPrice.toFixed(2)}`;
         if (deck.cards.length > 0) {
             featuredCardImg.src = getCardImageUrl(deck.cards[0], 'normal');
-        } else {
-            featuredCardImg.src = 'https://placehold.co/223x310?text=No+Image';
+            featuredCardImg.alt = deck.cards[0].name;
         }
-
-        const order = ['Creatures', 'Planeswalkers', 'Spells', 'Artifacts', 'Enchantments', 'Lands', 'Other'];
-        order.forEach(category => {
-            if (categorizedCards[category]) {
-                const cardCount = categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0);
-                let categoryHTML = `<div class="break-inside-avoid mb-4"><h3 class="font-bold text-lg mb-2 dark:text-white">${category} (${cardCount})</h3>`;
-                categorizedCards[category].forEach(card => {
-                    categoryHTML += `<p class="dark:text-gray-300">${card.quantity} <a href="#" class="card-link text-blue-600 dark:text-blue-400 hover:underline" data-scryfall-id="${card.id}">${card.name}</a></p>`;
-                });
-                categoryHTML += `</div>`;
-                listEl.innerHTML += categoryHTML;
-            }
+        Object.keys(categorizedCards).forEach(category => {
+            const categoryEl = document.createElement('div');
+            categoryEl.className = 'mb-4';
+            categoryEl.innerHTML = `<h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">${category} (${categorizedCards[category].length})</h3>`;
+            const cardList = document.createElement('div');
+            cardList.className = 'space-y-1';
+            categorizedCards[category].forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'flex justify-between items-center text-sm';
+                cardEl.innerHTML = `
+                    <span class="card-link cursor-pointer text-blue-600 dark:text-blue-400 hover:underline" data-scryfall-id="${card.id}">${card.quantity}x ${card.name}</span>
+                    <span class="text-gray-500 dark:text-gray-400">$${(parseFloat(card.prices?.usd || 0) * card.quantity).toFixed(2)}</span>
+                `;
+                cardList.appendChild(cardEl);
+            });
+            categoryEl.appendChild(cardList);
+            listEl.appendChild(categoryEl);
         });
-
-        calculateAndDisplayDeckStats(deck);
         displayLegality(deck);
         loadRatingsAndComments(deckId);
-    };
-
-    const calculateAndDisplayDeckStats = (deck) => {
-        const manaCurve = {};
-        const cardTypes = {};
-        let totalCards = 0;
-
-        deck.cards.forEach(card => {
-            totalCards += card.quantity;
-            if (deck.tcg === "Magic: The Gathering" && card.cmc !== undefined) {
-                const cmc = Math.floor(card.cmc);
-                if (cmc >= 7) {
-                    manaCurve['7+'] = (manaCurve['7+'] || 0) + card.quantity;
-                } else {
-                    manaCurve[cmc] = (manaCurve[cmc] || 0) + card.quantity;
-                }
-            }
-            const type = card.type_line.split(' — ')[0].split(' // ')[0];
-            cardTypes[type] = (cardTypes[type] || 0) + card.quantity;
-        });
-
-        const manaCurveEl = document.getElementById('mana-curve-chart');
         if (manaCurveChart) {
             manaCurveChart.destroy();
         }
-        manaCurveChart = new Chart(manaCurveEl, {
+        const manaCosts = deck.cards.map(card => card.cmc || 0);
+        const manaCurveData = [0, 1, 2, 3, 4, 5, 6, 7].map(cost => {
+            return manaCosts.filter(cmc => cost === 7 ? cmc >= 7 : cmc === cost).length;
+        });
+        const ctx = document.getElementById('mana-curve-chart').getContext('2d');
+        manaCurveChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: Object.keys(manaCurve).sort((a,b) => parseInt(a) - parseInt(b)),
+                labels: ['0', '1', '2', '3', '4', '5', '6', '7+'],
                 datasets: [{
-                    label: '# of Cards',
-                    data: Object.values(manaCurve),
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
+                    label: 'Number of Cards',
+                    data: manaCurveData,
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1
                 }]
             },
             options: {
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                plugins: { legend: { display: false } }
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
             }
-        });
-
-        const cardTypesEl = document.getElementById('card-types-stats');
-        cardTypesEl.innerHTML = '';
-        Object.entries(cardTypes).sort(([,a],[,b]) => b-a).forEach(([type, count]) => {
-            cardTypesEl.innerHTML += `<div class="flex justify-between text-sm dark:text-gray-300"><span>${type}</span><span class="font-semibold">${count}</span></div>`;
         });
     };
 
     const loadMyDecks = async (tcg = 'all', format = 'all') => {
         const myDecksList = document.getElementById('my-decks-list');
-        if (!user) { myDecksList.innerHTML = '<p>Please log in to see your decks.</p>'; return; }
-        myDecksList.innerHTML = '<p>Loading...</p>';
-        let query = db.collection('users').doc(user.uid).collection('decks');
-        if(tcg !== 'all') query = query.where('tcg', '==', tcg);
-        if(format !== 'all') query = query.where('format', '==', format);
-        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        if (!user) {
+            myDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Please log in to view your decks.</p>';
+            return;
+        }
+        myDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-300 p-4 text-center">Loading your decks...</p>';
+        try {
+            let query = db.collection('users').doc(user.uid).collection('decks');
+            if (tcg !== 'all') query = query.where('tcg', '==', tcg);
+            if (format !== 'all') query = query.where('format', '==', format);
+            query = query.orderBy('createdAt', 'desc');
+            const snapshot = await query.get();
+            if (snapshot.empty) {
+                myDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">You haven\'t created any decks yet.</p>';
+                return;
+            }
+            let decks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderMyDecks(decks);
+        } catch (error) {
+            console.error("Error loading user decks:", error);
+            myDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An error occurred while loading your decks. A database index might be required for this filter combination.</p>`;
+        }
+    };
 
-        if (snapshot.empty) { myDecksList.innerHTML = '<p>No decks found for the selected filters.</p>'; return; }
+    const renderMyDecks = (decks) => {
+        const myDecksList = document.getElementById('my-decks-list');
         myDecksList.innerHTML = '';
-        snapshot.forEach(doc => {
-            const deck = doc.data();
-            const totalPrice = deck.cards.reduce((acc, card) => acc + parseFloat(card.prices.usd || 0) * card.quantity, 0);
+        if (decks.length === 0) {
+            myDecksList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">No decks found for the selected filters.</p>';
+            return;
+        }
+        decks.forEach(deckData => {
+            const totalPrice = deckData.cards.reduce((acc, card) => {
+                const price = card.prices?.usd || 0;
+                return acc + (parseFloat(price) * card.quantity);
+            }, 0);
             const deckCard = document.createElement('div');
-            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-            
+            deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer hover:shadow-xl relative';
             deckCard.innerHTML = `
-                <div class="cursor-pointer hover:opacity-80" data-deck-id="${doc.id}">
-                    <h3 class="text-xl font-bold dark:text-white">${deck.name}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
-                    <p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>
-                </div>
-                <div class="mt-2 flex space-x-2">
-                    <button class="edit-deck-btn text-sm text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white" data-deck-id="${doc.id}">Edit</button>
-                    <button class="delete-deck-btn text-sm text-red-500 hover:text-red-700" data-deck-id="${doc.id}">Delete</button>
+                <h3 class="text-xl font-bold dark:text-white">${deckData.name}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">${deckData.format} • ${deckData.tcg}</p>
+                <p class="text-blue-500 font-semibold mt-2">Value: $${totalPrice.toFixed(2)}</p>
+                <div class="absolute top-2 right-2 flex space-x-2">
+                    <button class="edit-deck-btn text-blue-500 hover:text-blue-700" data-deck-id="${deckData.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="delete-deck-btn text-red-500 hover:text-red-700" data-deck-id="${deckData.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             `;
-            
-            deckCard.querySelector('.cursor-pointer').addEventListener('click', () => viewDeck(deck, doc.id));
-            deckCard.querySelector('.edit-deck-btn').addEventListener('click', () => editDeck(deck, doc.id));
-            deckCard.querySelector('.delete-deck-btn').addEventListener('click', async () => {
-                if (confirm(`Are you sure you want to delete the deck "${deck.name}"? This cannot be undone.`)) {
-                    await db.collection('users').doc(user.uid).collection('decks').doc(doc.id).delete();
-                    await db.collection('publicDecks').doc(doc.id).delete();
-                    alert('Deck deleted successfully.');
-                    loadMyDecks();
+            deckCard.addEventListener('click', (e) => {
+                if (!e.target.closest('.edit-deck-btn') && !e.target.closest('.delete-deck-btn')) {
+                    viewDeck(deckData, deckData.id);
                 }
             });
             myDecksList.appendChild(deckCard);
         });
+        document.querySelectorAll('.edit-deck-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const deckId = btn.dataset.deckId;
+                const deck = decks.find(d => d.id === deckId);
+                if (deck) editDeck(deck, deckId);
+            });
+        });
+        document.querySelectorAll('.delete-deck-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const deckId = btn.dataset.deckId;
+                if (confirm('Are you sure you want to delete this deck?')) {
+                    try {
+                        const batch = db.batch();
+                        batch.delete(db.collection('users').doc(user.uid).collection('decks').doc(deckId));
+                        batch.delete(db.collection('publicDecks').doc(deckId));
+                        await batch.commit();
+                        loadMyDecks();
+                    } catch (error) {
+                        console.error("Error deleting deck:", error);
+                        alert("Could not delete deck.");
+                    }
+                }
+            });
+        });
     };
-    
+
     const editDeck = (deck, deckId) => {
         switchTab('tab-builder');
         builderTitle.textContent = "Edit Deck";
@@ -578,19 +540,8 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- PLAYTEST FUNCTIONS ---
-    const startSinglePlayerPlaytest = () => {
-        if (!deckToShare) {
-            alert("Please view a deck first before trying to test a hand.");
-            return;
-        }
-        if (!playtestModal) {
-            console.error("Playtest modal element not found.");
-            return;
-        }
-        
-        isPlayingVsAI = false;
-        aiPlayArea.classList.add('hidden');
+    const initializePlaytest = () => {
+        if (!deckToShare) return;
         
         playtestState.deck = [];
         deckToShare.cards.forEach(card => {
@@ -603,82 +554,12 @@ document.addEventListener('authReady', (e) => {
         playtestState.hand = [];
         playtestState.battlefield = [];
         playtestState.graveyard = [];
-
+        document.getElementById('ai-play-area').classList.add('hidden');
+        playAiBtn.disabled = false;
+        playAiBtn.textContent = "Play vs. AI";
+        aiPlaytestState = { deck: [], hand: [], battlefield: [], library: [] };
         drawCards(7);
-        renderPlaytestState();
         openModal(playtestModal);
-    };
-
-    const startVsAIPlaytest = () => {
-        if (!deckToShare) {
-             alert("Please view a deck first before trying to play vs AI.");
-             return;
-        }
-         if (!playtestModal) {
-            console.error("Playtest modal element not found.");
-            return;
-        }
-
-        isPlayingVsAI = true;
-        aiPlayArea.classList.remove('hidden');
-
-        playtestState.deck = [];
-        aiPlaytestState.deck = [];
-
-        // Split the deck into two identical decks
-        deckToShare.cards.forEach(card => {
-            for (let i = 0; i < card.quantity; i++) {
-                playtestState.deck.push({ ...card, instanceId: Math.random() });
-                aiPlaytestState.deck.push({ ...card, instanceId: Math.random() });
-            }
-        });
-
-        // Shuffle decks
-        playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
-        aiPlaytestState.library = [...aiPlaytestState.deck].sort(() => Math.random() - 0.5);
-
-        // Draw opening hands
-        playtestState.hand = [];
-        aiPlaytestState.hand = [];
-        for (let i = 0; i < 7; i++) {
-             if (playtestState.library.length > 0) playtestState.hand.push(playtestState.library.pop());
-             if (aiPlaytestState.library.length > 0) aiPlaytestState.hand.push(aiPlaytestState.library.pop());
-        }
-
-        playtestState.battlefield = [];
-        aiPlaytestState.battlefield = [];
-        playtestState.graveyard = [];
-        
-        renderPlaytestState();
-        openModal(playtestModal);
-        
-        // AI takes its first turn
-        setTimeout(aiTurn, 2000);
-    };
-
-    const aiTurn = () => {
-        if (!isPlayingVsAI) return;
-
-        // Simple AI logic: play the first available non-land card
-        const cardToPlayIndex = aiPlaytestState.hand.findIndex(c => !c.type_line.includes('Land'));
-        if (cardToPlayIndex > -1) {
-            const card = aiPlaytestState.hand.splice(cardToPlayIndex, 1)[0];
-            aiPlaytestState.battlefield.push(card);
-        } else {
-            // Or just play a land if nothing else is available
-            const landIndex = aiPlaytestState.hand.findIndex(c => c.type_line.includes('Land'));
-            if(landIndex > -1) {
-                const land = aiPlaytestState.hand.splice(landIndex, 1)[0];
-                aiPlaytestState.battlefield.push(land);
-            }
-        }
-        
-        // AI draws a card for its turn
-        if (aiPlaytestState.library.length > 0) {
-            aiPlaytestState.hand.push(aiPlaytestState.library.pop());
-        }
-        
-        renderPlaytestState();
     };
 
     const drawCards = (numToDraw) => {
@@ -689,10 +570,9 @@ document.addEventListener('authReady', (e) => {
         }
         renderPlaytestState();
     };
-    
+
     const takeMulligan = () => {
         if (playtestState.hand.length === 0) return;
-        
         const newHandSize = playtestState.hand.length - 1;
         playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
         playtestState.hand = [];
@@ -702,23 +582,14 @@ document.addEventListener('authReady', (e) => {
     const renderPlaytestState = () => {
         document.getElementById('library-count').textContent = playtestState.library.length;
         document.getElementById('hand-count').textContent = playtestState.hand.length;
-
         const renderZone = (zoneEl, cards) => {
-            // Remove only card images
-            zoneEl.querySelectorAll('img.playtest-card').forEach(img => img.remove());
-            // Add new cards
-            cards.forEach(card => {
-                zoneEl.appendChild(createPlaytestCard(card));
-            });
+            const title = zoneEl.querySelector('h3');
+            zoneEl.innerHTML = '';
+            if (title) zoneEl.appendChild(title);
+            cards.forEach(card => zoneEl.appendChild(createPlaytestCard(card)));
         };
-
         renderZone(handEl, playtestState.hand);
         renderZone(battlefieldEl, playtestState.battlefield);
-
-        if (isPlayingVsAI) {
-            renderZone(aiHandEl, aiPlaytestState.hand);
-            renderZone(aiBattlefieldEl, aiPlaytestState.battlefield);
-        }
     };
 
     const createPlaytestCard = (card) => {
@@ -731,27 +602,16 @@ document.addEventListener('authReady', (e) => {
         return cardEl;
     };
 
-    const handleDragStart = (e) => {
-        e.dataTransfer.setData('text/plain', e.target.dataset.instanceId);
-    };
+    const handleDragStart = (e) => e.dataTransfer.setData('text/plain', e.target.dataset.instanceId);
 
     const handleDrop = (e) => {
         e.preventDefault();
         const zoneEl = e.target.closest('.playtest-zone');
         if (!zoneEl) return;
-        
         const cardInstanceId = parseFloat(e.dataTransfer.getData('text/plain'));
+        const newZone = zoneEl.id.includes('battlefield') ? 'battlefield' : 'hand';
         let cardToMove = null;
         let originalZone = null;
-        let newZone = null;
-
-        if (zoneEl.id === 'playtest-battlefield') {
-            newZone = 'battlefield';
-        } else if (zoneEl.id === 'playtest-hand') {
-            newZone = 'hand';
-        }
-
-        // Determine if the card is from the player's hand or battlefield
         if (playtestState.hand.some(c => c.instanceId === cardInstanceId)) {
             originalZone = 'hand';
             cardToMove = playtestState.hand.find(c => c.instanceId === cardInstanceId);
@@ -759,12 +619,81 @@ document.addEventListener('authReady', (e) => {
             originalZone = 'battlefield';
             cardToMove = playtestState.battlefield.find(c => c.instanceId === cardInstanceId);
         }
-
         if (cardToMove && originalZone !== newZone) {
             playtestState[originalZone] = playtestState[originalZone].filter(c => c.instanceId !== cardInstanceId);
             playtestState[newZone].push(cardToMove);
             renderPlaytestState();
         }
+    };
+
+    const startPlayVsAi = () => {
+        document.getElementById('ai-play-area').classList.remove('hidden');
+        playAiBtn.textContent = "AI is thinking...";
+        playAiBtn.disabled = true;
+
+        aiPlaytestState.deck = [...playtestState.deck].sort(() => Math.random() - 0.5);
+        aiPlaytestState.library = aiPlaytestState.deck;
+        aiPlaytestState.hand = [];
+        aiPlaytestState.battlefield = [];
+        
+        for(let i=0; i<7; i++) {
+            if(aiPlaytestState.library.length > 0) aiPlaytestState.hand.push(aiPlaytestState.library.pop());
+        }
+        
+        renderAiPlaytestState();
+        alert("Play vs. AI has started! The AI will take its turn.");
+        setTimeout(aiTakeTurn, 1000);
+    };
+    
+    const renderAiPlaytestState = () => {
+        const aiHandEl = document.getElementById('ai-hand');
+        const aiBattlefieldEl = document.getElementById('ai-battlefield');
+        const renderZone = (zoneEl, cards, showCards = false) => {
+            const titleText = zoneEl.id.includes('hand') ? `AI Hand (${cards.length})` : 'AI Battlefield';
+            zoneEl.innerHTML = `<h3 class="text-xs uppercase font-bold text-gray-400 absolute top-2 left-2">${titleText}</h3>`;
+            cards.forEach(card => {
+                const cardEl = document.createElement('img');
+                cardEl.src = showCards ? getCardImageUrl(card, 'small') : 'https://c1.scryfall.com/file/scryfall-card-backs/large.jpg';
+                cardEl.className = 'playtest-card';
+                zoneEl.appendChild(cardEl);
+            });
+        };
+        renderZone(aiHandEl, aiPlaytestState.hand, false);
+        renderZone(aiBattlefieldEl, aiPlaytestState.battlefield, true);
+    };
+
+    const aiTakeTurn = () => {
+        playAiBtn.textContent = "AI is thinking...";
+        playAiBtn.disabled = true;
+
+        if (aiPlaytestState.library.length > 0) aiPlaytestState.hand.push(aiPlaytestState.library.pop());
+
+        let landPlayedThisTurn = false;
+        aiPlaytestState.hand = aiPlaytestState.hand.filter(card => {
+            if (card.type_line.includes("Land") && !landPlayedThisTurn) {
+                aiPlaytestState.battlefield.push(card);
+                landPlayedThisTurn = true;
+                return false; 
+            }
+            return true;
+        });
+        
+        setTimeout(() => {
+            let creaturePlayedThisTurn = false;
+            const manaAvailable = aiPlaytestState.battlefield.filter(c => c.type_line.includes("Land")).length;
+            aiPlaytestState.hand = aiPlaytestState.hand.filter(card => {
+                if (card.type_line.includes("Creature") && !creaturePlayedThisTurn && card.cmc <= manaAvailable) {
+                     aiPlaytestState.battlefield.push(card);
+                     creaturePlayedThisTurn = true;
+                     return false;
+                }
+                return true;
+            });
+            renderAiPlaytestState();
+            alert("AI has finished its turn. It's your turn now!");
+            playAiBtn.disabled = false;
+            playAiBtn.textContent = "Let AI Play Next Turn";
+        }, 1000);
     };
 
     const checkDeckAgainstCollection = async () => {
@@ -969,97 +898,122 @@ document.addEventListener('authReady', (e) => {
         userStars.forEach(star => {
             const value = parseInt(star.dataset.value);
             if (value <= userRating) {
-                star.classList.replace('far', 'fas');
-                star.classList.add('text-yellow-400');
+                star.className = 'fas fa-star text-yellow-400';
             } else {
-                star.classList.replace('fas', 'far');
-                star.classList.remove('text-yellow-400');
+                star.className = 'far fa-star text-gray-300';
             }
         });
     };
 
     const renderComments = (comments) => {
-        deckCommentsList.innerHTML = '';
         if (comments.length === 0) {
-            deckCommentsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-center py-4">No comments yet. Be the first to share your thoughts!</p>';
+            deckCommentsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No comments yet. Be the first to comment!</p>';
             return;
         }
-        comments.forEach(comment => {
-            const commentEl = document.createElement('div');
-            commentEl.className = 'flex items-start space-x-3 py-2 border-t border-gray-100 dark:border-gray-700';
-            const safeAuthorName = comment.authorName || 'Anonymous';
-            const safeAuthorPhotoURL = comment.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png';
-            const commentDate = comment.createdAt ? new Date(comment.createdAt.toDate()).toLocaleString() : 'Just now';
-            commentEl.innerHTML = `
-                <a href="profile.html?uid=${comment.authorId}">
-                    <img src="${safeAuthorPhotoURL}" alt="${safeAuthorName}" class="h-10 w-10 rounded-full object-cover">
-                </a>
-                <div class="flex-1">
-                    <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
-                        <div class="flex justify-between items-baseline">
-                            <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${safeAuthorName}</a>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">${commentDate}</span>
-                        </div>
-                        <p class="text-sm text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">${comment.text}</p>
-                    </div>
+        deckCommentsList.innerHTML = comments.map(comment => `
+            <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                <div class="flex items-center mb-2">
+                    <img src="${comment.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${comment.authorName}" class="w-6 h-6 rounded-full mr-2">
+                    <span class="font-semibold text-sm dark:text-gray-200">${comment.authorName}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${comment.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
                 </div>
-            `;
-            deckCommentsList.appendChild(commentEl);
-        });
+                <p class="text-sm dark:text-gray-300">${comment.text}</p>
+            </div>
+        `).join('');
     };
 
     const handleRatingInteraction = (e) => {
-        const deckId = deckToShare?.id;
-        if (!deckId) return;
-        const stars = Array.from(deckUserRatingStars.querySelectorAll('i'));
-        if (!e.target.matches('i')) return;
-        const targetStarValue = parseInt(e.target.dataset.value);
+        const star = e.target.closest('i');
+        if (!star) return;
+        const value = parseInt(star.dataset.value);
+        const stars = deckUserRatingStars.querySelectorAll('i');
         if (e.type === 'click') {
-            submitRating(deckId, targetStarValue);
+            const deckId = deckToShare?.id;
+            if (deckId) submitRating(deckId, value);
         } else if (e.type === 'mouseover') {
-            stars.forEach(star => {
-                const value = parseInt(star.dataset.value);
-                star.classList.toggle('text-yellow-300', value <= targetStarValue);
+            stars.forEach(s => {
+                const sValue = parseInt(s.dataset.value);
+                if (sValue <= value) {
+                    s.className = 'fas fa-star text-yellow-400';
+                } else {
+                    s.className = 'far fa-star text-gray-300';
+                }
             });
         } else if (e.type === 'mouseout') {
-            stars.forEach(star => star.classList.remove('text-yellow-300'));
+            const deckId = deckToShare?.id;
+            if (deckId) loadRatingsAndComments(deckId);
         }
     };
 
-    // --- All Event Listeners ---
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            if (tab.id === 'tab-deck-view') return;
-            switchTab(tab.id);
-            applyDeckFilters();
-        });
-    });
-    collectionSearchInput.addEventListener('input', () => {
-        const searchTerm = collectionSearchInput.value.toLowerCase();
-        const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
-        renderCollectionInBuilder(filteredCards);
-    });
-    deckTcgSelect.addEventListener('change', () => {
-        const selectedTcg = deckTcgSelect.value;
-        if (formats[selectedTcg]) {
-            deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
-            formats[selectedTcg].forEach(format => {
-                deckFormatSelect.innerHTML += `<option value="${format}">${format}</option>`;
-            });
-            deckFormatSelectContainer.classList.remove('hidden');
+    const startAiDeckAnalyst = async () => {
+        if (!currentDeckInView) return;
+        aiConversationHistory = [];
+        aiAnalystChatHistory.innerHTML = `<div class="p-4 text-center"><i class="fas fa-spinner fa-spin text-green-500 text-2xl"></i><p class="mt-2 text-gray-400">AI is analyzing the deck...</p></div>`;
+        openModal(aiDeckAnalystModal);
+        const decklist = currentDeckInView.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
+        const initialPrompt = `Analyze this ${currentDeckInView.tcg} deck for the ${currentDeckInView.format} format. Name: "${currentDeckInView.name}". List:\n${decklist}\nGive a brief analysis of its strategy, strengths, and weaknesses. Then, ask what I'd like to discuss.`;
+        await sendAiAnalystMessage(initialPrompt);
+    };
+
+    const sendAiAnalystMessage = async (initialMessage = null) => {
+        const userMessage = initialMessage || aiAnalystInput.value.trim();
+        if (!userMessage) return;
+
+        if (!initialMessage) {
+            appendMessageToChat('user', userMessage);
+            aiConversationHistory.push({ role: "user", parts: [{ text: userMessage }] });
         } else {
-            deckFormatSelectContainer.classList.add('hidden');
+            aiConversationHistory = [{ role: "user", parts: [{ text: userMessage }] }];
         }
-    });
+        aiAnalystInput.value = '';
+        
+        const thinkingMessage = appendMessageToChat('ai', '<i class="fas fa-spinner fa-spin"></i>');
+
+        try {
+            const getAiSuggestions = functions.httpsCallable('getAiSuggestions');
+            const result = await getAiSuggestions({ prompt: aiConversationHistory });
+            const geminiResponse = result.data;
+
+            if (geminiResponse.candidates && geminiResponse.candidates[0].content) {
+                const responseText = geminiResponse.candidates[0].content.parts[0].text;
+                aiConversationHistory.push({ role: "model", parts: [{ text: responseText }] });
+                updateLastMessage(thinkingMessage, responseText);
+            } else {
+                throw new Error('Invalid response structure from AI.');
+            }
+        } catch (error) {
+            console.error("Error fetching AI analyst response:", error);
+            updateLastMessage(thinkingMessage, `Error: ${error.message}. Please check the function logs and ensure it has been deployed correctly.`);
+        }
+    };
+    
+    const appendMessageToChat = (sender, message) => {
+        if (aiAnalystChatHistory.querySelector('.fa-spinner')) {
+            aiAnalystChatHistory.innerHTML = '';
+        }
+        const messageEl = document.createElement('div');
+        messageEl.className = `p-4 rounded-lg mb-4 ${sender === 'user' ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-gray-100 dark:bg-gray-700/50'}`;
+        messageEl.innerHTML = message;
+        aiAnalystChatHistory.appendChild(messageEl);
+        aiAnalystChatHistory.scrollTop = aiAnalystChatHistory.scrollHeight;
+        return messageEl;
+    };
+    
+    const updateLastMessage = (element, newMessage) => {
+        const formattedMessage = newMessage.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        element.innerHTML = formattedMessage;
+        aiAnalystChatHistory.scrollTop = aiAnalystChatHistory.scrollHeight;
+    };
+    
+    // --- Event Listeners ---
+    tabs.forEach(tab => tab.addEventListener('click', () => { if (tab.id !== 'tab-deck-view') { switchTab(tab.id); applyDeckFilters(); } }));
+    
     deckBuilderForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!user) { alert("Please log in to build a deck."); return; }
-
         buildDeckBtn.disabled = true;
         buildDeckBtn.textContent = 'Processing...';
-
         const isPublic = deckPublicCheckbox.checked;
-
         const deckData = {
             name: deckNameInput.value,
             name_lower: deckNameInput.value.toLowerCase(),
@@ -1073,7 +1027,6 @@ document.addEventListener('authReady', (e) => {
             isPublic: isPublic,
             cards: []
         };
-
         const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
         const cardPromises = lines.map(line => {
             const match = line.match(/^(\d+)\s+(.*)/);
@@ -1083,9 +1036,7 @@ document.addEventListener('authReady', (e) => {
                 .then(res => res.ok ? res.json() : null)
                 .then(cardData => cardData ? { ...cardData, quantity: parseInt(match[1], 10) } : null);
         }).filter(p => p);
-
         deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
-
         const validationResult = validateDeck(deckData.cards, deckData.format, deckData.tcg);
         if (!validationResult.isValid) {
             const errorString = validationResult.errors.join('\n');
@@ -1095,28 +1046,22 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
         }
-
         const editingId = editingDeckIdInput.value;
         try {
             const userDeckRef = editingId 
                 ? db.collection('users').doc(user.uid).collection('decks').doc(editingId)
                 : db.collection('users').doc(user.uid).collection('decks').doc();
-            
             const publicDeckRef = db.collection('publicDecks').doc(userDeckRef.id);
             const batch = db.batch();
-
             batch.set(userDeckRef, deckData);
-
             if (isPublic) {
                 batch.set(publicDeckRef, deckData);
             } else if (editingId) {
                 batch.delete(publicDeckRef);
             }
-
             await batch.commit();
             alert("Deck saved successfully!");
             viewDeck(deckData, userDeckRef.id);
-
         } catch(error) {
             alert("Error saving deck: " + error.message);
         } finally {
@@ -1124,16 +1069,35 @@ document.addEventListener('authReady', (e) => {
             buildDeckBtn.textContent = 'Build & Price Deck';
         }
     });
+
+    collectionSearchInput.addEventListener('input', () => {
+        const searchTerm = collectionSearchInput.value.toLowerCase();
+        const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
+        renderCollectionInBuilder(filteredCards);
+    });
+    
+    deckTcgSelect.addEventListener('change', () => {
+        const selectedTcg = deckTcgSelect.value;
+        if (formats[selectedTcg]) {
+            deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
+            formats[selectedTcg].forEach(format => {
+                deckFormatSelect.innerHTML += `<option value="${format}">${format}</option>`;
+            });
+            deckFormatSelectContainer.classList.remove('hidden');
+        } else {
+            deckFormatSelectContainer.classList.add('hidden');
+        }
+    });
+    
     tcgFilterButtons.addEventListener('click', (e) => {
         if (e.target.classList.contains('tcg-filter-btn')) {
             tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
             e.target.classList.add('filter-btn-active');
-            
             const selectedTcg = e.target.dataset.tcg;
             formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
             if (selectedTcg !== 'all' && formats[selectedTcg]) {
                 formats[selectedTcg].forEach(format => {
-                    formatFilterButtons.innerHTML += `<option value="${format}">${format}</option>`;
+                    formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
                 });
                 formatFilterContainer.classList.remove('hidden');
             } else {
@@ -1142,6 +1106,7 @@ document.addEventListener('authReady', (e) => {
             applyDeckFilters();
         }
     });
+
     formatFilterButtons.addEventListener('click', (e) => {
         if (e.target.classList.contains('format-filter-btn')) {
             formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
@@ -1149,16 +1114,20 @@ document.addEventListener('authReady', (e) => {
             applyDeckFilters();
         }
     });
+
     battlefieldEl.addEventListener('dragover', (e) => e.preventDefault());
     handEl.addEventListener('dragover', (e) => e.preventDefault());
     battlefieldEl.addEventListener('drop', handleDrop);
     handEl.addEventListener('drop', handleDrop);
-    testHandBtn.addEventListener('click', startSinglePlayerPlaytest);
+    testHandBtn.addEventListener('click', initializePlaytest);
     closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
     playtestDrawBtn.addEventListener('click', () => drawCards(1));
     playtestMulliganBtn.addEventListener('click', takeMulligan);
-    playtestResetBtn.addEventListener('click', isPlayingVsAI ? startVsAIPlaytest : startSinglePlayerPlaytest);
-    playAiBtn.addEventListener('click', startVsAIPlaytest);
+    playtestResetBtn.addEventListener('click', initializePlaytest);
+    playAiBtn.addEventListener('click', () => {
+        if(aiPlaytestState.deck.length === 0) startPlayVsAi();
+        else aiTakeTurn();
+    });
     shareDeckBtn.addEventListener('click', async () => {
         if (!user || !deckToShare) {
             alert("Please log in and select a deck to share.");
@@ -1212,23 +1181,7 @@ document.addEventListener('authReady', (e) => {
     
     // --- AI MODAL LOGIC (SECURE) ---
     openAiModalBtn.addEventListener('click', () => {
-        aiModalTitle.textContent = 'AI Deck Advisor';
-        aiModalPrompt.value = '';
-        aiSuggestionsOutputModal.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your suggestions will appear here.</p>`;
         openModal(aiSuggestionsModal);
-    });
-    
-    analyzeDeckBtn.addEventListener('click', () => {
-        if (!currentDeckInView) {
-            alert("Please view a deck first.");
-            return;
-        }
-        aiModalTitle.textContent = `AI Analysis of ${currentDeckInView.name}`;
-        aiModalPrompt.value = `Analyze my ${currentDeckInView.format} deck. What are its strengths and weaknesses? How should I play it?`;
-        openModal(aiSuggestionsModal);
-        
-        // Automatically trigger the analysis
-        getAiSuggestionsModalBtn.click();
     });
 
     closeAiModalBtn.addEventListener('click', () => {
@@ -1237,9 +1190,9 @@ document.addEventListener('authReady', (e) => {
 
     getAiSuggestionsModalBtn.addEventListener('click', async () => {
         const userPrompt = aiModalPrompt.value.trim();
-        const currentDecklist = decklistInput.value.trim() || currentDeckInView?.cards?.map(c => `${c.quantity} ${c.name}`).join('\n') || '';
-        const format = deckFormatSelect.value || currentDeckInView?.format;
-        const tcg = deckTcgSelect.value || currentDeckInView?.tcg;
+        const currentDecklist = decklistInput.value.trim();
+        const format = deckFormatSelect.value;
+        const tcg = deckTcgSelect.value;
 
         if (!userPrompt && !currentDecklist) {
             alert("Please provide a prompt or a decklist for the AI to work with.");
@@ -1302,6 +1255,16 @@ document.addEventListener('authReady', (e) => {
         } catch (error) {
             console.error("Error fetching AI suggestions:", error);
             aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">${error.message}</p>`;
+        }
+    });
+
+    // --- AI DECK ANALYST LISTENERS ---
+    openAiDeckAnalystBtn.addEventListener('click', startAiDeckAnalyst);
+    closeAiAnalystModalBtn.addEventListener('click', () => closeModal(aiDeckAnalystModal));
+    aiAnalystSendBtn.addEventListener('click', sendAiAnalystMessage);
+    aiAnalystInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            sendAiAnalystMessage();
         }
     });
 
@@ -1380,3 +1343,4 @@ document.addEventListener('authReady', (e) => {
     }
     loadCommunityDecks();
 });
+

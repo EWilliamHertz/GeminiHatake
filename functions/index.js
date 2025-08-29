@@ -1,82 +1,73 @@
 /**
- * HatakeSocial - Firebase Cloud Functions
- *
- * This file contains the backend logic for the application.
- * - Handles user registration with a referral code.
- * - Creates Stripe checkout sessions for the shop with coupon/referral support.
- * - Validates Stripe promotion codes.
- * - Automatically counts user posts.
- * - Handles following users and creating notifications.
- * - Automatically deletes product images from Storage when a product is deleted.
- * - Securely sets admin custom claims for user roles.
- * - Manages a secure escrow trading system with Stripe Connect.
- * - Proxies requests to the Gemini API to protect the API key.
- */
+* HatakeSocial - Firebase Cloud Functions
+*
+* This file contains the backend logic for the application.
+* - Handles user registration with a referral code.
+* - Creates Stripe checkout sessions for the shop with coupon/referral support.
+* - Validates Stripe promotion codes.
+* - Automatically counts user posts.
+* - Handles following users and creating notifications.
+* - Automatically deletes product images from Storage when a product is deleted.
+* - Securely sets admin custom claims for user roles.
+* - Manages a secure escrow trading system with Stripe Connect.
+* - Proxies requests to the Gemini API to protect the API key.
+*/
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
-const fetch = require("node-fetch");
-const cors = require('cors')({ origin: true });
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
 
-
 /**
- * A callable Cloud Function to securely access the Gemini API.
- */
+* A callable Cloud Function to securely access the Gemini API.
+* FIX: This function is now correctly structured as an onCall function,
+* which automatically handles CORS and authentication context. The previous
+* implementation was mixing onCall with manual CORS handling, causing errors.
+*/
 exports.getAiSuggestions = functions.https.onCall(async (data, context) => {
-    return new Promise((resolve, reject) => {
-        cors(data, context, async () => {
-            // Ensure the user is authenticated to use this function
-            if (!context.auth) {
-                throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to use this feature.');
-            }
+    // Ensure the user is authenticated to use this function
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to use this feature.');
+    }
 
-            const prompt = data.prompt;
-            if (!prompt) {
-                throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "prompt".');
-            }
+    const prompt = data.prompt;
+    if (!prompt) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "prompt".');
+    }
 
-            // Retrieve the secure API key from environment configuration
-            const apiKey = functions.config().gemini.key;
-            if (!apiKey) {
-                throw new functions.https.HttpsError('internal', 'Gemini API key is not configured.');
-            }
-            
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Retrieve the secure API key from environment configuration
+    const apiKey = functions.config().gemini.key;
+    if (!apiKey) {
+        throw new functions.https.HttpsError('internal', 'Gemini API key is not configured.');
+    }
 
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
-                });
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-                if (!response.ok) {
-                    const errorBody = await response.json();
-                    console.error("Gemini API Error:", errorBody);
-                    throw new functions.https.HttpsError('internal', 'Failed to get a response from the AI.');
-                }
+        // The prompt can be a single string or a conversation history array
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
 
-                const result = await response.json();
-                resolve(result); // Forward the result back to the client
+        // Return the response directly. The client SDK will handle the wrapping.
+        // Using JSON.parse(JSON.stringify(...)) ensures a clean serializable object is returned.
+        return JSON.parse(JSON.stringify(response));
 
-            } catch (error) {
-                console.error("Error calling Gemini API:", error);
-                throw new functions.https.HttpsError('internal', 'An error occurred while fetching AI suggestions.');
-            }
-        });
-    });
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        // Throwing an HttpsError will propagate it correctly to the client.
+        throw new functions.https.HttpsError('internal', 'An error occurred while fetching AI suggestions.');
+    }
 });
 
 
 /**
- * A callable Cloud Function to handle new user registration with a referral code.
- */
+* A callable Cloud Function to handle new user registration with a referral code.
+*/
 exports.registerUserWithReferral = functions.https.onCall(async (data, context) => {
     const { email, password, city, country, favoriteTcg, referrerId } = data;
 
@@ -154,8 +145,8 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
 
 
 /**
- * A callable Cloud Function to validate a Stripe promotion code.
- */
+* A callable Cloud Function to validate a Stripe promotion code.
+*/
 exports.validateCoupon = functions.https.onCall(async (data, context) => {
     const { code } = data;
     if (!code) {
@@ -188,8 +179,8 @@ exports.validateCoupon = functions.https.onCall(async (data, context) => {
 
 
 /**
- * A callable Cloud Function to create a Stripe Checkout session.
- */
+* A callable Cloud Function to create a Stripe Checkout session.
+*/
 exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to make a purchase.');
@@ -247,8 +238,8 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
 
 
 /**
- * A Firestore trigger to update a user's post count when they create a new post.
- */
+* A Firestore trigger to update a user's post count when they create a new post.
+*/
 exports.onPostCreate = functions.firestore
     .document('posts/{postId}')
     .onCreate(async (snap, context) => {
@@ -265,8 +256,8 @@ exports.onPostCreate = functions.firestore
     });
 
 /**
- * A callable function to follow or unfollow a user.
- */
+* A callable function to follow or unfollow a user.
+*/
 exports.toggleFollowUser = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to follow users.');
@@ -301,8 +292,8 @@ exports.toggleFollowUser = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * A Firestore trigger that creates a notification when a user is followed.
- */
+* A Firestore trigger that creates a notification when a user is followed.
+*/
 exports.onFollow = functions.firestore
     .document('users/{userId}')
     .onUpdate(async (change, context) => {
@@ -333,8 +324,8 @@ exports.onFollow = functions.firestore
     });
 
 /**
- * A Firestore trigger that cleans up a product's images from Cloud Storage when it's deleted.
- */
+* A Firestore trigger that cleans up a product's images from Cloud Storage when it's deleted.
+*/
 exports.onProductDelete = functions.firestore
     .document('products/{productId}')
     .onDelete(async (snap, context) => {
@@ -351,8 +342,8 @@ exports.onProductDelete = functions.firestore
     });
 
 /**
- * A callable Cloud Function to set the admin custom claim on a user.
- */
+* A callable Cloud Function to set the admin custom claim on a user.
+*/
 exports.setUserAdminClaim = functions.https.onCall(async (data, context) => {
     if (context.auth.token.admin !== true) {
         throw new functions.https.HttpsError('permission-denied', 'Only admins can set user roles.');
@@ -427,9 +418,6 @@ exports.createEscrowPayment = functions.https.onCall(async (data, context) => {
                 destination: sellerStripeId,
             },
         });
-        // Note: The trade document should be created client-side before calling this
-        // to ensure a trade ID exists. This function would then be passed the tradeId
-        // to update the paymentIntentId onto the existing trade document.
         return { clientSecret: paymentIntent.client_secret };
     } catch (error) {
         console.error("Escrow payment intent creation failed:", error);
@@ -458,10 +446,8 @@ exports.captureAndReleaseFunds = functions.https.onCall(async (data, context) =>
          throw new functions.https.HttpsError('failed-precondition', `Trade is not in a releasable state. Current status: ${tradeData.status}`);
     }
     try {
-        // Capture the charge. This finalizes the transaction.
         await stripe.paymentIntents.capture(tradeData.paymentIntentId);
         
-        // Atomically transfer cards and update status
         const batch = db.batch();
         tradeData.receiverCards.forEach(card => {
             const newCardRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
