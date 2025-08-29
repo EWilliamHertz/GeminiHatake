@@ -17,6 +17,8 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
 const fetch = require("node-fetch");
+const cors = require('cors')({ origin: true });
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -27,44 +29,48 @@ const storage = admin.storage();
  * A callable Cloud Function to securely access the Gemini API.
  */
 exports.getAiSuggestions = functions.https.onCall(async (data, context) => {
-    // Ensure the user is authenticated to use this function
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to use this feature.');
-    }
+    return new Promise((resolve, reject) => {
+        cors(data, context, async () => {
+            // Ensure the user is authenticated to use this function
+            if (!context.auth) {
+                throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to use this feature.');
+            }
 
-    const prompt = data.prompt;
-    if (!prompt) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "prompt".');
-    }
+            const prompt = data.prompt;
+            if (!prompt) {
+                throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "prompt".');
+            }
 
-    // Retrieve the secure API key from environment configuration
-    const apiKey = functions.config().gemini.key;
-    if (!apiKey) {
-        throw new functions.https.HttpsError('internal', 'Gemini API key is not configured.');
-    }
-    
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            // Retrieve the secure API key from environment configuration
+            const apiKey = functions.config().gemini.key;
+            if (!apiKey) {
+                throw new functions.https.HttpsError('internal', 'Gemini API key is not configured.');
+            }
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }] })
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    console.error("Gemini API Error:", errorBody);
+                    throw new functions.https.HttpsError('internal', 'Failed to get a response from the AI.');
+                }
+
+                const result = await response.json();
+                resolve(result); // Forward the result back to the client
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                throw new functions.https.HttpsError('internal', 'An error occurred while fetching AI suggestions.');
+            }
         });
-
-        if (!response.ok) {
-            const errorBody = await response.json();
-            console.error("Gemini API Error:", errorBody);
-            throw new functions.https.HttpsError('internal', 'Failed to get a response from the AI.');
-        }
-
-        const result = await response.json();
-        return result; // Forward the result back to the client
-
-    } catch (error) {
-        console.error("Error calling Gemini API:", error);
-        throw new functions.https.HttpsError('internal', 'An error occurred while fetching AI suggestions.');
-    }
+    });
 });
 
 

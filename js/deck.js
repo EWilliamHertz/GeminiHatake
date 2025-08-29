@@ -56,6 +56,9 @@ document.addEventListener('authReady', (e) => {
     let manaCurveChart = null;
     let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
     let currentDeckInView = null;
+    // New playtest AI state
+    let aiPlaytestState = { deck: [], hand: [], battlefield: [] };
+    let isPlayingVsAI = false;
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -104,6 +107,14 @@ document.addEventListener('authReady', (e) => {
     const getAiSuggestionsModalBtn = document.getElementById('get-ai-suggestions-modal-btn');
     const aiModalPrompt = document.getElementById('ai-modal-prompt');
     const aiSuggestionsOutputModal = document.getElementById('ai-suggestions-output-modal');
+
+    // --- NEW AI Playtest Elements ---
+    const playAiBtn = document.getElementById('play-ai-btn');
+    const aiPlayArea = document.getElementById('ai-play-area');
+    const aiBattlefieldEl = document.getElementById('ai-battlefield');
+    const aiHandEl = document.getElementById('ai-hand');
+    const analyzeDeckBtn = document.getElementById('analyze-deck-btn');
+    const aiModalTitle = document.getElementById('ai-modal-title');
 
     // --- NEW Ratings & Comments Elements ---
     const deckCommentForm = document.getElementById('deck-comment-form');
@@ -567,8 +578,19 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    const initializePlaytest = () => {
-        if (!deckToShare) return;
+    // --- PLAYTEST FUNCTIONS ---
+    const startSinglePlayerPlaytest = () => {
+        if (!deckToShare) {
+            alert("Please view a deck first before trying to test a hand.");
+            return;
+        }
+        if (!playtestModal) {
+            console.error("Playtest modal element not found.");
+            return;
+        }
+        
+        isPlayingVsAI = false;
+        aiPlayArea.classList.add('hidden');
         
         playtestState.deck = [];
         deckToShare.cards.forEach(card => {
@@ -585,6 +607,78 @@ document.addEventListener('authReady', (e) => {
         drawCards(7);
         renderPlaytestState();
         openModal(playtestModal);
+    };
+
+    const startVsAIPlaytest = () => {
+        if (!deckToShare) {
+             alert("Please view a deck first before trying to play vs AI.");
+             return;
+        }
+         if (!playtestModal) {
+            console.error("Playtest modal element not found.");
+            return;
+        }
+
+        isPlayingVsAI = true;
+        aiPlayArea.classList.remove('hidden');
+
+        playtestState.deck = [];
+        aiPlaytestState.deck = [];
+
+        // Split the deck into two identical decks
+        deckToShare.cards.forEach(card => {
+            for (let i = 0; i < card.quantity; i++) {
+                playtestState.deck.push({ ...card, instanceId: Math.random() });
+                aiPlaytestState.deck.push({ ...card, instanceId: Math.random() });
+            }
+        });
+
+        // Shuffle decks
+        playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
+        aiPlaytestState.library = [...aiPlaytestState.deck].sort(() => Math.random() - 0.5);
+
+        // Draw opening hands
+        playtestState.hand = [];
+        aiPlaytestState.hand = [];
+        for (let i = 0; i < 7; i++) {
+             if (playtestState.library.length > 0) playtestState.hand.push(playtestState.library.pop());
+             if (aiPlaytestState.library.length > 0) aiPlaytestState.hand.push(aiPlaytestState.library.pop());
+        }
+
+        playtestState.battlefield = [];
+        aiPlaytestState.battlefield = [];
+        playtestState.graveyard = [];
+        
+        renderPlaytestState();
+        openModal(playtestModal);
+        
+        // AI takes its first turn
+        setTimeout(aiTurn, 2000);
+    };
+
+    const aiTurn = () => {
+        if (!isPlayingVsAI) return;
+
+        // Simple AI logic: play the first available non-land card
+        const cardToPlayIndex = aiPlaytestState.hand.findIndex(c => !c.type_line.includes('Land'));
+        if (cardToPlayIndex > -1) {
+            const card = aiPlaytestState.hand.splice(cardToPlayIndex, 1)[0];
+            aiPlaytestState.battlefield.push(card);
+        } else {
+            // Or just play a land if nothing else is available
+            const landIndex = aiPlaytestState.hand.findIndex(c => c.type_line.includes('Land'));
+            if(landIndex > -1) {
+                const land = aiPlaytestState.hand.splice(landIndex, 1)[0];
+                aiPlaytestState.battlefield.push(land);
+            }
+        }
+        
+        // AI draws a card for its turn
+        if (aiPlaytestState.library.length > 0) {
+            aiPlaytestState.hand.push(aiPlaytestState.library.pop());
+        }
+        
+        renderPlaytestState();
     };
 
     const drawCards = (numToDraw) => {
@@ -620,6 +714,11 @@ document.addEventListener('authReady', (e) => {
 
         renderZone(handEl, playtestState.hand);
         renderZone(battlefieldEl, playtestState.battlefield);
+
+        if (isPlayingVsAI) {
+            renderZone(aiHandEl, aiPlaytestState.hand);
+            renderZone(aiBattlefieldEl, aiPlaytestState.battlefield);
+        }
     };
 
     const createPlaytestCard = (card) => {
@@ -642,11 +741,17 @@ document.addEventListener('authReady', (e) => {
         if (!zoneEl) return;
         
         const cardInstanceId = parseFloat(e.dataTransfer.getData('text/plain'));
-        const newZone = zoneEl.id.includes('battlefield') ? 'battlefield' : 'hand';
-        
         let cardToMove = null;
         let originalZone = null;
+        let newZone = null;
 
+        if (zoneEl.id === 'playtest-battlefield') {
+            newZone = 'battlefield';
+        } else if (zoneEl.id === 'playtest-hand') {
+            newZone = 'hand';
+        }
+
+        // Determine if the card is from the player's hand or battlefield
         if (playtestState.hand.some(c => c.instanceId === cardInstanceId)) {
             originalZone = 'hand';
             cardToMove = playtestState.hand.find(c => c.instanceId === cardInstanceId);
@@ -1028,7 +1133,7 @@ document.addEventListener('authReady', (e) => {
             formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
             if (selectedTcg !== 'all' && formats[selectedTcg]) {
                 formats[selectedTcg].forEach(format => {
-                    formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
+                    formatFilterButtons.innerHTML += `<option value="${format}">${format}</option>`;
                 });
                 formatFilterContainer.classList.remove('hidden');
             } else {
@@ -1048,11 +1153,12 @@ document.addEventListener('authReady', (e) => {
     handEl.addEventListener('dragover', (e) => e.preventDefault());
     battlefieldEl.addEventListener('drop', handleDrop);
     handEl.addEventListener('drop', handleDrop);
-    testHandBtn.addEventListener('click', initializePlaytest);
+    testHandBtn.addEventListener('click', startSinglePlayerPlaytest);
     closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
     playtestDrawBtn.addEventListener('click', () => drawCards(1));
     playtestMulliganBtn.addEventListener('click', takeMulligan);
-    playtestResetBtn.addEventListener('click', initializePlaytest);
+    playtestResetBtn.addEventListener('click', isPlayingVsAI ? startVsAIPlaytest : startSinglePlayerPlaytest);
+    playAiBtn.addEventListener('click', startVsAIPlaytest);
     shareDeckBtn.addEventListener('click', async () => {
         if (!user || !deckToShare) {
             alert("Please log in and select a deck to share.");
@@ -1106,7 +1212,23 @@ document.addEventListener('authReady', (e) => {
     
     // --- AI MODAL LOGIC (SECURE) ---
     openAiModalBtn.addEventListener('click', () => {
+        aiModalTitle.textContent = 'AI Deck Advisor';
+        aiModalPrompt.value = '';
+        aiSuggestionsOutputModal.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your suggestions will appear here.</p>`;
         openModal(aiSuggestionsModal);
+    });
+    
+    analyzeDeckBtn.addEventListener('click', () => {
+        if (!currentDeckInView) {
+            alert("Please view a deck first.");
+            return;
+        }
+        aiModalTitle.textContent = `AI Analysis of ${currentDeckInView.name}`;
+        aiModalPrompt.value = `Analyze my ${currentDeckInView.format} deck. What are its strengths and weaknesses? How should I play it?`;
+        openModal(aiSuggestionsModal);
+        
+        // Automatically trigger the analysis
+        getAiSuggestionsModalBtn.click();
     });
 
     closeAiModalBtn.addEventListener('click', () => {
@@ -1115,9 +1237,9 @@ document.addEventListener('authReady', (e) => {
 
     getAiSuggestionsModalBtn.addEventListener('click', async () => {
         const userPrompt = aiModalPrompt.value.trim();
-        const currentDecklist = decklistInput.value.trim();
-        const format = deckFormatSelect.value;
-        const tcg = deckTcgSelect.value;
+        const currentDecklist = decklistInput.value.trim() || currentDeckInView?.cards?.map(c => `${c.quantity} ${c.name}`).join('\n') || '';
+        const format = deckFormatSelect.value || currentDeckInView?.format;
+        const tcg = deckTcgSelect.value || currentDeckInView?.tcg;
 
         if (!userPrompt && !currentDecklist) {
             alert("Please provide a prompt or a decklist for the AI to work with.");
