@@ -350,7 +350,14 @@ if (!firebase.apps.length) {
             closeModal(registerModal);
             
             try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
+                
+            const idTokenResult = await user.getIdTokenResult(true);
+            const isAdmin = idTokenResult.claims.isAdmin === true;
+            
+            // Centralized access control check
+            handleAdminAccess(isAdmin);
+            
+            const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists) {
                     console.warn("User document not found. Signing out.");
                     auth.signOut();
@@ -358,7 +365,7 @@ if (!firebase.apps.length) {
                 }
                 const userData = userDoc.data();
                 window.HatakeSocial.currentUserData = userData;
-                const isAdmin = userData.isAdmin === true;
+                // const isAdmin = userData.isAdmin === true; // This is now handled by the token check above
                 const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
 
                 // 1. Populate Header User Actions (Dynamic Injection)
@@ -397,6 +404,7 @@ if (!firebase.apps.length) {
 
                 // 2. Setup Notification Listener
                 if (unsubscribeNotifications) unsubscribeNotifications();
+            handleAdminAccess(false); // No user, so not an admin
                 unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
                     const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
                     const countEl = document.getElementById('notification-count');
@@ -484,3 +492,24 @@ if (!firebase.apps.length) {
         document.getElementById('notification-dropdown')?.classList.add('hidden');
     });
 });
+
+
+function handleAdminAccess(isAdmin) {
+    const currentPage = window.location.pathname.split('/').pop();
+
+    // Redirect non-admins from protected pages
+    if ((currentPage === 'admin.html' || currentPage === 'create-article.html') && !isAdmin) {
+        console.log('User is not an admin. Redirecting to home.');
+        window.location.href = 'index.html';
+    }
+
+    // Show/hide the "Write New Post" button on the articles page
+    const writeArticleBtn = document.getElementById('write-new-article-btn');
+    if (writeArticleBtn) {
+        if (isAdmin) {
+            writeArticleBtn.classList.remove('hidden');
+        } else {
+            writeArticleBtn.classList.add('hidden');
+        }
+    }
+}

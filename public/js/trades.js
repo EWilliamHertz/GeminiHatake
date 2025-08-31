@@ -1,4 +1,8 @@
-/**
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    console.log("Auth is ready for trades.js");
+
+    // Original script content starts here
+    /**
  * HatakeSocial - Advanced Trades Page Script (v20.3 - Complete Code with Final Fix)
  *
  * This script provides a comprehensive and secure trading system.
@@ -530,4 +534,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Run Initialization ---
         initializePage();
     });
+});
+    // Original script content ends here
 });
