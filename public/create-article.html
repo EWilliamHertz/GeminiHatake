@@ -93,12 +93,19 @@
         </div>
     </div>
     
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
-
+<!-- Firebase and custom scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+</script>
     <script>
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -143,32 +150,6 @@
                 sidebarOverlay.classList.add('hidden');
             });
         }
-    </script>
-    <script>
-        document.addEventListener('authReady', async (event) => {
-            const user = event.detail.user;
-
-            if (user) {
-                try {
-                    // Force a refresh of the token to get the latest claims.
-                    const idTokenResult = await user.getIdTokenResult(true); 
-
-                    if (idTokenResult.claims.isAdmin) {
-                        // User is an admin, show the page.
-                        document.body.style.display = 'block';
-                    } else {
-                        // User is not an admin, redirect.
-                        window.location.href = '/articles.html';
-                    }
-                } catch (error) {
-                    console.error("Error verifying admin status:", error);
-                    window.location.href = '/articles.html'; // Redirect on error
-                }
-            } else {
-                // No user is logged in, redirect.
-                window.location.href = '/articles.html';
-            }
-        });
     </script>
 </body>
 </html>

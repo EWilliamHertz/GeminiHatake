@@ -404,7 +404,6 @@ if (!firebase.apps.length) {
 
                 // 2. Setup Notification Listener
                 if (unsubscribeNotifications) unsubscribeNotifications();
-            handleAdminAccess(false); // No user, so not an admin
                 unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
                     const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
                     const countEl = document.getElementById('notification-count');
@@ -452,6 +451,9 @@ if (!firebase.apps.length) {
             if (friendRequestHandshakeListener) friendRequestHandshakeListener();
             if (unsubscribeNotifications) unsubscribeNotifications();
 
+            // Handle admin access for logged-out users (will cause redirect from protected pages)
+            handleAdminAccess(false);
+
             const loginButtonsHTML = `
                 <div class="space-x-2">
                     <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Login</button>
@@ -496,20 +498,24 @@ if (!firebase.apps.length) {
 
 function handleAdminAccess(isAdmin) {
     const currentPage = window.location.pathname.split('/').pop();
+    const adminPages = ['admin.html', 'create-article.html'];
 
-    // Redirect non-admins from protected pages
-    if ((currentPage === 'admin.html' || currentPage === 'create-article.html') && !isAdmin) {
-        console.log('User is not an admin. Redirecting to home.');
-        window.location.href = 'index.html';
+    // Handle visibility and redirection for admin pages
+    if (adminPages.includes(currentPage)) {
+        if (isAdmin) {
+            // User is an admin, show the page content.
+            document.body.style.display = 'block';
+        } else {
+            // User is not an admin or is logged out, redirect.
+            console.log('User is not an admin. Redirecting to home.');
+            window.location.href = 'index.html';
+            return; // Stop further execution
+        }
     }
 
     // Show/hide the "Write New Post" button on the articles page
     const writeArticleBtn = document.getElementById('write-new-article-btn');
     if (writeArticleBtn) {
-        if (isAdmin) {
-            writeArticleBtn.classList.remove('hidden');
-        } else {
-            writeArticleBtn.classList.add('hidden');
-        }
+        writeArticleBtn.classList.toggle('hidden', !isAdmin);
     }
 }
