@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- KRITISK: SEO Meta Tags from Analysis -->
+    <title>HatakeSocial - Ultimate TCG Social Platform | Trading Cards</title>
+    <meta name="description" content="Join the ultimate TCG social platform for Magic, Pokemon, & Yu-Gi-Oh players. Share decks, find tournaments, and connect with a global trading card game community.">
+    <meta name="keywords" content="TCG social platform, trading card game community, TCG deck builder, Pokemon TCG community, Magic the Gathering social, TCG tournament finder, TCG collection tracker">
+
+    <!-- Open Graph Meta Tags for Social Sharing -->
+    <meta property="og:title" content="HatakeSocial - The Ultimate TCG Social Platform">
+    <meta property="og:description" content="The social platform every TCG player needs to build decks, find tournaments, and connect with players worldwide.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.hatake.eu">
+    <meta property="og:image" content="https://placehold.co/1200x630/111827/d1d5db?text=HatakeSocial">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --background-dark: #111827;
+            --text-light: #d1d5db;
+            --text-lighter: #9ca3af;
+            --accent-indigo: #4f46e5;
+            --accent-pink: #ec4899;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-light);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, var(--accent-indigo), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .modal-backdrop {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="bg-gray-900/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-50 border-b border-gray-800">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-white">Hatake<span class="text-indigo-400">Social</span></a>
+            <div class="hidden md:flex items-center space-x-8">
+                <div class="group relative">
+                    <button class="text-gray-300 hover:text-white transition-colors">Features</button>
+                    <div class="absolute hidden group-hover:block bg-gray-800 rounded-md shadow-lg mt-2 py-2 w-48 border border-gray-700">
+                        <a href="#feature-feed" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Social Feed</a>
+                        <a href="#feature-deckbuilder" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Deck Builder</a>
+                        <a href="#feature-collection" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Collection Tracker</a>
+                        <a href="#feature-marketplace" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Marketplace</a>
+                        <a href="#feature-events" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Event Finder</a>
+                    </div>
+                </div>
+                <a href="#community" class="text-gray-300 hover:text-white transition-colors">Community</a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">Blog</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="login-btn-nav" class="text-gray-300 hover:text-white transition-colors">Log In</button>
+                <button id="register-btn-nav" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors">Sign Up Free</button>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="pt-32 pb-20 bg-gray-900">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4">
+                    HatakeSocial - The Ultimate <span class="gradient-text">TCG Social Platform</span>
+                </h1>
+                <p class="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-8">
+                    Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Yu-Gi-Oh! fans. Your TCG journey starts here.
+                </p>
+                <button id="register-btn-hero" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block">
+                    Join the Community
+                </button>
+            </div>
+        </section>
+
+        <!-- Expanded Features Section -->
+        <section class="py-24 space-y-20">
+            <!-- Feature: Social Feed -->
+            <div id="feature-feed" class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+                <div class="md:pr-8">
+                    <h2 class="text-3xl font-bold text-white mb-4">The Heart of the Community: Your Social Feed</h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-6">Dive into a dynamic feed buzzing with the latest from the TCG world. Share your latest pack openings, showcase your prized cards, and discuss metagame shifts with friends and followers. Our feed is your central hub for news, community content, and strategy discussions, tailored to the games you love.</p>
+                    <a href="#feature-deckbuilder" class="text-indigo-400 font-semibold hover:text-indigo-300">Explore the Deck Builder &rarr;</a>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-2xl">
+                    <img src="https://i.imgur.com/tvJEQYU.png" alt="Screenshot of the HatakeSocial social feed in action." class="w-full h-full object-cover">
+                </div>
+            </div>
+
+            <!-- Feature: Deck Builder -->
+            <div id="feature-deckbuilder" class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+                <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
+                    <img src="https://i.imgur.com/SLaX140.png" alt="Screenshot of the intuitive and powerful deck builder interface." class="w-full h-full object-cover">
+                </div>
+                <div class="md:pl-8">
+                    <h2 class="text-3xl font-bold text-white mb-4">Advanced Deck Builder</h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-6">Unleash your creativity with our state-of-the-art deck building tool. Access comprehensive, up-to-date card databases for popular TCGs. Build and test your creations with an intuitive interface, get detailed analytics on your mana curve and card types, and share your masterpiece with the community or import popular meta decks with a single click.</p>
+                    <a href="#feature-collection" class="text-indigo-400 font-semibold hover:text-indigo-300">Track Your Collection &rarr;</a>
+                </div>
+            </div>
+
+            <!-- Feature: Collection Tracker -->
+            <div id="feature-collection" class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+                <div class="md:pr-8">
+                    <h2 class="text-3xl font-bold text-white mb-4">Your Collection, Digitized</h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-6">Digitize your physical collection with our powerful tracking tool. Easily add cards, monitor the value of your entire portfolio with real-time market data, and create detailed wantlists. Our collection tracker makes managing your assets and preparing for trades simpler and more organized than ever before.</p>
+                     <a href="#feature-marketplace" class="text-indigo-400 font-semibold hover:text-indigo-300">Visit the Marketplace &rarr;</a>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-2xl">
+                    <img src="https://i.imgur.com/1ehyX2h.png" alt="Screenshot of a user's card collection page with value tracking." class="w-full h-full object-cover">
+                </div>
+            </div>
+            
+            <!-- Feature: Marketplace -->
+            <div id="feature-marketplace" class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+                 <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
+                    <img src="https://i.imgur.com/QyFZZiJ.png" alt="Screenshot of the secure trading and marketplace interface." class="w-full h-full object-cover">
+                </div>
+                <div class="md:pl-8">
+                    <h2 class="text-3xl font-bold text-white mb-4">Marketplace & Secure Trading</h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-6">Connect with players to buy, sell, and trade with confidence. Our integrated marketplace allows you to list singles or entire decks. The secure trading system, complete with user reviews and an escrow-like feature, ensures your valuable cards are protected throughout every transaction, fostering a safe and trustworthy community market.</p>
+                     <a href="#feature-events" class="text-indigo-400 font-semibold hover:text-indigo-300">Find an Event &rarr;</a>
+                </div>
+            </div>
+
+             <!-- Feature: Event Finder -->
+            <div id="feature-events" class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+                <div class="md:pr-8">
+                    <h2 class="text-3xl font-bold text-white mb-4">Find Your Next Tournament</h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-6">Ready to test your skills? Our tournament finder helps you discover local and online events. Filter by game, format, and location to find your next competition. From Friday Night Magic at your local game store to large-scale online championships, you'll never miss a chance to compete, win prizes, and make a name for yourself.</p>
+                     <a href="#community" class="text-indigo-400 font-semibold hover:text-indigo-300">Join the Community &rarr;</a>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-2xl">
+                    <img src="https://placehold.co/600x400/1f2937/4f46e5?text=Event+Finder+Map" alt="Screenshot of the event finder showing local tournaments on a map." class="w-full h-full object-cover">
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <section id="community" class="py-20 bg-gray-900">
+            <div class="container mx-auto px-6 text-center">
+                 <h2 class="text-3xl md:text-4xl font-bold text-white">Ready to Join the Global TCG Community?</h2>
+                 <p class="text-lg text-gray-400 max-w-2xl mx-auto mt-4 mb-8">
+                     Your next favorite deck, your next rival, and your next tournament win are all waiting. Sign up for free and become part of the ultimate TCG social platform today.
+                 </p>
+                 <button id="register-btn-cta" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block">
+                    Create Your Free Account
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800">
+        <div class="container mx-auto px-6 py-8 text-center text-gray-400">
+            <p>&copy; 2025 HatakeSocial. All rights reserved.</p>
+            <div class="mt-4 space-x-6">
+                <a href="#" class="hover:text-white transition-colors">About</a>
+                <a href="#" class="hover:text-white transition-colors">Contact</a>
+                <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/70 modal-backdrop"></div>
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md mx-4 relative modal-content opacity-0 transform -translate-y-10">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-white" id="close-login-modal">
+                <i data-lucide="x"></i>
+            </button>
+            <h2 class="text-2xl font-bold text-white text-center mb-6">Welcome Back</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="login-email" class="block text-gray-400 mb-2">Email</label>
+                    <input type="email" id="login-email" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="login-password" class="block text-gray-400 mb-2">Password</label>
+                    <input type="password" id="login-password" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-md transition-colors">Log In</button>
+                 <div id="login-error" class="text-red-400 text-sm mt-4 text-center"></div>
+            </form>
+            <div class="my-6 flex items-center">
+                <hr class="w-full border-gray-600"><span class="px-3 text-gray-500 text-sm">OR</span><hr class="w-full border-gray-600">
+            </div>
+            <button id="google-signin-btn-login" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-md transition-colors flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                Continue with Google
+            </button>
+            <p class="text-center text-gray-400 text-sm mt-6">
+                Don't have an account? <button id="switch-to-register" class="text-indigo-400 hover:underline font-semibold">Sign Up</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/70 modal-backdrop"></div>
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-md mx-4 relative modal-content opacity-0 transform -translate-y-10">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-white" id="close-register-modal">
+                <i data-lucide="x"></i>
+            </button>
+            <h2 class="text-2xl font-bold text-white text-center mb-6">Create Your Account</h2>
+            <form id="register-form">
+                 <div class="mb-4">
+                    <label for="register-email" class="block text-gray-400 mb-2">Email</label>
+                    <input type="email" id="register-email" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="register-password" class="block text-gray-400 mb-2">Password</label>
+                    <input type="password" id="register-password" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-md transition-colors">Create Account</button>
+                 <div id="register-error" class="text-red-400 text-sm mt-4 text-center"></div>
+            </form>
+             <div class="my-6 flex items-center">
+                <hr class="w-full border-gray-600"><span class="px-3 text-gray-500 text-sm">OR</span><hr class="w-full border-gray-600">
+            </div>
+             <button id="google-signin-btn-register" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-md transition-colors flex items-center justify-center">
+                 <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                Sign Up with Google
+            </button>
+            <p class="text-center text-gray-400 text-sm mt-6">
+                Already have an account? <button id="switch-to-login" class="text-indigo-400 hover:underline font-semibold">Log In</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+            authDomain: "hatakesocial-88b5e.firebaseapp.com",
+            projectId: "hatakesocial-88b5e",
+            storageBucket: "hatakesocial-88b5e.appspot.com",
+            messagingSenderId: "1091697032506",
+            appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+            measurementId: "G-EH0PS2Z84J"
+        };
+
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword,
+            GoogleAuthProvider,
+            signInWithPopup
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Modal Handling
+        const loginModal = document.getElementById('login-modal');
+        const registerModal = document.getElementById('register-modal');
+        const loginModalContent = loginModal.querySelector('.modal-content');
+        const registerModalContent = registerModal.querySelector('.modal-content');
+
+        function openModal(modal) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.querySelector('.modal-backdrop').classList.remove('opacity-0');
+                modal.querySelector('.modal-content').classList.remove('opacity-0', '-translate-y-10');
+            }, 10);
+        }
+
+        function closeModal(modal) {
+            modal.querySelector('.modal-backdrop').classList.add('opacity-0');
+            modal.querySelector('.modal-content').classList.add('opacity-0', '-translate-y-10');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        document.getElementById('login-btn-nav').addEventListener('click', () => openModal(loginModal));
+        document.getElementById('register-btn-nav').addEventListener('click', () => openModal(registerModal));
+        document.getElementById('register-btn-hero').addEventListener('click', () => openModal(registerModal));
+        document.getElementById('register-btn-cta').addEventListener('click', () => openModal(registerModal));
+
+        document.getElementById('close-login-modal').addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('close-register-modal').addEventListener('click', () => closeModal(registerModal));
+        loginModal.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(loginModal));
+        registerModal.querySelector('.modal-backdrop').addEventListener('click', () => closeModal(registerModal));
+        
+        document.getElementById('switch-to-register').addEventListener('click', () => {
+            closeModal(loginModal);
+            openModal(registerModal);
+        });
+         document.getElementById('switch-to-login').addEventListener('click', () => {
+            closeModal(registerModal);
+            openModal(loginModal);
+        });
+
+
+        // Firebase Authentication
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginError = document.getElementById('login-error');
+        const registerError = document.getElementById('register-error');
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+            
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    window.location.href = '/app.html';
+                })
+                .catch((error) => {
+                    loginError.textContent = error.message;
+                });
+        });
+
+        registerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = registerForm['register-email'].value;
+            const password = registerForm['register-password'].value;
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    window.location.href = '/app.html';
+                })
+                .catch((error) => {
+                    registerError.textContent = error.message;
+                });
+        });
+
+        function handleGoogleSignIn() {
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                     window.location.href = '/app.html';
+                }).catch((error) => {
+                    // Display error in the currently open modal
+                    if (!loginModal.classList.contains('hidden')) {
+                        loginError.textContent = error.message;
+                    } else if (!registerModal.classList.contains('hidden')) {
+                        registerError.textContent = error.message;
+                    }
+                });
+        }
+
+        document.getElementById('google-signin-btn-login').addEventListener('click', handleGoogleSignIn);
+        document.getElementById('google-signin-btn-register').addEventListener('click', handleGoogleSignIn);
+
+    </script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
+
+

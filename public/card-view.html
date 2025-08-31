@@ -1,37 +1,25 @@
 <!DOCTYPE html>
 
-<html class="dark" lang="en">
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>
-   Messages - HatakeSocial
+   Card View - HatakeSocial
   </title>
 <script src="https://cdn.tailwindcss.com">
 </script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
 <link href="css/style.css" rel="stylesheet"/>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js">
+<!-- Chart.js for price graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
 </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-<!-- Toast Notification Container -->
-<div id="toast-container">
-</div>
 <div class="flex h-screen"><div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
 <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
 <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-<a class="flex flex-col items-center space-y-1" href="index.html">
+<a class="flex flex-col items-center space-y-1" href="app.html">
 <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
 <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
        HatakeSocial
@@ -39,14 +27,14 @@
 </a>
 </div>
 <nav class="flex-1 px-4 py-6 space-y-2">
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="index.html">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
 <i class="fas fa-home w-6 text-center">
 </i>
 <span class="ml-3">
        Feed
       </span>
 </a>
-<a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="messages.html">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
 <i class="fas fa-comments w-6 text-center">
 </i>
 <span class="ml-3">
@@ -132,10 +120,8 @@
 </a>
 </nav>
 <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
-<!-- User info will be populated by auth.js -->
 </div>
 </aside>
-<!-- Main Content -->
 <main class="flex-1 flex flex-col overflow-y-auto">
 <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
 <div class="flex items-center">
@@ -162,89 +148,203 @@
 </div>
 </div>
 </header>
-<!-- Chat Layout -->
-<div class="flex-1 flex overflow-hidden">
-<!-- Conversations List -->
-<div class="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col" id="conversations-list">
-<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-<button class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center" id="new-conversation-btn">
-<i class="fas fa-plus mr-2">
-</i>
-        New Message
-       </button>
-</div>
-<div class="flex-1 overflow-y-auto" id="conversations-container">
-<p class="p-4 text-center text-gray-500">
-        Loading conversations...
-       </p>
+<!-- Header Section -->
+<main class="container mx-auto px-4 py-8 flex-grow">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="card-view-container">
+<!-- Card Image and Details Column -->
+<div class="md:col-span-1 space-y-4" id="card-info-col">
+<img alt="Card Image" class="w-full rounded-lg shadow-xl sticky top-24" id="card-image" src="https://placehold.co/370x516/cccccc/969696?text=Loading..."/>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md" id="card-details">
+<!-- Card details will be loaded here by JS -->
 </div>
 </div>
-<!-- Chat Window -->
-<div class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900" id="chat-window">
-<div class="flex-1 flex flex-col items-center justify-center text-center p-4" id="chat-placeholder">
-<i class="fas fa-comments text-6xl text-gray-300 dark:text-gray-600">
-</i>
-<h2 class="mt-4 text-2xl font-semibold">
-        Select a conversation
-       </h2>
-<p class="text-gray-500 dark:text-gray-400">
-        Choose from your existing conversations or start a new one.
-       </p>
+<!-- Price and Listings Column -->
+<div class="md:col-span-2 space-y-8" id="listings-col">
+<div>
+<h2 class="text-2xl font-bold mb-2 text-gray-800 dark:text-white">
+         Price History
+        </h2>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md h-64">
+<canvas id="price-chart">
+</canvas>
 </div>
-<div class="hidden flex-1 flex flex-col" id="active-chat-container">
-<div class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" id="chat-header">
 </div>
-<div class="flex-1 p-4 overflow-y-auto space-y-2" id="messages-container">
+<div>
+<div class="flex flex-wrap gap-4 items-center justify-between mb-4">
+<h2 class="text-2xl font-bold text-gray-800 dark:text-white">
+          Available for Sale
+         </h2>
+<div class="flex flex-wrap gap-4 items-center" id="filter-controls">
+<select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-condition">
+<option value="all">
+            All Conditions
+           </option>
+<option value="Near Mint">
+            Near Mint
+           </option>
+<option value="Lightly Played">
+            Lightly Played
+           </option>
+<option value="Moderately Played">
+            Moderately Played
+           </option>
+<option value="Heavily Played">
+            Heavily Played
+           </option>
+<option value="Damaged">
+            Damaged
+           </option>
+</select>
+<select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="filter-foil">
+<option value="all">
+            Foil &amp; Non-Foil
+           </option>
+<option value="true">
+            Foil Only
+           </option>
+<option value="false">
+            Non-Foil Only
+           </option>
+</select>
+<select class="p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="sort-by">
+<option value="price-asc">
+            Sort by Price: Low to High
+           </option>
+<option value="price-desc">
+            Sort by Price: High to Low
+           </option>
+<option value="rating-desc">
+            Sort by Seller Rating
+           </option>
+</select>
 </div>
-<div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-<form class="flex items-center space-x-3" id="message-form">
-<input autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="message-input" placeholder="Type a message..." type="text"/>
-<button class="bg-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-blue-700 flex-shrink-0" type="submit">
-<i class="fas fa-paper-plane">
-</i>
-</button>
-</form>
+</div>
+<!-- NEW: Shipping Info Placeholder -->
+<div class="mb-4" id="shipping-info-placeholder">
+</div>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden" id="listings-table-container">
+<!-- Listings table will be loaded here by JS -->
 </div>
 </div>
 </div>
 </div>
 </main>
+<!-- Login & Register Modals -->
+</main>
 </div>
-<!-- New Conversation Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" id="new-conversation-modal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-<h2 class="text-2xl font-bold mb-4">
-     Start a new conversation
-    </h2>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
-<div class="max-h-60 overflow-y-auto" id="user-search-results">
+<!-- Footer -->
+<footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+<div class="container mx-auto py-8 px-4">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       HatakeSocial
+      </h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">
+       The all-in-one platform for TCG enthusiasts.
+      </p>
 </div>
-<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="close-modal-btn">
-     Cancel
-    </button>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Company
+      </h3>
+<ul class="space-y-2 text-sm">
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
+         About Us
+        </a>
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
+         Partners
+        </a>
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
+         Contact
+        </a>
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Legal
+      </h3>
+<ul class="space-y-2 text-sm">
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+         Privacy Policy
+        </a>
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+         Terms of Service
+        </a>
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Display Options
+      </h3>
+<div class="flex items-center space-x-4">
+<div>
+<label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
+         Theme
+        </label>
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+<i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
+</i>
+<i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
+</i>
+</button>
+</div>
+<div id="currency-selector-container">
 </div>
 </div>
-<!-- New Conversation Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" id="new-conversation-modal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-<h2 class="text-2xl font-bold mb-4">
-     Start a new conversation
-    </h2>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
-<div class="max-h-60 overflow-y-auto" id="user-search-results">
-</div>
-<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="close-modal-btn">
-     Cancel
-    </button>
 </div>
 </div>
+<div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+<p>
+      © 2025 Hatake. All Rights Reserved.
+     </p>
+<div class="flex space-x-6 mt-4 md:mt-0">
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-twitter">
+</i>
+</a>
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-facebook-f">
+</i>
+</a>
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-instagram">
+</i>
+</a>
+</div>
+</div>
+</div>
+</footer>
+<!-- Messenger Widget -->
+<!-- Firebase and custom scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+</script>
 <script src="js/auth.js">
 </script>
-<script src="js/messages.js">
+<script src="js/card-view.js">
 </script>
 <script src="js/darkmode.js">
 </script>
-<!-- Login Modal -->
 <!-- Login Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
