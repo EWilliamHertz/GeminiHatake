@@ -1,11 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Merchandise Gallery - HatakeSocial</title>
-    <link rel="stylesheet" href="css/style.css">
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merchandise Gallery - HatakeSocial</title>
+<link href="css/style.css" rel="stylesheet"/>
+<style>
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -23,29 +24,28 @@
     </style>
 </head>
 <body>
-    <div id="sidebar-container"></div>
-    <div class="main-content">
-        <header>
-            <h1>Merchandise Photo Gallery</h1>
-        </header>
-        <main>
-            <p>A collection of photos showcasing our custom merchandise, straight from the source.</p>
-            <div id="gallery-container" class="gallery-grid">
-                <p>Loading images...</p>
-            </div>
-        </main>
-        <footer>
-             <p>&copy; 2025 HatakeSocial. All rights reserved.</p>
-             <nav>
-                <a href="about.html">About</a>
-                <a href="contact.html">Contact</a>
-                <a href="privacy.html">Privacy Policy</a>
-                <a href="terms.html">Terms of Service</a>
-            </nav>
-        </footer>
-    </div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+<div id="sidebar-container"></div>
+<div class="main-content">
+<header>
+<h1>Merchandise Photo Gallery</h1>
+</header>
+<main>
+<p>A collection of photos showcasing our custom merchandise, straight from the source.</p>
+<div class="gallery-grid" id="gallery-container">
+<p>Loading images...</p>
+</div>
+</main>
+<footer>
+<p>© 2025 HatakeSocial. All rights reserved.</p>
+<nav>
+<a href="about.html">About</a>
+<a href="contact.html">Contact</a>
+<a href="privacy.html">Privacy Policy</a>
+<a href="terms.html">Terms of Service</a>
+</nav>
+</footer>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
 </script>
@@ -59,9 +59,37 @@
 </script>
 <script src="js/auth.js">
 </script>
-</script>
 <script src="js/darkmode.js">
 </script>
-    <script src="js/gallery.js"></script>
+<script src="js/gallery.js"></script>
+<div class="minimized" id="messenger-widget-container">
+<div id="messenger-open-btn">
+<i class="fas fa-comments"></i>
+</div>
+<div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+<div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+
+<i class="fas fa-plus cursor-pointer hover:text-gray-200" id="widget-new-conversation-btn"></i>
+<span class="font-bold truncate" id="widget-main-header-text">Messages</span>
+<i class="fas fa-chevron-down" id="widget-toggle-icon"></i>
+</div>
+<div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col" id="messenger-widget-body">
+<div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+</div>
+</div>
+</div>
+</div>
+<script src="js/messenger.js"></script>
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+<h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+<div class="max-h-60 overflow-y-auto" id="user-search-results">
+</div>
+<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+            Cancel
+        </button>
+</div>
+</div>
 </body>
 </html>

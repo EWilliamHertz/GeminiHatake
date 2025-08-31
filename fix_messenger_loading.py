@@ -1,4 +1,15 @@
+import os
 
+def fix_messenger_js():
+    messenger_js_path = "public/js/messenger.js"
+    
+    # Check if the file exists before trying to modify it
+    if not os.path.exists(messenger_js_path):
+        print(f"Error: {messenger_js_path} not found. Please run the initial installation script first.")
+        return
+
+    # New, more robust content for messenger.js
+    new_messenger_js_content = """
 document.addEventListener('DOMContentLoaded', () => {
     const db = firebase.firestore();
     const auth = firebase.auth();
@@ -45,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         conversationsListener = db.collection('conversations')
             .where('participants', 'array-contains', currentUser.uid)
-            .orderBy('lastUpdated', 'desc')
+            .orderBy('lastMessageTimestamp', 'desc')
             .onSnapshot(async (querySnapshot) => {
                 try {
                     if (querySnapshot.empty) {
@@ -81,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="overflow-hidden">
                                 <p class="font-semibold truncate">${conv.otherUser.displayName || 'User'}</p>
                                 <p class="text-sm text-gray-500 truncate">${conv.data.lastMessage || ''}</p>
-                                <p class="text-xs text-gray-400">${formatTimestamp(conv.data.lastUpdated)}</p>
+                                <p class="text-xs text-gray-400">${formatTimestamp(conv.data.lastMessageTimestamp)}</p>
                             </div>
                         </div>
                     `).join('');
@@ -119,133 +130,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+    """
     
+    try:
+        with open(messenger_js_path, "w", encoding="utf-8") as f:
+            f.write(new_messenger_js_content)
+        print(f"Successfully updated {messenger_js_path} with a fix for the loading issue.")
+    except IOError as e:
+        print(f"Error writing to file {messenger_js_path}: {e}")
 
-// --- START: NEW CONVERSATION LOGIC ---
 
-// Wait for the DOM and currentUser to be ready
-document.addEventListener('DOMContentLoaded', () => {
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            initializeNewConversationLogic(user);
-        }
-    });
-});
-
-function initializeNewConversationLogic(currentUser) {
-    const db = firebase.firestore();
-    const newConversationModal = document.getElementById('new-conversation-modal');
-    const userSearchInput = document.getElementById('user-search-input');
-    const userSearchResults = document.getElementById('user-search-results');
-    const widgetNewConversationBtn = document.getElementById('widget-new-conversation-btn');
-    const closeModalBtns = document.querySelectorAll('.close-modal-btn');
-
-    if (widgetNewConversationBtn) {
-        widgetNewConversationBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent the header click from minimizing the widget
-            if (newConversationModal) {
-                newConversationModal.classList.remove('hidden');
-            }
-        });
-    }
-
-    closeModalBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (newConversationModal) {
-                newConversationModal.classList.add('hidden');
-                if (userSearchInput) userSearchInput.value = '';
-                if (userSearchResults) userSearchResults.innerHTML = '';
-            }
-        });
-    });
-
-    let searchTimeout;
-    if (userSearchInput) {
-        userSearchInput.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const searchTerm = userSearchInput.value.trim();
-                if (searchTerm.length > 1) {
-                    searchUsers(searchTerm, currentUser, db);
-                } else {
-                    if (userSearchResults) userSearchResults.innerHTML = '';
-                }
-            }, 300);
-        });
-    }
-}
-
-async function searchUsers(searchTerm, currentUser, db) {
-    const userSearchResults = document.getElementById('user-search-results');
-    if (!currentUser || !userSearchResults) return;
-    
-    try {
-        const querySnapshot = await db.collection('users')
-            .where('handle', '>=', searchTerm.toLowerCase())
-            .where('handle', '<=', searchTerm.toLowerCase() + '\uf8ff')
-            .limit(10)
-            .get();
-
-        userSearchResults.innerHTML = '';
-        if (querySnapshot.empty) {
-            userSearchResults.innerHTML = '<p class="text-gray-500 p-3 text-center">No users found.</p>';
-            return;
-        }
-
-        querySnapshot.forEach(doc => {
-            if (doc.id === currentUser.uid) return;
-            const userData = doc.data();
-            const userElement = document.createElement('div');
-            userElement.className = 'p-3 flex items-center hover:bg-gray-700 cursor-pointer rounded-md';
-            userElement.innerHTML = `
-                <img src="${userData.profilePic || 'https://placehold.co/40x40'}" alt="Avatar" class="w-10 h-10 rounded-full mr-3 object-cover">
-                <div>
-                    <p class="font-semibold">${userData.displayName || 'User'}</p>
-                    <p class="text-sm text-gray-400">@${userData.handle || 'handle'}</p>
-                </div>
-            `;
-            userElement.addEventListener('click', () => startConversation(doc.id, currentUser, db));
-            userSearchResults.appendChild(userElement);
-        });
-    } catch (error) {
-        console.error("Error searching users:", error);
-        userSearchResults.innerHTML = '<p class="text-red-500 p-3 text-center">Error searching for users.</p>';
-    }
-}
-
-async function startConversation(otherUserId, currentUser, db) {
-    const newConversationModal = document.getElementById('new-conversation-modal');
-    if (!currentUser) return;
-
-    try {
-        const conversationQuery = await db.collection('conversations')
-            .where('participants', 'in', [[currentUser.uid, otherUserId], [otherUserId, currentUser.uid]])
-            .get();
-
-        if (conversationQuery.empty) {
-            await db.collection('conversations').add({
-                participants: [currentUser.uid, otherUserId],
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                lastMessage: '',
-                isGroupChat: false,
-                participantInfo: {
-                    [currentUser.uid]: { read: true },
-                    [otherUserId]: { read: false }
-                }
-            });
-        } else {
-            console.log("Conversation already exists.");
-        }
-    } catch (error) {
-        console.error("Error starting conversation: ", error);
-    } finally {
-        if (newConversationModal) {
-            newConversationModal.classList.add('hidden');
-            const userSearchInput = document.getElementById('user-search-input');
-            const userSearchResults = document.getElementById('user-search-results');
-            if (userSearchInput) userSearchInput.value = '';
-            if (userSearchResults) userSearchResults.innerHTML = '';
-        }
-    }
-}
-// --- END: NEW CONVERSATION LOGIC ---
+if __name__ == "__main__":
+    fix_messenger_js()
