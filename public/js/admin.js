@@ -44,7 +44,7 @@ document.addEventListener('authReady', (e) => {
         }
         try {
             const idTokenResult = await user.getIdTokenResult(true); // Force refresh
-            if (idTokenResult.claims.admin) {
+            if (idTokenResult.claims.isAdmin) {
                 return true;
             } else {
                 adminContent.innerHTML = '<p class="text-center text-red-500 p-8">Access Denied. You do not have administrator privileges.</p>';
