@@ -8,7 +8,7 @@
 * - Automatically counts user posts.
 * - Handles following users and creating notifications.
 * - Automatically deletes product images from Storage when a product is deleted.
-* - Securely sets admin custom claims for user roles.
+* - Securely sets admin and content creator custom claims for user roles.
 * - Manages a secure escrow trading system with Stripe Connect.
 * - Proxies requests to the Gemini API to protect the API key.
 */
@@ -355,6 +355,27 @@ exports.setUserAdminClaim = functions.https.onCall(async (data, context) => {
     try {
         await admin.auth().setCustomUserClaims(targetUid, { admin: isAdmin });
         await db.collection('users').doc(targetUid).update({ isAdmin: isAdmin });
+        return { success: true, message: `User role for ${targetUid} updated.` };
+    } catch (error) {
+        console.error("Error setting custom claim:", error);
+        throw new functions.https.HttpsError('internal', 'An internal error occurred.');
+    }
+});
+
+/**
+* A callable Cloud Function to set the content creator custom claim on a user.
+*/
+exports.setContentCreatorClaim = functions.https.onCall(async (data, context) => {
+    if (context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'Only admins can set user roles.');
+    }
+    const { targetUid, isContentCreator } = data;
+    if (typeof targetUid !== 'string' || typeof isContentCreator !== 'boolean') {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid arguments provided.');
+    }
+    try {
+        await admin.auth().setCustomUserClaims(targetUid, { contentCreator: isContentCreator });
+        await db.collection('users').doc(targetUid).update({ isContentCreator: isContentCreator });
         return { success: true, message: `User role for ${targetUid} updated.` };
     } catch (error) {
         console.error("Error setting custom claim:", error);
