@@ -1,10 +1,21 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const db = firebase.firestore();
     const auth = firebase.auth();
 
     // Main Widget Elements
     const widgetContainer = document.getElementById('messenger-widget-container');
+
+    // Visibility logic based on user settings
+    if (widgetContainer) {
+        const isVisible = localStorage.getItem('messengerWidget-visible');
+        // Default to hidden if not set or explicitly set to false
+        if (isVisible === 'false' || isVisible === null) {
+            widgetContainer.classList.add('hidden');
+        } else {
+            widgetContainer.classList.remove('hidden');
+        }
+    }
+
     if (!widgetContainer) return;
 
     const openBtn = document.getElementById('messenger-open-btn');
@@ -264,4 +275,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-    

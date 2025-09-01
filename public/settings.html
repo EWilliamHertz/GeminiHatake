@@ -482,7 +482,7 @@
 </main>
 </main>
 </div>
-<div class="minimized" id="messenger-widget-container">
+<div id="messenger-widget-container">
 <div id="messenger-open-btn">
 <i class="fas fa-comments">
 </i>
@@ -636,7 +636,6 @@
 </script>
 <script src="js/darkmode.js">
 </script>
-<!-- Login Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -662,7 +661,6 @@
 </form>
 </div>
 </div>
-<!-- Register Modal -->
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
 <div class="flex justify-between items-center">
@@ -705,7 +703,6 @@
 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
 </div>
 <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-<!-- Cart items will be dynamically inserted here -->
 <p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
 </div>
 <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -725,8 +722,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         const toggleMessenger = document.getElementById('toggle-messenger');
 
-        // Set initial state of the toggle
-        if (localStorage.getItem('messengerWidget-visible') === 'false') {
+        // Set initial state of the toggle based on localStorage
+        const isVisible = localStorage.getItem('messengerWidget-visible');
+        if (isVisible === 'false' || isVisible === null) {
             toggleMessenger.checked = false;
         } else {
             toggleMessenger.checked = true;
@@ -735,13 +733,12 @@
         toggleMessenger.addEventListener('change', (e) => {
             localStorage.setItem('messengerWidget-visible', e.target.checked);
             
-            // Show/hide on other pages - this is just a placeholder, 
-            // the logic is in messenger.js to check local storage on load
+            // This provides immediate feedback on the settings page.
+            // The main logic is in messenger.js to ensure it works on all pages.
             const messengerWidget = document.getElementById('messenger-widget-container');
             if(messengerWidget) {
                 messengerWidget.classList.toggle('hidden', !e.target.checked);
             }
-
         });
     });
 </script>
