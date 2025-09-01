@@ -1,14 +1,24 @@
 /**
-* HatakeSocial - App Page (Feed) Script (v24 - Video & Polls)
+* HatakeSocial - App Page (Feed) Script (v26 - Fix Poll Media Upload Error)
 *
 * This script handles all logic for the main feed on app.html.
-* - NEW: Adds support for video uploads and poll creation.
-* - FIX: Adds robust error handling for Firestore queries. If a required index is missing for the feed, it displays an error message with a direct link to create it in the Firebase console.
-* - Implements infinite scroll for 'For You' and 'Friends' feeds.
-* - Uses skeleton loaders instead of "Loading..." text for a better UX.
-* - Provides real-time feedback on "Follow" buttons and handles follow/unfollow logic.
-* - Replaces all `alert()` calls with non-blocking toast notifications.
+* - FIX: Prevents a TypeError when creating a poll without media.
 */
+
+// Helper functions for modals
+const openModal = (modal) => {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+const closeModal = (modal) => {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
 
 const sanitizeHTML = (str) => {
 if (!str) return '';
@@ -95,8 +105,15 @@ if (post.poll) {
         `;
     }).join('');
 
+    const mediaHTML = post.mediaUrl
+            ? (post.mediaType.startsWith('image/')
+                ? `<img src="${sanitizeHTML(post.mediaUrl)}" class="w-full rounded-lg my-2">`
+                : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="w-full rounded-lg my-2"></video>`)
+            : '';
+
     postBodyHTML = `
         <div class="post-body-content">
+            ${mediaHTML}
             <p class="post-content-display mb-2 font-semibold text-gray-800 dark:text-gray-200">${sanitizeHTML(post.poll.question)}</p>
             <div class="poll-container">${pollOptionsHTML}</div>
         </div>
@@ -243,9 +260,6 @@ isFetchingPosts = false;
 allPostsLoaded = true;
 return;
 }
-// Firestore requires the first orderBy field to be the same as the inequality field.
-// To sort by timestamp, we'd need a composite index on [authorId, timestamp].
-// For simplicity, we'll fetch and sort client-side for the friends feed. A more scalable solution would use cloud functions to create a custom feed.
 query = db.collection('posts').where('authorId', 'in', currentUserFriends);
 break;
 case 'groups':
@@ -257,9 +271,9 @@ postsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-4
 groupPosts.forEach(post => postsContainer.appendChild(createPostElement(post)));
 }
 isFetchingPosts = false;
-allPostsLoaded = true; // Disable infinite scroll for groups for now.
+allPostsLoaded = true;
 return;
-default: // 'for-you'
+default:
 query = db.collection('posts').orderBy('timestamp', 'desc');
 break;
 }
@@ -271,7 +285,7 @@ query = query.startAfter(lastVisiblePost);
 const snapshot = await query.limit(POSTS_PER_PAGE).get();
 
 if (!loadMore) {
-postsContainer.innerHTML = ''; // Clear skeletons
+postsContainer.innerHTML = '';
 }
 let posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -297,10 +311,8 @@ console.error("Error loading posts:", error);
 if (error.code === 'failed-precondition') {
 let indexLink;
 if (activeFeedType === 'friends') {
-// This error suggests a composite index is needed for the friends feed
 indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
 } else {
-// This is for the default 'for-you' feed
 indexLink = generateIndexCreationLink('posts', [{ name: 'timestamp', order: 'desc' }]);
 }
 displayIndexError(postsContainer, indexLink);
@@ -527,8 +539,12 @@ const closePollModalBtn = document.getElementById('closePollModal');
 const pollForm = document.getElementById('pollForm');
 const addPollOptionBtn = document.getElementById('addPollOptionBtn');
 const pollOptionsContainer = document.getElementById('pollOptionsContainer');
+const attachPollMediaBtn = document.getElementById('attachPollMediaBtn');
+const pollMediaUpload = document.getElementById('pollMediaUpload');
+const pollMediaFileName = document.getElementById('pollMediaFileName');
 
 let selectedFile = null;
+let selectedPollMediaFile = null;
 
 feedTabs?.addEventListener('click', (e) => {
 const button = e.target.closest('.feed-tab-button');
@@ -615,13 +631,11 @@ postStatusMessage.textContent = `Selected: ${selectedFile.name}`;
 });
 
 createPollBtn?.addEventListener('click', () => {
-pollModal.classList.remove('hidden');
-pollModal.classList.add('flex');
+openModal(pollModal);
 });
 
 closePollModalBtn?.addEventListener('click', () => {
-pollModal.classList.add('hidden');
-pollModal.classList.remove('flex');
+closeModal(pollModal)
 });
 
 addPollOptionBtn?.addEventListener('click', () => {
@@ -640,50 +654,78 @@ showToast("You can have a maximum of 10 options.", "info");
 }
 });
 
+attachPollMediaBtn?.addEventListener('click', () => {
+    pollMediaUpload.click();
+});
+
+pollMediaUpload?.addEventListener('change', (e) => {
+    selectedPollMediaFile = e.target.files[0];
+    if (selectedPollMediaFile) {
+        pollMediaFileName.textContent = selectedPollMediaFile.name;
+    } else {
+        pollMediaFileName.textContent = '';
+    }
+});
+
 pollForm?.addEventListener('submit', async (e) => {
-e.preventDefault();
-const question = document.getElementById('pollQuestion').value.trim();
-const options = Array.from(document.querySelectorAll('.poll-option'))
-.map(input => input.value.trim())
-.filter(text => text.length > 0);
+    e.preventDefault();
+    const question = document.getElementById('pollQuestion').value.trim();
+    const options = Array.from(document.querySelectorAll('.poll-option'))
+        .map(input => input.value.trim())
+        .filter(text => text.length > 0);
 
-if (!question || options.length < 2) {
-showToast("A poll must have a question and at least two options.", "error");
-return;
-}
-const pollData = {
-question: question,
-options: options.map(optionText => ({ text: optionText, votes: 0 })),
-voters: {}
-};
+    if (!question || options.length < 2) {
+        showToast("A poll must have a question and at least two options.", "error");
+        return;
+    }
 
-try {
-    const userDoc = await db.collection('users').doc(user.uid).get();
-    if (!userDoc.exists) throw new Error("User profile not found.");
-    const userData = userDoc.data();
-
-    const postData = {
-        author: userData.displayName || 'Anonymous',
-        authorId: user.uid,
-        authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-        content: '',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        likes: [],
-        comments: [],
-        poll: pollData,
+    const pollData = {
+        question: question,
+        options: options.map(optionText => ({ text: optionText, votes: 0 })),
+        voters: {}
     };
-    await db.collection('posts').add(postData);
-    pollModal.classList.add('hidden');
-    pollModal.classList.remove('flex');
-    pollForm.reset();
-    showToast('Poll created successfully!', 'success');
-    renderPosts(activeFeedType);
-} catch (error) {
-    console.error("Error creating poll post:", error);
-    showToast(`Error: ${error.message}`, 'error');
-}
 
+    try {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (!userDoc.exists) throw new Error("User profile not found.");
+        const userData = userDoc.data();
 
+        let mediaUrl = null;
+        let mediaType = null;
+
+        if (selectedPollMediaFile) {
+            const filePath = `polls/${user.uid}/${Date.now()}_${selectedPollMediaFile.name}`;
+            const fileRef = storage.ref(filePath);
+            const uploadTask = await fileRef.put(selectedPollMediaFile);
+            mediaUrl = await uploadTask.ref.getDownloadURL();
+            mediaType = selectedPollMediaFile.type;
+        }
+
+        const postData = {
+            author: userData.displayName || 'Anonymous',
+            authorId: user.uid,
+            authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+            content: '',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            likes: [],
+            comments: [],
+            poll: pollData,
+            mediaUrl: mediaUrl,
+            mediaType: mediaType
+        };
+        await db.collection('posts').add(postData);
+
+        closeModal(pollModal);
+        pollForm.reset();
+        pollMediaFileName.textContent = '';
+        selectedPollMediaFile = null;
+
+        showToast('Poll created successfully!', 'success');
+        renderPosts(activeFeedType);
+    } catch (error) {
+        console.error("Error creating poll post:", error);
+        showToast(`Error: ${error.message}`, 'error');
+    }
 });
 }
 
@@ -715,20 +757,16 @@ if(pollOption){
             const postData = postDoc.data();
             const poll = postData.poll;
 
-            // Check if user has already voted
             if(poll.voters && poll.voters[user.uid] !== undefined){
                 showToast("You have already voted in this poll.", "info");
                 return;
             }
 
-            // Update vote count
             poll.options[optionIndex].votes += 1;
             poll.voters[user.uid] = optionIndex;
 
             transaction.update(postRef, { poll: poll });
         });
-
-        // Re-render the single post to show the update
         const updatedPostDoc = await postRef.get();
         const newPostElement = createPostElement({id: updatedPostDoc.id, ...updatedPostDoc.data()});
         postElement.replaceWith(newPostElement);

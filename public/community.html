@@ -391,22 +391,32 @@ Create Post
 </form>
 </div>
 </div>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="pollModal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-bold">
-                Create Poll
-            </h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closePollModal">
-                ×
-            </button>
-        </div>
-        <form class="mt-4 space-y-4" id="pollForm">
+<div class="modal-overlay" id="pollModal">
+    <div class="modal-content w-full max-w-md dark:bg-gray-800">
+        <button class="close-button" id="closePollModal">
+            ×
+        </button>
+        <h2 class="text-2xl font-bold mb-4 dark:text-white">
+            Create a Poll
+        </h2>
+        <form class="space-y-4" id="pollForm">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="pollQuestion">
-                    Question
+                    Poll Question
                 </label>
                 <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="pollQuestion" required="" type="text"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Attach Image/Video (Optional)
+                </label>
+                <div class="mt-1 flex items-center space-x-2">
+                    <button type="button" id="attachGroupPollMediaBtn" class="text-blue-500 hover:text-blue-600 p-2 rounded-full bg-gray-100 dark:bg-gray-700">
+                        <i class="fas fa-image"></i>
+                    </button>
+                    <span id="groupPollMediaFileName" class="text-sm text-gray-500 dark:text-gray-400"></span>
+                </div>
+                <input type="file" id="groupPollMediaUpload" class="hidden" accept="image/*,video/*">
             </div>
             <div id="pollOptionsContainer">
                 <div>

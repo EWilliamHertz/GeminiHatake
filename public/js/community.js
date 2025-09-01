@@ -1,15 +1,31 @@
 /**
-* HatakeSocial - Community Page Script (v6 - Video & Polls Integration)
+* HatakeSocial - Community Page Script (v7 - Poll Media Fix)
 *
 * This script handles all logic for the community.html page.
+* - FIX: Corrected the ID for the poll media upload button event listener.
 * - NEW: Adds support for video uploads and poll creation in groups.
-* - FIX: Adds the missing logic to render the member list within the group detail view.
-* - Implements a secure, client-side "handshake" for friend requests.
-* - Adds robust error handling to notify the user if an action fails.
-* - Loads featured articles into the new section on the community hub.
 */
+
+// Helper functions for modals
+const openModal = (modal) => {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+const closeModal = (modal) => {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+
 document.addEventListener('authReady', (e) => {
 const currentUser = e.detail.user;
+const db = firebase.firestore();
+const storage = firebase.storage();
 const communityPageContainer = document.getElementById('community-tabs-nav');
 if (!communityPageContainer) return;
 
@@ -74,7 +90,7 @@ const friendsPageContainer = document.getElementById('friends-page-container');
 if (friendsPageContainer) {
 if (!currentUser) {
 friendsPageContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your friends.</p>';
-loadFeaturedArticles(); // Still load articles even if not logged in
+loadFeaturedArticles();
 return;
 }
 
@@ -338,9 +354,11 @@ const senderId = button.dataset.senderId;
 try {
 const requestRef = db.collection('friendRequests').doc(requestId);
 const userRef = db.collection('users').doc(currentUser.uid);
+const senderRef = db.collection('users').doc(senderId);
 
 const batch = db.batch();
 batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
+batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
 batch.update(requestRef, { status: 'accepted' });
 await batch.commit();
 
@@ -382,7 +400,6 @@ timestamp: new Date()
 await db.collection('users').doc(receiverId).collection('notifications').add(notificationData);
 }
 });
-// Initial Load for Friends section
 loadFriendsList();
 loadFriendRequests();
 }
@@ -732,6 +749,12 @@ const renderPollPost = (post) => {
         `;
     }).join('');
 
+    const mediaHTML = post.mediaUrl
+        ? (post.mediaType.startsWith('image/')
+            ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">`
+            : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`)
+        : '';
+
     return `
         <div class="flex items-center mb-4">
             <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
@@ -741,6 +764,7 @@ const renderPollPost = (post) => {
             </div>
         </div>
         <div class="post-body-content">
+            ${mediaHTML}
             <p class="post-content-display mb-2 font-semibold text-gray-800 dark:text-gray-200">${post.poll.question}</p>
             <div class="poll-container">${pollOptionsHTML}</div>
         </div>
@@ -835,7 +859,6 @@ loadGroupFeed(groupId);
 populateMembersAndSetupListeners(groupId, groupData);
 };
 const populateMembersAndSetupListeners = (groupId, groupData) => {
-// FIX: Added member list rendering logic
 const memberListContainer = document.getElementById('group-member-list');
 memberListContainer.innerHTML = '';
 const participants = groupData.participantInfo || {};
@@ -1117,6 +1140,25 @@ alert('Could not create trade post.');
 }
 
 if(pollForm) {
+    let selectedGroupPollMediaFile = null;
+    const attachGroupPollMediaBtn = document.getElementById('attachGroupPollMediaBtn');
+    const groupPollMediaUpload = document.getElementById('groupPollMediaUpload');
+    const groupPollMediaFileName = document.getElementById('groupPollMediaFileName');
+
+    attachGroupPollMediaBtn?.addEventListener('click', () => {
+        groupPollMediaUpload.click();
+    });
+
+    groupPollMediaUpload?.addEventListener('change', (e) => {
+        selectedGroupPollMediaFile = e.target.files[0];
+        if (selectedGroupPollMediaFile) {
+            groupPollMediaFileName.textContent = selectedGroupPollMediaFile.name;
+        } else {
+            groupPollMediaFileName.textContent = '';
+        }
+    });
+
+
     addPollOptionBtn?.addEventListener('click', () => {
         const optionCount = pollOptionsContainer.children.length;
         if (optionCount < 10) {
@@ -1151,19 +1193,34 @@ if(pollForm) {
             options: options.map(optionText => ({ text: optionText, votes: 0 })),
             voters: {}
         };
-
-        const postData = {
-            authorId: currentUser.uid,
-            author: currentUser.displayName,
-            authorPhotoURL: currentUser.photoURL,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            poll: pollData,
-        };
-
+        
         try {
+            let mediaUrl = null;
+            let mediaType = null;
+
+            if (selectedGroupPollMediaFile) {
+                const filePath = `groups/${groupId}/polls/${currentUser.uid}/${Date.now()}_${selectedGroupPollMediaFile.name}`;
+                const fileRef = firebase.storage().ref(filePath);
+                const uploadTask = await fileRef.put(selectedGroupPollMediaFile);
+                mediaUrl = await uploadTask.ref.getDownloadURL();
+                mediaType = selectedGroupPollMediaFile.type;
+            }
+
+            const postData = {
+                authorId: currentUser.uid,
+                author: currentUser.displayName,
+                authorPhotoURL: currentUser.photoURL,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                poll: pollData,
+                mediaUrl: mediaUrl,
+                mediaType: mediaType
+            };
+
             await db.collection('groups').doc(groupId).collection('posts').add(postData);
             closeModal(pollModal);
             pollForm.reset();
+            groupPollMediaFileName.textContent = '';
+            selectedGroupPollMediaFile = null;
             alert('Poll created successfully!');
         } catch (error) {
             console.error("Error creating poll post:", error);
@@ -1249,13 +1306,11 @@ viewGroup(groupId);
 }
 };
 
-// Initial load for Groups section
 loadMyGroups();
 loadDiscoverGroups();
 loadPendingInvitations();
 checkForUrlParams();
 }
 }
-// Initial load for the whole page
 loadFeaturedArticles();
 });
