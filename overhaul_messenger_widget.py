@@ -1,4 +1,65 @@
+import os
+from bs4 import BeautifulSoup
 
+def update_widget_html_structure():
+    """
+    Replaces the old widget structure with a new, two-pane design
+    in all HTML files where the widget exists.
+    """
+    print("Starting HTML structure update for messenger widget...")
+    public_dir = "public"
+    # Exclude files that shouldn't have the widget
+    excluded_files = ["messages.html", "index.html", "auth.html"]
+    
+    new_widget_body_html = """
+    <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col overflow-hidden" id="messenger-widget-body">
+        <div class="h-full flex flex-col" id="widget-list-view">
+            <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+                <p class="p-4 text-center text-gray-500">Loading...</p>
+            </div>
+        </div>
+        <div class="h-full flex-col hidden" id="widget-chat-view">
+            <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 flex-shrink-0" id="widget-chat-header">
+                <i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
+                <img alt="Avatar" class="w-8 h-8 rounded-full object-cover" id="widget-chat-avatar" src="https://placehold.co/32x32"/>
+                <span class="font-semibold truncate" id="widget-chat-name">User</span>
+            </div>
+            <div class="flex-grow p-3 overflow-y-auto space-y-3" id="widget-messages-container">
+                </div>
+            <div class="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <form class="flex items-center space-x-2" id="widget-message-form">
+                    <input autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" id="widget-message-input" placeholder="Type a message..." type="text"/>
+                    <button class="bg-blue-600 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-blue-700 flex-shrink-0" type="submit">
+                        <i class="fas fa-paper-plane text-xs"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    """
+
+    for file_name in os.listdir(public_dir):
+        if file_name.endswith(".html") and file_name not in excluded_files:
+            file_path = os.path.join(public_dir, file_name)
+            with open(file_path, "r", encoding="utf-8") as f:
+                soup = BeautifulSoup(f, "html.parser")
+
+            widget_body = soup.find("div", id="messenger-widget-body")
+            if widget_body:
+                widget_body.replace_with(BeautifulSoup(new_widget_body_html, "html.parser"))
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(str(soup))
+                print(f"Updated widget HTML in: {file_name}")
+
+def update_widget_javascript():
+    """
+    Replaces the content of messenger.js with a completely new script
+    to handle the redesigned UI and fix functionality bugs.
+    """
+    print("Updating messenger.js with new logic...")
+    messenger_js_path = "public/js/messenger.js"
+
+    new_js_content = """
 document.addEventListener('DOMContentLoaded', () => {
     const db = firebase.firestore();
     const auth = firebase.auth();
@@ -224,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function searchUsers(searchTerm, currentUser, db) {
         const userSearchResults = document.getElementById('user-search-results');
         const usersRef = db.collection('users');
-        const snapshot = await usersRef.where('handle', '>=', searchTerm.toLowerCase()).where('handle', '<=', searchTerm.toLowerCase() + '\uf8ff').limit(10).get();
+        const snapshot = await usersRef.where('handle', '>=', searchTerm.toLowerCase()).where('handle', '<=', searchTerm.toLowerCase() + '\\uf8ff').limit(10).get();
         userSearchResults.innerHTML = '';
         snapshot.forEach(doc => {
             if (doc.id === currentUser.uid) return;
@@ -264,4 +325,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+    """
     
+    with open(messenger_js_path, "w", encoding="utf-8") as f:
+        f.write(new_js_content)
+    print(f"Rewrote {messenger_js_path} with full functionality.")
+
+if __name__ == "__main__":
+    update_widget_html_structure()
+    update_widget_javascript()
+    print("\\nProcess complete. This was a major update, so please do a hard refresh (Ctrl+Shift+R) on your site to see the changes.")
