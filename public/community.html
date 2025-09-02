@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -392,56 +393,56 @@ Create Post
 </div>
 </div>
 <div class="modal-overlay" id="pollModal">
-    <div class="modal-content w-full max-w-md dark:bg-gray-800">
-        <button class="close-button" id="closePollModal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="closePollModal">
             ×
         </button>
-        <h2 class="text-2xl font-bold mb-4 dark:text-white">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
             Create a Poll
         </h2>
-        <form class="space-y-4" id="pollForm">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="pollQuestion">
+<form class="space-y-4" id="pollForm">
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="pollQuestion">
                     Poll Question
                 </label>
-                <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="pollQuestion" required="" type="text"/>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+<input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="pollQuestion" required="" type="text"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Attach Image/Video (Optional)
                 </label>
-                <div class="mt-1 flex items-center space-x-2">
-                    <button type="button" id="attachGroupPollMediaBtn" class="text-blue-500 hover:text-blue-600 p-2 rounded-full bg-gray-100 dark:bg-gray-700">
-                        <i class="fas fa-image"></i>
-                    </button>
-                    <span id="groupPollMediaFileName" class="text-sm text-gray-500 dark:text-gray-400"></span>
-                </div>
-                <input type="file" id="groupPollMediaUpload" class="hidden" accept="image/*,video/*">
-            </div>
-            <div id="pollOptionsContainer">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+<div class="mt-1 flex items-center space-x-2">
+<button class="text-blue-500 hover:text-blue-600 p-2 rounded-full bg-gray-100 dark:bg-gray-700" id="attachGroupPollMediaBtn" type="button">
+<i class="fas fa-image"></i>
+</button>
+<span class="text-sm text-gray-500 dark:text-gray-400" id="groupPollMediaFileName"></span>
+</div>
+<input accept="image/*,video/*" class="hidden" id="groupPollMediaUpload" type="file"/>
+</div>
+<div id="pollOptionsContainer">
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Option 1
                     </label>
-                    <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+<input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text">
+</input></div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Option 2
                     </label>
-                    <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
-                </div>
-            </div>
-            <button class="text-sm text-blue-500 hover:text-blue-600" id="addPollOptionBtn" type="button">
+<input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
+</div>
+</div>
+<button class="text-sm text-blue-500 hover:text-blue-600" id="addPollOptionBtn" type="button">
                 + Add Option
             </button>
-            <div class="text-right pt-4">
-                <button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
+<div class="text-right pt-4">
+<button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
                     Create Poll Post
                 </button>
-            </div>
-        </form>
-    </div>
+</div>
+</form>
+</div>
 </div>
 </main>
 </div>
@@ -588,23 +589,7 @@ Register
 ×
 </button>
 </div>
-<form class="mt-4 space-y-4" id="registerForm">
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerReferrer" placeholder="Referrer (Optional)" type="text"/>
-<p class="text-red-500 text-sm hidden" id="register-error-message">
-</p>
-<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-Register
-</button>
-<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-Register with Google
-</button>
-</form>
+
 </div>
 </div>
 <script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
@@ -663,7 +648,6 @@ sidebarOverlay.classList.add('hidden');
 <span class="font-bold truncate" id="widget-main-header-text">Messages</span>
 <i class="fas fa-chevron-down" id="widget-toggle-icon"></i>
 </div>
-
 <div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col overflow-hidden" id="messenger-widget-body">
 <div class="h-full flex flex-col" id="widget-list-view">
 <div class="flex-grow overflow-y-auto" id="widget-conversations-list">
@@ -688,7 +672,6 @@ sidebarOverlay.classList.add('hidden');
 </div>
 </div>
 </div>
-
 </div>
 </div>
 <script src="js/messenger.js"></script>
