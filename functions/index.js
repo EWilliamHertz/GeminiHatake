@@ -1,3 +1,5 @@
+// In functions/index.js
+
 /**
 * HatakeSocial - Firebase Cloud Functions
 *
@@ -17,6 +19,24 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+// --- START: UPDATED CORS CONFIGURATION ---
+// Explicitly define which domains are allowed to access your function
+const allowedOrigins = [
+    'https://hatake.eu', 
+    'https://hatakesocial-88b5e.web.app', // It's good practice to include your firebase domain too
+    'http://localhost:5000' // And localhost for local testing
+];
+
+const cors = require('cors')({
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+});
+// --- END: UPDATED CORS CONFIGURATION ---
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -492,4 +512,69 @@ exports.captureAndReleaseFunds = functions.https.onCall(async (data, context) =>
         await tradeRef.update({ status: 'capture_failed' });
         throw new functions.https.HttpsError('internal', 'An error occurred while releasing the funds.');
     }
+});
+
+
+// =================================================================================================
+// MAJOR TOURNAMENT DATA FUNCTIONS
+// =================================================================================================
+/**
+ * Fetches tournament data from a third-party API.
+ * This is a placeholder and returns mock data.
+ * Replace with a real API call to MTGMelee when you have a key.
+ *
+ * UPDATED: Switched from onCall to onRequest and added CORS middleware to fix the browser error.
+ */
+exports.fetchTournaments = functions.https.onRequest((req, res) => {
+    // Use the cors middleware to automatically handle CORS headers
+    cors(req, res, () => {
+        // Mock data based on the swagger documentation
+        const mockTournaments = [
+            {
+                id: 1,
+                name: "Legacy Showcase Qualifier",
+                startDate: new Date("2025-08-28T10:00:00Z").toISOString(),
+                status: "Completed",
+                location: "Online",
+                winner: "Jessica Estephan",
+            },
+            {
+                id: 2,
+                name: "Modern $5K",
+                startDate: new Date().toISOString(),
+                status: "Ongoing",
+                location: "ChannelFireball",
+                winner: null,
+            },
+            {
+                id: 3,
+                name: "Standard Weekly",
+                startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                status: "Upcoming",
+                location: "Your Local Game Store",
+                winner: null,
+            },
+            {
+                id: 4,
+                name: "Pauper Challenge",
+                startDate: new Date("2025-08-25T12:00:00Z").toISOString(),
+                status: "Completed",
+                location: "Online",
+                winner: "Bernardo Torres",
+            },
+            {
+                id: 5,
+                name: "Grand Open Qualifier",
+                startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+                status: "Upcoming",
+                location: "Star City Games",
+                winner: null,
+            }
+        ];
+
+        // In a real scenario, you would still perform your API logic here.
+        // For now, we just send the mock data back.
+        // The .send() method is used for onRequest functions instead of returning a value.
+        res.status(200).send(mockTournaments);
+    });
 });
