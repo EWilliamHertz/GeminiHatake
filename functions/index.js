@@ -12,13 +12,11 @@
 * - Automatically deletes product images from Storage when a product is deleted.
 * - Securely sets admin and content creator custom claims for user roles.
 * - Manages a secure escrow trading system with Stripe Connect.
-* - Proxies requests to the Gemini API to protect the API key.
 */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 // --- START: UPDATED CORS CONFIGURATION ---
 // Explicitly define which domains are allowed to access your function
 const allowedOrigins = [
@@ -41,48 +39,6 @@ const cors = require('cors')({
 admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
-
-/**
-* A callable Cloud Function to securely access the Gemini API.
-* FIX: This function is now correctly structured as an onCall function,
-* which automatically handles CORS and authentication context. The previous
-* implementation was mixing onCall with manual CORS handling, causing errors.
-*/
-exports.getAiSuggestions = functions.https.onCall(async (data, context) => {
-    // Ensure the user is authenticated to use this function
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to use this feature.');
-    }
-
-    const prompt = data.prompt;
-    if (!prompt) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "prompt".');
-    }
-
-    // Retrieve the secure API key from environment configuration
-    const apiKey = functions.config().gemini.key;
-    if (!apiKey) {
-        throw new functions.https.HttpsError('internal', 'Gemini API key is not configured.');
-    }
-
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-        // The prompt can be a single string or a conversation history array
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-
-        // Return the response directly. The client SDK will handle the wrapping.
-        // Using JSON.parse(JSON.stringify(...)) ensures a clean serializable object is returned.
-        return JSON.parse(JSON.stringify(response));
-
-    } catch (error) {
-        console.error("Error calling Gemini API:", error);
-        // Throwing an HttpsError will propagate it correctly to the client.
-        throw new functions.https.HttpsError('internal', 'An error occurred while fetching AI suggestions.');
-    }
-});
 
 
 /**

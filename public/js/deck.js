@@ -33,9 +33,7 @@ document.addEventListener('authReady', (e) => {
     let fullCollection = [];
     let manaCurveChart = null;
     let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
-    let aiPlaytestState = { deck: [], hand: [], battlefield: [], library: [] };
     let currentDeckInView = null;
-    let aiConversationHistory = [];
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
@@ -76,19 +74,6 @@ document.addEventListener('authReady', (e) => {
     const processImportBtn = document.getElementById('process-import-btn');
     const writePrimerBtn = document.getElementById('write-primer-btn');
     const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
-    const playAiBtn = document.getElementById('play-ai-btn');
-    const aiSuggestionsModal = document.getElementById('ai-suggestions-modal');
-    const openAiModalBtn = document.getElementById('open-ai-modal-btn');
-    const closeAiModalBtn = document.getElementById('close-ai-modal-btn');
-    const getAiSuggestionsModalBtn = document.getElementById('get-ai-suggestions-modal-btn');
-    const aiModalPrompt = document.getElementById('ai-modal-prompt');
-    const aiSuggestionsOutputModal = document.getElementById('ai-suggestions-output-modal');
-    const aiDeckAnalystModal = document.getElementById('ai-deck-analyst-modal');
-    const openAiDeckAnalystBtn = document.getElementById('ai-deck-analyst-btn');
-    const closeAiAnalystModalBtn = document.getElementById('close-ai-analyst-modal-btn');
-    const aiAnalystChatHistory = document.getElementById('ai-analyst-chat-history');
-    const aiAnalystInput = document.getElementById('ai-analyst-input');
-    const aiAnalystSendBtn = document.getElementById('ai-analyst-send-btn');
     const deckCommentForm = document.getElementById('deck-comment-form');
     const deckCommentInput = document.getElementById('deck-comment-input');
     const deckCommentsList = document.getElementById('deck-comments-list');
@@ -554,10 +539,6 @@ document.addEventListener('authReady', (e) => {
         playtestState.hand = [];
         playtestState.battlefield = [];
         playtestState.graveyard = [];
-        document.getElementById('ai-play-area').classList.add('hidden');
-        playAiBtn.disabled = false;
-        playAiBtn.textContent = "Play vs. AI";
-        aiPlaytestState = { deck: [], hand: [], battlefield: [], library: [] };
         drawCards(7);
         openModal(playtestModal);
     };
@@ -624,76 +605,6 @@ document.addEventListener('authReady', (e) => {
             playtestState[newZone].push(cardToMove);
             renderPlaytestState();
         }
-    };
-
-    const startPlayVsAi = () => {
-        document.getElementById('ai-play-area').classList.remove('hidden');
-        playAiBtn.textContent = "AI is thinking...";
-        playAiBtn.disabled = true;
-
-        aiPlaytestState.deck = [...playtestState.deck].sort(() => Math.random() - 0.5);
-        aiPlaytestState.library = aiPlaytestState.deck;
-        aiPlaytestState.hand = [];
-        aiPlaytestState.battlefield = [];
-        
-        for(let i=0; i<7; i++) {
-            if(aiPlaytestState.library.length > 0) aiPlaytestState.hand.push(aiPlaytestState.library.pop());
-        }
-        
-        renderAiPlaytestState();
-        alert("Play vs. AI has started! The AI will take its turn.");
-        setTimeout(aiTakeTurn, 1000);
-    };
-    
-    const renderAiPlaytestState = () => {
-        const aiHandEl = document.getElementById('ai-hand');
-        const aiBattlefieldEl = document.getElementById('ai-battlefield');
-        const renderZone = (zoneEl, cards, showCards = false) => {
-            const titleText = zoneEl.id.includes('hand') ? `AI Hand (${cards.length})` : 'AI Battlefield';
-            zoneEl.innerHTML = `<h3 class="text-xs uppercase font-bold text-gray-400 absolute top-2 left-2">${titleText}</h3>`;
-            cards.forEach(card => {
-                const cardEl = document.createElement('img');
-                cardEl.src = showCards ? getCardImageUrl(card, 'small') : 'https://c1.scryfall.com/file/scryfall-card-backs/large.jpg';
-                cardEl.className = 'playtest-card';
-                zoneEl.appendChild(cardEl);
-            });
-        };
-        renderZone(aiHandEl, aiPlaytestState.hand, false);
-        renderZone(aiBattlefieldEl, aiPlaytestState.battlefield, true);
-    };
-
-    const aiTakeTurn = () => {
-        playAiBtn.textContent = "AI is thinking...";
-        playAiBtn.disabled = true;
-
-        if (aiPlaytestState.library.length > 0) aiPlaytestState.hand.push(aiPlaytestState.library.pop());
-
-        let landPlayedThisTurn = false;
-        aiPlaytestState.hand = aiPlaytestState.hand.filter(card => {
-            if (card.type_line.includes("Land") && !landPlayedThisTurn) {
-                aiPlaytestState.battlefield.push(card);
-                landPlayedThisTurn = true;
-                return false; 
-            }
-            return true;
-        });
-        
-        setTimeout(() => {
-            let creaturePlayedThisTurn = false;
-            const manaAvailable = aiPlaytestState.battlefield.filter(c => c.type_line.includes("Land")).length;
-            aiPlaytestState.hand = aiPlaytestState.hand.filter(card => {
-                if (card.type_line.includes("Creature") && !creaturePlayedThisTurn && card.cmc <= manaAvailable) {
-                     aiPlaytestState.battlefield.push(card);
-                     creaturePlayedThisTurn = true;
-                     return false;
-                }
-                return true;
-            });
-            renderAiPlaytestState();
-            alert("AI has finished its turn. It's your turn now!");
-            playAiBtn.disabled = false;
-            playAiBtn.textContent = "Let AI Play Next Turn";
-        }, 1000);
     };
 
     const checkDeckAgainstCollection = async () => {
@@ -774,50 +685,6 @@ document.addEventListener('authReady', (e) => {
         alert("Decklist imported successfully!");
     };
     
-    const renderCategorizedSuggestions = (categories) => {
-        aiSuggestionsOutputModal.innerHTML = '';
-        
-        for (const category in categories) {
-            const details = document.createElement('details');
-            details.className = 'bg-gray-50 dark:bg-gray-700/50 rounded-lg open:shadow-lg mb-2';
-            details.open = true;
-            
-            const summary = document.createElement('summary');
-            summary.className = 'p-3 cursor-pointer font-semibold text-lg text-gray-800 dark:text-white flex justify-between items-center';
-            summary.innerHTML = `<span>${category} (${categories[category].length})</span>`;
-            
-            const cardGrid = document.createElement('div');
-            cardGrid.className = 'p-3 grid grid-cols-1 sm:grid-cols-2 gap-2';
-            
-            categories[category].forEach(cardString => {
-                const cardEl = document.createElement('a');
-                cardEl.className = 'card-link text-sm text-blue-600 dark:text-blue-400 hover:underline cursor-pointer';
-                cardEl.textContent = cardString;
-
-                const match = cardString.match(/^(\d+)\s*x\s*(.*)/i);
-                if(match) {
-                    const cardName = match[2].trim();
-                    cardEl.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        addCardToDecklist(cardName);
-                    });
-                    fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
-                        .then(res => res.ok ? res.json() : null)
-                        .then(cardData => {
-                            if (cardData) {
-                                cardEl.dataset.scryfallId = cardData.id;
-                            }
-                        });
-                 }
-                cardGrid.appendChild(cardEl);
-            });
-            
-            details.appendChild(summary);
-            details.appendChild(cardGrid);
-            aiSuggestionsOutputModal.appendChild(details);
-        }
-    };
-
     const submitRating = async (deckId, rating) => {
         if (!user) {
             alert("Please log in to rate a deck.");
@@ -944,66 +811,6 @@ document.addEventListener('authReady', (e) => {
             if (deckId) loadRatingsAndComments(deckId);
         }
     };
-
-    const startAiDeckAnalyst = async () => {
-        if (!currentDeckInView) return;
-        aiConversationHistory = [];
-        aiAnalystChatHistory.innerHTML = `<div class="p-4 text-center"><i class="fas fa-spinner fa-spin text-green-500 text-2xl"></i><p class="mt-2 text-gray-400">AI is analyzing the deck...</p></div>`;
-        openModal(aiDeckAnalystModal);
-        const decklist = currentDeckInView.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
-        const initialPrompt = `Analyze this ${currentDeckInView.tcg} deck for the ${currentDeckInView.format} format. Name: "${currentDeckInView.name}". List:\n${decklist}\nGive a brief analysis of its strategy, strengths, and weaknesses. Then, ask what I'd like to discuss.`;
-        await sendAiAnalystMessage(initialPrompt);
-    };
-
-    const sendAiAnalystMessage = async (initialMessage = null) => {
-        const userMessage = initialMessage || aiAnalystInput.value.trim();
-        if (!userMessage) return;
-
-        if (!initialMessage) {
-            appendMessageToChat('user', userMessage);
-            aiConversationHistory.push({ role: "user", parts: [{ text: userMessage }] });
-        } else {
-            aiConversationHistory = [{ role: "user", parts: [{ text: userMessage }] }];
-        }
-        aiAnalystInput.value = '';
-        
-        const thinkingMessage = appendMessageToChat('ai', '<i class="fas fa-spinner fa-spin"></i>');
-
-        try {
-            const getAiSuggestions = functions.httpsCallable('getAiSuggestions');
-            const result = await getAiSuggestions({ prompt: aiConversationHistory });
-            const geminiResponse = result.data;
-
-            if (geminiResponse.candidates && geminiResponse.candidates[0].content) {
-                const responseText = geminiResponse.candidates[0].content.parts[0].text;
-                aiConversationHistory.push({ role: "model", parts: [{ text: responseText }] });
-                updateLastMessage(thinkingMessage, responseText);
-            } else {
-                throw new Error('Invalid response structure from AI.');
-            }
-        } catch (error) {
-            console.error("Error fetching AI analyst response:", error);
-            updateLastMessage(thinkingMessage, `Error: ${error.message}. Please check the function logs and ensure it has been deployed correctly.`);
-        }
-    };
-    
-    const appendMessageToChat = (sender, message) => {
-        if (aiAnalystChatHistory.querySelector('.fa-spinner')) {
-            aiAnalystChatHistory.innerHTML = '';
-        }
-        const messageEl = document.createElement('div');
-        messageEl.className = `p-4 rounded-lg mb-4 ${sender === 'user' ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-gray-100 dark:bg-gray-700/50'}`;
-        messageEl.innerHTML = message;
-        aiAnalystChatHistory.appendChild(messageEl);
-        aiAnalystChatHistory.scrollTop = aiAnalystChatHistory.scrollHeight;
-        return messageEl;
-    };
-    
-    const updateLastMessage = (element, newMessage) => {
-        const formattedMessage = newMessage.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        element.innerHTML = formattedMessage;
-        aiAnalystChatHistory.scrollTop = aiAnalystChatHistory.scrollHeight;
-    };
     
     // --- Event Listeners ---
     tabs.forEach(tab => tab.addEventListener('click', () => { if (tab.id !== 'tab-deck-view') { switchTab(tab.id); applyDeckFilters(); } }));
@@ -1124,10 +931,7 @@ document.addEventListener('authReady', (e) => {
     playtestDrawBtn.addEventListener('click', () => drawCards(1));
     playtestMulliganBtn.addEventListener('click', takeMulligan);
     playtestResetBtn.addEventListener('click', initializePlaytest);
-    playAiBtn.addEventListener('click', () => {
-        if(aiPlaytestState.deck.length === 0) startPlayVsAi();
-        else aiTakeTurn();
-    });
+    
     shareDeckBtn.addEventListener('click', async () => {
         if (!user || !deckToShare) {
             alert("Please log in and select a deck to share.");
@@ -1179,95 +983,6 @@ document.addEventListener('authReady', (e) => {
         closeModal(importDeckModal);
     });
     
-    // --- AI MODAL LOGIC (SECURE) ---
-    openAiModalBtn.addEventListener('click', () => {
-        openModal(aiSuggestionsModal);
-    });
-
-    closeAiModalBtn.addEventListener('click', () => {
-        closeModal(aiSuggestionsModal);
-    });
-
-    getAiSuggestionsModalBtn.addEventListener('click', async () => {
-        const userPrompt = aiModalPrompt.value.trim();
-        const currentDecklist = decklistInput.value.trim();
-        const format = deckFormatSelect.value;
-        const tcg = deckTcgSelect.value;
-
-        if (!userPrompt && !currentDecklist) {
-            alert("Please provide a prompt or a decklist for the AI to work with.");
-            return;
-        }
-        if (!format || !tcg) {
-            alert("Please select a TCG and Format for your deck first.");
-            return;
-        }
-
-        let prompt = `You are an expert ${tcg} deck builder providing advice. The user wants help with the ${format} format.`;
-        const wantsJson = !currentDecklist && userPrompt;
-
-        if (currentDecklist) {
-            prompt += ` The user has provided the following decklist:\n\n${currentDecklist}\n\n`;
-            prompt += `Based on this decklist and their request, please provide suggestions. The user's specific request is: "${userPrompt}"`;
-        } else {
-            prompt += ` The user wants to build a new deck based on this prompt: "${userPrompt}".`;
-            if (format === 'Commander') {
-                prompt += ` You MUST build a valid Commander deck. This means the final list must contain exactly 100 cards total. The commander must be a Legendary Creature. With the exception of basic lands, EVERY other card must be a unique singleton (only one copy of each card name). Ensure you include an appropriate number of lands, typically between 35 and 40.`;
-            } else if (['Standard', 'Modern', 'Legacy', 'Vintage', 'Pauper'].includes(format)) {
-                prompt += ` You MUST build a valid ${format} deck. This means the main deck must contain exactly 60 cards. Do NOT create a sideboard. No more than 4 copies of any card are allowed, except for basic lands.`;
-            }
-            prompt += ` Please provide a complete, ready-to-play decklist. The list should be formatted with cards grouped by type (e.g., Commander, Creature, Sorcery, Instant, Artifact, Enchantment, Land). Provide the response as a JSON object where keys are the category names and values are an array of strings, with each string being "quantity x Card Name".`;
-        }
-
-        aiSuggestionsOutputModal.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-purple-500 text-2xl"></i><p class="mt-2 text-gray-400">AI Advisor is thinking...</p></div>';
-
-        try {
-            const getAiSuggestions = functions.httpsCallable('getAiSuggestions');
-            const result = await getAiSuggestions({ prompt: prompt });
-            const geminiResponse = result.data;
-
-            if (geminiResponse.candidates && geminiResponse.candidates[0].content && geminiResponse.candidates[0].content.parts[0]) {
-                const responseText = geminiResponse.candidates[0].content.parts[0].text;
-                
-                if (wantsJson) {
-                    try {
-                        const categorizedSuggestions = JSON.parse(responseText);
-                        renderCategorizedSuggestions(categorizedSuggestions);
-                    } catch (parseError) {
-                        console.error("Failed to parse AI JSON response:", parseError, "Raw text:", responseText);
-                        aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">The AI returned an invalid format. Please try rephrasing your request.</p>`;
-                    }
-                } else {
-                    const formattedResponse = responseText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    aiSuggestionsOutputModal.innerHTML = `<div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">${formattedResponse}</div>`;
-                }
-            } else {
-                console.error("Unexpected API response:", geminiResponse);
-                if (geminiResponse.error) {
-                     throw new Error(`API Error: ${geminiResponse.error.message}`);
-                }
-                 if (geminiResponse.candidates && geminiResponse.candidates[0].finishReason) {
-                    throw new Error(`Generation stopped. Reason: ${geminiResponse.candidates[0].finishReason}. Check safety settings.`);
-                }
-                throw new Error('Unexpected response structure from Gemini API.');
-            }
-
-        } catch (error) {
-            console.error("Error fetching AI suggestions:", error);
-            aiSuggestionsOutputModal.innerHTML = `<p class="text-red-500">${error.message}</p>`;
-        }
-    });
-
-    // --- AI DECK ANALYST LISTENERS ---
-    openAiDeckAnalystBtn.addEventListener('click', startAiDeckAnalyst);
-    closeAiAnalystModalBtn.addEventListener('click', () => closeModal(aiDeckAnalystModal));
-    aiAnalystSendBtn.addEventListener('click', sendAiAnalystMessage);
-    aiAnalystInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            sendAiAnalystMessage();
-        }
-    });
-
 
     // --- Primer Button Event Listener ---
     writePrimerBtn.addEventListener('click', () => {
@@ -1343,4 +1058,3 @@ document.addEventListener('authReady', (e) => {
     }
     loadCommunityDecks();
 });
-
