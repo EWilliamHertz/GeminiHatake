@@ -1,7 +1,8 @@
 /**
  * HatakeSocial - Articles & Content Script
  *
- * This script handles creating, viewing, listing, and editing articles.
+ * This version includes a robust fix for embedding all types of YouTube videos,
+ * including Shorts, by converting them to the correct /embed/ format.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -31,17 +32,21 @@ function initArticlesListPage(user) {
     const filters = document.getElementById('filters');
 
     const params = new URLSearchParams(window.location.search);
-    const pageType = params.get('type') || 'tcg'; // Default to tcg
+    const pageType = params.get('type') || 'tcg';
 
     if (pageType === 'blog') {
         if(pageTitle) pageTitle.textContent = 'Hatake Blog';
-        if(filters) filters.style.display = 'none'; // Hide filters for blog
+        if(filters) filters.style.display = 'none';
     } else {
         if(pageTitle) pageTitle.textContent = 'TCG Articles';
     }
 
     if (user) {
-        if(writeNewArticleBtn) writeNewArticleBtn.classList.remove('hidden');
+        user.getIdTokenResult().then(idTokenResult => {
+            if (idTokenResult.claims.admin && writeNewArticleBtn) {
+                 writeNewArticleBtn.classList.remove('hidden');
+            }
+        });
     }
 
     let allArticles = [];
@@ -78,15 +83,15 @@ function initArticlesListPage(user) {
             articleCard.href = `view-article.html?id=${article.id}`;
             articleCard.className = 'block bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow';
             
-            const snippet = article.content.substring(0, 150).replace(/<[^>]+>/g, '') + '...';
+            const snippet = article.content ? article.content.substring(0, 150).replace(/<[^>]+>/g, '') + '...' : '';
 
             articleCard.innerHTML = `
                 <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">${article.category || 'Blog Post'}</span>
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white mt-2">${article.title}</h3>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mt-2">${article.title || 'Untitled Post'}</h3>
                 <p class="text-gray-600 dark:text-gray-400 mt-2 text-sm">${snippet}</p>
                 <div class="mt-4 pt-4 border-t dark:border-gray-700 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                    <span>By ${article.authorName}</span>
-                    <span>${new Date(article.createdAt.seconds * 1000).toLocaleDateString()}</span>
+                    <span>By ${article.authorName || 'Anonymous'}</span>
+                    <span>${article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString() : ''}</span>
                 </div>
             `;
             articlesListContainer.appendChild(articleCard);
@@ -105,8 +110,8 @@ function initArticlesListPage(user) {
 
         if (searchTerm) {
             filteredArticles = filteredArticles.filter(a => 
-                a.title.toLowerCase().includes(searchTerm) || 
-                a.content.toLowerCase().includes(searchTerm)
+                (a.title && a.title.toLowerCase().includes(searchTerm)) || 
+                (a.content && a.content.toLowerCase().includes(searchTerm))
             );
         }
         
@@ -119,58 +124,60 @@ function initArticlesListPage(user) {
     loadArticles();
 }
 
-// --- Create Article Page ---
-function initCreateArticlePage(user) {
-    if (!user) {
-        window.location.href = 'index.html';
-        return;
-    }
+// --- Create & Edit Article Helper ---
+function createArticleImageHandler() {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
 
-    user.getIdTokenResult().then((idTokenResult) => {
-        if (!idTokenResult.claims.admin && !idTokenResult.claims.contentCreator) {
-            // Consider redirecting unauthorized users
-            // window.location.href = 'app.html';
+    input.onchange = async () => {
+        const file = input.files[0];
+        const currentUser = firebase.auth().currentUser;
+
+        if (!file) return;
+
+        if (!currentUser) {
+            alert("You must be logged in to upload an image.");
+            return;
         }
-    });
-    
-    const form = document.getElementById('create-article-form');
-    const articleTypeSelect = document.getElementById('article-type');
-    const tcgCategorySection = document.getElementById('tcg-category-section');
-    const deckPrimerInfo = document.getElementById('deck-primer-info');
-    const deckNameDisplay = document.getElementById('deck-name-display');
-    const articleCategorySelect = document.getElementById('article-category');
-    const articleDeckIdInput = document.getElementById('article-deck-id');
+        
+        const quill = this.quill;
+        const range = quill.getSelection(true);
+        quill.insertText(range.index, ' [Uploading image...] ', 'user');
+        
+        try {
+            const storageRef = storage.ref();
+            const imageRef = storageRef.child(`articles/${currentUser.uid}/${Date.now()}_${file.name}`);
+            const snapshot = await imageRef.put(file);
+            const downloadURL = await snapshot.ref.getDownloadURL();
 
-    function imageHandler() {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.click();
+            quill.deleteText(range.index, ' [Uploading image...] '.length);
+            quill.insertEmbed(range.index, 'image', downloadURL);
+            quill.setSelection(range.index + 1);
+        } catch (error) {
+            console.error("Image upload failed: ", error);
+            quill.deleteText(range.index, ' [Uploading image...] '.length);
+            alert("Image upload failed. Please check your Firebase Storage security rules.");
+        }
+    };
+}
 
-        input.onchange = async () => {
-            const file = input.files[0];
-            if (file) {
-                const range = this.quill.getSelection(true);
-                this.quill.insertText(range.index, ' [Uploading image...] ', 'user');
-                
-                try {
-                    const storageRef = storage.ref();
-                    const imageRef = storageRef.child(`articles/${user.uid}/${Date.now()}_${file.name}`);
-                    const snapshot = await imageRef.put(file);
-                    const downloadURL = await snapshot.ref.getDownloadURL();
-
-                    this.quill.deleteText(range.index, ' [Uploading image...] '.length);
-                    this.quill.insertEmbed(range.index, 'image', downloadURL);
-                    this.quill.setSelection(range.index + 1);
-                } catch (error) {
-                    console.error("Image upload failed: ", error);
-                    this.quill.deleteText(range.index, ' [Uploading image...] '.length);
-                    alert("Image upload failed. Please try again.");
-                }
-            }
-        };
+// Helper function to extract video ID from various YouTube URL formats
+function getYoutubeVideoId(url) {
+    let ID = '';
+    url = url.replace(/(>|<)/gi, '').split(/(vi\/|v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/)/);
+    if (url[2] !== undefined) {
+        ID = url[2].split(/[^0-9a-z_\-]/i);
+        ID = ID[0];
+    } else {
+        ID = url;
     }
+    return ID;
+}
 
+// --- NEW MERGED FUNCTION: Initialize Quill with YouTube Shorts fix ---
+function initQuillEditor(selector) {
     const toolbarOptions = [
         [{ 'font': [] }],
         [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
@@ -184,18 +191,57 @@ function initCreateArticlePage(user) {
         ['clean']
     ];
 
-    const quill = new Quill('#editor', {
+    const quill = new Quill(selector, {
         modules: {
             toolbar: {
                 container: toolbarOptions,
                 handlers: {
-                    'image': imageHandler
+                    'image': createArticleImageHandler
                 }
             }
         },
         theme: 'snow',
         placeholder: 'Write your masterpiece...',
     });
+
+    // Custom video handler to fix YouTube links
+    quill.getModule('toolbar').addHandler('video', () => {
+        let url = prompt('Enter Video URL');
+        if (url) {
+            const videoId = getYoutubeVideoId(url);
+            if (videoId) {
+                // Use the /embed/ format to prevent X-Frame-Options errors
+                const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'video', embedUrl, 'user');
+            } else {
+                // If it's not a recognizable YouTube link, insert it as is
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'video', url, 'user');
+            }
+        }
+    });
+    
+    return quill;
+}
+
+
+// --- Create Article Page ---
+function initCreateArticlePage(user) {
+    if (!user) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    const form = document.getElementById('create-article-form');
+    const articleTypeSelect = document.getElementById('article-type');
+    const tcgCategorySection = document.getElementById('tcg-category-section');
+    const deckPrimerInfo = document.getElementById('deck-primer-info');
+    const deckNameDisplay = document.getElementById('deck-name-display');
+    const articleCategorySelect = document.getElementById('article-category');
+    const articleDeckIdInput = document.getElementById('article-deck-id');
+    
+    const quill = initQuillEditor('#editor');
 
     if(articleTypeSelect) {
         articleTypeSelect.addEventListener('change', () => {
@@ -206,7 +252,6 @@ function initCreateArticlePage(user) {
             }
         });
     }
-
 
     const params = new URLSearchParams(window.location.search);
     const deckId = params.get('deckId');
@@ -265,7 +310,7 @@ function initViewArticlePage(user) {
     const articleId = params.get('id');
 
     if (!articleId) {
-        if(articleContainer) articleContainer.innerHTML = '<p class="text-center text-red-500">Post not found.</p>';
+        if(articleContainer) articleContainer.innerHTML = '<p class="text-center text-red-500">Post not found. No ID was provided.</p>';
         return;
     }
 
@@ -278,18 +323,25 @@ function initViewArticlePage(user) {
             }
             const article = doc.data();
 
+            const title = article.title || "Untitled Post";
+            const authorName = article.authorName || "Anonymous";
+            const authorId = article.authorId;
+            const category = article.category || "General";
+            const content = article.content || "<p>This post has no content.</p>";
+            const createdAt = article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString() : "Unknown date";
+
             if(articleContainer) {
                 const topControls = document.createElement('div');
                 topControls.className = 'flex justify-between items-start mb-2';
                 topControls.innerHTML = `
-                    <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white">${article.title}</h1>
+                    <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white">${title}</h1>
                     <div id="edit-button-container" class="flex-shrink-0 ml-4"></div>
                 `;
                 
-                if (user) {
+                if (user && authorId) {
                     user.getIdTokenResult().then((idTokenResult) => {
-                         const isAuthor = user.uid === article.authorId;
-                         const isAdmin = idTokenResult.claims.admin;
+                         const isAuthor = user.uid === authorId;
+                         const isAdmin = !!idTokenResult.claims.admin;
 
                          if (isAuthor || isAdmin) {
                             const editButtonContainer = topControls.querySelector('#edit-button-container');
@@ -308,25 +360,24 @@ function initViewArticlePage(user) {
                 const metaInfo = document.createElement('div');
                 metaInfo.className = "text-sm text-gray-500 dark:text-gray-400 mb-6";
                 metaInfo.innerHTML = `
-                    <span>By <a href="profile.html?uid=${article.authorId}" class="text-blue-600 hover:underline">${article.authorName}</a></span>
+                    <span>By <a href="profile.html?uid=${authorId}" class="text-blue-600 hover:underline">${authorName}</a></span>
                     <span class="mx-2">&bull;</span>
-                    <span>Published on ${new Date(article.createdAt.seconds * 1000).toLocaleDateString()}</span>
+                    <span>Published on ${createdAt}</span>
                     <span class="mx-2">&bull;</span>
-                    <span class="font-semibold">${article.category}</span>
+                    <span class="font-semibold">${category}</span>
                 `;
                 articleContainer.appendChild(metaInfo);
 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = "prose dark:prose-invert max-w-none ql-snow";
-                contentDiv.innerHTML = `<div class="ql-editor">${article.content}</div>`;
+                contentDiv.innerHTML = `<div class="ql-editor">${content}</div>`;
                 articleContainer.appendChild(contentDiv);
             }
         } catch (error) {
             console.error("Error loading article:", error);
-            if(articleContainer) articleContainer.innerHTML = '<p class="text-center text-red-500">Could not load article.</p>';
+            if(articleContainer) articleContainer.innerHTML = '<p class="text-center text-red-500">Could not load the article due to an error. Please check the console for details.</p>';
         }
     };
-
     loadArticle();
 }
 
@@ -338,76 +389,20 @@ function initEditArticlePage(user) {
     }
 
     const form = document.getElementById('edit-article-form');
-    if (!form) return;
-
-    const params = new URLSearchParams(window.location.search);
-    const articleId = params.get('id');
-
-    if (!articleId) {
-        alert('No article specified for editing.');
-        window.location.href = 'articles.html';
-        return;
-    }
-
     const articleTypeSelect = document.getElementById('article-type');
     const tcgCategorySection = document.getElementById('tcg-category-section');
     const articleCategorySelect = document.getElementById('article-category');
     const articleTitleInput = document.getElementById('article-title');
 
-    function imageHandler() {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.click();
-
-        input.onchange = async () => {
-            const file = input.files[0];
-            if (file) {
-                const range = this.quill.getSelection(true);
-                this.quill.insertText(range.index, ' [Uploading image...] ', 'user');
-                
-                try {
-                    const storageRef = storage.ref();
-                    const imageRef = storageRef.child(`articles/${user.uid}/${Date.now()}_${file.name}`);
-                    const snapshot = await imageRef.put(file);
-                    const downloadURL = await snapshot.ref.getDownloadURL();
-
-                    this.quill.deleteText(range.index, ' [Uploading image...] '.length);
-                    this.quill.insertEmbed(range.index, 'image', downloadURL);
-                    this.quill.setSelection(range.index + 1);
-                } catch (error) {
-                    console.error("Image upload failed: ", error);
-                    this.quill.deleteText(range.index, ' [Uploading image...] '.length);
-                    alert("Image upload failed. Please try again.");
-                }
-            }
-        };
+    const params = new URLSearchParams(window.location.search);
+    const articleId = params.get('id');
+    if (!articleId) {
+        alert('No article specified for editing.');
+        window.location.href = 'articles.html';
+        return;
     }
-
-    const toolbarOptions = [
-        [{ 'font': [] }],
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        [{ 'size': ['small', false, 'large', 'huge'] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'align': [] }],
-        ['link', 'image', 'video'],
-        ['clean']
-    ];
-
-    const quill = new Quill('#editor', {
-        modules: {
-            toolbar: {
-                container: toolbarOptions,
-                handlers: {
-                    'image': imageHandler
-                }
-            }
-        },
-        theme: 'snow'
-    });
+    
+    const quill = initQuillEditor('#editor');
     
     const articleRef = db.collection('articles').doc(articleId);
     articleRef.get().then(doc => {
@@ -421,7 +416,7 @@ function initEditArticlePage(user) {
 
         user.getIdTokenResult().then((idTokenResult) => {
             const isAuthor = user.uid === articleData.authorId;
-            const isAdmin = idTokenResult.claims.admin;
+            const isAdmin = !!idTokenResult.claims.admin;
             if (!isAuthor && !isAdmin) {
                 alert('You are not authorized to edit this post.');
                 window.location.href = 'articles.html';

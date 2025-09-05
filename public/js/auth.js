@@ -1,25 +1,15 @@
 /**
- * HatakeSocial - Merged Authentication & Global UI Script (v30 - Login Fix)
+ * HatakeSocial - Merged Authentication & Global UI Script
  *
- * This script corrects a race condition where login/register modals would close
- * before the UI had a chance to update, making it seem like the login failed.
- *
- * - FIX: Modals are now closed from within the `onAuthStateChanged` listener,
- * ensuring the UI is ready to update when a user session is confirmed.
- * - Merged Features:
- * - Full Firebase configuration and initialization within DOMContentLoaded.
- * - Robust email verification flow on login.
- * - Dynamic injection of the header's notification bell and profile dropdown upon user login.
- * - When logged out, header buttons now trigger login/register modals instead of navigating.
- * - Real-time notification listener for the bell icon and dropdown content.
- * - Friend request handshake logic.
- * - Global utilities like `showToast`, modal handlers, and currency conversion.
+ * This version includes fixes for admin role detection and dynamically adds
+ * the "Admin Panel" link to the main sidebar for authorized users. It also
+ * corrects a race condition that caused admin-only pages to appear blank.
  */
 
 // --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
     let container = document.getElementById('toast-container');
-    if (!container) { // Create container if it doesn't exist
+    if (!container) {
         const toastContainer = document.createElement('div');
         toastContainer.id = 'toast-container';
         toastContainer.className = 'fixed bottom-5 right-5 z-50';
@@ -50,13 +40,14 @@ const showToast = (message, type = 'info') => {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide body initially to prevent flash of unstyled/un-authed content
+    // The opacity will be set to 1 at the end of onAuthStateChanged
     document.body.style.opacity = '0';
 
-// --- Firebase Initialization ---
-if (!firebase.apps.length) {
-    // The configuration is automatically loaded from /__/firebase/init.js
-    firebase.initializeApp();
-}
+    // --- Firebase Initialization ---
+    if (!firebase.apps.length) {
+        firebase.initializeApp();
+    }
     if (typeof firebase.analytics === 'function') {
         window.analytics = firebase.analytics();
     }
@@ -315,6 +306,12 @@ if (!firebase.apps.length) {
 
     let unsubscribeNotifications = null;
     auth.onAuthStateChanged(async (user) => {
+        const mainSidebarNav = document.querySelector('#sidebar nav');
+        const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
+        if (existingAdminSidebarLink) {
+            existingAdminSidebarLink.remove();
+        }
+
         if (user && !user.emailVerified) {
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -345,19 +342,28 @@ if (!firebase.apps.length) {
         const mobileUserActions = document.getElementById('mobile-user-actions');
         
         if (user) {
-            // User is logged in, close modals
             closeModal(loginModal);
             closeModal(registerModal);
             
             try {
-                
-            const idTokenResult = await user.getIdTokenResult(true);
-            const isAdmin = idTokenResult.claims.isAdmin === true;
+                const idTokenResult = await user.getIdTokenResult(true);
+                const isAdmin = idTokenResult.claims.admin === true;
             
-            // Centralized access control check
-            handleAdminAccess(isAdmin);
+                handleAdminAccess(isAdmin);
             
-            const userDoc = await db.collection('users').doc(user.uid).get();
+                if (isAdmin && mainSidebarNav) {
+                    const adminLink = document.createElement('a');
+                    adminLink.id = 'admin-sidebar-link';
+                    adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
+                    adminLink.href = 'admin.html';
+                    adminLink.innerHTML = `
+                        <i class="fas fa-user-shield w-6 text-center"></i>
+                        <span class="ml-3">Admin Panel</span>
+                    `;
+                    mainSidebarNav.appendChild(adminLink);
+                }
+
+                const userDoc = await db.collection('users').doc(user.uid).get();
                 if (!userDoc.exists) {
                     console.warn("User document not found. Signing out.");
                     auth.signOut();
@@ -365,10 +371,8 @@ if (!firebase.apps.length) {
                 }
                 const userData = userDoc.data();
                 window.HatakeSocial.currentUserData = userData;
-                // const isAdmin = userData.isAdmin === true; // This is now handled by the token check above
                 const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
 
-                // 1. Populate Header User Actions (Dynamic Injection)
                 if (userActions) {
                     userActions.innerHTML = `
                         <div class="relative">
@@ -402,7 +406,6 @@ if (!firebase.apps.length) {
                     document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
                 }
 
-                // 2. Setup Notification Listener
                 if (unsubscribeNotifications) unsubscribeNotifications();
                 unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
                     const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
@@ -426,13 +429,11 @@ if (!firebase.apps.length) {
                     }
                 }, err => console.error("Notification listener error:", err));
 
-                // 3. Populate Sidebar
                 if (authContainerSidebar) {
                     authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
                     document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
                 }
 
-                // 4. Populate Mobile Menu
                 if (mobileUserActions) {
                     mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
                     document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
@@ -446,12 +447,10 @@ if (!firebase.apps.length) {
                 auth.signOut();
             }
         } else {
-            // --- User is Logged Out ---
             window.HatakeSocial.currentUserData = null;
             if (friendRequestHandshakeListener) friendRequestHandshakeListener();
             if (unsubscribeNotifications) unsubscribeNotifications();
 
-            // Handle admin access for logged-out users (will cause redirect from protected pages)
             handleAdminAccess(false);
 
             const loginButtonsHTML = `
@@ -477,9 +476,8 @@ if (!firebase.apps.length) {
             }
         }
         
-        // This is the crucial part for other scripts
         document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
-        window.authReady = true; // Set the flag
+        window.authReady = true;
 
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
@@ -488,7 +486,6 @@ if (!firebase.apps.length) {
     setupGlobalListeners();
     setupCurrencySelector();
 
-    // Global click listener to close dropdowns
     window.addEventListener('click', () => {
         document.getElementById('profile-dropdown')?.classList.add('hidden');
         document.getElementById('notification-dropdown')?.classList.add('hidden');
@@ -498,22 +495,23 @@ if (!firebase.apps.length) {
 
 function handleAdminAccess(isAdmin) {
     const currentPage = window.location.pathname.split('/').pop();
-    const adminPages = ['admin.html', 'create-article.html'];
+    const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
 
-    // Handle visibility and redirection for admin pages
     if (adminPages.includes(currentPage)) {
         if (isAdmin) {
-            // User is an admin, show the page content.
-            document.body.style.display = 'block';
+            // Use 'block' for standard pages or 'flex' if the body's direct child is a flex container
+            const displayStyle = document.body.classList.contains('flex') ? 'flex' : 'block';
+            document.body.style.display = displayStyle;
         } else {
-            // User is not an admin or is logged out, redirect.
             console.log('User is not an admin. Redirecting to home.');
             window.location.href = 'index.html';
-            return; // Stop further execution
         }
+    } else {
+        // For non-admin pages, just ensure they are visible.
+        const displayStyle = document.body.classList.contains('flex') ? 'flex' : 'block';
+        document.body.style.display = displayStyle;
     }
 
-    // Show/hide the "Write New Post" button on the articles page
     const writeArticleBtn = document.getElementById('write-new-article-btn');
     if (writeArticleBtn) {
         writeArticleBtn.classList.toggle('hidden', !isAdmin);

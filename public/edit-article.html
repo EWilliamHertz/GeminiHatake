@@ -95,22 +95,5 @@
 <script src="js/auth.js"></script>
 <script src="js/articles.js"></script>
 <script src="js/darkmode.js"></script>
-<script>
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
-            sidebarOverlay.classList.toggle('hidden');
-        });
-    }
-    if (sidebarOverlay) {
-        sidebarOverlay.addEventListener('click', () => {
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-        });
-    }
-</script>
 </body>
 </html>

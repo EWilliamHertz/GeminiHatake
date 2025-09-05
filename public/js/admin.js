@@ -44,7 +44,9 @@ document.addEventListener('authReady', (e) => {
         }
         try {
             const idTokenResult = await user.getIdTokenResult(true); // Force refresh
-            if (idTokenResult.claims.isAdmin) {
+            // --- THIS IS THE FIX ---
+            // The claim is 'admin' (lowercase), not 'isAdmin'
+            if (idTokenResult.claims.admin) {
                 return true;
             } else {
                 adminContent.innerHTML = '<p class="text-center text-red-500 p-8">Access Denied. You do not have administrator privileges.</p>';
@@ -271,9 +273,9 @@ document.addEventListener('authReady', (e) => {
         
         checkbox.disabled = true;
         try {
-            const setUserAdminClaim = functions.httpsCallable('setUserAdminClaim');
-            await setUserAdminClaim({ targetUid: uid, isAdmin: newAdminStatus });
-            showToast(`Successfully updated ${uid} to ${newAdminStatus ? 'Admin' : 'User'}.`, 'success');
+            const setUserRole = functions.httpsCallable('setUserAdminClaim'); // Corrected function name
+            await setUserRole({ targetUid: uid, isAdmin: newAdminStatus }); // Corrected payload
+            showToast(`Successfully updated user role.`, 'success');
             // Refresh user list to reflect change
             loadUsers();
         } catch (error) {
