@@ -1,9 +1,31 @@
 /**
- * HatakeSocial - Articles & Content Script
+ * HatakeSocial - Articles & Content Script (v2 - Date Format Update)
  *
- * This version includes a robust fix for embedding all types of YouTube videos,
+ * - NEW: Adds a `formatTimestamp` helper function to display dates according to the user's preference (D/M/Y or M/D/Y).
+ * - UPDATE: All date displays for articles now use the new `formatTimestamp` function.
+ * - This version includes a robust fix for embedding all types of YouTube videos,
  * including Shorts, by converting them to the correct /embed/ format.
  */
+
+// --- Date Formatting Helper ---
+const formatTimestamp = (timestamp) => {
+    if (!timestamp || !timestamp.seconds) {
+        return 'Unknown date';
+    }
+    const date = new Date(timestamp.seconds * 1000);
+    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy'; // Default to D/M/Y
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    if (userDateFormat === 'mdy') {
+        return `${month}/${day}/${year}`;
+    }
+    return `${day}/${month}/${year}`;
+};
+
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
 
@@ -91,7 +113,7 @@ function initArticlesListPage(user) {
                 <p class="text-gray-600 dark:text-gray-400 mt-2 text-sm">${snippet}</p>
                 <div class="mt-4 pt-4 border-t dark:border-gray-700 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                     <span>By ${article.authorName || 'Anonymous'}</span>
-                    <span>${article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString() : ''}</span>
+                    <span>${formatTimestamp(article.createdAt)}</span>
                 </div>
             `;
             articlesListContainer.appendChild(articleCard);
@@ -328,7 +350,7 @@ function initViewArticlePage(user) {
             const authorId = article.authorId;
             const category = article.category || "General";
             const content = article.content || "<p>This post has no content.</p>";
-            const createdAt = article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString() : "Unknown date";
+            const createdAt = formatTimestamp(article.createdAt);
 
             if(articleContainer) {
                 const topControls = document.createElement('div');

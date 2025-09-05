@@ -1,11 +1,30 @@
 /**
- * HatakeSocial - Profile Page Script (v26 - Referrals Tab)
+ * HatakeSocial - Profile Page Script (v27 - Date Format Update)
  *
- * This script manages all functionality for the user profile page.
- * - NEW: Adds a "Referrals" tab that links to the new referrals.html page for the logged-in user.
- * - Displays player personality fields, trade history map, badges, and reputation.
- * - Dynamically builds the profile page content inside the #profile-container element.
+ * - NEW: Adds a `formatTimestamp` helper to display the user's join date according to their preference.
+ * - UPDATE: The "Joined" date and all other timestamps on the profile now use the new formatting function.
+ * - This script manages all functionality for the user profile page.
  */
+
+// --- Date Formatting Helper ---
+const formatTimestamp = (timestamp) => {
+    if (!timestamp || !timestamp.seconds) {
+        return 'Unknown date';
+    }
+    const date = new Date(timestamp.seconds * 1000);
+    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy'; // Default to D/M/Y
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    if (userDateFormat === 'mdy') {
+        return `${month}/${day}/${year}`;
+    }
+    return `${day}/${month}/${year}`;
+};
+
+
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
@@ -180,6 +199,7 @@ document.addEventListener('authReady', (e) => {
 
                         <div class="mt-6 border-t dark:border-gray-700 pt-4">
                             <p id="profile-bio" class="text-gray-700 dark:text-gray-300 mt-2">${profileUserData.bio || 'No bio yet.'}</p>
+                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Joined ${formatTimestamp(profileUserData.createdAt)}</p>
                             <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
                             </div>
@@ -354,7 +374,7 @@ document.addEventListener('authReady', (e) => {
                         <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover">
                         <div>
                             <p class="font-bold dark:text-white">${post.author}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p>
                         </div>
                     </div>
                     <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
@@ -655,7 +675,7 @@ document.addEventListener('authReady', (e) => {
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
                         <div class="flex justify-between items-center mb-2">
                             <p class="font-semibold dark:text-gray-200">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p>
-                            <div class="text-xs text-gray-400">${new Date(feedback.createdAt.toDate()).toLocaleDateString()}</div>
+                            <div class="text-xs text-gray-400">${formatTimestamp(feedback.createdAt)}</div>
                         </div>
                         <div class="text-sm space-y-1 my-2 text-yellow-400">
                            <p><strong>Accuracy:</strong> ${accuracyStars}</p>

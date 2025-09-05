@@ -1,13 +1,10 @@
 /**
- * HatakeSocial - Events Page Script (v6 - Admin Controls & Bug Fixes)
+ * HatakeSocial - Events Page Script (v7 - Date Format Update & Consistency)
  *
- * This script manages the creation, display, and management of TCG events.
- * - NEW: Organizers and Admins can now Edit and Delete events.
- * - NEW: Edit functionality reuses the creation modal, pre-filled with event data.
- * - NEW: Delete functionality includes a confirmation step.
- * - FIX: Correctly displays organizer name by checking multiple fields.
- * - Retains differentiation between 'General Events' and 'Tournaments'.
- * - Retains support for multi-day events.
+ * - NEW: Adds a `formatTimestamp` helper to display event dates according to user preference.
+ * - UPDATE: All event date displays, including multi-day ranges and single-day times, now use the new formatting function for consistency.
+ * - Retains admin controls for editing and deleting events.
+ * - Retains support for different event and tournament types.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -142,20 +139,36 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Date Formatting Helpers ---
+    const formatSingleTimestamp = (timestamp) => {
+        if (!timestamp || !timestamp.seconds) return '';
+        const date = new Date(timestamp.seconds * 1000);
+        const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        if (userDateFormat === 'mdy') {
+            return `${month}/${day}/${year}`;
+        }
+        return `${day}/${month}/${year}`;
+    };
+
     const formatEventDate = (start, end) => {
         if (!start || !start.seconds) return 'Date not available';
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
         const startDate = new Date(start.seconds * 1000);
+        const formattedStartDate = formatSingleTimestamp(start);
         
         if (end && end.seconds) {
             const endDate = new Date(end.seconds * 1000);
+             const formattedEndDate = formatSingleTimestamp(end);
             if (startDate.toDateString() === endDate.toDateString()) {
-                return `${startDate.toLocaleDateString(undefined, options)} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                 return `${formattedStartDate} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
             }
-            return `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+            return `${formattedStartDate} - ${formattedEndDate}`;
         }
         
-        return startDate.toLocaleString([], { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `${formattedStartDate} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     };
 
     const formatTimestampForInput = (timestamp) => {
@@ -706,4 +719,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-

@@ -1,9 +1,30 @@
 /**
-* HatakeSocial - App Page (Feed) Script (v26 - Fix Poll Media Upload Error)
+* HatakeSocial - App Page (Feed) Script (v27 - European Date Format and User Preference)
 *
 * This script handles all logic for the main feed on app.html.
+* - NEW: Adds a `formatTimestamp` helper function to display dates according to user preference (D/M/Y or M/D/Y), defaulting to D/M/Y.
+* - UPDATE: Post and comment timestamps now use the new `formatTimestamp` function for consistent date formatting across the feed.
 * - FIX: Prevents a TypeError when creating a poll without media.
 */
+
+// --- Date Formatting Helper ---
+const formatTimestamp = (timestamp) => {
+    if (!timestamp || !timestamp.toDate) {
+        return 'Just now';
+    }
+    const date = timestamp.toDate();
+    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy'; // Default to D/M/Y
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    if (userDateFormat === 'mdy') {
+        return `${month}/${day}/${year}`;
+    }
+    return `${day}/${month}/${year}`;
+};
+
 
 // Helper functions for modals
 const openModal = (modal) => {
@@ -149,7 +170,7 @@ postElement.innerHTML = `
 <a href="profile.html?uid=${post.authorId}"><img src="${safeAuthorPhotoURL}" alt="${safeAuthorName}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
 <div>
 <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${safeAuthorName}</a>
-<p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+<p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p>
 </div>
 </div>
 <div class="post-actions-menu flex space-x-3 text-gray-400">${editButtonHTML}${deleteButtonHTML}${reportButtonHTML}</div>
@@ -202,7 +223,7 @@ commentEl.innerHTML = `
 <p class="text-sm text-gray-700 dark:text-gray-300">${safeContent}</p>
 </div>
 <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1 flex justify-between">
-<span>${new Date(comment.timestamp.toDate()).toLocaleString()}</span>
+<span>${formatTimestamp(comment.timestamp)}</span>
 ${deleteCommentBtnHTML}
 </div>
 </div>
@@ -1024,12 +1045,19 @@ if (user) {
 createPostSection?.classList.remove('hidden');
 await checkAdminStatus();
 const userDoc = await db.collection('users').doc(user.uid).get();
-currentUserFriends = userDoc.data()?.friends || [];
+if (userDoc.exists) {
+    const userData = userDoc.data();
+    currentUserFriends = userData?.friends || [];
+    // Store date format preference in localStorage to be used by other scripts
+    localStorage.setItem('userDateFormat', userData.dateFormat || 'dmy');
+}
 renderPosts(activeFeedType);
 loadTrendingHashtags();
 loadWhoToFollow();
 } else {
 createPostSection?.classList.add('hidden');
+// Set default for logged-out users
+localStorage.setItem('userDateFormat', 'dmy');
 postsContainer.innerHTML = `
 <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
 <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Welcome to HatakeSocial!</h2>

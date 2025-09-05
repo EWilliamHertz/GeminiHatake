@@ -1,12 +1,38 @@
 /**
- * HatakeSocial - Real-time Messaging System (v6 - Real-time Timestamp Fix)
+ * HatakeSocial - Real-time Messaging System (v7 - Date Format Update)
  *
- * This script completely revamps the messaging functionality.
- * - FIX: Handles 'modified' changes in the message listener to display timestamps immediately after server confirmation.
- * - FIX: Adds unique IDs to message elements to allow for targeted updates.
- * - NEW: Adds timestamps to individual messages and the conversation list.
- * - Uses the correct TOP-LEVEL `conversations` collection structure.
+ * - NEW: Adds a `formatTimestamp` helper to display message timestamps according to user preference.
+ * - UPDATE: All message and conversation timestamps now use the new formatting function.
+ * - This script completely revamps the messaging functionality.
  */
+
+// --- Date Formatting Helper ---
+const formatTimestamp = (timestamp) => {
+    if (!timestamp || !timestamp.toDate) {
+        return ''; // Return empty string if timestamp isn't a valid Firestore Timestamp yet
+    }
+    const date = timestamp.toDate();
+    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+    let datePart;
+    if (userDateFormat === 'mdy') {
+        datePart = `${month}/${day}/${year}`;
+    } else {
+        datePart = `${day}/${month}/${year}`;
+    }
+
+    // A simple logic to decide if we should show the full date or just the time
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+
+    return isToday ? time : datePart;
+};
+
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
     if (!user) {
@@ -39,14 +65,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const closeModalBtn = document.getElementById('close-modal-btn');
     const userSearchInput = document.getElementById('user-search-input');
     const userSearchResults = document.getElementById('user-search-results');
-
-    const formatTimestamp = (timestamp) => {
-        if (!timestamp || !timestamp.toDate) {
-            return ''; // Return empty string if timestamp isn't a valid Firestore Timestamp yet
-        }
-        return timestamp.toDate().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    };
-
+    
     const listenForConversations = () => {
         if (unsubscribeConversations) unsubscribeConversations();
 
@@ -157,12 +176,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         messageWrapper.appendChild(timestampEl);
         messagesContainer.appendChild(messageWrapper);
     };
-
-    /**
-     * Finds an existing message element and updates its timestamp.
-     * @param {string} messageId - The ID of the message document.
-     * @param {object} message - The updated message data.
-     */
+    
     const updateMessage = (messageId, message) => {
         const messageWrapper = document.getElementById(`message-${messageId}`);
         if (messageWrapper) {

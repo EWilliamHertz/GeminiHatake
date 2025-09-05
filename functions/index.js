@@ -90,7 +90,8 @@ exports.registerUserWithReferral = functions.https.onCall(async (data, context) 
                 shopDiscountPercent: 0,
                 referralCount: 0,
                 postCount: 0,
-                isVerified: false
+                isVerified: false,
+                dateFormat: 'dmy' // Set default date format for new users
             });
 
             transaction.update(referrerRef, {
