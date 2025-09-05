@@ -1,7 +1,7 @@
 /**
  * HatakeSocial - Articles & Content Script
  *
- * This script handles creating, viewing, and listing articles.
+ * This script handles creating, viewing, listing, and editing articles.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -15,6 +15,9 @@ document.addEventListener('authReady', (e) => {
     }
     if (document.getElementById('article-container')) {
         initViewArticlePage(user);
+    }
+    if (document.getElementById('edit-article-form')) {
+        initEditArticlePage(user);
     }
 });
 
@@ -125,6 +128,7 @@ function initCreateArticlePage(user) {
 
     user.getIdTokenResult().then((idTokenResult) => {
         if (!idTokenResult.claims.admin && !idTokenResult.claims.contentCreator) {
+            // Consider redirecting unauthorized users
             // window.location.href = 'app.html';
         }
     });
@@ -137,7 +141,6 @@ function initCreateArticlePage(user) {
     const articleCategorySelect = document.getElementById('article-category');
     const articleDeckIdInput = document.getElementById('article-deck-id');
 
-    // Define the custom image handler
     function imageHandler() {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
@@ -168,7 +171,6 @@ function initCreateArticlePage(user) {
         };
     }
 
-    // Define the full toolbar options
     const toolbarOptions = [
         [{ 'font': [] }],
         [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
@@ -277,21 +279,47 @@ function initViewArticlePage(user) {
             const article = doc.data();
 
             if(articleContainer) {
-                articleContainer.innerHTML = `
-                    <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">${article.title}</h1>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                        <span>By <a href="profile.html?uid=${article.authorId}" class="text-blue-600 hover:underline">${article.authorName}</a></span>
-                        <span class="mx-2">&bull;</span>
-                        <span>Published on ${new Date(article.createdAt.seconds * 1000).toLocaleDateString()}</span>
-                        <span class="mx-2">&bull;</span>
-                        <span class="font-semibold">${article.category}</span>
-                    </div>
-                    <div class="prose dark:prose-invert max-w-none ql-snow">
-                        <div class="ql-editor">
-                            ${article.content}
-                        </div>
-                    </div>
+                const topControls = document.createElement('div');
+                topControls.className = 'flex justify-between items-start mb-2';
+                topControls.innerHTML = `
+                    <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white">${article.title}</h1>
+                    <div id="edit-button-container" class="flex-shrink-0 ml-4"></div>
                 `;
+                
+                if (user) {
+                    user.getIdTokenResult().then((idTokenResult) => {
+                         const isAuthor = user.uid === article.authorId;
+                         const isAdmin = idTokenResult.claims.admin;
+
+                         if (isAuthor || isAdmin) {
+                            const editButtonContainer = topControls.querySelector('#edit-button-container');
+                            const editButton = document.createElement('a');
+                            editButton.href = `edit-article.html?id=${doc.id}`;
+                            editButton.className = 'px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition';
+                            editButton.textContent = 'Edit Post';
+                            editButtonContainer.appendChild(editButton);
+                         }
+                    });
+                }
+
+                articleContainer.innerHTML = ''; 
+                articleContainer.appendChild(topControls);
+
+                const metaInfo = document.createElement('div');
+                metaInfo.className = "text-sm text-gray-500 dark:text-gray-400 mb-6";
+                metaInfo.innerHTML = `
+                    <span>By <a href="profile.html?uid=${article.authorId}" class="text-blue-600 hover:underline">${article.authorName}</a></span>
+                    <span class="mx-2">&bull;</span>
+                    <span>Published on ${new Date(article.createdAt.seconds * 1000).toLocaleDateString()}</span>
+                    <span class="mx-2">&bull;</span>
+                    <span class="font-semibold">${article.category}</span>
+                `;
+                articleContainer.appendChild(metaInfo);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = "prose dark:prose-invert max-w-none ql-snow";
+                contentDiv.innerHTML = `<div class="ql-editor">${article.content}</div>`;
+                articleContainer.appendChild(contentDiv);
             }
         } catch (error) {
             console.error("Error loading article:", error);
@@ -300,4 +328,160 @@ function initViewArticlePage(user) {
     };
 
     loadArticle();
+}
+
+// --- Edit Article Page ---
+function initEditArticlePage(user) {
+    if (!user) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    const form = document.getElementById('edit-article-form');
+    if (!form) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const articleId = params.get('id');
+
+    if (!articleId) {
+        alert('No article specified for editing.');
+        window.location.href = 'articles.html';
+        return;
+    }
+
+    const articleTypeSelect = document.getElementById('article-type');
+    const tcgCategorySection = document.getElementById('tcg-category-section');
+    const articleCategorySelect = document.getElementById('article-category');
+    const articleTitleInput = document.getElementById('article-title');
+
+    function imageHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (file) {
+                const range = this.quill.getSelection(true);
+                this.quill.insertText(range.index, ' [Uploading image...] ', 'user');
+                
+                try {
+                    const storageRef = storage.ref();
+                    const imageRef = storageRef.child(`articles/${user.uid}/${Date.now()}_${file.name}`);
+                    const snapshot = await imageRef.put(file);
+                    const downloadURL = await snapshot.ref.getDownloadURL();
+
+                    this.quill.deleteText(range.index, ' [Uploading image...] '.length);
+                    this.quill.insertEmbed(range.index, 'image', downloadURL);
+                    this.quill.setSelection(range.index + 1);
+                } catch (error) {
+                    console.error("Image upload failed: ", error);
+                    this.quill.deleteText(range.index, ' [Uploading image...] '.length);
+                    alert("Image upload failed. Please try again.");
+                }
+            }
+        };
+    }
+
+    const toolbarOptions = [
+        [{ 'font': [] }],
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'align': [] }],
+        ['link', 'image', 'video'],
+        ['clean']
+    ];
+
+    const quill = new Quill('#editor', {
+        modules: {
+            toolbar: {
+                container: toolbarOptions,
+                handlers: {
+                    'image': imageHandler
+                }
+            }
+        },
+        theme: 'snow'
+    });
+    
+    const articleRef = db.collection('articles').doc(articleId);
+    articleRef.get().then(doc => {
+        if (!doc.exists) {
+            alert('Article not found.');
+            window.location.href = 'articles.html';
+            return;
+        }
+
+        const articleData = doc.data();
+
+        user.getIdTokenResult().then((idTokenResult) => {
+            const isAuthor = user.uid === articleData.authorId;
+            const isAdmin = idTokenResult.claims.admin;
+            if (!isAuthor && !isAdmin) {
+                alert('You are not authorized to edit this post.');
+                window.location.href = 'articles.html';
+                return;
+            }
+        });
+
+        articleTitleInput.value = articleData.title;
+        articleTypeSelect.value = articleData.type;
+        quill.root.innerHTML = articleData.content;
+
+        if (articleData.type === 'blog_post') {
+            tcgCategorySection.style.display = 'none';
+        } else {
+            tcgCategorySection.style.display = 'block';
+            articleCategorySelect.value = articleData.category;
+        }
+
+    }).catch(error => {
+        console.error("Error fetching article for editing:", error);
+        alert('Could not load article data.');
+    });
+
+    if(articleTypeSelect) {
+        articleTypeSelect.addEventListener('change', () => {
+            if (articleTypeSelect.value === 'blog_post') {
+                if(tcgCategorySection) tcgCategorySection.style.display = 'none';
+            } else {
+                if(tcgCategorySection) tcgCategorySection.style.display = 'block';
+            }
+        });
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = articleTitleInput.value;
+        const type = articleTypeSelect.value;
+        const category = (type === 'tcg_article') ? articleCategorySelect.value : 'Blog Post';
+        const content = quill.root.innerHTML;
+
+        if (!title.trim() || quill.getLength() < 10) {
+            alert('Please provide a title and some content for your post.');
+            return;
+        }
+
+        const updatedData = {
+            title,
+            type,
+            category,
+            content,
+            updatedAt: new Date()
+        };
+
+        try {
+            await articleRef.update(updatedData);
+            alert('Post updated successfully!');
+            window.location.href = `view-article.html?id=${articleId}`;
+        } catch (error) {
+            console.error("Error updating post:", error);
+            alert('Failed to update post.');
+        }
+    });
 }

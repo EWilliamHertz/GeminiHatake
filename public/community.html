@@ -11,7 +11,11 @@ Community - HatakeSocial
 </script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
 <link href="css/style.css" rel="stylesheet"/>
-<script src="js/darkmode.js"></script></head>
+<script src="js/darkmode.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+</head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
 <div class="flex h-screen"><div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
 <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
@@ -143,20 +147,6 @@ Register
 <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-8">
 Community Hub
 </h1>
-<section class="mb-12" id="articles-hub-section">
-<div class="flex justify-between items-center mb-4">
-<h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-Articles &amp; Strategy
-</h2>
-<a class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-full shadow-md hover:bg-blue-700" href="articles.html">
-Explore All Articles
-<i class="fas fa-arrow-right ml-2">
-</i>
-</a>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="featured-articles-list">
-</div>
-</section>
 <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
 <nav aria-label="Tabs" class="flex -mb-px space-x-8" id="community-tabs-nav">
 <button class="community-tab-button active" data-tab="friends">
@@ -164,6 +154,9 @@ Friends
 </button>
 <button class="community-tab-button" data-tab="groups">
 Groups
+</button>
+<button class="community-tab-button" data-tab="lfg">
+Looking for Game
 </button>
 </nav>
 </div>
@@ -267,6 +260,41 @@ Discover Groups
 </div>
 </div>
 <div class="hidden" id="group-detail-view">
+</div>
+</div>
+<div class="community-tab-content hidden" id="tab-content-lfg">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-1">
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">Your Status</h2>
+<div class="flex items-center justify-between mb-4">
+<span class="font-semibold">Looking for a game?</span>
+<label for="lfg-status-toggle" class="inline-flex relative items-center cursor-pointer">
+<input type="checkbox" value="" id="lfg-status-toggle" class="sr-only peer">
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+</label>
+</div>
+<div id="lfg-options" class="hidden space-y-4">
+<div>
+<label for="lfg-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Game Type</label>
+<select id="lfg-type" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
+<option>Online</option>
+<option>In-person</option>
+</select>
+</div>
+<div>
+<label for="lfg-details" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Details</label>
+<textarea id="lfg-details" rows="3" class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" placeholder="e.g., Play Spelltable, Untap.in, Magic Arena and Magic the Gathering Online"></textarea>
+</div>
+<button id="save-lfg-status" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700">Save Status</button>
+</div>
+</div>
+</div>
+<div class="lg:col-span-2">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">Players Looking for a Game</h2>
+<div id="lfg-players-list" class="space-y-4">
+</div>
+</div>
 </div>
 </div>
 </main>
