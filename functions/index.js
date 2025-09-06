@@ -12,6 +12,7 @@
 * - Automatically deletes product images from Storage when a product is deleted.
 * - Securely sets admin and content creator custom claims for user roles.
 * - Manages a secure escrow trading system with Stripe Connect.
+* - Wishlist and Trade Matching functionality.
 */
 
 const functions = require("firebase-functions");
@@ -470,6 +471,93 @@ exports.captureAndReleaseFunds = functions.https.onCall(async (data, context) =>
         throw new functions.https.HttpsError('internal', 'An error occurred while releasing the funds.');
     }
 });
+
+
+// =================================================================================================
+// WISHLIST AND TRADE MATCHING FUNCTIONS
+// =================================================================================================
+
+/**
+ * Manages a user's wishlist. Adds or removes a card.
+ */
+exports.manageWishlist = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to manage your wishlist.');
+    }
+
+    const { cardId, action } = data; // action can be 'add' or 'remove'
+    if (!cardId || !action) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing cardId or action.');
+    }
+
+    const wishlistRef = db.collection('users').doc(context.auth.uid).collection('wishlist').doc(cardId);
+
+    if (action === 'add') {
+        // You might want to fetch card details from your primary card database/API
+        // For now, we'll assume the client sends the necessary card data.
+        await wishlistRef.set({
+            ...data.cardData, // Assumes client sends card data to be stored
+            addedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { success: true, message: 'Card added to wishlist.' };
+    } else if (action === 'remove') {
+        await wishlistRef.delete();
+        return { success: true, message: 'Card removed from wishlist.' };
+    } else {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid action specified.');
+    }
+});
+
+/**
+ * Firestore trigger to check for wishlist matches when a new card is added to a user's collection for trade.
+ */
+exports.onCardForTradeCreate = functions.firestore
+    .document('users/{userId}/collection/{cardId}')
+    .onCreate(async (snap, context) => {
+        const cardData = snap.data();
+        const { userId, cardId } = context.params;
+
+        // Only proceed if the card is marked for sale/trade
+        if (!cardData.forSale) {
+            return null;
+        }
+
+        // Query all users who have this card in their wishlist
+        // This requires a composite index on the wishlist collection.
+        // The index should be on 'cardName' (or a unique card identifier) across all users' wishlists.
+        const querySnapshot = await db.collectionGroup('wishlist').where('name', '==', cardData.name).get();
+        
+        if (querySnapshot.empty) {
+            return null;
+        }
+
+        const sellerDoc = await db.collection('users').doc(userId).get();
+        const sellerName = sellerDoc.data()?.displayName || 'A user';
+
+        const notifications = [];
+        querySnapshot.forEach(doc => {
+            const wishingUser = doc.ref.parent.parent.id;
+            // Don't notify the user if they list a card they also want
+            if (wishingUser === userId) {
+                return;
+            }
+
+            const notification = {
+                type: 'wishlist_match',
+                fromId: userId,
+                fromName: sellerName,
+                fromAvatar: sellerDoc.data()?.photoURL || null,
+                message: `${sellerName} has listed a card from your wishlist: ${cardData.name}.`,
+                link: `card-view.html?id=${cardId}`, // Link to the card view
+                isRead: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            };
+            notifications.push(db.collection('users').doc(wishingUser).collection('notifications').add(notification));
+        });
+
+        await Promise.all(notifications);
+        return null;
+    });
 
 
 // =================================================================================================
