@@ -465,31 +465,31 @@
 <section class="settings-section hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="settings-display">
 <h2 class="text-2xl font-bold mb-6 border-b pb-4 dark:border-gray-700 dark:text-white">Display Settings</h2>
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Show Messenger Widget</h3>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+<div class="flex items-center justify-between">
+<div>
+<h3 class="text-lg font-medium text-gray-900 dark:text-white">Show Messenger Widget</h3>
+<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                 Show or hide the messenger widget on all pages.
             </p>
-        </div>
-        <label class="inline-flex relative items-center cursor-pointer" for="toggle-messenger">
-            <input class="sr-only peer" id="toggle-messenger" type="checkbox" value=""/>
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-        </label>
-    </div>
-    <div class="pt-6 border-t dark:border-gray-700">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Date Format</h3>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+</div>
+<label class="inline-flex relative items-center cursor-pointer" for="toggle-messenger">
+<input class="sr-only peer" id="toggle-messenger" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+</label>
+</div>
+<div class="pt-6 border-t dark:border-gray-700">
+<h3 class="text-lg font-medium text-gray-900 dark:text-white">Date Format</h3>
+<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Choose how dates are displayed across the site.
         </p>
-        <select id="date-format-select" class="mt-2 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700">
-            <option value="dmy">DD/MM/YYYY (European)</option>
-            <option value="mdy">MM/DD/YYYY (American)</option>
-        </select>
-    </div>
+<select class="mt-2 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="date-format-select">
+<option value="dmy">DD/MM/YYYY (European)</option>
+<option value="mdy">MM/DD/YYYY (American)</option>
+</select>
+</div>
 </div>
 <div class="mt-8 text-right">
-    <button id="save-display-settings-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">
+<button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="save-display-settings-btn">
         Save Display Settings
     </button>
 </div>
@@ -651,44 +651,8 @@
 </script>
 <script src="js/darkmode.js">
 </script>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-bold">
-      Login
-     </h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
-      ×
-     </button>
-</div>
-<form class="mt-4 space-y-4" id="loginForm">
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
-<p class="text-red-500 text-sm hidden" id="login-error-message">
-</p>
-<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-      Login
-     </button>
-<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-      Sign in with Google
-     </button>
-</form>
-</div>
-</div>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-bold">
-      Register
-     </h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
-      ×
-     </button>
-</div>
 
-</div>
-</div>
+
 <script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
 <script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
 <script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
@@ -752,5 +716,56 @@
         </button>
 </div>
 </div>
-</body>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Login
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="loginForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+<p class="text-red-500 text-sm hidden" id="login-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Login
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Sign in with Google
+            </button>
+</form>
+</div>
+</div><div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Register
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="registerForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+<p class="text-red-500 text-sm hidden" id="register-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Register
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Register with Google
+            </button>
+</form>
+</div>
+</div></body>
 </html>
