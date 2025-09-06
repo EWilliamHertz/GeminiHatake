@@ -4,6 +4,9 @@
  * This version includes fixes for admin role detection and dynamically adds
  * the "Admin Panel" link to the main sidebar for authorized users. It also
  * corrects a race condition that caused admin-only pages to appear blank.
+ *
+ * CORRECTION: Moved modal helper functions to the global scope to prevent
+ * a race condition with the onAuthStateChanged listener.
  */
 
 // --- Global Toast Notification Function ---
@@ -36,6 +39,26 @@ const showToast = (message, type = 'info') => {
         toast.classList.remove('show');
         toast.addEventListener('transitionend', () => toast.remove());
     }, 5000);
+};
+
+// --- Global Modal Helper Functions ---
+// Moved to global scope to be available immediately, preventing a race condition.
+window.openModal = (modal) => { 
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const errorMsg = modal.querySelector('[id$="-error-message"]');
+        if (errorMsg) {
+            errorMsg.classList.add('hidden');
+            errorMsg.textContent = '';
+        }
+    }
+};
+window.closeModal = (modal) => { 
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 };
 
 
@@ -112,24 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('hatakeCurrency', e.target.value);
             window.location.reload();
         });
-    };
-
-    window.openModal = (modal) => { 
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            const errorMsg = modal.querySelector('[id$="-error-message"]');
-            if (errorMsg) {
-                errorMsg.classList.add('hidden');
-                errorMsg.textContent = '';
-            }
-        }
-    };
-    window.closeModal = (modal) => { 
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
     };
     
     const setupGlobalListeners = () => {

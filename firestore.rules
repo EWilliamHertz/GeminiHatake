@@ -66,7 +66,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn();
       allow update: if (isUser(resource.data.authorId)) ||
-                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']));
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']));
       allow delete: if isUser(resource.data.authorId) || isAdmin();
     }
     
@@ -79,7 +79,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isUser(request.resource.data.authorId);
       allow update: if (isUser(resource.data.authorId)) || 
-                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'averageRating']));
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'averageRating']));
       allow delete: if isUser(resource.data.authorId);
 
       match /ratings/{userId} {
@@ -103,7 +103,7 @@ service cloud.firestore {
       allow get: if resource.data.isPublic == true || isGroupParticipant(groupId);
       allow create: if isSignedIn();
       allow update: if isGroupModerator(groupId) || (isSignedIn()
-                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantCount', 'participantInfo']));
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantCount', 'participantInfo']));
       allow delete: if isUser(resource.data.creatorId);
 
       match /posts/{postId} {
@@ -137,7 +137,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid]);
         allow create: if get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid])
-                           && request.resource.data.senderId == request.auth.uid;
+                            && request.resource.data.senderId == request.auth.uid;
       }
     }
 
@@ -161,6 +161,16 @@ service cloud.firestore {
     match /groupInvitations/{inviteId} {
       allow create: if isUser(request.resource.data.inviterId);
       allow read, delete: if isUser(resource.data.inviteeId);
+    }
+
+    // --- LOOKING FOR GAME (FIX) ---
+    match /lfg_status/{statusId} {
+      // Any signed-in user can see who is looking for a game.
+      allow read: if isSignedIn();
+      
+      // A user can only create, update, or delete their OWN status.
+      // The document ID (statusId) must match their user ID.
+      allow write: if isUser(statusId);
     }
 
     // --- ADMIN-ONLY ---

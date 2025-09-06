@@ -1,10 +1,10 @@
 /**
- * HatakeSocial - Settings Page Script (v8 - Authentication Race Condition Fix)
+ * HatakeSocial - Settings Page Script (v9 - Date Format Preference)
  *
- * - FIX: Wraps all logic in the 'authReady' event listener to ensure the user object is available before any functions are called. This resolves the "Cannot read properties of undefined (reading 'uid')" error.
- * - RESTORED: Re-implements the original IBAN/SWIFT payout form logic.
- * - NEW: Includes fields for Playstyle, Favorite Format, Pet Card, and Nemesis Card.
- * - Updates save/load logic to handle all profile fields correctly.
+ * - NEW: Adds a "Date Format" option in the Display settings to switch between D/M/Y and M/D/Y.
+ * - NEW: Saves the date format preference to the user's profile in Firestore.
+ * - NEW: Updates localStorage with the new date format setting on save, for immediate use by other scripts.
+ * - FIX: Wraps all logic in the 'authReady' event listener to ensure the user object is available before any functions are called.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -72,6 +72,10 @@ document.addEventListener('authReady', (e) => {
     const mfaSection = document.getElementById('mfa-section');
     let confirmationResult = null;
 
+    // Display Section
+    const dateFormatSelect = document.getElementById('date-format-select');
+
+
     // --- Tab Switching Logic ---
     navButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -123,6 +127,7 @@ document.addEventListener('authReady', (e) => {
             accountEmailEl.textContent = user.email;
             primaryCurrencySelect.value = data.primaryCurrency || 'SEK';
             priceSourceSelect.value = data.priceSource || 'eur';
+            dateFormatSelect.value = data.dateFormat || 'dmy'; // Load date format
             
             if (data.shippingProfile) {
                 shippingDomesticInput.value = data.shippingProfile.domestic || '';
@@ -218,6 +223,28 @@ document.addEventListener('authReady', (e) => {
         } finally {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save Profile & Address';
+        }
+    });
+
+    document.getElementById('save-display-settings-btn')?.addEventListener('click', async () => {
+        const saveBtn = document.getElementById('save-display-settings-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        try {
+            const newDateFormat = dateFormatSelect.value;
+            await db.collection('users').doc(user.uid).update({
+                dateFormat: newDateFormat
+            });
+            // Update localStorage for immediate effect across the site
+            localStorage.setItem('userDateFormat', newDateFormat);
+            alert("Display settings saved successfully!");
+        } catch (error) {
+            console.error("Error saving display settings:", error);
+            alert("Could not save display settings. " + error.message);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Display Settings';
         }
     });
 

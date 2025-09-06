@@ -6,53 +6,7 @@
 * - REMOVED: Removed the "Articles & Strategy" section as requested.
 * - PRESERVED: Retains all advanced Friends and Groups functionality.
 */
-/**
- * Displays a toast notification.
- * @param {string} message The message to display.
- * @param {string} type The type of toast: 'success', 'error', or 'info'.
- */
-function showToast(message, type = 'info') {
-    let backgroundColor;
-    switch (type) {
-        case 'success':
-            backgroundColor = 'linear-gradient(to right, #00b09b, #96c93d)';
-            break;
-        case 'error':
-            backgroundColor = 'linear-gradient(to right, #ff5f6d, #ffc371)';
-            break;
-        default: // 'info'
-            backgroundColor = 'linear-gradient(to right, #0083B0, #00B4DB)';
-            break;
-    }
 
-    Toastify({
-        text: message,
-        duration: 3000,
-        close: true,
-        gravity: "top", // `top` or `bottom`
-        position: "right", // `left`, `center` or `right`
-        stopOnFocus: true, // Prevents dismissing of toast on hover
-        style: {
-            background: backgroundColor,
-        },
-    }).showToast();
-}
-
-
-// Helper functions for modals
-const openModal = (modal) => {
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-};
-
-const closeModal = (modal) => {
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-};
 
 
 document.addEventListener('authReady', (e) => {
