@@ -99,7 +99,7 @@ document.addEventListener('authReady', (e) => {
         const notificationsRef = db.collection('users').doc(user.uid).collection('notifications')
                                    .orderBy('timestamp', 'desc');
 
-        notificationsRef.get().then(snapshot => {
+        notificationsRef.onSnapshot(snapshot => {
             if (snapshot.empty) {
                 notificationCenterList.innerHTML = '<p class="p-4 text-center text-gray-500">No notifications yet.</p>';
                 return;
