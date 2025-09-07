@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Articles & Content Script (v2 - Date Format Update)
+ * HatakeSocial - Articles & Content Script (v3 - Commenting Update)
  *
  * - NEW: Adds a `formatTimestamp` helper function to display dates according to the user's preference (D/M/Y or M/D/Y).
  * - UPDATE: All date displays for articles now use the new `formatTimestamp` function.
  * - This version includes a robust fix for embedding all types of YouTube videos,
  * including Shorts, by converting them to the correct /embed/ format.
+ * - NEW: Adds commenting functionality to the view-article.html page.
  */
 
 // --- Date Formatting Helper ---
@@ -394,6 +395,10 @@ function initViewArticlePage(user) {
                 contentDiv.className = "prose dark:prose-invert max-w-none ql-snow";
                 contentDiv.innerHTML = `<div class="ql-editor">${content}</div>`;
                 articleContainer.appendChild(contentDiv);
+
+                // Load comments and display comment form
+                loadComments(articleId);
+                displayCommentForm(articleId, user);
             }
         } catch (error) {
             console.error("Error loading article:", error);
@@ -402,6 +407,84 @@ function initViewArticlePage(user) {
     };
     loadArticle();
 }
+
+// --- Comment Functions ---
+function displayCommentForm(articleId, user) {
+    const commentFormContainer = document.getElementById('comment-form-container');
+    if (!commentFormContainer) return;
+
+    if (user) {
+        commentFormContainer.innerHTML = `
+            <form id="comment-form">
+                <textarea id="comment-text" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Write a comment..." required></textarea>
+                <button type="submit" class="mt-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Post Comment</button>
+            </form>
+        `;
+        document.getElementById('comment-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const commentText = document.getElementById('comment-text').value;
+            postComment(articleId, user, commentText);
+        });
+    } else {
+        commentFormContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">You must be logged in to post a comment.</p>';
+    }
+}
+
+async function postComment(articleId, user, text) {
+    if (!text.trim()) {
+        alert('Comment cannot be empty.');
+        return;
+    }
+
+    try {
+        await db.collection('articles').doc(articleId).collection('comments').add({
+            text: text,
+            authorId: user.uid,
+            authorName: user.displayName,
+            createdAt: new Date()
+        });
+        document.getElementById('comment-text').value = '';
+        loadComments(articleId);
+    } catch (error) {
+        console.error("Error posting comment:", error);
+        alert('Failed to post comment.');
+    }
+}
+
+async function loadComments(articleId) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+
+    commentsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Loading comments...</p>';
+
+    try {
+        const snapshot = await db.collection('articles').doc(articleId).collection('comments').orderBy('createdAt', 'desc').get();
+
+        if (snapshot.empty) {
+            commentsList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No comments yet.</p>';
+            return;
+        }
+
+        commentsList.innerHTML = '';
+        snapshot.forEach(doc => {
+            const comment = doc.data();
+            const commentEl = document.createElement('div');
+            commentEl.className = 'p-4 border-b dark:border-gray-700';
+            commentEl.innerHTML = `
+                <div class="flex items-center mb-2">
+                    <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-blue-600 hover:underline">${comment.authorName}</a>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${formatTimestamp(comment.createdAt)}</span>
+                </div>
+                <p class="text-gray-800 dark:text-gray-300">${comment.text}</p>
+            `;
+            commentsList.appendChild(commentEl);
+        });
+    } catch (error) {
+        console.error("Error loading comments:", error);
+        commentsList.innerHTML = '<p class="text-center text-red-500">Could not load comments.</p>';
+    }
+}
+
 
 // --- Edit Article Page ---
 function initEditArticlePage(user) {
