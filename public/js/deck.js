@@ -1,12 +1,12 @@
 /**
- * HatakeSocial - Deck Page Script (v31 - Enhanced Sharing)
+ * HatakeSocial - Deck Page Script (v31.2 - Button and State Fixes)
  *
- * - NEW: Replaces "Share to Feed" with a new "Share" button and modal.
- * - The new modal provides two options: "Copy Public Link" and "Share to Feed".
- * - "Copy Public Link" generates a unique URL that anyone can use to view a read-only version of the deck.
- * - "Share to Feed" now opens a second modal allowing the user to add a custom message before posting.
- * - FIX: Resolves issue where "Test Hand" button was unresponsive by ensuring state is correct.
- * - FIX: Implements full "Play vs. AI" functionality with basic game logic.
+ * - FIX: Resolves issues where "Share" and "Test Hand" buttons were unresponsive by using a more reliable state variable (`currentDeckInView`).
+ * - The main "Share" button now correctly opens the share options modal.
+ * - The "Test Hand" button now correctly initializes the playtest area.
+ * - Added alerts for cases where a deck isn't selected, providing better user feedback.
+ * - Updated "Copy Link" to use modern navigator.clipboard API for better reliability.
+ * - Added a check to only allow sharing of public decks.
  */
 
 function getCardImageUrl(cardData, size = 'normal') {
@@ -30,7 +30,6 @@ document.addEventListener('authReady', (e) => {
     const closeModal = (modal) => modal && modal.classList.add('hidden');
 
     // --- State Variables ---
-    let deckToShare = null;
     let fullCollection = [];
     let manaCurveChart = null;
     let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
@@ -84,8 +83,7 @@ document.addEventListener('authReady', (e) => {
     const shareDeckModal = document.getElementById('share-deck-modal');
     const closeShareDeckModalBtn = document.getElementById('close-share-deck-modal');
     const shareDeckLinkBtn = document.getElementById('share-deck-link-btn');
-    const shareDeckToFeedBtn = document.getElementById('share-deck-to-feed-btn');
-    const shareDeckUrlInput = document.getElementById('share-deck-url-input');
+    const modalShareToFeedBtn = document.getElementById('modal-share-to-feed-btn');
     const shareToFeedModal = document.getElementById('share-to-feed-modal');
     const closeShareToFeedModalBtn = document.getElementById('close-share-to-feed-modal');
     const shareToFeedForm = document.getElementById('share-to-feed-form');
@@ -279,7 +277,6 @@ document.addEventListener('authReady', (e) => {
         currentDeckInView = { ...deck, id: deckId };
         document.getElementById('tab-deck-view').classList.remove('hidden');
         switchTab('tab-deck-view');
-        deckToShare = { ...deck, id: deckId };
         document.getElementById('deck-view-name').textContent = deck.name;
         document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
         document.getElementById('deck-view-format').textContent = deck.format || 'N/A';
@@ -316,7 +313,7 @@ document.addEventListener('authReady', (e) => {
         Object.keys(categorizedCards).forEach(category => {
             const categoryEl = document.createElement('div');
             categoryEl.className = 'mb-4';
-            categoryEl.innerHTML = `<h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">${category} (${categorizedCards[category].length})</h3>`;
+            categoryEl.innerHTML = `<h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">${category} (${categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0)})</h3>`;
             const cardList = document.createElement('div');
             cardList.className = 'space-y-1';
             categorizedCards[category].forEach(card => {
@@ -336,10 +333,16 @@ document.addEventListener('authReady', (e) => {
         if (manaCurveChart) {
             manaCurveChart.destroy();
         }
-        const manaCosts = deck.cards.map(card => card.cmc || 0);
-        const manaCurveData = [0, 1, 2, 3, 4, 5, 6, 7].map(cost => {
-            return manaCosts.filter(cmc => cost === 7 ? cmc >= 7 : cmc === cost).length;
+        const manaCosts = deck.cards.flatMap(card => Array(card.quantity).fill(card.cmc || 0));
+        const manaCurveData = Array(8).fill(0);
+        manaCosts.forEach(cmc => {
+            if (cmc >= 7) {
+                manaCurveData[7]++;
+            } else {
+                manaCurveData[cmc]++;
+            }
         });
+
         const ctx = document.getElementById('mana-curve-chart').getContext('2d');
         manaCurveChart = new Chart(ctx, {
             type: 'bar',
@@ -359,7 +362,8 @@ document.addEventListener('authReady', (e) => {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1
+                            stepSize: 1,
+                            precision: 0
                         }
                     }
                 }
@@ -535,10 +539,13 @@ document.addEventListener('authReady', (e) => {
     };
     
     const initializePlaytest = () => {
-        if (!deckToShare) return;
+        if (!currentDeckInView) {
+            alert("Please view a deck before trying to test your hand.");
+            return;
+        };
         
         playtestState.deck = [];
-        deckToShare.cards.forEach(card => {
+        currentDeckInView.cards.forEach(card => {
             for (let i = 0; i < card.quantity; i++) {
                 playtestState.deck.push({ ...card, instanceId: Math.random() });
             }
@@ -804,7 +811,7 @@ document.addEventListener('authReady', (e) => {
         const value = parseInt(star.dataset.value);
         const stars = deckUserRatingStars.querySelectorAll('i');
         if (e.type === 'click') {
-            const deckId = deckToShare?.id;
+            const deckId = currentDeckInView?.id;
             if (deckId) submitRating(deckId, value);
         } else if (e.type === 'mouseover') {
             stars.forEach(s => {
@@ -816,7 +823,7 @@ document.addEventListener('authReady', (e) => {
                 }
             });
         } else if (e.type === 'mouseout') {
-            const deckId = deckToShare?.id;
+            const deckId = currentDeckInView?.id;
             if (deckId) loadRatingsAndComments(deckId);
         }
     };
@@ -941,18 +948,27 @@ document.addEventListener('authReady', (e) => {
     playtestMulliganBtn.addEventListener('click', takeMulligan);
     playtestResetBtn.addEventListener('click', initializePlaytest);
     
-    shareDeckBtn.addEventListener('click', () => openModal(shareDeckModal));
+    shareDeckBtn.addEventListener('click', () => {
+        if (currentDeckInView && currentDeckInView.isPublic !== false) {
+            openModal(shareDeckModal);
+        } else {
+            alert("This deck is not public. Please edit the deck and check 'Make this deck public' to enable sharing.");
+        }
+    });
     closeShareDeckModalBtn.addEventListener('click', () => closeModal(shareDeckModal));
+
     shareDeckLinkBtn.addEventListener('click', () => {
-        if (!deckToShare) return;
-        const url = `${window.location.origin}/deck.html?deckId=${deckToShare.id}`;
-        shareDeckUrlInput.value = url;
-        shareDeckUrlInput.select();
-        document.execCommand('copy');
-        alert('Public link copied to clipboard!');
+        if (!currentDeckInView) return;
+        const url = `${window.location.origin}/deck.html?deckId=${currentDeckInView.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Public link copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert('Failed to copy link.');
+        });
     });
 
-    shareDeckToFeedBtn.addEventListener('click', () => {
+    modalShareToFeedBtn.addEventListener('click', () => {
         closeModal(shareDeckModal);
         openModal(shareToFeedModal);
     });
@@ -961,12 +977,12 @@ document.addEventListener('authReady', (e) => {
 
     shareToFeedForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!user || !deckToShare) {
+        if (!user || !currentDeckInView) {
             alert("Please log in and select a deck to share.");
             return;
         }
         const message = document.getElementById('share-to-feed-message').value;
-        const postContent = `${message}\n\nCheck out my deck: [deck:${deckToShare.id}:${deckToShare.name}]`;
+        const postContent = `${message}\n\nCheck out my deck: [deck:${currentDeckInView.id}:${currentDeckInView.name}]`;
         try {
             const userDoc = await db.collection('users').doc(user.uid).get();
             const userData = userDoc.data();
@@ -981,12 +997,14 @@ document.addEventListener('authReady', (e) => {
             });
             alert('Deck shared to feed successfully!');
             closeModal(shareToFeedModal);
-            window.location.href = 'index.html';
+            document.getElementById('share-to-feed-message').value = '';
+            window.location.href = 'app.html';
         } catch (error) {
             console.error("Error sharing deck:", error);
             alert("Could not share deck. " + error.message);
         }
     });
+
     checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
     importDeckBtn.addEventListener('click', () => {
         openModal(importDeckModal);
@@ -1036,7 +1054,7 @@ document.addEventListener('authReady', (e) => {
             alert("Please log in to comment.");
             return;
         }
-        const deckId = deckToShare?.id;
+        const deckId = currentDeckInView?.id;
         if (!deckId) return;
 
         const commentText = deckCommentInput.value.trim();
