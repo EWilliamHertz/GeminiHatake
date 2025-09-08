@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Deck Page Script (v30 - AI Analyst & Playtest Fixes)
+ * HatakeSocial - Deck Page Script (v31 - Enhanced Sharing)
  *
+ * - NEW: Replaces "Share to Feed" with a new "Share" button and modal.
+ * - The new modal provides two options: "Copy Public Link" and "Share to Feed".
+ * - "Copy Public Link" generates a unique URL that anyone can use to view a read-only version of the deck.
+ * - "Share to Feed" now opens a second modal allowing the user to add a custom message before posting.
  * - FIX: Resolves issue where "Test Hand" button was unresponsive by ensuring state is correct.
  * - FIX: Implements full "Play vs. AI" functionality with basic game logic.
- * - The AI now initializes its own game state, draws cards, and takes turns.
- * - AI logic includes playing one land and one creature per turn if able.
- * - Client-side code for AI Analyst remains, which will now work with the updated Cloud Function.
  */
 
 function getCardImageUrl(cardData, size = 'normal') {
@@ -52,7 +53,7 @@ document.addEventListener('authReady', (e) => {
     const deckBioInput = document.getElementById('deck-bio-input');
     const decklistInput = document.getElementById('decklist-input');
     const deckPrimerInput = document.getElementById('deck-primer-input');
-    const shareDeckBtn = document.getElementById('share-deck-to-feed-btn');
+    const shareDeckBtn = document.getElementById('share-deck-btn');
     const collectionSearchInput = document.getElementById('deck-builder-collection-search');
     const collectionListContainer = document.getElementById('deck-builder-collection-list');
     const testHandBtn = document.getElementById('test-hand-btn');
@@ -80,6 +81,14 @@ document.addEventListener('authReady', (e) => {
     const deckAverageRatingStars = document.getElementById('deck-average-rating-stars');
     const deckRatingSummary = document.getElementById('deck-rating-summary');
     const deckUserRatingStars = document.getElementById('deck-user-rating-stars');
+    const shareDeckModal = document.getElementById('share-deck-modal');
+    const closeShareDeckModalBtn = document.getElementById('close-share-deck-modal');
+    const shareDeckLinkBtn = document.getElementById('share-deck-link-btn');
+    const shareDeckToFeedBtn = document.getElementById('share-deck-to-feed-btn');
+    const shareDeckUrlInput = document.getElementById('share-deck-url-input');
+    const shareToFeedModal = document.getElementById('share-to-feed-modal');
+    const closeShareToFeedModalBtn = document.getElementById('close-share-to-feed-modal');
+    const shareToFeedForm = document.getElementById('share-to-feed-form');
 
     // Card Quick View Tooltip Logic
     const tooltip = document.createElement('img');
@@ -932,12 +941,32 @@ document.addEventListener('authReady', (e) => {
     playtestMulliganBtn.addEventListener('click', takeMulligan);
     playtestResetBtn.addEventListener('click', initializePlaytest);
     
-    shareDeckBtn.addEventListener('click', async () => {
+    shareDeckBtn.addEventListener('click', () => openModal(shareDeckModal));
+    closeShareDeckModalBtn.addEventListener('click', () => closeModal(shareDeckModal));
+    shareDeckLinkBtn.addEventListener('click', () => {
+        if (!deckToShare) return;
+        const url = `${window.location.origin}/deck.html?deckId=${deckToShare.id}`;
+        shareDeckUrlInput.value = url;
+        shareDeckUrlInput.select();
+        document.execCommand('copy');
+        alert('Public link copied to clipboard!');
+    });
+
+    shareDeckToFeedBtn.addEventListener('click', () => {
+        closeModal(shareDeckModal);
+        openModal(shareToFeedModal);
+    });
+    
+    closeShareToFeedModalBtn.addEventListener('click', () => closeModal(shareToFeedModal));
+
+    shareToFeedForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         if (!user || !deckToShare) {
             alert("Please log in and select a deck to share.");
             return;
         }
-        const postContent = `Check out my deck: [deck:${deckToShare.id}:${deckToShare.name}]\n\n${deckToShare.bio || ''}`;
+        const message = document.getElementById('share-to-feed-message').value;
+        const postContent = `${message}\n\nCheck out my deck: [deck:${deckToShare.id}:${deckToShare.name}]`;
         try {
             const userDoc = await db.collection('users').doc(user.uid).get();
             const userData = userDoc.data();
@@ -951,6 +980,7 @@ document.addEventListener('authReady', (e) => {
                 comments: []
             });
             alert('Deck shared to feed successfully!');
+            closeModal(shareToFeedModal);
             window.location.href = 'index.html';
         } catch (error) {
             console.error("Error sharing deck:", error);

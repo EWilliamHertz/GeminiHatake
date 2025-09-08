@@ -347,10 +347,10 @@ Example:
 </i>
            Test Hand
           </button>
-<button class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 flex items-center" id="share-deck-to-feed-btn">
+<button class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-full shadow-md hover:bg-indigo-700 flex items-center" id="share-deck-btn">
 <i class="fas fa-share-square mr-2">
 </i>
-           Share to Feed
+           Share
           </button>
 </div>
 </div>
@@ -520,6 +520,47 @@ Example:
     </h3>
 </div>
 </div>
+</div>
+</div>
+<div class="modal-overlay hidden" id="share-deck-modal">
+<div class="modal-content w-full max-w-md bg-white dark:bg-gray-800 rounded-lg">
+<button class="close-button" id="close-share-deck-modal">
+       ×
+      </button>
+<h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+       Share Deck
+      </h2>
+<div class="space-y-4">
+<button class="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700" id="share-deck-link-btn">
+<i class="fas fa-link mr-2">
+</i>
+         Copy Public Link
+        </button>
+<button class="w-full flex items-center justify-center px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700" id="share-deck-to-feed-btn">
+<i class="fas fa-stream mr-2">
+</i>
+         Share to Feed
+        </button>
+</div>
+<input class="absolute -top-96" id="share-deck-url-input" type="text"/>
+</div>
+</div>
+<div class="modal-overlay hidden" id="share-to-feed-modal">
+<div class="modal-content w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg">
+<button class="close-button" id="close-share-to-feed-modal">
+       ×
+      </button>
+<h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+       Share to Feed
+      </h2>
+<form id="share-to-feed-form">
+<textarea class="w-full p-3 border rounded-md resize-y dark:bg-gray-700 dark:border-gray-600 mb-4" id="share-to-feed-message" placeholder="Add a message..." rows="4"></textarea>
+<div class="flex justify-end">
+<button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" type="submit">
+          Post
+         </button>
+</div>
+</form>
 </div>
 </div>
 </main>
