@@ -1,13 +1,14 @@
 /**
- * HatakeSocial - Deck Page Script (v31.2 - Button and State Fixes)
+ * HatakeSocial - Deck Page Script (v32.5 - Brute-Force Modal Fix)
  *
- * - FIX: Resolves issues where "Share" and "Test Hand" buttons were unresponsive by using a more reliable state variable (`currentDeckInView`).
- * - The main "Share" button now correctly opens the share options modal.
- * - The "Test Hand" button now correctly initializes the playtest area.
- * - Added alerts for cases where a deck isn't selected, providing better user feedback.
- * - Updated "Copy Link" to use modern navigator.clipboard API for better reliability.
- * - Added a check to only allow sharing of public decks.
+ * - This is an aggressive fix for a persistent modal issue.
+ * - All modal styling and layout are now handled directly and forcefully by JavaScript,
+ * overriding any potentially conflicting external CSS rules.
+ * - Animations remain disabled to ensure stability.
  */
+
+// This variable will hold the deck data while the user is on the deck-view tab.
+let currentDeckInView = null;
 
 function getCardImageUrl(cardData, size = 'normal') {
     if (cardData.card_faces && cardData.card_faces[0].image_uris) {
@@ -22,261 +23,93 @@ function getCardImageUrl(cardData, size = 'normal') {
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const db = firebase.firestore();
-    const functions = firebase.functions();
     const deckBuilderForm = document.getElementById('deck-builder-form');
     if (!deckBuilderForm) return;
 
-    const openModal = (modal) => modal && modal.classList.remove('hidden');
-    const closeModal = (modal) => modal && modal.classList.add('hidden');
+    // --- Toast Notification Function ---
+    function showToast(message, isSuccess = false) {
+        const toast = document.getElementById('toast-notification');
+        const toastMessage = document.getElementById('toast-message');
+        if (!toast || !toastMessage) return;
+
+        toastMessage.textContent = message;
+        toast.className = toast.className.replace(/bg-(red|green)-500/, '');
+        toast.classList.add(isSuccess ? 'bg-green-500' : 'bg-red-500');
+        
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+            toast.style.opacity = '1';
+        }, 50);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.classList.add('hidden'), 500);
+        }, 3000);
+    }
+
+    // --- Robust Modal Functions (Brute-Force, No Animations) ---
+    const openModal = (modal) => {
+        console.log('BRUTE-FORCE OPEN: Attempting to open modal:', modal ? modal.id : 'null');
+        if (!modal) {
+            console.error('openModal failed: modal element is null.');
+            return;
+        }
+
+        // --- Step 1: Force the overlay to be visible and functional ---
+        modal.style.position = 'fixed';
+        modal.style.inset = '0px';
+        modal.style.zIndex = '2000'; // Use a very high z-index
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center'; // JS equivalent of Tailwind 'items-center'
+        modal.style.justifyContent = 'center'; // JS equivalent of Tailwind 'justify-center'
+        modal.style.opacity = '1';
+        modal.style.visibility = 'visible';
+        modal.classList.remove('hidden');
+
+        // --- Step 2: Force the inner content box to be visible ---
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            console.log('Found modal-content, forcing styles...');
+            modalContent.style.display = 'block'; // Override any competing display properties
+            modalContent.style.visibility = 'visible';
+            modalContent.style.opacity = '1';
+            modalContent.style.zIndex = '2001'; // Ensure it's on top of the backdrop
+        } else {
+            console.error('CRITICAL: Could not find .modal-content inside the modal overlay!');
+        }
+
+        console.log(`Modal ${modal.id} should now be fully visible.`);
+    };
+
+    const closeModal = (modal) => {
+        console.log('BRUTE-FORCE CLOSE: Attempting to close modal:', modal ? modal.id : 'null');
+        if (modal) {
+            // Instantly hide the modal by setting display to none.
+            modal.style.display = 'none';
+            modal.classList.add('hidden');
+        } else {
+            console.error('closeModal failed: modal element is null.');
+        }
+    };
 
     // --- State Variables ---
     let fullCollection = [];
     let manaCurveChart = null;
     let playtestState = { deck: [], hand: [], battlefield: [], graveyard: [], library: [] };
-    let currentDeckInView = null;
 
     // --- DOM Elements ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
-    const deckFilters = document.getElementById('deck-filters');
-    const tcgFilterButtons = document.getElementById('tcg-filter-buttons');
-    const formatFilterContainer = document.getElementById('format-filter-container');
-    const formatFilterButtons = document.getElementById('format-filter-buttons');
-    const deckTcgSelect = document.getElementById('deck-tcg-select');
-    const deckFormatSelectContainer = document.getElementById('deck-format-select-container');
-    const deckFormatSelect = document.getElementById('deck-format-select');
-    const editingDeckIdInput = document.getElementById('editing-deck-id');
-    const builderTitle = document.getElementById('builder-title');
-    const buildDeckBtn = document.getElementById('build-deck-btn');
-    const deckNameInput = document.getElementById('deck-name-input');
-    const deckBioInput = document.getElementById('deck-bio-input');
-    const decklistInput = document.getElementById('decklist-input');
-    const deckPrimerInput = document.getElementById('deck-primer-input');
-    const shareDeckBtn = document.getElementById('share-deck-btn');
-    const collectionSearchInput = document.getElementById('deck-builder-collection-search');
-    const collectionListContainer = document.getElementById('deck-builder-collection-list');
     const testHandBtn = document.getElementById('test-hand-btn');
-    const playtestModal = document.getElementById('playtest-modal');
-    const closePlaytestModalBtn = document.getElementById('close-playtest-modal');
-    const playtestDrawBtn = document.getElementById('playtest-draw-btn');
-    const playtestMulliganBtn = document.getElementById('playtest-mulligan-btn');
-    const playtestResetBtn = document.getElementById('playtest-reset-btn');
-    const battlefieldEl = document.getElementById('playtest-battlefield');
-    const handEl = document.getElementById('playtest-hand');
-    const checkCollectionBtn = document.getElementById('check-collection-btn');
-    const missingCardsSection = document.getElementById('missing-cards-section');
-    const missingCardsList = document.getElementById('missing-cards-list');
-    const importDeckBtn = document.getElementById('import-deck-btn');
-    const importDeckModal = document.getElementById('import-deck-modal');
-    const closeImportModalBtn = document.getElementById('close-import-modal');
-    const importDeckTextarea = document.getElementById('import-deck-textarea');
-    const importDeckFileInput = document.getElementById('import-deck-file-input');
-    const processImportBtn = document.getElementById('process-import-btn');
-    const writePrimerBtn = document.getElementById('write-primer-btn');
-    const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
-    const deckCommentForm = document.getElementById('deck-comment-form');
-    const deckCommentInput = document.getElementById('deck-comment-input');
-    const deckCommentsList = document.getElementById('deck-comments-list');
-    const deckAverageRatingStars = document.getElementById('deck-average-rating-stars');
-    const deckRatingSummary = document.getElementById('deck-rating-summary');
-    const deckUserRatingStars = document.getElementById('deck-user-rating-stars');
-    const shareDeckModal = document.getElementById('share-deck-modal');
-    const closeShareDeckModalBtn = document.getElementById('close-share-deck-modal');
-    const shareDeckLinkBtn = document.getElementById('share-deck-link-btn');
-    const modalShareToFeedBtn = document.getElementById('modal-share-to-feed-btn');
-    const shareToFeedModal = document.getElementById('share-to-feed-modal');
-    const closeShareToFeedModalBtn = document.getElementById('close-share-to-feed-modal');
-    const shareToFeedForm = document.getElementById('share-to-feed-form');
-
-    // Card Quick View Tooltip Logic
-    const tooltip = document.createElement('img');
-    tooltip.id = 'card-quick-view-tooltip';
-    tooltip.classList.add('hidden');
-    document.body.appendChild(tooltip);
-    document.addEventListener('mouseover', (event) => {
-        const cardLink = event.target.closest('.card-link');
-        if (cardLink && cardLink.dataset.scryfallId) {
-            tooltip.src = `https://api.scryfall.com/cards/${cardLink.dataset.scryfallId}?format=image&version=normal`;
-            tooltip.classList.remove('hidden');
-        }
-    });
-    document.addEventListener('mouseout', (event) => {
-        if (event.target.closest('.card-link')) tooltip.classList.add('hidden');
-    });
-    document.addEventListener('mousemove', (event) => {
-        tooltip.style.left = event.pageX + 20 + 'px';
-        tooltip.style.top = event.pageY + 20 + 'px';
-    });
-
-    const formats = {
-        "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
-        "Pokémon": ["Standard", "Expanded"],
-        "Flesh and Blood": ["Classic Constructed", "Blitz"],
-        "Yu-Gi-Oh!": ["Advanced", "Traditional"]
-    };
-
-    const resetBuilderForm = () => {
-        deckBuilderForm.reset();
-        builderTitle.textContent = "Create New Deck";
-        buildDeckBtn.textContent = "Build & Price Deck";
-        editingDeckIdInput.value = '';
-        deckFormatSelectContainer.classList.add('hidden');
-        writePrimerBtn.classList.add('hidden');
-    };
-
-    const switchTab = (tabId) => {
-        tabs.forEach(item => {
-            const isTarget = item.id === tabId;
-            item.classList.toggle('text-blue-600', isTarget);
-            item.classList.toggle('border-blue-600', isTarget);
-            item.classList.toggle('text-gray-500', !isTarget);
-            item.classList.toggle('hover:border-gray-300', !isTarget);
-        });
-        const targetContentId = tabId.replace('tab-', 'content-');
-        tabContents.forEach(content => {
-            content.classList.toggle('hidden', content.id !== targetContentId);
-        });
-        if (tabId === 'tab-builder' && !editingDeckIdInput.value) {
-            resetBuilderForm();
-        }
-        if (tabId === 'tab-builder' && user) {
-            loadCollectionForDeckBuilder();
-        }
-        deckFilters.classList.toggle('hidden', !['tab-my-decks', 'tab-community-decks'].includes(tabId));
-        if (tabId !== 'tab-deck-view') {
-            missingCardsSection.classList.add('hidden');
-        }
-    };
-    
-    const loadCollectionForDeckBuilder = async () => {
-        if (!user) {
-            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
-            return;
-        }
-        collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading collection...</p>';
-        try {
-            const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
-            if (snapshot.empty) {
-                collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Your collection is empty.</p>';
-                return;
-            }
-            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderCollectionInBuilder(fullCollection);
-        } catch (error) {
-            console.error("Error loading collection for deck builder:", error);
-            collectionListContainer.innerHTML = '<p class="text-sm text-red-500 p-2">Could not load collection.</p>';
-        }
-    };
-
-    const renderCollectionInBuilder = (cards) => {
-        collectionListContainer.innerHTML = '';
-        if (cards.length === 0) {
-            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">No matching cards found.</p>';
-            return;
-        }
-        cards.forEach(card => {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer';
-            cardEl.innerHTML = `
-                <div class="flex-grow truncate">
-                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">${card.name}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
-                </div>
-                <div class="text-right flex-shrink-0 ml-2">
-                    <p class="text-sm font-bold dark:text-gray-300">${card.quantity}</p>
-                </div>
-            `;
-            cardEl.addEventListener('click', () => addCardToDecklist(card.name));
-            collectionListContainer.appendChild(cardEl);
-        });
-    };
-    
-    const addCardToDecklist = (cardName) => {
-        const currentList = decklistInput.value;
-        const regex = new RegExp(`^(\\d+)\\s+${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'im');
-        const match = currentList.match(regex);
-        if (match) {
-            const count = parseInt(match[1], 10);
-            const newList = currentList.replace(regex, `${count + 1} ${cardName}`);
-            decklistInput.value = newList;
-        } else {
-            decklistInput.value += `1 ${cardName}\n`;
-        }
-        decklistInput.scrollTop = decklistInput.scrollHeight;
-        decklistInput.focus();
-    };
-    
-    const validateDeck = (cards, format, tcg) => {
-        if (tcg !== "Magic: The Gathering") {
-            return { isValid: true, errors: [] };
-        }
-        let errors = [];
-        let mainDeckCount = 0;
-        cards.forEach(card => {
-            mainDeckCount += card.quantity;
-            if (card.legalities && card.legalities[format.toLowerCase()] !== 'legal') {
-                 errors.push(`- ${card.name} is not legal in ${format}.`);
-            }
-        });
-        switch (format) {
-            case 'Standard':
-            case 'Modern':
-            case 'Legacy':
-            case 'Vintage':
-            case 'Pauper':
-                if (mainDeckCount < 60) errors.push('- Main deck must have at least 60 cards.');
-                cards.forEach(card => {
-                    if (card.quantity > 4 && !card.type_line.includes('Basic Land')) {
-                        errors.push(`- Too many copies of ${card.name} (max 4).`);
-                    }
-                });
-                break;
-            case 'Commander':
-                if (mainDeckCount !== 100) errors.push('- Commander decks must have exactly 100 cards.');
-                cards.forEach(card => {
-                    if (card.quantity > 1 && !card.type_line.includes('Basic Land')) {
-                        errors.push(`- Too many copies of ${card.name} (max 1 for Commander).`);
-                    }
-                });
-                if (cards.length > 0) {
-                     if (!cards[0].type_line.includes('Legendary Creature')) {
-                          errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
-                     }
-                } else {
-                    errors.push('- Deck must contain a Commander.');
-                }
-                break;
-        }
-        return {
-            isValid: errors.length === 0,
-            errors: errors
-        };
-    };
-
-    const displayLegality = (deck) => {
-        const legalityContainer = document.getElementById('deck-legality-section');
-        const result = validateDeck(deck.cards, deck.format, deck.tcg);
-        if (result.isValid) {
-            legalityContainer.innerHTML = `
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
-                    <p class="font-bold"><i class="fas fa-check-circle mr-2"></i>Deck is legal for ${deck.format} format.</p>
-                </div>
-            `;
-        } else {
-            let errorHTML = result.errors.map(err => `<li>${err}</li>`).join('');
-            legalityContainer.innerHTML = `
-                 <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-                    <p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>This deck is not legal for ${deck.format}.</p>
-                    <ul class="list-disc list-inside mt-2">${errorHTML}</ul>
-                </div>
-            `;
-        }
-    };
+    const shareDeckBtn = document.getElementById('share-deck-btn');
     
     const viewDeck = (deck, deckId) => {
         currentDeckInView = { ...deck, id: deckId };
+        
         document.getElementById('tab-deck-view').classList.remove('hidden');
         switchTab('tab-deck-view');
+
         document.getElementById('deck-view-name').textContent = deck.name;
         document.getElementById('deck-view-author').textContent = `by ${deck.authorName || 'Anonymous'}`;
         document.getElementById('deck-view-format').textContent = deck.format || 'N/A';
@@ -310,7 +143,7 @@ document.addEventListener('authReady', (e) => {
             featuredCardImg.src = getCardImageUrl(deck.cards[0], 'normal');
             featuredCardImg.alt = deck.cards[0].name;
         }
-        Object.keys(categorizedCards).forEach(category => {
+        Object.keys(categorizedCards).sort().forEach(category => {
             const categoryEl = document.createElement('div');
             categoryEl.className = 'mb-4';
             categoryEl.innerHTML = `<h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">${category} (${categorizedCards[category].reduce((acc, c) => acc + c.quantity, 0)})</h3>`;
@@ -370,6 +203,214 @@ document.addEventListener('authReady', (e) => {
             }
         });
     };
+    
+    const switchTab = (tabId) => {
+        tabs.forEach(item => {
+            const isTarget = item.id === tabId;
+            item.classList.toggle('text-blue-600', isTarget);
+            item.classList.toggle('border-blue-600', isTarget);
+            item.classList.toggle('text-gray-500', !isTarget);
+            item.classList.toggle('hover:border-gray-300', !isTarget);
+        });
+        const targetContentId = tabId.replace('tab-', 'content-');
+        tabContents.forEach(content => {
+            content.classList.toggle('hidden', content.id !== targetContentId);
+        });
+        if (tabId === 'tab-builder' && !document.getElementById('editing-deck-id').value) {
+            resetBuilderForm();
+        }
+        if (tabId === 'tab-builder' && user) {
+            loadCollectionForDeckBuilder();
+        }
+        document.getElementById('deck-filters').classList.toggle('hidden', !['tab-my-decks', 'tab-community-decks'].includes(tabId));
+        
+        if (tabId !== 'tab-deck-view') {
+             document.getElementById('missing-cards-section').classList.add('hidden');
+        }
+    };
+
+    const initializePlaytest = () => {
+        if (currentDeckInView && currentDeckInView.id) {
+            playtestState.deck = [];
+            currentDeckInView.cards.forEach(card => {
+                for (let i = 0; i < card.quantity; i++) {
+                    playtestState.deck.push({ ...card, instanceId: Math.random() });
+                }
+            });
+
+            playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
+            playtestState.hand = [];
+            playtestState.battlefield = [];
+            playtestState.graveyard = [];
+            drawCards(7);
+            openModal(document.getElementById('playtest-modal'));
+        } else {
+            showToast("Please select a deck to test your hand.");
+        }
+    };
+
+    testHandBtn.addEventListener('click', initializePlaytest);
+    shareDeckBtn.addEventListener('click', () => {
+        if (currentDeckInView && currentDeckInView.id) {
+            if (currentDeckInView.isPublic !== false) {
+                openModal(document.getElementById('share-deck-modal'));
+            } else {
+                showToast("This deck is private and cannot be shared.");
+            }
+        } else {
+            showToast("Please select a deck to share.");
+        }
+    });
+
+    const resetBuilderForm = () => {
+        const builderTitle = document.getElementById('builder-title');
+        const buildDeckBtn = document.getElementById('build-deck-btn');
+        const editingDeckIdInput = document.getElementById('editing-deck-id');
+        const deckFormatSelectContainer = document.getElementById('deck-format-select-container');
+        const writePrimerBtn = document.getElementById('write-primer-btn');
+
+        deckBuilderForm.reset();
+        builderTitle.textContent = "Create New Deck";
+        buildDeckBtn.innerHTML = '<i class="fas fa-hammer mr-2"></i> Build & Price Deck';
+        editingDeckIdInput.value = '';
+        deckFormatSelectContainer.classList.add('hidden');
+        writePrimerBtn.classList.add('hidden');
+    };
+    
+    const loadCollectionForDeckBuilder = async () => {
+        const collectionListContainer = document.getElementById('deck-builder-collection-list');
+        if (!user) {
+            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Log in to see your collection.</p>';
+            return;
+        }
+        collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading collection...</p>';
+        try {
+            const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
+            if (snapshot.empty) {
+                collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">Your collection is empty.</p>';
+                return;
+            }
+            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderCollectionInBuilder(fullCollection);
+        } catch (error) {
+            collectionListContainer.innerHTML = '<p class="text-sm text-red-500 p-2">Could not load collection.</p>';
+        }
+    };
+
+    const renderCollectionInBuilder = (cards) => {
+        const collectionListContainer = document.getElementById('deck-builder-collection-list');
+        collectionListContainer.innerHTML = '';
+        if (cards.length === 0) {
+            collectionListContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">No matching cards found.</p>';
+            return;
+        }
+        cards.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer';
+            cardEl.innerHTML = `
+                <div class="flex-grow truncate">
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">${card.name}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${card.setName}</p>
+                </div>
+                <div class="text-right flex-shrink-0 ml-2">
+                    <p class="text-sm font-bold dark:text-gray-300">${card.quantity}</p>
+                </div>
+            `;
+            cardEl.addEventListener('click', () => addCardToDecklist(card.name));
+            collectionListContainer.appendChild(cardEl);
+        });
+    };
+    
+    const addCardToDecklist = (cardName) => {
+        const decklistInput = document.getElementById('decklist-input');
+        const currentList = decklistInput.value;
+        const regex = new RegExp(`^(\\d+)\\s+${cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'im');
+        const match = currentList.match(regex);
+        if (match) {
+            const count = parseInt(match[1], 10);
+            const newList = currentList.replace(regex, `${count + 1} ${cardName}`);
+            decklistInput.value = newList;
+        } else {
+            decklistInput.value += `1 ${cardName}\n`;
+        }
+        decklistInput.scrollTop = decklistInput.scrollHeight;
+        decklistInput.focus();
+    };
+    
+    const validateDeck = (cards, format, tcg) => {
+        const formats = {
+            "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
+            "Pokémon": ["Standard", "Expanded"],
+            "Flesh and Blood": ["Classic Constructed", "Blitz"],
+            "Yu-Gi-Oh!": ["Advanced", "Traditional"]
+        };
+
+        if (tcg !== "Magic: The Gathering") {
+            return { isValid: true, errors: [] };
+        }
+        let errors = [];
+        let mainDeckCount = 0;
+        cards.forEach(card => {
+            mainDeckCount += card.quantity;
+            if (card.legalities && card.legalities[format.toLowerCase()] !== 'legal') {
+                 errors.push(`- ${card.name} is not legal in ${format}.`);
+            }
+        });
+        
+        switch (format) {
+            case 'Standard':
+            case 'Modern':
+            case 'Legacy':
+            case 'Vintage':
+            case 'Pauper':
+                if (mainDeckCount < 60) errors.push('- Main deck must have at least 60 cards.');
+                cards.forEach(card => {
+                    if (card.quantity > 4 && !card.type_line.includes('Basic Land')) {
+                        errors.push(`- Too many copies of ${card.name} (max 4).`);
+                    }
+                });
+                break;
+            case 'Commander':
+                if (mainDeckCount !== 100) errors.push('- Commander decks must have exactly 100 cards.');
+                cards.forEach(card => {
+                    if (card.quantity > 1 && !card.type_line.includes('Basic Land')) {
+                        errors.push(`- Too many copies of ${card.name} (max 1 for Commander).`);
+                    }
+                });
+                if (cards.length > 0) {
+                     if (!cards[0].type_line.includes('Legendary Creature')) {
+                          errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
+                     }
+                } else {
+                    errors.push('- Deck must contain a Commander.');
+                }
+                break;
+        }
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    };
+
+    const displayLegality = (deck) => {
+        const legalityContainer = document.getElementById('deck-legality-section');
+        const result = validateDeck(deck.cards, deck.format, deck.tcg);
+        if (result.isValid) {
+            legalityContainer.innerHTML = `
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
+                    <p class="font-bold"><i class="fas fa-check-circle mr-2"></i>Deck is legal for ${deck.format} format.</p>
+                </div>
+            `;
+        } else {
+            let errorHTML = result.errors.map(err => `<li>${err}</li>`).join('');
+            legalityContainer.innerHTML = `
+                 <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+                    <p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>This deck is not legal for ${deck.format}.</p>
+                    <ul class="list-disc list-inside mt-2">${errorHTML}</ul>
+                </div>
+            `;
+        }
+    };
 
     const loadMyDecks = async (tcg = 'all', format = 'all') => {
         const myDecksList = document.getElementById('my-decks-list');
@@ -391,7 +432,6 @@ document.addEventListener('authReady', (e) => {
             let decks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderMyDecks(decks);
         } catch (error) {
-            console.error("Error loading user decks:", error);
             myDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An error occurred while loading your decks. A database index might be required for this filter combination.</p>`;
         }
     };
@@ -448,10 +488,10 @@ document.addEventListener('authReady', (e) => {
                         batch.delete(db.collection('users').doc(user.uid).collection('decks').doc(deckId));
                         batch.delete(db.collection('publicDecks').doc(deckId));
                         await batch.commit();
+                        showToast("Deck deleted successfully.", true);
                         loadMyDecks();
                     } catch (error) {
-                        console.error("Error deleting deck:", error);
-                        alert("Could not delete deck.");
+                        showToast("Could not delete deck.");
                     }
                 }
             });
@@ -460,8 +500,20 @@ document.addEventListener('authReady', (e) => {
 
     const editDeck = (deck, deckId) => {
         switchTab('tab-builder');
+        const builderTitle = document.getElementById('builder-title');
+        const buildDeckBtn = document.getElementById('build-deck-btn');
+        const editingDeckIdInput = document.getElementById('editing-deck-id');
+        const deckNameInput = document.getElementById('deck-name-input');
+        const deckBioInput = document.getElementById('deck-bio-input');
+        const deckPrimerInput = document.getElementById('deck-primer-input');
+        const deckTcgSelect = document.getElementById('deck-tcg-select');
+        const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
+        const deckFormatSelect = document.getElementById('deck-format-select');
+        const decklistInput = document.getElementById('decklist-input');
+        const writePrimerBtn = document.getElementById('write-primer-btn');
+
         builderTitle.textContent = "Edit Deck";
-        buildDeckBtn.textContent = "Update Deck";
+        buildDeckBtn.innerHTML = "Update Deck";
         editingDeckIdInput.value = deckId;
 
         deckNameInput.value = deck.name;
@@ -471,7 +523,9 @@ document.addEventListener('authReady', (e) => {
         deckPublicCheckbox.checked = deck.isPublic !== false;
         
         deckTcgSelect.dispatchEvent(new Event('change'));
-        deckFormatSelect.value = deck.format;
+        setTimeout(() => {
+             deckFormatSelect.value = deck.format;
+        }, 100);
 
         decklistInput.value = deck.cards.map(c => `${c.quantity} ${c.name}`).join('\n');
         writePrimerBtn.classList.remove('hidden');
@@ -499,7 +553,6 @@ document.addEventListener('authReady', (e) => {
             renderCommunityDecks(decks);
 
         } catch (error) {
-            console.error("Error loading community decks:", error);
             communityDecksList.innerHTML = `<p class="text-red-500 p-4 text-center">An error occurred while loading decks. A database index might be required for this filter combination.</p>`;
         }
     };
@@ -525,6 +578,8 @@ document.addEventListener('authReady', (e) => {
     };
 
     const applyDeckFilters = () => {
+        const tcgFilterButtons = document.getElementById('tcg-filter-buttons');
+        const formatFilterButtons = document.getElementById('format-filter-buttons');
         const tcg = tcgFilterButtons.querySelector('.filter-btn-active').dataset.tcg;
         const format = formatFilterButtons.querySelector('.filter-btn-active')?.dataset.format || 'all';
         const activeTab = document.querySelector('.tab-button.text-blue-600');
@@ -538,27 +593,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    const initializePlaytest = () => {
-        if (!currentDeckInView) {
-            alert("Please view a deck before trying to test your hand.");
-            return;
-        };
-        
-        playtestState.deck = [];
-        currentDeckInView.cards.forEach(card => {
-            for (let i = 0; i < card.quantity; i++) {
-                playtestState.deck.push({ ...card, instanceId: Math.random() });
-            }
-        });
-
-        playtestState.library = [...playtestState.deck].sort(() => Math.random() - 0.5);
-        playtestState.hand = [];
-        playtestState.battlefield = [];
-        playtestState.graveyard = [];
-        drawCards(7);
-        openModal(playtestModal);
-    };
-
     const drawCards = (numToDraw) => {
         for (let i = 0; i < numToDraw; i++) {
             if (playtestState.library.length > 0) {
@@ -577,6 +611,8 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderPlaytestState = () => {
+        const battlefieldEl = document.getElementById('playtest-battlefield');
+        const handEl = document.getElementById('playtest-hand');
         document.getElementById('library-count').textContent = playtestState.library.length;
         document.getElementById('hand-count').textContent = playtestState.hand.length;
         const renderZone = (zoneEl, cards) => {
@@ -624,12 +660,13 @@ document.addEventListener('authReady', (e) => {
     };
 
     const checkDeckAgainstCollection = async () => {
+        const checkCollectionBtn = document.getElementById('check-collection-btn');
         if (!user) {
-            alert("Please log in to check your collection.");
+            showToast("Please log in to check your collection.");
             return;
         }
         if (!currentDeckInView) {
-            alert("Please view a deck first.");
+            showToast("Please select a deck first.");
             return;
         }
 
@@ -662,8 +699,7 @@ document.addEventListener('authReady', (e) => {
             renderMissingCards(missing);
 
         } catch (error) {
-            console.error("Error checking collection:", error);
-            alert("Could not check deck against your collection.");
+            showToast("Could not check deck against your collection.");
         } finally {
             checkCollectionBtn.disabled = false;
             checkCollectionBtn.innerHTML = '<i class="fas fa-check-double mr-2"></i> Check Collection';
@@ -671,6 +707,8 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderMissingCards = (missing) => {
+        const missingCardsList = document.getElementById('missing-cards-list');
+        const missingCardsSection = document.getElementById('missing-cards-section');
         if (missing.length === 0) {
             missingCardsList.innerHTML = '<p class="text-green-700 dark:text-green-300 font-semibold">Congratulations! You have all the cards for this deck.</p>';
         } else {
@@ -685,6 +723,7 @@ document.addEventListener('authReady', (e) => {
     };
     
     const parseAndFillDecklist = (content) => {
+        const decklistInput = document.getElementById('decklist-input');
         const lines = content.split('\n').filter(line => line.trim() !== '');
         let parsedList = '';
         lines.forEach(line => {
@@ -698,12 +737,12 @@ document.addEventListener('authReady', (e) => {
             }
         });
         decklistInput.value = parsedList;
-        alert("Decklist imported successfully!");
+        showToast("Decklist imported successfully!", true);
     };
     
     const submitRating = async (deckId, rating) => {
         if (!user) {
-            alert("Please log in to rate a deck.");
+            showToast("Please log in to rate a deck.");
             return;
         }
         const deckRef = db.collection('publicDecks').doc(deckId);
@@ -733,12 +772,14 @@ document.addEventListener('authReady', (e) => {
             });
             loadRatingsAndComments(deckId);
         } catch (error) {
-            console.error("Error submitting rating:", error);
-            alert("There was an error submitting your rating.");
+            showToast("There was an error submitting your rating.");
         }
     };
 
     const loadRatingsAndComments = async (deckId) => {
+        const deckAverageRatingStars = document.getElementById('deck-average-rating-stars');
+        const deckRatingSummary = document.getElementById('deck-rating-summary');
+        const deckCommentsList = document.getElementById('deck-comments-list');
         deckAverageRatingStars.innerHTML = '...';
         deckRatingSummary.textContent = '';
         deckCommentsList.innerHTML = '<p>Loading comments...</p>';
@@ -757,12 +798,14 @@ document.addEventListener('authReady', (e) => {
             const comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderComments(comments);
         } catch (error) {
-            console.error("Error loading ratings and comments:", error);
             deckCommentsList.innerHTML = '<p class="text-red-500">Could not load comments.</p>';
         }
     };
 
     const renderRatings = (deckData, userRating) => {
+        const deckAverageRatingStars = document.getElementById('deck-average-rating-stars');
+        const deckRatingSummary = document.getElementById('deck-rating-summary');
+        const deckUserRatingStars = document.getElementById('deck-user-rating-stars');
         const avg = deckData.averageRating || 0;
         const count = deckData.ratingCount || 0;
         let avgStarsHTML = '';
@@ -789,6 +832,7 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderComments = (comments) => {
+        const deckCommentsList = document.getElementById('deck-comments-list');
         if (comments.length === 0) {
             deckCommentsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No comments yet. Be the first to comment!</p>';
             return;
@@ -806,6 +850,7 @@ document.addEventListener('authReady', (e) => {
     };
 
     const handleRatingInteraction = (e) => {
+        const deckUserRatingStars = document.getElementById('deck-user-rating-stars');
         const star = e.target.closest('i');
         if (!star) return;
         const value = parseInt(star.dataset.value);
@@ -829,28 +874,35 @@ document.addEventListener('authReady', (e) => {
     };
     
     // --- Event Listeners ---
-    tabs.forEach(tab => tab.addEventListener('click', () => { if (tab.id !== 'tab-deck-view') { switchTab(tab.id); applyDeckFilters(); } }));
+    tabs.forEach(tab => tab.addEventListener('click', (e) => { 
+        if (e.target.id !== 'tab-deck-view') {
+            switchTab(e.target.id);
+            applyDeckFilters(); 
+        }
+    }));
     
     deckBuilderForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!user) { alert("Please log in to build a deck."); return; }
+        const buildDeckBtn = document.getElementById('build-deck-btn');
+        if (!user) { showToast("Please log in to build a deck."); return; }
         buildDeckBtn.disabled = true;
-        buildDeckBtn.textContent = 'Processing...';
+        buildDeckBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+        const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
         const isPublic = deckPublicCheckbox.checked;
         const deckData = {
-            name: deckNameInput.value,
-            name_lower: deckNameInput.value.toLowerCase(),
-            bio: deckBioInput.value,
-            primer: deckPrimerInput.value.trim(),
-            tcg: deckTcgSelect.value,
-            format: deckFormatSelect.value,
+            name: document.getElementById('deck-name-input').value,
+            name_lower: document.getElementById('deck-name-input').value.toLowerCase(),
+            bio: document.getElementById('deck-bio-input').value,
+            primer: document.getElementById('deck-primer-input').value.trim(),
+            tcg: document.getElementById('deck-tcg-select').value,
+            format: document.getElementById('deck-format-select').value,
             authorId: user.uid,
             authorName: user.displayName || 'Anonymous',
             createdAt: new Date(),
             isPublic: isPublic,
             cards: []
         };
-        const lines = decklistInput.value.split('\n').filter(line => line.trim() !== '');
+        const lines = document.getElementById('decklist-input').value.split('\n').filter(line => line.trim() !== '');
         const cardPromises = lines.map(line => {
             const match = line.match(/^(\d+)\s+(.*)/);
             if (!match) return null;
@@ -860,16 +912,8 @@ document.addEventListener('authReady', (e) => {
                 .then(cardData => cardData ? { ...cardData, quantity: parseInt(match[1], 10) } : null);
         }).filter(p => p);
         deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
-        const validationResult = validateDeck(deckData.cards, deckData.format, deckData.tcg);
-        if (!validationResult.isValid) {
-            const errorString = validationResult.errors.join('\n');
-            if (!confirm(`This deck is not legal for the ${deckData.format} format:\n\n${errorString}\n\nDo you want to save it anyway?`)) {
-                buildDeckBtn.disabled = false;
-                buildDeckBtn.textContent = 'Build & Price Deck';
-                return;
-            }
-        }
-        const editingId = editingDeckIdInput.value;
+        
+        const editingId = document.getElementById('editing-deck-id').value;
         try {
             const userDeckRef = editingId 
                 ? db.collection('users').doc(user.uid).collection('decks').doc(editingId)
@@ -883,23 +927,32 @@ document.addEventListener('authReady', (e) => {
                 batch.delete(publicDeckRef);
             }
             await batch.commit();
-            alert("Deck saved successfully!");
+            showToast("Deck saved successfully!", true);
             viewDeck(deckData, userDeckRef.id);
         } catch(error) {
-            alert("Error saving deck: " + error.message);
+            showToast("Error saving deck: " + error.message);
         } finally {
             buildDeckBtn.disabled = false;
-            buildDeckBtn.textContent = 'Build & Price Deck';
+            resetBuilderForm();
         }
     });
 
-    collectionSearchInput.addEventListener('input', () => {
-        const searchTerm = collectionSearchInput.value.toLowerCase();
+    document.getElementById('deck-builder-collection-search').addEventListener('input', () => {
+        const searchTerm = document.getElementById('deck-builder-collection-search').value.toLowerCase();
         const filteredCards = fullCollection.filter(card => card.name.toLowerCase().includes(searchTerm));
         renderCollectionInBuilder(filteredCards);
     });
     
-    deckTcgSelect.addEventListener('change', () => {
+    document.getElementById('deck-tcg-select').addEventListener('change', () => {
+        const deckTcgSelect = document.getElementById('deck-tcg-select');
+        const deckFormatSelect = document.getElementById('deck-format-select');
+        const deckFormatSelectContainer = document.getElementById('deck-format-select-container');
+        const formats = {
+            "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
+            "Pokémon": ["Standard", "Expanded"],
+            "Flesh and Blood": ["Classic Constructed", "Blitz"],
+            "Yu-Gi-Oh!": ["Advanced", "Traditional"]
+        };
         const selectedTcg = deckTcgSelect.value;
         if (formats[selectedTcg]) {
             deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
@@ -912,11 +965,19 @@ document.addEventListener('authReady', (e) => {
         }
     });
     
-    tcgFilterButtons.addEventListener('click', (e) => {
+    document.getElementById('tcg-filter-buttons').addEventListener('click', (e) => {
         if (e.target.classList.contains('tcg-filter-btn')) {
-            tcgFilterButtons.querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+            const formats = {
+                "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
+                "Pokémon": ["Standard", "Expanded"],
+                "Flesh and Blood": ["Classic Constructed", "Blitz"],
+                "Yu-Gi-Oh!": ["Advanced", "Traditional"]
+            };
+            document.getElementById('tcg-filter-buttons').querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
             e.target.classList.add('filter-btn-active');
             const selectedTcg = e.target.dataset.tcg;
+            const formatFilterButtons = document.getElementById('format-filter-buttons');
+            const formatFilterContainer = document.getElementById('format-filter-container');
             formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
             if (selectedTcg !== 'all' && formats[selectedTcg]) {
                 formats[selectedTcg].forEach(format => {
@@ -930,55 +991,103 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    formatFilterButtons.addEventListener('click', (e) => {
+    document.getElementById('format-filter-buttons').addEventListener('click', (e) => {
         if (e.target.classList.contains('format-filter-btn')) {
-            formatFilterButtons.querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
+            document.getElementById('format-filter-buttons').querySelectorAll('.format-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
             e.target.classList.add('filter-btn-active');
             applyDeckFilters();
         }
     });
 
-    battlefieldEl.addEventListener('dragover', (e) => e.preventDefault());
-    handEl.addEventListener('dragover', (e) => e.preventDefault());
-    battlefieldEl.addEventListener('drop', handleDrop);
-    handEl.addEventListener('drop', handleDrop);
-    testHandBtn.addEventListener('click', initializePlaytest);
-    closePlaytestModalBtn.addEventListener('click', () => closeModal(playtestModal));
-    playtestDrawBtn.addEventListener('click', () => drawCards(1));
-    playtestMulliganBtn.addEventListener('click', takeMulligan);
-    playtestResetBtn.addEventListener('click', initializePlaytest);
+    document.getElementById('playtest-battlefield').addEventListener('dragover', (e) => e.preventDefault());
+    document.getElementById('playtest-hand').addEventListener('dragover', (e) => e.preventDefault());
+    document.getElementById('playtest-battlefield').addEventListener('drop', handleDrop);
+    document.getElementById('playtest-hand').addEventListener('drop', handleDrop);
+    document.getElementById('close-playtest-modal').addEventListener('click', () => closeModal(document.getElementById('playtest-modal')));
+    document.getElementById('playtest-draw-btn').addEventListener('click', () => drawCards(1));
+    document.getElementById('playtest-mulligan-btn').addEventListener('click', takeMulligan);
+    document.getElementById('playtest-reset-btn').addEventListener('click', initializePlaytest);
     
-    shareDeckBtn.addEventListener('click', () => {
-        if (currentDeckInView && currentDeckInView.isPublic !== false) {
-            openModal(shareDeckModal);
-        } else {
-            alert("This deck is not public. Please edit the deck and check 'Make this deck public' to enable sharing.");
-        }
-    });
-    closeShareDeckModalBtn.addEventListener('click', () => closeModal(shareDeckModal));
+    document.getElementById('close-share-deck-modal').addEventListener('click', () => closeModal(document.getElementById('share-deck-modal')));
 
-    shareDeckLinkBtn.addEventListener('click', () => {
+    document.getElementById('share-deck-link-btn').addEventListener('click', () => {
         if (!currentDeckInView) return;
         const url = `${window.location.origin}/deck.html?deckId=${currentDeckInView.id}`;
         navigator.clipboard.writeText(url).then(() => {
-            alert('Public link copied to clipboard!');
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-            alert('Failed to copy link.');
+            showToast("Public link copied to clipboard!", true);
+        }).catch(() => {
+            showToast('Failed to copy link.');
         });
     });
 
-    modalShareToFeedBtn.addEventListener('click', () => {
-        closeModal(shareDeckModal);
-        openModal(shareToFeedModal);
+    document.getElementById('modal-share-to-feed-btn').addEventListener('click', () => {
+        closeModal(document.getElementById('share-deck-modal'));
+        openModal(document.getElementById('share-to-feed-modal'));
+    });
+
+     document.getElementById('modal-share-to-group-btn').addEventListener('click', () => {
+        closeModal(document.getElementById('share-deck-modal'));
+        loadUserGroups();
+        openModal(document.getElementById('share-to-group-modal'));
     });
     
-    closeShareToFeedModalBtn.addEventListener('click', () => closeModal(shareToFeedModal));
+    document.getElementById('close-share-to-feed-modal').addEventListener('click', () => closeModal(document.getElementById('share-to-feed-modal')));
+    document.getElementById('close-share-to-group-modal').addEventListener('click', () => closeModal(document.getElementById('share-to-group-modal')));
+    
+    const loadUserGroups = async () => {
+        const groupListContainer = document.getElementById('group-list-container');
+        if (!user) return;
+        groupListContainer.innerHTML = '<p class="p-4 text-center">Loading your groups...</p>';
+        try {
+            const groupsSnapshot = await db.collection('groups').where('members', 'array-contains', user.uid).get();
+            if (groupsSnapshot.empty) {
+                groupListContainer.innerHTML = '<p class="p-4 text-center">You are not a member of any groups.</p>';
+                return;
+            }
+            groupListContainer.innerHTML = '';
+            groupsSnapshot.forEach(doc => {
+                const group = { id: doc.id, ...doc.data() };
+                const groupEl = document.createElement('div');
+                groupEl.className = 'p-3 hover:bg-gray-700 cursor-pointer rounded-md';
+                groupEl.textContent = group.name;
+                groupEl.addEventListener('click', () => shareDeckToGroup(group));
+                groupListContainer.appendChild(groupEl);
+            });
+        } catch (error) {
+            groupListContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load your groups.</p>';
+        }
+    };
 
-    shareToFeedForm.addEventListener('submit', async (e) => {
+    const shareDeckToGroup = async (group) => {
+        if (!user || !currentDeckInView) {
+            showToast("Please log in and select a deck to share.");
+            return;
+        }
+        const postContent = `Check out my deck: [deck:${currentDeckInView.id}:${currentDeckInView.name}]`;
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            const userData = userDoc.data();
+            await db.collection('groups').doc(group.id).collection('posts').add({
+                authorName: userData.displayName || 'Anonymous',
+                authorId: user.uid,
+                authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                content: postContent,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                likes: [],
+                commentCount: 0
+            });
+            showToast(`Deck shared to ${group.name} successfully!`, true);
+            closeModal(document.getElementById('share-to-group-modal'));
+        } catch (error) {
+            showToast("Could not share deck. " + error.message);
+        }
+    };
+
+
+    document.getElementById('share-to-feed-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!user || !currentDeckInView) {
-            alert("Please log in and select a deck to share.");
+            showToast("Please log in and select a deck to share.");
             return;
         }
         const message = document.getElementById('share-to-feed-message').value;
@@ -995,24 +1104,25 @@ document.addEventListener('authReady', (e) => {
                 likes: [],
                 comments: []
             });
-            alert('Deck shared to feed successfully!');
-            closeModal(shareToFeedModal);
+            showToast('Deck shared to feed successfully!', true);
+            closeModal(document.getElementById('share-to-feed-modal'));
             document.getElementById('share-to-feed-message').value = '';
             window.location.href = 'app.html';
         } catch (error) {
-            console.error("Error sharing deck:", error);
-            alert("Could not share deck. " + error.message);
+            showToast("Could not share deck. " + error.message);
         }
     });
 
-    checkCollectionBtn.addEventListener('click', checkDeckAgainstCollection);
-    importDeckBtn.addEventListener('click', () => {
-        openModal(importDeckModal);
+    document.getElementById('check-collection-btn').addEventListener('click', checkDeckAgainstCollection);
+    document.getElementById('import-deck-btn').addEventListener('click', () => {
+        openModal(document.getElementById('import-deck-modal'));
     });
-    closeImportModalBtn.addEventListener('click', () => {
-        closeModal(importDeckModal);
+    document.getElementById('close-import-modal').addEventListener('click', () => {
+        closeModal(document.getElementById('import-deck-modal'));
     });
-    processImportBtn.addEventListener('click', () => {
+    document.getElementById('process-import-btn').addEventListener('click', () => {
+        const importDeckFileInput = document.getElementById('import-deck-file-input');
+        const importDeckTextarea = document.getElementById('import-deck-textarea');
         const file = importDeckFileInput.files[0];
         const text = importDeckTextarea.value;
 
@@ -1026,41 +1136,42 @@ document.addEventListener('authReady', (e) => {
         } else if (text) {
             parseAndFillDecklist(text);
         } else {
-            alert("Please paste a decklist or select a file.");
+            showToast("Please paste a decklist or select a file.");
         }
-        closeModal(importDeckModal);
+        closeModal(document.getElementById('import-deck-modal'));
     });
     
-
-    // --- Primer Button Event Listener ---
-    writePrimerBtn.addEventListener('click', () => {
+    document.getElementById('write-primer-btn').addEventListener('click', () => {
+        const editingDeckIdInput = document.getElementById('editing-deck-id');
+        const deckNameInput = document.getElementById('deck-name-input');
         const deckId = editingDeckIdInput.value;
         const deckName = deckNameInput.value;
         if (!deckId || !deckName) {
-            alert('Please save the deck before writing a primer.');
+            showToast('Please save the deck before writing a primer.');
             return;
         }
         const deckNameEncoded = encodeURIComponent(deckName);
         window.location.href = `create-article.html?deckId=${deckId}&deckName=${deckNameEncoded}`;
     });
 
-    deckUserRatingStars.addEventListener('click', handleRatingInteraction);
-    deckUserRatingStars.addEventListener('mouseover', handleRatingInteraction);
-    deckUserRatingStars.addEventListener('mouseout', handleRatingInteraction);
+    document.getElementById('deck-user-rating-stars').addEventListener('click', handleRatingInteraction);
+    document.getElementById('deck-user-rating-stars').addEventListener('mouseover', handleRatingInteraction);
+    document.getElementById('deck-user-rating-stars').addEventListener('mouseout', handleRatingInteraction);
 
-    deckCommentForm.addEventListener('submit', async (e) => {
+    document.getElementById('deck-comment-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!user) {
-            alert("Please log in to comment.");
+            showToast("Please log in to comment.");
             return;
         }
         const deckId = currentDeckInView?.id;
         if (!deckId) return;
 
+        const deckCommentInput = document.getElementById('deck-comment-input');
         const commentText = deckCommentInput.value.trim();
         if (!commentText) return;
 
-        const submitBtn = deckCommentForm.querySelector('button[type="submit"]');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
 
         try {
@@ -1072,10 +1183,9 @@ document.addEventListener('authReady', (e) => {
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             deckCommentInput.value = '';
-            loadRatingsAndComments(deckId); // Refresh comments
+            loadRatingsAndComments(deckId);
         } catch (error) {
-            console.error("Error submitting comment:", error);
-            alert("Could not submit your comment.");
+            showToast("Could not submit your comment.");
         } finally {
             submitBtn.disabled = false;
         }
@@ -1085,13 +1195,12 @@ document.addEventListener('authReady', (e) => {
     const urlParams = new URLSearchParams(window.location.search);
     const deckId = urlParams.get('deckId');
     if (deckId) {
-        const userDeckRef = user ? db.collection('users').doc(user.uid).collection('decks').doc(deckId) : null;
         const publicDeckRef = db.collection('publicDecks').doc(deckId);
-
         publicDeckRef.get().then(doc => {
             if (doc.exists) {
                 viewDeck(doc.data(), doc.id);
-            } else if (userDeckRef) {
+            } else if (user) {
+                 const userDeckRef = db.collection('users').doc(user.uid).collection('decks').doc(deckId);
                 userDeckRef.get().then(userDoc => {
                     if (userDoc.exists) {
                         viewDeck(userDoc.data(), userDoc.id);
