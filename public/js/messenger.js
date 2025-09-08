@@ -1,277 +1,346 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+/**
+ * HatakeSocial - Messenger Widget (v7 - Date Format & Avatar Fix)
+ *
+ * - NEW: Adds a `formatTimestamp` helper to display message timestamps according to user preference.
+ * - FIX: The `selectWidgetConversation` function now rebuilds the chat header's innerHTML to reliably update the user's avatar, mirroring the working implementation from the main messages page. This resolves the issue of avatars not loading in the widget's chat view.
+ * - This script manages the functionality of the floating messenger widget.
+ */
 
-    // Main Widget Elements
-    const widgetContainer = document.getElementById('messenger-widget-container');
+// --- Date Formatting Helper ---
+const formatTimestamp = (timestamp) => {
+    if (!timestamp || !timestamp.toDate) {
+        return ''; // Return empty string if timestamp isn't a valid Firestore Timestamp yet
+    }
+    const date = timestamp.toDate();
+    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-    // Visibility logic based on user settings
-    if (widgetContainer) {
-        const isVisible = localStorage.getItem('messengerWidget-visible');
-        // Default to hidden if not set or explicitly set to false
-        if (isVisible === 'false' || isVisible === null) {
-            widgetContainer.classList.add('hidden');
-        } else {
-            widgetContainer.classList.remove('hidden');
-        }
+    let datePart;
+    if (userDateFormat === 'mdy') {
+        datePart = `${month}/${day}/${year}`;
+    } else {
+        datePart = `${day}/${month}/${year}`;
     }
 
-    if (!widgetContainer) return;
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
 
-    const openBtn = document.getElementById('messenger-open-btn');
-    const widgetHeader = document.getElementById('messenger-widget-header');
-    const toggleIcon = document.getElementById('widget-toggle-icon');
+    return isToday ? time : datePart;
+};
 
-    // View Containers
-    const listView = document.getElementById('widget-list-view');
-    const chatView = document.getElementById('widget-chat-view');
 
-    // Conversation List Elements
-    const conversationsList = document.getElementById('widget-conversations-list');
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    const messengerWidgetContainer = document.getElementById('messenger-widget-container');
+    if (!messengerWidgetContainer) return;
 
-    // Active Chat Elements
-    const backBtn = document.getElementById('widget-back-btn');
-    const chatHeaderName = document.getElementById('widget-chat-name');
-    const chatHeaderAvatar = document.getElementById('widget-chat-avatar');
-    const messagesContainer = document.getElementById('widget-messages-container');
-    const messageForm = document.getElementById('widget-message-form');
-    const messageInput = document.getElementById('widget-message-input');
+    if (!user) {
+        messengerWidgetContainer.style.display = 'none';
+        return;
+    }
+    messengerWidgetContainer.style.display = 'block';
 
-    let currentUser = null;
-    let conversationsUnsubscribe = null;
-    let messagesUnsubscribe = null;
+    const db = firebase.firestore();
+    let activeWidgetConversationId = null;
+    let unsubscribeWidgetMessages = null;
+    let unsubscribeWidgetConversations = null;
 
-    // --- UTILITY FUNCTIONS ---
-    const formatTimestamp = (timestamp) => {
-        if (!timestamp || typeof timestamp.toDate !== 'function') return '';
-        return timestamp.toDate().toLocaleString();
-    };
+    // --- DOM Elements ---
+    const messengerOpenBtn = document.getElementById('messenger-open-btn');
+    const messengerWidget = document.getElementById('messenger-widget');
+    const messengerWidgetHeader = document.getElementById('messenger-widget-header');
+    const widgetMainHeaderText = document.getElementById('widget-main-header-text');
+    const widgetToggleIcon = document.getElementById('widget-toggle-icon');
+    const messengerWidgetBody = document.getElementById('messenger-widget-body');
 
-    // --- VIEW MANAGEMENT ---
-    const showListView = () => {
-        if (messagesUnsubscribe) messagesUnsubscribe(); // Stop listening to old messages
-        messagesUnsubscribe = null;
-        if (chatView) chatView.classList.add('hidden');
-        if (listView) listView.classList.remove('hidden');
-    };
+    const widgetListView = document.getElementById('widget-list-view');
+    const widgetConversationsList = document.getElementById('widget-conversations-list');
+    
+    const widgetChatView = document.getElementById('widget-chat-view');
+    const widgetMessagesContainer = document.getElementById('widget-messages-container');
+    const widgetMessageForm = document.getElementById('widget-message-form');
+    const widgetMessageInput = document.getElementById('widget-message-input');
 
-    const showChatView = () => {
-        if (listView) listView.classList.add('hidden');
-        if (chatView) chatView.classList.remove('hidden');
-    };
+    const newConversationBtn = document.getElementById('widget-new-conversation-btn');
+    const newConversationModal = document.getElementById('new-conversation-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const userSearchInput = document.getElementById('user-search-input');
+    const userSearchResults = document.getElementById('user-search-results');
 
-    // --- DATA FETCHING & RENDERING ---
-    const renderMessages = (messages) => {
-        if (!messagesContainer || !currentUser) return;
-        messagesContainer.innerHTML = messages.map(msg => {
-            const isSender = msg.senderId === currentUser.uid;
-            return `
-                <div class="flex ${isSender ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-[75%] p-2 rounded-lg text-sm ${isSender ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}">
-                        <p>${msg.text}</p>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    };
+    let isForWidget = false; // Flag to distinguish modal usage
 
-    const openConversation = async (conversationId) => {
-        if (!currentUser) return;
-        showChatView();
-        messagesContainer.innerHTML = '<p class="text-center text-gray-500">Loading messages...</p>';
+    // --- Widget Visibility and State ---
+    const isVisible = localStorage.getItem('messengerWidget-visible') !== 'false';
+     if (isVisible) {
+        messengerWidgetContainer.classList.remove('hidden');
+    } else {
+        messengerWidgetContainer.classList.add('hidden');
+    }
 
-        const convDoc = await db.collection('conversations').doc(conversationId).get();
-        const convData = convDoc.data();
-        const otherUserId = convData.participants.find(p => p !== currentUser.uid);
+    const isMinimized = localStorage.getItem('messengerWidget-minimized') === 'true';
+    if (isMinimized) {
+        messengerWidgetContainer.classList.add('minimized');
+        widgetToggleIcon.classList.remove('fa-chevron-down');
+        widgetToggleIcon.classList.add('fa-chevron-up');
+    }
 
-        const userDoc = await db.collection('users').doc(otherUserId).get();
-        const userData = userDoc.data();
-
-        chatHeaderName.textContent = userData.displayName || 'Chat';
-        chatHeaderAvatar.src = userData.profilePic || 'https://placehold.co/32x32';
-
-        if (messagesUnsubscribe) messagesUnsubscribe();
-        messagesUnsubscribe = db.collection('conversations').doc(conversationId).collection('messages')
-            .orderBy('timestamp', 'asc')
-            .onSnapshot(snapshot => {
-                const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderMessages(messages);
-            });
-        
-        messageForm.dataset.conversationId = conversationId;
-    };
-
-    const renderConversations = (conversations) => {
-        if (!conversationsList || !currentUser) return;
-        if (conversations.length === 0) {
-            conversationsList.innerHTML = '<p class="p-4 text-center text-gray-500">No conversations yet.</p>';
+    messengerOpenBtn.addEventListener('click', () => {
+        messengerWidgetContainer.classList.remove('minimized');
+        localStorage.setItem('messengerWidget-minimized', 'false');
+    });
+    
+    messengerWidgetHeader.addEventListener('click', (e) => {
+        // Prevent minimizing when clicking the 'new conversation' icon
+        if (e.target.id === 'widget-new-conversation-btn') {
             return;
         }
-        conversationsList.innerHTML = conversations.map(conv => `
-            <div class="conversation-item p-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3" data-id="${conv.id}">
-                <img src="${conv.otherUser.profilePic || 'https://placehold.co/40x40'}" alt="Avatar" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
-                <div class="overflow-hidden">
-                    <p class="font-semibold truncate">${conv.otherUser.displayName || 'User'}</p>
-                    <p class="text-sm text-gray-500 truncate">${conv.data.lastMessage || 'No messages yet.'}</p>
-                </div>
-            </div>
-        `).join('');
+        
+        messengerWidgetContainer.classList.toggle('minimized');
+        const minimized = messengerWidgetContainer.classList.contains('minimized');
+        localStorage.setItem('messengerWidget-minimized', minimized);
+
+        widgetToggleIcon.classList.toggle('fa-chevron-down', !minimized);
+        widgetToggleIcon.classList.toggle('fa-chevron-up', minimized);
+    });
+
+    const selectWidgetConversation = (conversationId, otherUser) => {
+        activeWidgetConversationId = conversationId;
+
+        // Switch views
+        widgetListView.classList.add('hidden');
+        widgetChatView.classList.remove('hidden');
+        widgetChatView.classList.add('flex');
+
+        // Populate header by rebuilding its content
+        const widgetChatHeader = document.getElementById('widget-chat-header');
+        if (widgetChatHeader) {
+            widgetChatHeader.innerHTML = `
+                <i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
+                <img alt="${otherUser.displayName}" class="w-8 h-8 rounded-full object-cover" id="widget-chat-avatar" src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}"/>
+                <span class="font-semibold truncate" id="widget-chat-name">${otherUser.displayName}</span>
+            `;
+
+            // Re-attach event listener for the new back button
+            const newWidgetBackBtn = document.getElementById('widget-back-btn');
+            if(newWidgetBackBtn) {
+                newWidgetBackBtn.addEventListener('click', () => {
+                    widgetChatView.classList.add('hidden');
+                    widgetChatView.classList.remove('flex');
+                    widgetListView.classList.remove('hidden');
+                    widgetMainHeaderText.textContent = 'Messages';
+                    if (unsubscribeWidgetMessages) unsubscribeWidgetMessages();
+                    activeWidgetConversationId = null;
+                });
+            }
+        }
+        
+        // Update main widget header text
+        widgetMainHeaderText.textContent = otherUser.displayName;
+        
+        listenForWidgetMessages(conversationId);
     };
 
-    const loadConversations = () => {
-        if (!currentUser) return;
-        if (conversationsUnsubscribe) conversationsUnsubscribe();
+    const listenForWidgetMessages = (conversationId) => {
+        if (unsubscribeWidgetMessages) unsubscribeWidgetMessages();
+        widgetMessagesContainer.innerHTML = '';
 
-        conversationsUnsubscribe = db.collection('conversations')
-            .where('participants', 'array-contains', currentUser.uid)
-            .orderBy('lastUpdated', 'desc')
-            .onSnapshot(async (snapshot) => {
-                const promises = snapshot.docs.map(async (doc) => {
-                    const data = doc.data();
-                    const otherUserId = data.participants.find(p => p !== currentUser.uid);
-                    if (!otherUserId) return null;
-                    const userDoc = await db.collection('users').doc(otherUserId).get();
-                    return {
-                        id: doc.id,
-                        data,
-                        otherUser: userDoc.exists ? userDoc.data() : {}
-                    };
+        unsubscribeWidgetMessages = db.collection('conversations').doc(conversationId).collection('messages')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        renderWidgetMessage(change.doc.data());
+                    }
                 });
-                const conversations = (await Promise.all(promises)).filter(Boolean);
-                renderConversations(conversations);
+                scrollToWidgetBottom();
             });
     };
-    
-    // --- EVENT LISTENERS ---
-    auth.onAuthStateChanged(user => {
-        currentUser = user;
-        if (conversationsUnsubscribe) conversationsUnsubscribe();
-        if (messagesUnsubscribe) messagesUnsubscribe();
 
-        if (currentUser) {
-            loadConversations();
-            // Attach new conversation logic
-            initializeNewConversationLogic(currentUser);
-        } else {
-            conversationsList.innerHTML = '<p class="p-4 text-center text-gray-500">Please log in to chat.</p>';
-        }
-    });
+    const renderWidgetMessage = (message) => {
+        const messageWrapper = document.createElement('div');
+        const isCurrentUser = message.senderId === user.uid;
 
-    // Open/close widget
-    widgetHeader.addEventListener('click', () => widgetContainer.classList.toggle('minimized'));
-    openBtn.addEventListener('click', () => widgetContainer.classList.remove('minimized'));
-    
-    // Go back from active chat to list
-    backBtn.addEventListener('click', showListView);
+        messageWrapper.className = `flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`;
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `p-2 rounded-lg max-w-xs text-sm ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
+        messageBubble.textContent = message.text;
+        
+        messageWrapper.appendChild(messageBubble);
+        widgetMessagesContainer.appendChild(messageWrapper);
+    };
 
-    // Open conversation from list (event delegation)
-    conversationsList.addEventListener('click', (e) => {
-        const conversationItem = e.target.closest('.conversation-item');
-        if (conversationItem && conversationItem.dataset.id) {
-            openConversation(conversationItem.dataset.id);
-        }
-    });
+    const scrollToWidgetBottom = () => {
+        widgetMessagesContainer.scrollTop = widgetMessagesContainer.scrollHeight;
+    };
 
-    // Send message
-    messageForm.addEventListener('submit', async (e) => {
+    widgetMessageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const conversationId = e.currentTarget.dataset.conversationId;
-        const text = messageInput.value.trim();
-        if (!text || !conversationId || !currentUser) return;
+        const text = widgetMessageInput.value.trim();
+        if (text === '' || !activeWidgetConversationId) return;
 
-        messageInput.value = '';
+        const originalMessage = text;
+        widgetMessageInput.value = '';
+
+        const messageData = {
+            text: originalMessage,
+            senderId: user.uid,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const convoRef = db.collection('conversations').doc(activeWidgetConversationId);
+        const messageRef = convoRef.collection('messages').doc();
 
         const batch = db.batch();
-        const messageRef = db.collection('conversations').doc(conversationId).collection('messages').doc();
-        batch.set(messageRef, {
-            text: text,
-            senderId: currentUser.uid,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        const conversationRef = db.collection('conversations').doc(conversationId);
-        batch.update(conversationRef, {
-            lastMessage: text,
+        batch.set(messageRef, messageData);
+        batch.update(convoRef, {
+            lastMessage: originalMessage,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        await batch.commit();
+        try {
+            await batch.commit();
+        } catch (error) {
+            console.error("Error sending widget message:", error);
+            widgetMessageInput.value = originalMessage; // Restore on error
+        }
     });
 
-    // New conversation logic (adapted from previous step)
-    function initializeNewConversationLogic(currentUser) {
-        const newConversationModal = document.getElementById('new-conversation-modal');
-        const userSearchInput = document.getElementById('user-search-input');
-        const userSearchResults = document.getElementById('user-search-results');
-        const widgetNewConversationBtn = document.getElementById('widget-new-conversation-btn');
-        const closeModalBtns = document.querySelectorAll('.close-modal-btn');
+    const listenForWidgetConversations = () => {
+        if (unsubscribeWidgetConversations) unsubscribeWidgetConversations();
 
-        if (widgetNewConversationBtn) {
-            widgetNewConversationBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (newConversationModal) newConversationModal.classList.remove('hidden');
-            });
-        }
-        
-        closeModalBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (newConversationModal) newConversationModal.classList.add('hidden');
-            });
-        });
+        unsubscribeWidgetConversations = db.collection('conversations')
+            .where('participants', 'array-contains', user.uid)
+            .orderBy('lastUpdated', 'desc')
+            .limit(10)
+            .onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    widgetConversationsList.innerHTML = '<p class="p-4 text-center text-gray-500 text-sm">No conversations yet.</p>';
+                    return;
+                }
+                widgetConversationsList.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const convo = doc.data();
+                    const otherUserId = convo.participants.find(p => p !== user.uid);
+                    if (!otherUserId) return;
 
-        let searchTimeout;
-        if (userSearchInput) {
-            userSearchInput.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    const searchTerm = userSearchInput.value.trim();
-                    if (searchTerm.length > 1) searchUsers(searchTerm, currentUser, db);
-                }, 300);
+                    db.collection('users').doc(otherUserId).get().then(userDoc => {
+                        if (userDoc.exists) {
+                            const otherUserData = userDoc.data();
+                            const convoElement = document.createElement('div');
+                            convoElement.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-lg mx-1';
+                            convoElement.innerHTML = `
+                                <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                                <div class="flex-1 truncate">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-semibold">${otherUserData.displayName}</span>
+                                        <span class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'Start a conversation'}</p>
+                                </div>
+                            `;
+                            convoElement.addEventListener('click', () => selectWidgetConversation(doc.id, otherUserData));
+                            widgetConversationsList.appendChild(convoElement);
+                        }
+                    });
+                });
+            }, error => {
+                console.error("Error listening for widget conversations:", error);
+                widgetConversationsList.innerHTML = '<p class="p-4 text-center text-red-500 text-sm">Could not load messages.</p>';
             });
-        }
-    }
-
-    async function searchUsers(searchTerm, currentUser, db) {
-        const userSearchResults = document.getElementById('user-search-results');
-        const usersRef = db.collection('users');
-        const snapshot = await usersRef.where('handle', '>=', searchTerm.toLowerCase()).where('handle', '<=', searchTerm.toLowerCase() + '\uf8ff').limit(10).get();
+    };
+    
+    // --- New Conversation Modal Logic ---
+    const startWidgetConversation = async (otherUserId, otherUserData) => {
+        newConversationModal.classList.add('hidden');
+        userSearchInput.value = '';
         userSearchResults.innerHTML = '';
-        snapshot.forEach(doc => {
-            if (doc.id === currentUser.uid) return;
-            const userData = doc.data();
-            const userElement = document.createElement('div');
-            userElement.className = 'p-3 flex items-center hover:bg-gray-700 cursor-pointer rounded-md';
-            userElement.innerHTML = `<img src="${userData.profilePic || 'https://placehold.co/40x40'}" alt="Avatar" class="w-10 h-10 rounded-full mr-3 object-cover"><div><p class="font-semibold">${userData.displayName}</p><p class="text-sm text-gray-400">@${userData.handle}</p></div>`;
-            userElement.addEventListener('click', () => startConversation(doc.id, currentUser, db));
-            userSearchResults.appendChild(userElement);
-        });
-    }
 
-    async function startConversation(otherUserId, currentUser, db) {
-        document.getElementById('new-conversation-modal').classList.add('hidden');
+        const conversationId = [user.uid, otherUserId].sort().join('_');
+        const convoRef = db.collection('conversations').doc(conversationId);
         
-        const conversationsRef = db.collection('conversations');
-        const snapshot = await conversationsRef.where('participants', 'array-contains', currentUser.uid).get();
-        
-        let existingConvId = null;
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.participants.includes(otherUserId) && data.participants.length === 2) {
-                existingConvId = doc.id;
+        try {
+            const doc = await convoRef.get();
+            if (!doc.exists) {
+                await convoRef.set({
+                    participants: [user.uid, otherUserId],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessage: ''
+                });
             }
-        });
-
-        if (existingConvId) {
-            openConversation(existingConvId);
-        } else {
-            const newConv = await conversationsRef.add({
-                participants: [currentUser.uid, otherUserId],
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                lastMessage: '',
-                isGroupChat: false,
-            });
-            openConversation(newConv.id);
+            selectWidgetConversation(conversationId, otherUserData);
+        } catch (error) {
+            console.error("Error starting widget conversation:", error);
         }
+    };
+    
+    const setupNewConversationModal = (forWidget) => {
+        isForWidget = forWidget;
+        newConversationModal.classList.remove('hidden');
+    };
+
+    if (newConversationBtn) {
+       newConversationBtn.addEventListener('click', () => setupNewConversationModal(true));
     }
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => newConversationModal.classList.add('hidden'));
+    }
+
+    let searchTimeout;
+    userSearchInput.addEventListener('keyup', () => {
+        clearTimeout(searchTimeout);
+        const query = userSearchInput.value.trim().toLowerCase();
+        if (query.length < 2) {
+            userSearchResults.innerHTML = '';
+            return;
+        }
+        searchTimeout = setTimeout(async () => {
+            userSearchResults.innerHTML = '<p class="text-gray-500 p-2">Searching...</p>';
+            try {
+                const usersRef = db.collection('users');
+                const snapshot = await usersRef.where('handle', '>=', query).where('handle', '<=', query + '\uf8ff').limit(10).get();
+                
+                userSearchResults.innerHTML = '';
+                if (snapshot.empty) {
+                    userSearchResults.innerHTML = '<p class="text-gray-500 p-2">No users found.</p>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const foundUser = doc.data();
+                    if (doc.id === user.uid) return;
+
+                    const resultEl = document.createElement('div');
+                    resultEl.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md';
+                    resultEl.innerHTML = `
+                        <img src="${foundUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover mr-3">
+                        <div>
+                            <p class="font-semibold">${foundUser.displayName}</p>
+                            <p class="text-sm text-gray-500">@${foundUser.handle}</p>
+                        </div>
+                    `;
+                    // This listener is defined in messages.js and will handle the case where isForWidget is false
+                    resultEl.addEventListener('click', () => {
+                         if (isForWidget) {
+                            startWidgetConversation(doc.id, foundUser);
+                        } else if (window.startConversation) { 
+                            // Check if startConversation function exists on window (from messages.js)
+                            window.startConversation(doc.id, foundUser);
+                        }
+                    });
+                    userSearchResults.appendChild(resultEl);
+                });
+            } catch (error) {
+                 console.error("Error searching users:", error);
+                 userSearchResults.innerHTML = '<p class="text-red-500 p-2">Error searching users.</p>';
+            }
+        }, 300);
+    });
+
+
+    // --- Initial Load ---
+    listenForWidgetConversations();
 });
