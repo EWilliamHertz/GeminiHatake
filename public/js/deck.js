@@ -1,21 +1,22 @@
 /**
- * HatakeSocial - Deck Page Script (v32.5 - Brute-Force Modal Fix)
+ * HatakeSocial - Deck Page Script (v34.1 - Final Fixes)
  *
- * - This is an aggressive fix for a persistent modal issue.
- * - All modal styling and layout are now handled directly and forcefully by JavaScript,
- * overriding any potentially conflicting external CSS rules.
- * - Animations remain disabled to ensure stability.
+ * - FIX: Updated the group query to use the correct 'participants' field.
+ * - FIX: Updated the playtest deck pile with the correct direct image link for the card back.
+ * - Other recent features remain intact.
  */
 
 // This variable will hold the deck data while the user is on the deck-view tab.
 let currentDeckInView = null;
+let cardPreviewTooltip = null; // Global variable for the card hover tooltip
+let playtestUiRestructured = false; // Flag to ensure UI is only changed once
 
 function getCardImageUrl(cardData, size = 'normal') {
     if (cardData.card_faces && cardData.card_faces[0].image_uris) {
-        return cardData.card_faces[0].image_uris[size];
+        return cardData.card_faces[0].image_uris[size] || cardData.card_faces[0].image_uris['normal'];
     }
     if (cardData.image_uris) {
-        return cardData.image_uris[size];
+        return cardData.image_uris[size] || cardData.image_uris['normal'];
     }
     return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
 }
@@ -54,44 +55,69 @@ document.addEventListener('authReady', (e) => {
             console.error('openModal failed: modal element is null.');
             return;
         }
-
-        // --- Step 1: Force the overlay to be visible and functional ---
         modal.style.position = 'fixed';
         modal.style.inset = '0px';
-        modal.style.zIndex = '2000'; // Use a very high z-index
+        modal.style.zIndex = '2000';
         modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
         modal.style.display = 'flex';
-        modal.style.alignItems = 'center'; // JS equivalent of Tailwind 'items-center'
-        modal.style.justifyContent = 'center'; // JS equivalent of Tailwind 'justify-center'
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
         modal.style.opacity = '1';
         modal.style.visibility = 'visible';
         modal.classList.remove('hidden');
 
-        // --- Step 2: Force the inner content box to be visible ---
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
-            console.log('Found modal-content, forcing styles...');
-            modalContent.style.display = 'block'; // Override any competing display properties
+            modalContent.style.display = 'block';
             modalContent.style.visibility = 'visible';
             modalContent.style.opacity = '1';
-            modalContent.style.zIndex = '2001'; // Ensure it's on top of the backdrop
+            modalContent.style.zIndex = '2001';
         } else {
             console.error('CRITICAL: Could not find .modal-content inside the modal overlay!');
         }
-
         console.log(`Modal ${modal.id} should now be fully visible.`);
     };
 
     const closeModal = (modal) => {
         console.log('BRUTE-FORCE CLOSE: Attempting to close modal:', modal ? modal.id : 'null');
         if (modal) {
-            // Instantly hide the modal by setting display to none.
             modal.style.display = 'none';
             modal.classList.add('hidden');
         } else {
             console.error('closeModal failed: modal element is null.');
         }
     };
+    
+    // --- Card Preview Tooltip Initialization ---
+    function initializeCardPreviewTooltip() {
+        if (document.getElementById('card-preview-tooltip')) return;
+        cardPreviewTooltip = document.createElement('img');
+        cardPreviewTooltip.id = 'card-preview-tooltip';
+        cardPreviewTooltip.style.position = 'absolute';
+        cardPreviewTooltip.style.display = 'none';
+        cardPreviewTooltip.style.width = '250px';
+        cardPreviewTooltip.style.height = '350px';
+        cardPreviewTooltip.style.borderRadius = '12px';
+        cardPreviewTooltip.style.boxShadow = '0 5px 15px rgba(0,0,0,0.5)';
+        cardPreviewTooltip.style.pointerEvents = 'none';
+        cardPreviewTooltip.style.zIndex = '3000';
+        document.body.appendChild(cardPreviewTooltip);
+
+        document.addEventListener('mousemove', (e) => {
+            if (cardPreviewTooltip && cardPreviewTooltip.style.display === 'block') {
+                let x = e.clientX + 20;
+                let y = e.clientY + 20;
+                if (x + 250 > window.innerWidth) {
+                    x = e.clientX - 270;
+                }
+                if (y + 350 > window.innerHeight) {
+                    y = e.clientY - 370;
+                }
+                cardPreviewTooltip.style.left = `${x}px`;
+                cardPreviewTooltip.style.top = `${y}px`;
+            }
+        });
+    }
 
     // --- State Variables ---
     let fullCollection = [];
@@ -231,6 +257,41 @@ document.addEventListener('authReady', (e) => {
 
     const initializePlaytest = () => {
         if (currentDeckInView && currentDeckInView.id) {
+            if (!playtestUiRestructured) {
+                const controls = document.getElementById('playtest-controls');
+                const deckInfo = document.getElementById('playtest-deck-info');
+                const drawBtn = document.getElementById('playtest-draw-btn');
+                
+                const deckPile = document.createElement('div');
+                deckPile.className = 'flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-transform transform hover:scale-105';
+                deckPile.style.backgroundImage = 'url("https://i.imgur.com/LdOBU1I.jpeg")'; // UPDATED direct image link
+                deckPile.style.backgroundSize = 'cover';
+                deckPile.style.backgroundPosition = 'center';
+                deckPile.style.border = '2px solid #1a202c';
+                deckPile.style.width = '90px';
+                deckPile.style.height = '125px';
+                deckPile.style.textShadow = '1px 1px 3px black';
+                
+                deckPile.addEventListener('click', () => drawCards(1));
+
+                const libraryText = document.createElement('p');
+                libraryText.className = 'text-sm font-bold text-white';
+                libraryText.innerHTML = 'Library: ';
+                const libraryCountSpan = document.getElementById('library-count');
+                libraryText.appendChild(libraryCountSpan);
+                
+                deckPile.appendChild(libraryText);
+                drawBtn.style.display = 'none';
+                
+                controls.prepend(deckPile);
+                
+                const handCountSpan = document.getElementById('hand-count');
+                deckInfo.innerHTML = `Hand: `;
+                deckInfo.appendChild(handCountSpan);
+                
+                playtestUiRestructured = true;
+            }
+
             playtestState.deck = [];
             currentDeckInView.cards.forEach(card => {
                 for (let i = 0; i < card.quantity; i++) {
@@ -627,11 +688,24 @@ document.addEventListener('authReady', (e) => {
 
     const createPlaytestCard = (card) => {
         const cardEl = document.createElement('img');
-        cardEl.src = getCardImageUrl(card, 'normal');
+        cardEl.src = getCardImageUrl(card, 'small');
         cardEl.className = 'playtest-card';
         cardEl.dataset.instanceId = card.instanceId;
         cardEl.draggable = true;
         cardEl.addEventListener('dragstart', handleDragStart);
+
+        cardEl.addEventListener('mouseover', () => {
+            if (cardPreviewTooltip) {
+                cardPreviewTooltip.src = getCardImageUrl(card, 'large');
+                cardPreviewTooltip.style.display = 'block';
+            }
+        });
+        cardEl.addEventListener('mouseout', () => {
+            if (cardPreviewTooltip) {
+                cardPreviewTooltip.style.display = 'none';
+            }
+        });
+
         return cardEl;
     };
 
@@ -1004,7 +1078,6 @@ document.addEventListener('authReady', (e) => {
     document.getElementById('playtest-battlefield').addEventListener('drop', handleDrop);
     document.getElementById('playtest-hand').addEventListener('drop', handleDrop);
     document.getElementById('close-playtest-modal').addEventListener('click', () => closeModal(document.getElementById('playtest-modal')));
-    document.getElementById('playtest-draw-btn').addEventListener('click', () => drawCards(1));
     document.getElementById('playtest-mulligan-btn').addEventListener('click', takeMulligan);
     document.getElementById('playtest-reset-btn').addEventListener('click', initializePlaytest);
     
@@ -1022,6 +1095,10 @@ document.addEventListener('authReady', (e) => {
 
     document.getElementById('modal-share-to-feed-btn').addEventListener('click', () => {
         closeModal(document.getElementById('share-deck-modal'));
+        const shareMessageTextarea = document.getElementById('share-to-feed-message');
+        if (shareMessageTextarea && currentDeckInView) {
+            shareMessageTextarea.value = `Check out this deck: [deck:${currentDeckInView.id}:${currentDeckInView.name}]`;
+        }
         openModal(document.getElementById('share-to-feed-modal'));
     });
 
@@ -1038,8 +1115,13 @@ document.addEventListener('authReady', (e) => {
         const groupListContainer = document.getElementById('group-list-container');
         if (!user) return;
         groupListContainer.innerHTML = '<p class="p-4 text-center">Loading your groups...</p>';
+        console.log(`Attempting to load groups for user UID: ${user.uid}`);
         try {
-            const groupsSnapshot = await db.collection('groups').where('members', 'array-contains', user.uid).get();
+            // UPDATED: Using 'participants' as the field name based on user feedback.
+            const groupsSnapshot = await db.collection('groups').where('participants', 'array-contains', user.uid).get();
+            
+            console.log(`Firestore query successful, found ${groupsSnapshot.size} groups.`);
+
             if (groupsSnapshot.empty) {
                 groupListContainer.innerHTML = '<p class="p-4 text-center">You are not a member of any groups.</p>';
                 return;
@@ -1054,7 +1136,8 @@ document.addEventListener('authReady', (e) => {
                 groupListContainer.appendChild(groupEl);
             });
         } catch (error) {
-            groupListContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load your groups.</p>';
+            console.error("Error loading user groups:", error);
+            groupListContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load your groups. This might be a database permissions issue. Check console for details.</p>';
         }
     };
 
@@ -1090,8 +1173,13 @@ document.addEventListener('authReady', (e) => {
             showToast("Please log in and select a deck to share.");
             return;
         }
-        const message = document.getElementById('share-to-feed-message').value;
-        const postContent = `${message}\n\nCheck out my deck: [deck:${currentDeckInView.id}:${currentDeckInView.name}]`;
+        const postContent = document.getElementById('share-to-feed-message').value;
+
+        if (!postContent || !postContent.includes('[deck:')) {
+            showToast("Your post must include the deck link format [deck:...]");
+            return;
+        }
+
         try {
             const userDoc = await db.collection('users').doc(user.uid).get();
             const userData = userDoc.data();
@@ -1192,6 +1280,7 @@ document.addEventListener('authReady', (e) => {
     });
 
     // --- Initial Load ---
+    initializeCardPreviewTooltip(); 
     const urlParams = new URLSearchParams(window.location.search);
     const deckId = urlParams.get('deckId');
     if (deckId) {
