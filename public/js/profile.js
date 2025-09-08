@@ -1,306 +1,227 @@
 /**
- * HatakeSocial - Profile Page Script (v27 - Date Format Update)
+ * HatakeSocial - Profile Page Script (v28 - Interactive Feed with Modals and Replies)
  *
- * - NEW: Adds a `formatTimestamp` helper to display the user's join date according to their preference.
- * - UPDATE: The "Joined" date and all other timestamps on the profile now use the new formatting function.
- * - This script manages all functionality for the user profile page.
+ * - MAJOR UPDATE: The user feed on the profile page is now fully interactive.
+ * - NEW: Posts are displayed in a card format. Clicking a post opens a detailed modal view.
+ * - NEW: The modal shows enlarged media, full content, and a scrollable comments section.
+ * - NEW: Implemented a full comment reply system, allowing for threaded conversations on posts.
+ * - UPDATE: All feed interaction logic (liking, commenting, deleting) is now handled directly on the profile page.
  */
 
-// --- Date Formatting Helper ---
+// --- Helper Functions ---
 const formatTimestamp = (timestamp) => {
     if (!timestamp || !timestamp.seconds) {
+        if (timestamp && timestamp.toDate) { // Handle Firestore Server Timestamp
+             const date = timestamp.toDate();
+             const day = String(date.getDate()).padStart(2, '0');
+             const month = String(date.getMonth() + 1).padStart(2, '0');
+             const year = date.getFullYear();
+             return localStorage.getItem('userDateFormat') === 'mdy' ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
+        }
         return 'Unknown date';
     }
     const date = new Date(timestamp.seconds * 1000);
-    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy'; // Default to D/M/Y
-
+    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy'; 
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-
-    if (userDateFormat === 'mdy') {
-        return `${month}/${day}/${year}`;
-    }
-    return `${day}/${month}/${year}`;
+    return userDateFormat === 'mdy' ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
 };
 
+const openModal = (modal) => {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+const closeModal = (modal) => {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+const sanitizeHTML = (str) => {
+    if (!str) return '';
+    const temp = document.createElement('div');
+    temp.textContent = str;
+    return temp.innerHTML;
+};
+
+const formatContent = (str) => {
+    const sanitized = sanitizeHTML(str);
+    return sanitized
+        .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
+        .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
+        .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
+        .replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
+};
 
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const profileContainer = document.getElementById('profile-container');
     if (!profileContainer) return;
-
-    // --- Geocoding Data (Client-Side) ---
-    const cityCoordinates = {
-        "stockholm": [59.3293, 18.0686], "gothenburg": [57.7089, 11.9746], "malmö": [55.6050, 13.0038],
-        "oslo": [59.9139, 10.7522], "copenhagen": [55.6761, 12.5683], "helsinki": [60.1699, 24.9384],
-        "london": [51.5074, -0.1278], "paris": [48.8566, 2.3522], "berlin": [52.5200, 13.4050],
-        "new york": [40.7128, -74.0060], "los angeles": [34.0522, -118.2437], "chicago": [41.8781, -87.6298],
-        "tokyo": [35.6895, 139.6917], "sydney": [-33.8688, 151.2093]
-    };
-
-    const generateIndexCreationLink = (collection, fields) => {
-        const projectId = db.app.options.projectId;
-        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
-        fields.forEach(field => {
-            url += `&fields=${field.name},${field.order.toUpperCase()}`;
-        });
-        return url;
-    };
     
-    const displayIndexError = (container, link) => {
-        const errorMessage = `
-            <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                <a href="${link}" target="_blank" rel="noopener noreferrer" 
-                   class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                   Click Here to Create the Index
-                </a>
-                <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
-            </div>
-         `;
-        container.innerHTML = errorMessage;
+    const db = firebase.firestore();
+    let currentUserIsAdmin = false;
+
+    // --- Geocoding and Badge Data ---
+    const cityCoordinates = { "stockholm": [59.3293, 18.0686], "gothenburg": [57.7089, 11.9746], "malmö": [55.6050, 13.0038], "oslo": [59.9139, 10.7522], "copenhagen": [55.6761, 12.5683], "helsinki": [60.1699, 24.9384], "london": [51.5074, -0.1278], "paris": [48.8566, 2.3522], "berlin": [52.5200, 13.4050], "new york": [40.7128, -74.0060], "los angeles": [34.0522, -118.2437], "chicago": [41.8781, -87.6298], "tokyo": [35.6895, 139.6917], "sydney": [-33.8688, 151.2093] };
+    const badgeDefinitions = { pioneer: { name: 'Pioneer', description: 'One of the first 100 users to join HatakeSocial!', icon: 'fa-rocket', color: 'text-purple-500', async check(userData, userId) { const pioneerDate = new Date('2025-07-01'); return userData.createdAt.toDate() < pioneerDate; } }, collector: { name: 'Collector', description: 'Has over 100 cards in their collection.', icon: 'fa-box-open', color: 'text-blue-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get(); return snapshot.size > 100; } }, deck_brewer: { name: 'Deck Brewer', description: 'Has created at least 5 decks.', icon: 'fa-layer-group', color: 'text-green-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('decks').limit(5).get(); return snapshot.size >= 5; } }, socialite: { name: 'Socialite', description: 'Has more than 10 friends.', icon: 'fa-users', color: 'text-pink-500', async check(userData, userId) { return userData.friends && userData.friends.length > 10; } }, trusted_trader: { name: 'Trusted Trader', description: 'Completed 10 trades with positive feedback.', icon: 'fa-handshake', color: 'text-yellow-500', async check(userData, userId) { const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2; return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5; } }, first_trade: { name: 'First Trade', description: 'Completed your first trade successfully!', icon: 'fa-medal', color: 'text-red-500', async check(userData, userId) { const tradeQuery = await db.collection('trades').where('participants', 'array-contains', userId).where('status', '==', 'completed').limit(1).get(); return !tradeQuery.empty; } }, top_reviewer: { name: 'Top Reviewer', description: 'Provided helpful feedback on at least 5 trades.', icon: 'fa-star', color: 'text-blue-400', async check(userData, userId) { const feedbackQuery = await db.collection('feedback').where('fromUserId', '==', userId).limit(5).get(); return feedbackQuery.size >= 5; } }, guild_founder: { name: 'Guild Founder', description: 'Founded your first Trading Guild.', icon: 'fa-shield-alt', color: 'text-indigo-500', async check(userData, userId) { const groupQuery = await db.collection('groups').where('creatorId', '==', userId).where('groupType', '==', 'trading_guild').limit(1).get(); return !groupQuery.empty; } } };
+    
+    const generateIndexCreationLink = (collection, fields) => { const projectId = db.app.options.projectId; let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`; fields.forEach(field => { url += `&fields=${field.name},${field.order.toUpperCase()}`; }); return url; };
+    const displayIndexError = (container, link) => { container.innerHTML = `<div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg"><p class="font-bold text-red-700 dark:text-red-300">Database Error</p><p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p><a href="${link}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Click Here to Create the Index</a><p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p></div>`; };
+    const checkAdminStatus = async () => { if (!currentUser) { currentUserIsAdmin = false; return; } const userDoc = await db.collection('users').doc(currentUser.uid).get(); currentUserIsAdmin = userDoc.exists && userDoc.data().isAdmin === true; };
+
+    // --- NEW FEED-RELATED FUNCTIONS ---
+    const renderComments = (container, comments, post) => {
+        container.innerHTML = '';
+        if (!comments || comments.length === 0) {
+            container.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400 px-2">No comments yet.</p>';
+            return;
+        }
+        comments.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+        const commentsMap = new Map();
+        const topLevelComments = [];
+        comments.forEach(comment => {
+            const commentEl = document.createElement('div');
+            commentEl.className = 'comment-wrapper';
+            const canDeleteComment = currentUser && (comment.authorId === currentUser.uid || post.authorId === currentUser.uid || currentUserIsAdmin);
+            const commentTimestampMillis = comment.timestamp.toMillis();
+            const deleteCommentBtnHTML = canDeleteComment ? `<button class="delete-comment-btn text-xs text-gray-400 hover:text-red-500" title="Delete Comment" data-timestamp="${commentTimestampMillis}"><i class="fas fa-trash"></i></button>` : '';
+            const replyBtnHTML = currentUser ? `<button class="reply-btn text-xs font-semibold text-blue-500 hover:underline" data-parent-timestamp="${commentTimestampMillis}">Reply</button>` : '';
+            commentEl.innerHTML = `<div class="flex items-start space-x-3"><a href="profile.html?uid=${comment.authorId}"><img src="${sanitizeHTML(comment.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(comment.author)}" class="h-8 w-8 rounded-full object-cover"></a><div class="flex-1"><div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2"><a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${sanitizeHTML(comment.author)}</a><p class="text-sm text-gray-700 dark:text-gray-300">${formatContent(comment.content)}</p></div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1 flex items-center space-x-3"><span>${formatTimestamp(comment.timestamp)}</span>${replyBtnHTML}${deleteCommentBtnHTML}</div><div class="replies-container pl-6 mt-2 space-y-2 border-l-2 border-gray-200 dark:border-gray-700"></div></div></div>`;
+            commentsMap.set(commentTimestampMillis, commentEl);
+            if (comment.replyTo && commentsMap.has(comment.replyTo)) {
+                commentsMap.get(comment.replyTo).querySelector('.replies-container').appendChild(commentEl);
+            } else {
+                topLevelComments.push(commentEl);
+            }
+        });
+        topLevelComments.forEach(el => container.appendChild(el));
     };
 
-    const badgeDefinitions = {
-        pioneer: { name: 'Pioneer', description: 'One of the first 100 users to join HatakeSocial!', icon: 'fa-rocket', color: 'text-purple-500', async check(userData, userId) { const pioneerDate = new Date('2025-07-01'); return userData.createdAt.toDate() < pioneerDate; } },
-        collector: { name: 'Collector', description: 'Has over 100 cards in their collection.', icon: 'fa-box-open', color: 'text-blue-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get(); return snapshot.size > 100; } },
-        deck_brewer: { name: 'Deck Brewer', description: 'Has created at least 5 decks.', icon: 'fa-layer-group', color: 'text-green-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('decks').limit(5).get(); return snapshot.size >= 5; } },
-        socialite: { name: 'Socialite', description: 'Has more than 10 friends.', icon: 'fa-users', color: 'text-pink-500', async check(userData, userId) { return userData.friends && userData.friends.length > 10; } },
-        trusted_trader: { name: 'Trusted Trader', description: 'Completed 10 trades with positive feedback.', icon: 'fa-handshake', color: 'text-yellow-500', async check(userData, userId) { const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2; return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5; } },
-        first_trade: { name: 'First Trade', description: 'Completed your first trade successfully!', icon: 'fa-medal', color: 'text-red-500', async check(userData, userId) { const tradeQuery = await db.collection('trades').where('participants', 'array-contains', userId).where('status', '==', 'completed').limit(1).get(); return !tradeQuery.empty; } },
-        top_reviewer: { name: 'Top Reviewer', description: 'Provided helpful feedback on at least 5 trades.', icon: 'fa-star', color: 'text-blue-400', async check(userData, userId) { const feedbackQuery = await db.collection('feedback').where('fromUserId', '==', userId).limit(5).get(); return feedbackQuery.size >= 5; } },
-        guild_founder: { name: 'Guild Founder', description: 'Founded your first Trading Guild.', icon: 'fa-shield-alt', color: 'text-indigo-500', async check(userData, userId) { const groupQuery = await db.collection('groups').where('creatorId', '==', userId).where('groupType', '==', 'trading_guild').limit(1).get(); return !groupQuery.empty; } }
+    const createPostElementForProfile = (post) => {
+        const postElement = document.createElement('div');
+        postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md post-container';
+        postElement.dataset.id = post.id;
+        postElement.dataset.rawContent = post.content || '';
+
+        const formattedContent = formatContent(post.content || '');
+        const mediaHTML = post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="max-h-96 w-full object-cover rounded-lg my-2">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`) : '';
+        const postBodyHTML = `<div class="post-body-content post-clickable-area cursor-pointer"><p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>${mediaHTML}</div>`;
+
+        const isLiked = currentUser && Array.isArray(post.likes) && post.likes.includes(currentUser.uid);
+        const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
+        const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
+        const canDelete = currentUser && (post.authorId === currentUser.uid || currentUserIsAdmin);
+        const deleteButtonHTML = canDelete ? `<button class="delete-post-btn text-gray-400 hover:text-red-500" title="Delete Post"><i class="fas fa-trash"></i></button>` : '';
+
+        postElement.innerHTML = `<div class="flex justify-between items-start"><div class="flex items-center mb-4"><a href="profile.html?uid=${post.authorId}"><img src="${sanitizeHTML(post.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(post.author)}" class="h-10 w-10 rounded-full mr-4 object-cover"></a><div><a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${sanitizeHTML(post.author)}</a><p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p></div></div><div class="post-actions-menu flex space-x-3 text-gray-400">${deleteButtonHTML}</div></div>${postBodyHTML}<div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400"><button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}"><i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i><span class="likes-count-display">${likesCount}</span></button><button class="comment-btn flex items-center hover:text-blue-500"><i class="far fa-comment mr-1"></i><span class="comments-count">${commentsCount}</span></button></div><div class="comments-section hidden mt-4 pt-2"><div class="comments-list space-y-2"></div><form class="comment-form flex mt-4"><input type="text" class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a comment..." required=""><button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg font-semibold hover:bg-blue-600">Post</button></form></div>`;
+        return postElement;
     };
 
-    const setupProfilePage = async () => {
-        profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
+    const openPostModalForProfile = async (postId) => {
+        const modal = document.getElementById('postDetailModal');
+        if (!modal) return;
+        modal.dataset.postId = postId;
+        modal.querySelector('#modal-post-author').innerHTML = '<div class="h-10 w-10 rounded-full skeleton"></div>';
+        modal.querySelector('#modal-post-content').innerHTML = '<div class="h-4 w-full skeleton"></div>';
+        openModal(modal);
 
         try {
-            const params = new URLSearchParams(window.location.search);
-            let userDoc;
-            const username = params.get('user');
-            const userIdParam = params.get('uid');
+            const postDoc = await db.collection('posts').doc(postId).get();
+            if (!postDoc.exists) throw new Error("Post not found.");
+            const post = postDoc.data();
+            const isLiked = currentUser && post.likes?.includes(currentUser.uid);
 
-            if (username) {
-                const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get();
-                if (!userQuery.empty) userDoc = userQuery.docs[0];
-            } else if (userIdParam) {
-                userDoc = await db.collection('users').doc(userIdParam).get();
-            } else if (currentUser) {
-                userDoc = await db.collection('users').doc(currentUser.uid).get();
+            modal.querySelector('#modal-post-author').innerHTML = `<a href="profile.html?uid=${post.authorId}"><img src="${sanitizeHTML(post.authorPhotoURL)}" alt="${sanitizeHTML(post.author)}" class="h-10 w-10 rounded-full mr-4 object-cover"></a><div><a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${sanitizeHTML(post.author)}</a><p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p></div>`;
+            modal.querySelector('#modal-post-content').innerHTML = formatContent(post.content || '');
+            const mediaContainer = modal.querySelector('#modal-post-media-container');
+            if (post.mediaUrl) {
+                mediaContainer.innerHTML = post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" class="max-w-full max-h-full object-contain">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-w-full max-h-full object-contain"></video>`;
+                mediaContainer.classList.remove('hidden');
+                modal.querySelector('#modal-grid-container').classList.add('md:grid-cols-2');
             } else {
-                profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold text-gray-800 dark:text-white">No Profile to Display</h1><p class="mt-2 text-gray-600 dark:text-gray-400">Please log in to see your profile or specify a user in the URL.</p></div>`;
-                return;
+                mediaContainer.classList.add('hidden');
+                modal.querySelector('#modal-grid-container').classList.remove('md:grid-cols-2');
             }
-
-            if (!userDoc || !userDoc.exists) {
-                throw new Error("User not found.");
-            }
-
-            const profileUserId = userDoc.id;
-            const profileUserData = userDoc.data();
-            const isOwnProfile = currentUser && currentUser.uid === profileUserId;
-
-            let friendStatus = 'none';
-            if (currentUser && !isOwnProfile) {
-                if (profileUserData.friends && profileUserData.friends.includes(currentUser.uid)) {
-                    friendStatus = 'friends';
-                } else {
-                    const requestQuery1 = await db.collection('friendRequests').where('senderId', '==', currentUser.uid).where('receiverId', '==', profileUserId).get();
-                    const requestQuery2 = await db.collection('friendRequests').where('senderId', '==', profileUserId).where('receiverId', '==', currentUser.uid).get();
-                    if (!requestQuery1.empty) friendStatus = 'request_sent';
-                    else if (!requestQuery2.empty) friendStatus = 'request_received';
-                }
-            }
-
-            let actionButtonHTML = '';
-            if (!isOwnProfile && currentUser) {
-                actionButtonHTML += `<button id="start-trade-btn" class="px-4 py-2 bg-green-600 text-white rounded-full text-sm" data-uid="${profileUserId}">Start Trade</button>`;
-                actionButtonHTML += `<button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
-                switch (friendStatus) {
-                    case 'none': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>`; break;
-                    case 'request_sent': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-gray-400 text-white rounded-full text-sm" disabled>Request Sent</button>`; break;
-                    case 'friends': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm" disabled><i class="fas fa-check mr-2"></i>Friends</button>`; break;
-                    case 'request_received': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm">Respond to Request</button>`; break;
-                }
-            }
-
-            const ratingCount = profileUserData.ratingCount || 0;
-            const completedTrades = profileUserData.completedTrades || 0;
-            const avgAccuracy = profileUserData.averageAccuracy || 0;
-            const avgPackaging = profileUserData.averagePackaging || 0;
-            const overallAvg = ratingCount > 0 ? (avgAccuracy + avgPackaging) / 2 : 0;
-            let starsHTML = '';
-            for (let i = 1; i <= 5; i++) {
-                if (i <= overallAvg) starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
-                else if (i - 0.5 <= overallAvg) starsHTML += '<i class="fas fa-star-half-alt text-yellow-400"></i>';
-                else starsHTML += '<i class="far fa-star text-gray-300"></i>';
-            }
-            const reputationHTML = `
-                <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mt-1"> 
-                    <span class="flex">${starsHTML}</span> 
-                    <span class="font-semibold">${overallAvg.toFixed(1)}</span> 
-                    <span>(${ratingCount} ratings)</span>
-                    <span class="font-bold text-gray-800 dark:text-white">|</span>
-                    <span title="Completed Trades"><i class="fas fa-handshake text-green-500"></i> ${completedTrades}</span>
-                </div>
-                <div class="text-xs space-x-3 mt-1">
-                    <span>Accuracy: <strong class="dark:text-gray-200">${avgAccuracy.toFixed(1)}</strong></span>
-                    <span>Packaging: <strong class="dark:text-gray-200">${avgPackaging.toFixed(1)}</strong></span>
-                </div>
-            `;
-
-            let personalityHTML = '';
-            if (profileUserData.playstyle || profileUserData.favoriteFormat || profileUserData.petCard || profileUserData.nemesisCard) {
-                personalityHTML += '<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">';
-                if (profileUserData.playstyle) {
-                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Playstyle</p><p class="text-gray-800 dark:text-white">${profileUserData.playstyle}</p></div>`;
-                }
-                if (profileUserData.favoriteFormat) {
-                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Favorite Format</p><p class="text-gray-800 dark:text-white">${profileUserData.favoriteFormat}</p></div>`;
-                }
-                if (profileUserData.petCard) {
-                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Pet Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.petCard)}" class="text-blue-600 hover:underline">${profileUserData.petCard}</a></div>`;
-                }
-                if (profileUserData.nemesisCard) {
-                    personalityHTML += `<div><p class="font-semibold text-gray-500 dark:text-gray-400">Nemesis Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.nemesisCard)}" class="text-red-500 hover:underline">${profileUserData.nemesisCard}</a></div>`;
-                }
-                personalityHTML += '</div>';
-            }
-
-            // NEW: Add referrals tab only for the logged-in user viewing their own profile
-            const referralsTabHTML = isOwnProfile ? `<a href="referrals.html" class="profile-tab-button">Referrals</a>` : '';
-
-            profileContainer.innerHTML = `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
-                    <div class="relative">
-                        <img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300/cccccc/969696?text=Banner'}" alt="Profile banner">
-                        <div class="absolute top-4 right-4">
-                            ${isOwnProfile ? `<a href="settings.html" class="px-4 py-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 text-sm font-semibold">Edit Profile</a>` : ''}
-                        </div>
-                        <div class="absolute bottom-0 left-6 transform translate-y-1/2 flex items-center space-x-4">
-                            <img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-gray-200 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar">
-                        </div>
-                    </div>
-            
-                    <div class="pt-20 px-6 pb-6">
-                         <div class="flex justify-between items-center">
-                            <div>
-                                <h1 id="profile-displayName" class="text-3xl font-bold text-gray-800 dark:text-white">${profileUserData.displayName || 'No Name'}</h1>
-                                <p id="profile-handle" class="text-gray-600 dark:text-gray-400">@${profileUserData.handle || 'no-handle'}</p>
-                                ${reputationHTML}
-                            </div>
-                            <div id="profile-action-buttons" class="flex space-x-2">
-                                ${actionButtonHTML}
-                            </div>
-                        </div>
-
-                        <div class="mt-6 border-t dark:border-gray-700 pt-4">
-                            <p id="profile-bio" class="text-gray-700 dark:text-gray-300 mt-2">${profileUserData.bio || 'No bio yet.'}</p>
-                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Joined ${formatTimestamp(profileUserData.createdAt)}</p>
-                            <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                <strong>Favorite TCG:</strong> <span id="profile-fav-tcg">${profileUserData.favoriteTcg || 'Not set'}</span>
-                            </div>
-                            ${personalityHTML}
-                            <div id="mutual-connections-section" class="mt-4 text-sm text-gray-500 dark:text-gray-400"></div>
-                            <div id="featured-items-section" class="mt-6"></div>
-                            <div id="profile-badges-container" class="mt-4">
-                                <h3 class="font-bold text-lg mb-2 dark:text-white">Achievements</h3>
-                                <div id="badges-list" class="flex flex-wrap gap-4"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-6">
-                    <div class="border-b border-gray-200 dark:border-gray-700">
-                        <nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs">
-                            <button data-tab="feed" class="profile-tab-button active">Feed</button>
-                            <button data-tab="decks" class="profile-tab-button">Decks</button>
-                            <button data-tab="trade-binder" class="profile-tab-button">Trade Binder</button>
-                            <button data-tab="collection" class="profile-tab-button">Collection</button>
-                            <button data-tab="friends" class="profile-tab-button">Friends</button>
-                            <button data-tab="wishlist" class="profile-tab-button">Wishlist</button>
-                            <button data-tab="trade-history" class="profile-tab-button">Trade History</button>
-                            <button data-tab="feedback" class="profile-tab-button">Feedback</button>
-                            ${referralsTabHTML}
-                        </nav>
-                    </div>
-                    <div class="mt-6">
-                        <div id="tab-content-feed" class="profile-tab-content space-y-6"></div>
-                        <div id="tab-content-decks" class="profile-tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-                        <div id="tab-content-trade-binder" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
-                        <div id="tab-content-collection" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
-                        <div id="tab-content-friends" class="profile-tab-content hidden"></div>
-                        <div id="tab-content-wishlist" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
-                        <div id="tab-content-trade-history" class="profile-tab-content hidden space-y-4"></div>
-                        <div id="tab-content-feedback" class="profile-tab-content hidden space-y-4"></div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('start-trade-btn')?.addEventListener('click', (e) => { window.location.href = `trades.html?with=${e.currentTarget.dataset.uid}`; });
-            document.getElementById('message-btn')?.addEventListener('click', (e) => { window.location.href = `messages.html?with=${e.currentTarget.dataset.uid}`; });
-            const addFriendBtn = document.getElementById('add-friend-btn');
-            if(addFriendBtn) {
-                addFriendBtn.addEventListener('click', async () => {
-                    if (friendStatus === 'none') {
-                        addFriendBtn.disabled = true;
-                        addFriendBtn.textContent = 'Sending...';
-                        await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: profileUserId, status: 'pending', createdAt: new Date() });
-                        const notificationData = { message: `${currentUser.displayName} sent you a friend request.`, link: `/profile.html?uid=${currentUser.uid}#friends`, isRead: false, timestamp: new Date() };
-                        await db.collection('users').doc(profileUserId).collection('notifications').add(notificationData);
-                        addFriendBtn.textContent = 'Request Sent';
-                    } else if (friendStatus === 'request_received') { 
-                        window.location.href = '/friends.html'; 
-                    }
-                });
-            }
-
-            document.querySelectorAll('.profile-tab-button').forEach(tab => {
-                if (tab.tagName === 'BUTTON') { // Only add click listeners to actual buttons, not the <a> tag for referrals
-                    tab.addEventListener('click', () => {
-                        document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
-                        tab.classList.add('active');
-                        document.querySelectorAll('.profile-tab-content').forEach(content => content.classList.add('hidden'));
-                        document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
-                        if(tab.dataset.tab === 'friends') loadProfileFriends(profileUserId);
-                        if(tab.dataset.tab === 'trade-history') loadTradeHistoryAndMap(profileUserId);
-                    });
-                }
-            });
-
-            if(window.location.hash) {
-                const targetTab = document.querySelector(`.profile-tab-button[data-tab="${window.location.hash.substring(1)}"]`);
-                if(targetTab) targetTab.click();
-            }
-
-            if (currentUser && !isOwnProfile) {
-                loadMutualConnections(profileUserId, profileUserData);
-            }
-            loadFeaturedItems(profileUserId, profileUserData);
-            loadProfileFeed(profileUserId);
-            loadProfileDecks(profileUserId, isOwnProfile);
-            loadProfileCollection(profileUserId, 'collection', isOwnProfile);
-            loadProfileCollection(profileUserId, 'wishlist');
-            loadTradeBinder(profileUserId, profileUserData);
-            loadProfileFeedback(profileUserId);
-            if (window.location.hash === '#friends') loadProfileFriends(profileUserId);
-            if (window.location.hash === '#trade-history') loadTradeHistoryAndMap(profileUserId);
-            
-            if (isOwnProfile) {
-                await evaluateAndAwardBadges(profileUserId, profileUserData);
-            }
-            await loadAndDisplayBadges(profileUserId);
-
+            modal.querySelector('#modal-post-actions').innerHTML = `<button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}"><i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i><span>${post.likes?.length || 0}</span></button><span class="ml-4"><i class="far fa-comment mr-1"></i> ${post.comments?.length || 0}</span>`;
+            renderComments(modal.querySelector('#modal-post-comments-list'), post.comments, post);
         } catch (error) {
-            console.error("Error loading profile:", error);
-            profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold text-red-600">Error</h1><p class="mt-2 text-gray-600 dark:text-gray-400">${error.message}</p></div>`;
+            console.error("Error loading post modal:", error);
+            modal.querySelector('#modal-post-content').innerHTML = `<p class="text-red-500">Could not load post.</p>`;
         }
     };
     
+    const handleCommentSubmitForProfile = async (form, postId) => {
+        if (!currentUser) return;
+        const input = form.querySelector('input');
+        const content = input.value.trim();
+        if (!content) return;
+        const postRef = db.collection('posts').doc(postId);
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const newComment = { author: userDoc.data().displayName, authorId: currentUser.uid, authorPhotoURL: userDoc.data().photoURL, content: content, timestamp: new Date(), replyTo: form.dataset.replyTo ? parseInt(form.dataset.replyTo, 10) : null };
+        input.disabled = true;
+        try {
+            await db.runTransaction(async (t) => {
+                const doc = await t.get(postRef);
+                const comments = doc.data().comments || [];
+                comments.push(newComment);
+                t.update(postRef, { comments });
+            });
+            if (form.classList.contains('reply-form')) form.remove();
+            else form.reset();
+            const updatedDoc = await postRef.get();
+            const comments = updatedDoc.data().comments;
+            const postElement = document.querySelector(`.post-container[data-id="${postId}"]`);
+            if(postElement) {
+                renderComments(postElement.querySelector('.comments-list'), comments, updatedDoc.data());
+                postElement.querySelector('.comments-count').textContent = comments.length;
+            }
+            const modal = document.getElementById('postDetailModal');
+            if(modal.classList.contains('flex') && modal.dataset.postId === postId) {
+                renderComments(modal.querySelector('#modal-post-comments-list'), comments, updatedDoc.data());
+                modal.querySelector('#modal-post-actions span:last-child').innerHTML = `<i class="far fa-comment mr-1"></i> ${comments.length}`;
+            }
+        } catch (error) { console.error("Error submitting comment:", error); } finally { input.disabled = false; }
+    };
+    
+    // --- Existing Profile Functions (some modified) ---
+    const setupProfilePage = async () => {
+        // ... (existing setupProfilePage code) ...
+        // The following functions are called from within setupProfilePage
+        // NO CHANGES NEEDED to the main setupProfilePage structure, only to the functions it calls.
+    };
+    
+    const loadProfileFeed = async (userId) => {
+        const container = document.getElementById('tab-content-feed');
+        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading feed...</p>';
+        try {
+            const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
+            if(snapshot.empty) {
+                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user hasn\'t posted anything yet.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            snapshot.forEach(doc => {
+                const post = { id: doc.id, ...doc.data() };
+                container.appendChild(createPostElementForProfile(post));
+            });
+        } catch (error) {
+            console.error("Error loading profile feed:", error);
+            if (error.code === 'failed-precondition') {
+                const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
+                displayIndexError(container, indexLink);
+            } else {
+                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load feed.</p>`;
+            }
+        }
+    };
+    
+    // --- All other load functions (loadProfileDecks, loadProfileCollection, etc.) remain unchanged ---
+    // ... (paste all other functions from the original profile.js here, UNCHANGED) ...
     const evaluateAndAwardBadges = async (userId, userData) => {
         const userBadgesRef = db.collection('users').doc(userId).collection('badges');
         const existingBadgesSnapshot = await userBadgesRef.get();
@@ -354,45 +275,7 @@ document.addEventListener('authReady', (e) => {
             badgesListContainer.innerHTML = '<p class="text-sm text-red-500">Could not load achievements.</p>';
         }
     };
-
-    const loadProfileFeed = async (userId) => {
-        const container = document.getElementById('tab-content-feed');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading feed...</p>';
-        try {
-            const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
-            if(snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user hasn\'t posted anything yet.</p>';
-                return;
-            }
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const post = doc.data();
-                const postElement = document.createElement('div');
-                postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-                postElement.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover">
-                        <div>
-                            <p class="font-bold dark:text-white">${post.author}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p>
-                        </div>
-                    </div>
-                    <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
-                     ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg"></video>`) : ''}
-                `;
-                container.appendChild(postElement);
-            });
-        } catch (error) {
-            console.error("Error loading profile feed:", error);
-            if (error.code === 'failed-precondition') {
-                const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
-                displayIndexError(container, indexLink);
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load feed.</p>`;
-            }
-        }
-    };
-
+    
     const loadProfileDecks = async (userId, isOwnProfile) => {
         const container = document.getElementById('tab-content-decks');
         container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading decks...</p>';
@@ -773,69 +656,146 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
+    // --- MAIN INITIALIZATION AND EVENT LISTENERS ---
+    const initializeProfile = async () => {
+        await checkAdminStatus();
+        // The main profile rendering function
+        // NOTE: This is an IIFE now, the original `setupProfilePage` has been inlined and expanded
+        (async () => {
+            profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
+            try {
+                const params = new URLSearchParams(window.location.search);
+                let userDoc;
+                const username = params.get('user');
+                const userIdParam = params.get('uid');
+
+                if (username) { const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get(); if (!userQuery.empty) userDoc = userQuery.docs[0]; } 
+                else if (userIdParam) { userDoc = await db.collection('users').doc(userIdParam).get(); } 
+                else if (currentUser) { userDoc = await db.collection('users').doc(currentUser.uid).get(); } 
+                else { profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold">No Profile to Display</h1><p class="mt-2">Please log in to see your profile or specify a user in the URL.</p></div>`; return; }
+
+                if (!userDoc || !userDoc.exists) throw new Error("User not found.");
+
+                const profileUserId = userDoc.id;
+                const profileUserData = userDoc.data();
+                const isOwnProfile = currentUser && currentUser.uid === profileUserId;
+
+                let friendStatus = 'none';
+                if (currentUser && !isOwnProfile) {
+                    if (profileUserData.friends?.includes(currentUser.uid)) { friendStatus = 'friends'; } 
+                    else {
+                        const requestQuery1 = await db.collection('friendRequests').where('senderId', '==', currentUser.uid).where('receiverId', '==', profileUserId).get();
+                        const requestQuery2 = await db.collection('friendRequests').where('senderId', '==', profileUserId).where('receiverId', '==', currentUser.uid).get();
+                        if (!requestQuery1.empty) friendStatus = 'request_sent';
+                        else if (!requestQuery2.empty) friendStatus = 'request_received';
+                    }
+                }
+                
+                let actionButtonHTML = '';
+                if (!isOwnProfile && currentUser) {
+                    actionButtonHTML += `<button id="start-trade-btn" class="px-4 py-2 bg-green-600 text-white rounded-full text-sm" data-uid="${profileUserId}">Start Trade</button><button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
+                    switch (friendStatus) {
+                        case 'none': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>`; break;
+                        case 'request_sent': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-gray-400 text-white rounded-full text-sm" disabled>Request Sent</button>`; break;
+                        case 'friends': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm" disabled><i class="fas fa-check mr-2"></i>Friends</button>`; break;
+                        case 'request_received': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm">Respond to Request</button>`; break;
+                    }
+                }
+                
+                const ratingCount = profileUserData.ratingCount || 0, completedTrades = profileUserData.completedTrades || 0, avgAccuracy = profileUserData.averageAccuracy || 0, avgPackaging = profileUserData.averagePackaging || 0, overallAvg = ratingCount > 0 ? (avgAccuracy + avgPackaging) / 2 : 0;
+                let starsHTML = Array.from({length: 5}, (_, i) => i + 1 <= overallAvg ? '<i class="fas fa-star text-yellow-400"></i>' : (i + 0.5 <= overallAvg ? '<i class="fas fa-star-half-alt text-yellow-400"></i>' : '<i class="far fa-star text-gray-300"></i>')).join('');
+                const reputationHTML = `<div class="flex items-center space-x-2 text-sm mt-1"><span class="flex">${starsHTML}</span><span class="font-semibold">${overallAvg.toFixed(1)}</span><span>(${ratingCount} ratings)</span><span class="font-bold">|</span><span title="Completed Trades"><i class="fas fa-handshake text-green-500"></i> ${completedTrades}</span></div><div class="text-xs space-x-3 mt-1"><span>Accuracy: <strong>${avgAccuracy.toFixed(1)}</strong></span><span>Packaging: <strong>${avgPackaging.toFixed(1)}</strong></span></div>`;
+
+                let personalityHTML = '';
+                if (profileUserData.playstyle || profileUserData.favoriteFormat || profileUserData.petCard || profileUserData.nemesisCard) { personalityHTML += '<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">'; if (profileUserData.playstyle) personalityHTML += `<div><p class="font-semibold">Playstyle</p><p>${profileUserData.playstyle}</p></div>`; if (profileUserData.favoriteFormat) personalityHTML += `<div><p class="font-semibold">Favorite Format</p><p>${profileUserData.favoriteFormat}</p></div>`; if (profileUserData.petCard) personalityHTML += `<div><p class="font-semibold">Pet Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.petCard)}" class="text-blue-600 hover:underline">${profileUserData.petCard}</a></div>`; if (profileUserData.nemesisCard) personalityHTML += `<div><p class="font-semibold">Nemesis Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.nemesisCard)}" class="text-red-500 hover:underline">${profileUserData.nemesisCard}</a></div>`; personalityHTML += '</div>'; }
+                
+                const referralsTabHTML = isOwnProfile ? `<a href="referrals.html" class="profile-tab-button">Referrals</a>` : '';
+
+                profileContainer.innerHTML = `<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden"><div class="relative"><img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300'}" alt="Profile banner">${isOwnProfile ? `<div class="absolute top-4 right-4"><a href="settings.html" class="px-4 py-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 text-sm font-semibold">Edit Profile</a></div>` : ''}<div class="absolute bottom-0 left-6 transform translate-y-1/2 flex items-center"><img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar"></div></div><div class="pt-20 px-6 pb-6"><div class="flex justify-between items-center"><div><h1 id="profile-displayName" class="text-3xl font-bold">${profileUserData.displayName}</h1><p id="profile-handle" class="text-gray-600 dark:text-gray-400">@${profileUserData.handle}</p>${reputationHTML}</div><div id="profile-action-buttons" class="flex space-x-2">${actionButtonHTML}</div></div><div class="mt-6 border-t dark:border-gray-700 pt-4"><p id="profile-bio" class="mt-2">${profileUserData.bio || 'No bio yet.'}</p><p class="text-sm text-gray-500 mt-2">Joined ${formatTimestamp(profileUserData.createdAt)}</p><div class="mt-2 text-sm"><strong>Favorite TCG:</strong> <span>${profileUserData.favoriteTcg || 'Not set'}</span></div>${personalityHTML}<div id="mutual-connections-section" class="mt-4 text-sm"></div><div id="featured-items-section" class="mt-6"></div><div id="profile-badges-container" class="mt-4"><h3 class="font-bold text-lg mb-2">Achievements</h3><div id="badges-list" class="flex flex-wrap gap-4"></div></div></div></div></div><div class="mt-6"><div class="border-b dark:border-gray-700"><nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs"><button data-tab="feed" class="profile-tab-button active">Feed</button><button data-tab="decks" class="profile-tab-button">Decks</button><button data-tab="trade-binder" class="profile-tab-button">Trade Binder</button><button data-tab="collection" class="profile-tab-button">Collection</button><button data-tab="friends" class="profile-tab-button">Friends</button><button data-tab="wishlist" class="profile-tab-button">Wishlist</button><button data-tab="trade-history" class="profile-tab-button">Trade History</button><button data-tab="feedback" class="profile-tab-button">Feedback</button>${referralsTabHTML}</nav></div><div class="mt-6"><div id="tab-content-feed" class="profile-tab-content space-y-6"></div><div id="tab-content-decks" class="profile-tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div><div id="tab-content-trade-binder" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div><div id="tab-content-collection" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div><div id="tab-content-friends" class="profile-tab-content hidden"></div><div id="tab-content-wishlist" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div><div id="tab-content-trade-history" class="profile-tab-content hidden space-y-4"></div><div id="tab-content-feedback" class="profile-tab-content hidden space-y-4"></div></div></div>`;
+                
+                // --- Initial Data Loading ---
+                const functionsToRun = [
+                    () => loadProfileFeed(profileUserId),
+                    () => loadProfileDecks(profileUserId, isOwnProfile),
+                    () => loadProfileCollection(profileUserId, 'collection', isOwnProfile),
+                    () => loadProfileCollection(profileUserId, 'wishlist'),
+                    () => loadTradeBinder(profileUserId, profileUserData),
+                    () => loadProfileFeedback(profileUserId),
+                    () => loadFeaturedItems(profileUserId, profileUserData),
+                    () => loadAndDisplayBadges(profileUserId),
+                ];
+                if (currentUser && !isOwnProfile) functionsToRun.push(() => loadMutualConnections(profileUserId, profileUserData));
+                if (isOwnProfile) functionsToRun.push(() => evaluateAndAwardBadges(profileUserId, profileUserData));
+                
+                // Check hash and load specific tabs
+                if(window.location.hash) {
+                    const targetTab = document.querySelector(`.profile-tab-button[data-tab="${window.location.hash.substring(1)}"]`);
+                    if(targetTab) {
+                         if(targetTab.dataset.tab === 'friends') functionsToRun.push(() => loadProfileFriends(profileUserId));
+                         if(targetTab.dataset.tab === 'trade-history') functionsToRun.push(() => loadTradeHistoryAndMap(profileUserId));
+                         setTimeout(() => targetTab.click(), 100);
+                    }
+                }
+                
+                // Run all loading functions
+                await Promise.all(functionsToRun.map(f => f()));
+
+            } catch (error) { console.error("Error loading profile:", error); profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 shadow-md"><h1 class="text-2xl font-bold text-red-600">Error</h1><p class="mt-2">${error.message}</p></div>`; }
+        })();
+    };
+
+    // --- Main Event Listener for ALL dynamic content on the page ---
+    profileContainer.addEventListener('click', async (event) => {
+        const target = event.target;
+        // Profile action buttons
+        if (target.id === 'start-trade-btn') { window.location.href = `trades.html?with=${target.dataset.uid}`; return; }
+        if (target.id === 'message-btn') { window.location.href = `messages.html?with=${target.dataset.uid}`; return; }
+        if (target.id === 'add-friend-btn') { /* Friend logic handled by body listener */ return; }
+        // Tab switching
+        const tab = target.closest('.profile-tab-button');
+        if (tab && tab.tagName === 'BUTTON') {
+            document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll('.profile-tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`tab-content-${tab.dataset.tab}`).classList.remove('hidden');
+            if (tab.dataset.tab === 'friends' && !tab.dataset.loaded) { loadProfileFriends(profileContainer.querySelector('#profile-action-buttons [data-uid]')?.dataset.uid || currentUser.uid); tab.dataset.loaded = true; }
+            if (tab.dataset.tab === 'trade-history' && !tab.dataset.loaded) { loadTradeHistoryAndMap(profileContainer.querySelector('#profile-action-buttons [data-uid]')?.dataset.uid || currentUser.uid); tab.dataset.loaded = true; }
+            return;
+        }
+
+        // Feed interactions
+        const postElement = target.closest('.post-container');
+        if (!postElement) return;
+        const postId = postElement.dataset.id;
+        const postRef = db.collection('posts').doc(postId);
+
+        if (target.closest('.post-clickable-area')) { openPostModalForProfile(postId); }
+        if (target.closest('.comment-btn')) { const commentsSection = postElement.querySelector('.comments-section'); const wasHidden = commentsSection.classList.toggle('hidden'); if (!wasHidden) { const doc = await postRef.get(); renderComments(commentsSection.querySelector('.comments-list'), doc.data().comments, doc.data()); }}
+        if (target.closest('.like-btn')) { if(!currentUser) return; const likeBtn = target.closest('.like-btn'); const countSpan = likeBtn.querySelector('span'); const currentLikes = parseInt(countSpan.textContent, 10); const isLiked = likeBtn.classList.contains('text-red-500'); countSpan.textContent = isLiked ? currentLikes - 1 : currentLikes + 1; likeBtn.classList.toggle('text-red-500'); likeBtn.querySelector('i').classList.toggle('fas'); likeBtn.querySelector('i').classList.toggle('far'); await postRef.update({ likes: firebase.firestore.FieldValue.arrayToggle(currentUser.uid) }); }
+        if (target.closest('.delete-post-btn')) { if (confirm('Delete this post?')) { await postRef.delete(); postElement.remove(); }}
+        if (target.closest('.reply-btn')) { const parent = target.closest('.flex-1'); const existing = parent.querySelector('.reply-form'); if(existing) { existing.remove(); return; } const form = document.createElement('form'); form.className = 'reply-form flex mt-2'; form.dataset.replyTo = target.dataset.parentTimestamp; form.innerHTML = `<input type="text" class="w-full border rounded-l-lg p-2 text-sm" placeholder="Write a reply..." required><button type="submit" class="bg-blue-500 text-white px-3 text-sm">Reply</button>`; parent.appendChild(form).querySelector('input').focus(); }
+        if (target.closest('.delete-comment-btn')) { if (!confirm('Delete this comment and all replies?')) return; const timestamp = parseInt(target.closest('[data-timestamp]').dataset.timestamp, 10); await db.runTransaction(async t => { const doc = await t.get(postRef); let comments = doc.data().comments || []; const toDelete = [timestamp]; const findReplies = (id) => comments.forEach(c => c.replyTo === id && (toDelete.push(c.timestamp.toMillis()), findReplies(c.timestamp.toMillis()))); findReplies(timestamp); const updated = comments.filter(c => !toDelete.includes(c.timestamp.toMillis())); t.update(postRef, { comments: updated });}); const finalDoc = await postRef.get(); renderComments(postElement.querySelector('.comments-list'), finalDoc.data().comments, finalDoc.data()); postElement.querySelector('.comments-count').textContent = finalDoc.data().comments.length; }
+    });
+
+    profileContainer.addEventListener('submit', (e) => { e.preventDefault(); if (e.target.matches('.comment-form, .reply-form')) { handleCommentSubmitForProfile(e.target, e.target.closest('.post-container').dataset.id); }});
+    
+    // Listeners for modals and global actions
+    const postDetailModal = document.getElementById('postDetailModal');
+    document.getElementById('closePostDetailModal')?.addEventListener('click', () => closeModal(postDetailModal));
+    postDetailModal?.addEventListener('submit', (e) => { e.preventDefault(); if(e.target.matches('.modal-comment-form, .reply-form')) { handleCommentSubmitForProfile(e.target, postDetailModal.dataset.postId); }});
     document.body.addEventListener('click', async (event) => {
         const acceptButton = event.target.closest('.accept-friend-btn');
         const rejectButton = event.target.closest('.reject-friend-btn');
         const pinDeckBtn = event.target.closest('.pin-deck-btn');
         const pinCardBtn = event.target.closest('.pin-card-btn');
-
-        if (acceptButton) {
-            const requestId = acceptButton.dataset.requestId;
-            const senderId = acceptButton.dataset.senderId;
-
-            const batch = db.batch();
-            const userRef = db.collection('users').doc(currentUser.uid);
-            const senderRef = db.collection('users').doc(senderId);
-            const requestRef = db.collection('friendRequests').doc(requestId);
-
-            batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
-            batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
-            batch.delete(requestRef);
-            
-            const notificationData = {
-                message: `${currentUser.displayName} accepted your friend request.`,
-                link: `/profile.html?uid=${currentUser.uid}`,
-                isRead: false,
-                timestamp: new Date()
-            };
-            const notificationRef = db.collection('users').doc(senderId).collection('notifications').doc();
-            batch.set(notificationRef, notificationData);
-            
-            await batch.commit();
-            loadProfileFriends(currentUser.uid);
-        }
-
-        if (rejectButton) {
-            const requestId = rejectButton.dataset.requestId;
-            await db.collection('friendRequests').doc(requestId).delete();
-            loadProfileFriends(currentUser.uid);
-        }
-
-        if (pinDeckBtn) {
-            const deckId = pinDeckBtn.dataset.deckId;
-            await db.collection('users').doc(currentUser.uid).update({ featuredDeck: deckId });
-            alert('Deck pinned to your profile!');
-            setupProfilePage();
-        }
-
-        if (pinCardBtn) {
-            const cardId = pinCardBtn.dataset.cardId;
-            const userRef = db.collection('users').doc(currentUser.uid);
-            await db.runTransaction(async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                let featured = userDoc.data().featuredCards || [];
-                if (!featured.includes(cardId)) {
-                    featured.push(cardId);
-                    if (featured.length > 4) featured.shift();
-                } else {
-                    featured = featured.filter(id => id !== cardId);
-                }
-                transaction.update(userRef, { featuredCards: featured });
-            });
-            alert('Featured cards updated!');
-            setupProfilePage();
-        }
+        const addFriendBtn = event.target.closest('#add-friend-btn');
+        
+        if (acceptButton) { const rId = acceptButton.dataset.requestId, sId = acceptButton.dataset.senderId, batch=db.batch(), uRef=db.collection('users').doc(currentUser.uid), sRef=db.collection('users').doc(sId), reqRef=db.collection('friendRequests').doc(rId); batch.update(uRef, {friends: firebase.firestore.FieldValue.arrayUnion(sId)}); batch.update(sRef, {friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)}); batch.delete(reqRef); const notifRef = db.collection('users').doc(sId).collection('notifications').doc(); batch.set(notifRef, {message: `${currentUser.displayName} accepted your friend request.`, link: `/profile.html?uid=${currentUser.uid}`, isRead: false, timestamp: new Date()}); await batch.commit(); loadProfileFriends(currentUser.uid); }
+        if (rejectButton) { await db.collection('friendRequests').doc(rejectButton.dataset.requestId).delete(); loadProfileFriends(currentUser.uid); }
+        if (pinDeckBtn) { await db.collection('users').doc(currentUser.uid).update({ featuredDeck: pinDeckBtn.dataset.deckId }); alert('Deck pinned!'); initializeProfile(); }
+        if (pinCardBtn) { const cardId = pinCardBtn.dataset.cardId; await db.runTransaction(async t=>{ const doc = await t.get(db.collection('users').doc(currentUser.uid)); let f=doc.data().featuredCards||[]; f.includes(cardId)?f=f.filter(id=>id!==cardId):(f.push(cardId),f.length>4&&f.shift()); t.update(db.collection('users').doc(currentUser.uid),{featuredCards:f})}); alert('Featured cards updated!'); initializeProfile(); }
+        if (addFriendBtn && !addFriendBtn.disabled) { const profileUserId = document.querySelector('#profile-action-buttons [data-uid]').dataset.uid; if(addFriendBtn.textContent.includes('Respond')) { window.location.href = '/friends.html'; return; } addFriendBtn.disabled = true; addFriendBtn.textContent = 'Sending...'; await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: profileUserId, status: 'pending', createdAt: new Date() }); await db.collection('users').doc(profileUserId).collection('notifications').add({ message: `${currentUser.displayName} sent you a friend request.`, link: `/profile.html?uid=${currentUser.uid}#friends`, isRead: false, timestamp: new Date() }); addFriendBtn.textContent = 'Request Sent'; }
     });
 
-    setupProfilePage();
+    initializeProfile();
 });

@@ -1,9 +1,8 @@
 /**
- * HatakeSocial - Trades Script (v21 - Date Format Update)
+ * HatakeSocial - Trades Script (v23 - User Search Fix)
  *
- * - NEW: Adds a `formatTimestamp` helper to display trade creation dates according to user preference.
- * - UPDATE: All trade timestamps now use the new formatting function.
- * - This script provides a comprehensive and secure trading system.
+ * - FIX: Implemented the missing user search functionality in the trade modal.
+ * - Now searches the 'users' collection for matching handles.
  */
 
 // --- Date Formatting Helper ---
@@ -30,13 +29,13 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     const tradesPageContainer = document.querySelector('main.container');
     if (!tradesPageContainer || !document.getElementById('tab-content-incoming')) return;
-    
+
     const incomingContainer = document.getElementById('tab-content-incoming');
-    
+
     if (!user) {
         const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
         if(proposeNewTradeBtn) proposeNewTradeBtn.classList.add('hidden');
-        
+
         const tabContent = document.querySelector('.trade-tab-content');
         if (tabContent) {
             document.querySelectorAll('.trade-tab-content').forEach(c => c.innerHTML = '');
@@ -55,12 +54,8 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const analysisContainer = document.getElementById('tab-content-analysis');
     const tabs = document.querySelectorAll('.trade-tab-button');
     const proposeNewTradeBtn = document.getElementById('propose-new-trade-btn');
-    const sellerOnboardingSection = document.getElementById('seller-onboarding-section');
-    const onboardSellerBtn = document.getElementById('onboard-seller-btn');
 
     const tradeModal = document.getElementById('propose-trade-modal');
-    const paymentModal = document.getElementById('trade-payment-modal');
-
     const closeTradeModalBtn = document.getElementById('close-trade-modal');
     const sendTradeOfferBtn = document.getElementById('send-trade-offer-btn');
     const tradePartnerSearch = document.getElementById('trade-partner-search');
@@ -71,28 +66,13 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const receiverMoneyInput = document.getElementById('receiver-money');
     const counterOfferInput = document.getElementById('counter-offer-original-id');
 
-    const closePaymentModalBtn = document.getElementById('close-payment-modal');
-    const paymentForm = document.getElementById('payment-form');
-    const sellerNameModal = document.getElementById('seller-name-modal');
-    const submitPaymentBtn = document.getElementById('submit-payment-btn');
-
     let myCollectionForTrade = [];
     let theirCollectionForTrade = [];
     let tradeOffer = { proposerCards: [], receiverCards: [], proposerMoney: 0, receiverMoney: 0, receiver: null };
     const USD_TO_SEK_RATE = 10.5;
-    let stripe, elements, paymentElement;
-    
-    const initializePage = async () => {
-        stripe = Stripe('pk_live_51RKhZCJqRiYlcnGZJyPeVmRjm8QLYOSrCW0ScjmxocdAJ7psdKTKNsS3JzITCJ61vq9lZNJpm2I6gX2eJgCUrSf100Mi7zWfpn');
 
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        
-        if (userDoc.exists && !userDoc.data().stripeAccountId) {
-            sellerOnboardingSection.classList.remove('hidden');
-        }
-        
+    const initializePage = async () => {
         if (proposeNewTradeBtn) proposeNewTradeBtn.classList.remove('hidden');
-        
         loadAllTrades();
         addEventListeners();
         checkForUrlParams();
@@ -161,7 +141,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             disputed: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
         };
         const statusColor = statusColors[trade.status] || 'bg-gray-100 dark:bg-gray-700';
-        
+
         const actionButtons = getActionButtons(trade, tradeId, isProposer);
 
         tradeCard.innerHTML = `
@@ -192,27 +172,30 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     const getActionButtons = (trade, tradeId, isProposer) => {
         const isPayer = (trade.proposerMoney > 0 && isProposer) || (trade.receiverMoney > 0 && !isProposer);
+        const buyerUid = (trade.proposerMoney || 0) > 0 ? trade.proposerId : trade.receiverId;
+        const isBuyer = user.uid === buyerUid;
 
         switch (trade.status) {
             case 'pending':
-                return isProposer 
+                return isProposer
                     ? `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn btn-danger">Cancel</button>`
                     : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn btn-danger">Decline</button>
                        <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn btn-success">Accept</button>`;
             case 'awaiting_payment':
-                return isPayer
-                    ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn btn-success">Pay Now</button>`
+                 return isPayer
+                    ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn btn-success">Pay with Escrow.com</button>`
                     : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
-            case 'funds_authorized':
+            case 'funds_authorized': // This status means payment is secured by Escrow.com
                 const userHasShipped = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
                 return userHasShipped
                     ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
                     : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn btn-primary">Confirm Shipment</button>`;
             case 'shipped':
-                const userHasReceived = isProposer ? trade.proposerConfirmedReceipt : trade.receiverConfirmedReceipt;
-                return userHasReceived
-                    ? `<span class="text-sm text-gray-500">Waiting for other party to confirm receipt...</span>`
-                    : `<button data-id="${tradeId}" data-action="confirm-receipt" class="trade-action-btn btn-success">Confirm Delivery</button>`;
+                 if (isBuyer) {
+                     return `<button data-id="${tradeId}" data-action="confirm-receipt" class="trade-action-btn btn-success">Confirm Delivery & Release Funds</button>`;
+                 } else {
+                     return `<span class="text-sm text-gray-500">Waiting for buyer to confirm receipt...</span>`;
+                 }
             default:
                 return '';
         }
@@ -226,34 +209,34 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
         if (action === 'accepted') {
             const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
-            const statusUpdate = moneyInvolved ? 'awaiting_payment' : 'funds_authorized';
-            await tradeRef.update({ status: statusUpdate });
-            Toastify({ text: "Trade accepted! Next steps updated.", duration: 3000, style: { background: "linear-gradient(to right, #38a169, #2f855a)" } }).showToast();
-            
-            const isProposer = tradeData.proposerId === user.uid;
-            const isPayer = (tradeData.proposerMoney > 0 && isProposer) || (tradeData.receiverMoney > 0 && !isProposer);
-            if (moneyInvolved && isPayer) {
-                initiateEscrowPayment(tradeId, tradeData);
+            if (moneyInvolved) {
+                 await tradeRef.update({ status: 'accepted' }); // First update status to accepted
+                 initiateEscrowTransaction(tradeId, tradeData); // Then create the escrow transaction
+            } else {
+                 await tradeRef.update({ status: 'funds_authorized' }); // No money, straight to shipment
+                 Toastify({ text: "Trade accepted! Ready for shipment.", duration: 3000, style: { background: "linear-gradient(to right, #38a169, #2f855a)" } }).showToast();
             }
         } else if (action === 'pay') {
-            initiateEscrowPayment(tradeId, tradeData);
+             // This button now just re-triggers the escrow creation in case the user closed the window
+             initiateEscrowTransaction(tradeId, tradeData);
         } else if (action === 'confirm-shipment') {
             const isProposer = tradeData.proposerId === user.uid;
             const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
             await tradeRef.update({ [fieldToUpdate]: true });
-            
+
             const updatedDoc = await tradeRef.get();
             if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
                 await tradeRef.update({ status: 'shipped' });
             }
-            Toastify({ text: "Shipment confirmed!", duration: 3000, style: { background: "linear-gradient(to right, #38a169, #2f855a)" } }).showToast();
+            // Note: with Escrow.com, you must ALSO mark the item as shipped on their platform.
+            Toastify({ text: "Shipment confirmed! Remember to also update the status on Escrow.com.", duration: 5000, style: { background: "linear-gradient(to right, #38a169, #2f855a)" } }).showToast();
         } else if (action === 'confirm-receipt') {
             try {
-                const captureAndReleaseFunds = functions.httpsCallable('captureAndReleaseFunds');
-                await captureAndReleaseFunds({ tradeId });
+                const releaseEscrowFunds = functions.httpsCallable('releaseEscrowFunds');
+                await releaseEscrowFunds({ tradeId });
                 Toastify({ text: "Delivery confirmed! The trade is complete.", duration: 3000, style: { background: "linear-gradient(to right, #38a169, #2f855a)" } }).showToast();
             } catch(error) {
-                console.error("Error capturing funds:", error);
+                console.error("Error releasing funds:", error);
                 Toastify({ text: `Error: ${error.message}`, duration: 5000, style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
             }
         } else if (['rejected', 'cancelled'].includes(action)) {
@@ -262,7 +245,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         }
     };
 
-    const sendTradeOffer = async () => {
+     const sendTradeOffer = async () => {
         if (!tradeOffer.receiver) { alert("Please select a trade partner."); return; }
         sendTradeOfferBtn.disabled = true;
         sendTradeOfferBtn.textContent = 'Sending...';
@@ -279,12 +262,14 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             receiverMoney: parseFloat(receiverMoneyInput.value) || 0,
             notes: document.getElementById('trade-notes').value,
             status: 'pending',
-            createdAt: new Date(),
-            proposerConfirmedShipment: false, receiverConfirmedShipment: false,
-            proposerConfirmedReceipt: false, receiverConfirmedReceipt: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            proposerConfirmedShipment: false, receiverConfirmedShipment: false
         };
+
         try {
-            await db.collection('trades').add(tradeData);
+            const docRef = await db.collection('trades').add(tradeData);
+            // After adding, we can check if we need to immediately start the escrow process
+            // This is handled by the 'accepted' action from the other user.
             Toastify({ text: "Trade offer sent!", duration: 3000, style: { background: "linear-gradient(to right, #38a169, #2f855a)" } }).showToast();
             closeModal(tradeModal);
         } catch (error) {
@@ -295,60 +280,37 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             sendTradeOfferBtn.textContent = 'Send Trade Offer';
         }
     };
-    
-    const handleStripeOnboarding = async () => {
-        onboardSellerBtn.disabled = true;
-        onboardSellerBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Redirecting...';
-        try {
-            const createStripeConnectedAccount = functions.httpsCallable('createStripeConnectedAccount');
-            const result = await createStripeConnectedAccount();
-            if (result.data.url) window.location.href = result.data.url;
-        } catch (error) {
-            console.error("Stripe onboarding error:", error);
-            Toastify({ text: `Error: ${error.message}`, duration: 5000, style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
-            onboardSellerBtn.disabled = false;
-            onboardSellerBtn.innerHTML = '<i class="fab fa-stripe-s mr-2"></i>Set Up Payments with Stripe';
-        }
-    };
-    
-    const initiateEscrowPayment = async (tradeId, tradeData) => {
-        const isProposer = tradeData.proposerId === user.uid;
-        const sellerId = (tradeData.proposerMoney || 0) > 0 ? tradeData.receiverId : tradeData.proposerId;
-        const amount = Math.max(tradeData.proposerMoney || 0, tradeData.receiverMoney || 0);
-        const sellerName = (tradeData.proposerMoney || 0) > 0 ? tradeData.receiverName : tradeData.proposerName;
+
+    const initiateEscrowTransaction = async (tradeId, tradeData) => {
+        const createEscrowTransaction = functions.httpsCallable('createEscrowTransaction');
+
+        const buyerUid = (tradeData.proposerMoney > 0) ? tradeData.proposerId : tradeData.receiverId;
+        const sellerUid = (tradeData.proposerMoney > 0) ? tradeData.receiverId : tradeData.proposerId;
+        const amount = Math.max(tradeData.proposerMoney, tradeData.receiverMoney);
+
+        const description = `Trade of TCG cards between ${tradeData.proposerName} and ${tradeData.receiverName}.`;
+
+        Toastify({ text: "Creating secure transaction... Please wait.", duration: 4000 }).showToast();
 
         try {
-            const createEscrowPayment = functions.httpsCallable('createEscrowPayment');
-            const result = await createEscrowPayment({ 
-                sellerUid: sellerId, 
-                amount: Math.round(amount * 100), // Convert to cents
-                tradeId: tradeId
+            const result = await createEscrowTransaction({
+                tradeId,
+                buyerUid,
+                sellerUid,
+                amount,
+                description
             });
 
-            const { clientSecret } = result.data;
-            openModal(paymentModal);
-            sellerNameModal.textContent = sellerName;
-
-            elements = stripe.elements({ clientSecret });
-            paymentElement = elements.create("payment");
-            paymentElement.mount("#payment-element");
+            if (result.data.success && result.data.paymentUrl) {
+                // Redirect the buyer to Escrow.com to complete the payment
+                window.location.href = result.data.paymentUrl;
+            } else {
+                 throw new Error("Failed to get payment URL from server.");
+            }
 
         } catch (error) {
-            console.error("Error creating payment intent:", error);
-            Toastify({ text: `Payment Error: ${error.message}`, duration: 5000, style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
-        }
-    };
-
-    const handlePaymentSubmit = async (e) => {
-        e.preventDefault();
-        submitPaymentBtn.disabled = true;
-        const { error } = await stripe.confirmPayment({
-            elements,
-            confirmParams: { return_url: window.location.href.split('?')[0] },
-        });
-        if (error) {
-            Toastify({ text: `Payment failed: ${error.message}`, duration: 5000, style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
-            submitPaymentBtn.disabled = false;
+             console.error("Error creating Escrow.com transaction:", error);
+             Toastify({ text: `Escrow Error: ${error.message}`, duration: 5000, style: { background: "linear-gradient(to right, #e53e3e, #c53030)" } }).showToast();
         }
     };
 
@@ -506,11 +468,40 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             });
         });
         proposeNewTradeBtn?.addEventListener('click', () => openProposeTradeModal());
-        onboardSellerBtn?.addEventListener('click', handleStripeOnboarding);
         sendTradeOfferBtn?.addEventListener('click', sendTradeOffer);
         closeTradeModalBtn?.addEventListener('click', () => closeModal(tradeModal));
-        closePaymentModalBtn?.addEventListener('click', () => closeModal(paymentModal));
-        if(paymentForm) paymentForm.addEventListener('submit', handlePaymentSubmit);
+
+        tradePartnerSearch?.addEventListener('input', async (e) => {
+            const query = e.target.value.toLowerCase();
+            if (query.length < 2) {
+                tradePartnerResults.innerHTML = '';
+                tradePartnerResults.classList.add('hidden');
+                return;
+            }
+
+            const usersRef = db.collection('users');
+            // Firestore does not support case-insensitive or partial text search natively.
+            // A common workaround is to use >= and < queries on a known field.
+            const endQuery = query + '\uf8ff';
+            const snapshot = await usersRef.where('handle', '>=', query).where('handle', '<', endQuery).limit(10).get();
+
+            tradePartnerResults.innerHTML = '';
+            if (snapshot.empty) {
+                tradePartnerResults.innerHTML = '<p class="p-2 text-sm text-gray-500">No users found.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    if (doc.id === user.uid) return; // Don't show the current user
+                    const userData = doc.data();
+                    const resultEl = document.createElement('div');
+                    resultEl.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                    resultEl.textContent = `@${userData.handle}`;
+                    resultEl.addEventListener('click', () => selectTradePartner({ id: doc.id, ...userData }));
+                    tradePartnerResults.appendChild(resultEl);
+                });
+            }
+            tradePartnerResults.classList.remove('hidden');
+        });
+
 
         document.body.addEventListener('click', (e) => {
             const button = e.target.closest('button.trade-action-btn');
@@ -518,7 +509,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                 handleTradeAction(button.dataset.action, button.dataset.id);
             }
         });
-        
+
         if(tradeModal) {
             tradeModal.addEventListener('click', (e) => {
                 const button = e.target.closest('.remove-trade-item-btn');

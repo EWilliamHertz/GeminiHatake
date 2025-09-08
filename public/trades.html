@@ -163,20 +163,17 @@
        Propose a New Trade
       </button>
 </div>
-<!-- Seller Onboarding Section -->
-<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 hidden" id="seller-onboarding-section">
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8" id="seller-onboarding-section">
 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-       Become a Seller
+       Trade Securely
       </h2>
 <p class="text-gray-600 dark:text-gray-400 mb-4">
-       To sell cards and receive payments, you need to set up a Stripe account. This is a secure one-time process.
+        For trades involving cash, we partner with
+        <a href="https://escrow.com" target="_blank" class="text-blue-500 hover:underline font-semibold">Escrow.com</a>
+        to ensure your funds are held securely until the trade is complete. Make sure your HatakeSocial email matches your Escrow.com account email.
       </p>
-<button class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700" id="onboard-seller-btn">
-<i class="fab fa-stripe-s mr-2">
-</i>
-       Set Up Payments with Stripe
-      </button>
 </div>
+
 <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 text-blue-800 dark:text-blue-200 p-4 rounded-r-lg mb-6" role="alert">
 <div class="flex">
 <div class="py-1">
@@ -220,7 +217,6 @@
 </div>
 </div>
 </main>
-<!-- Modals -->
 <div class="modal-overlay" id="propose-trade-modal">
 <div class="modal-content w-full max-w-6xl dark:bg-gray-800">
 <button class="close-button" id="close-trade-modal">
@@ -507,39 +503,6 @@
 </form>
 </div>
 </div>
-<!-- Trade Payment Modal -->
-<div class="modal-overlay" id="trade-payment-modal">
-<div class="modal-content w-full max-w-md">
-<button class="close-button" id="close-payment-modal">
-       ×
-      </button>
-<h2 class="text-2xl font-bold mb-4 dark:text-white">
-       Secure Trade Payment
-      </h2>
-<p class="mb-4 text-gray-600 dark:text-gray-400">
-       You are paying
-       <span class="font-bold" id="seller-name-modal">
-</span>
-       . The funds will be held by HatakeSocial until you confirm delivery.
-      </p>
-<form id="payment-form">
-<div class="mb-4" id="payment-element">
-</div>
-<button class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-full hover:bg-green-700 disabled:opacity-50" id="submit-payment-btn">
-<span id="button-text">
-         Pay Now
-        </span>
-<i class="fas fa-spinner fa-spin hidden" id="payment-spinner">
-</i>
-</button>
-<div class="hidden text-center text-red-500 mt-2" id="payment-message">
-</div>
-</form>
-</div>
-</div>
-<!-- Scripts -->
-<script src="https://js.stripe.com/v3/">
-</script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
@@ -564,11 +527,6 @@
 </script>
 </main>
 </div>
-<!-- Login Modal -->
-<!-- Login Modal -->
-
-<!-- Register Modal -->
-
 <script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
 <script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
 <script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
@@ -582,7 +540,6 @@
 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
 </div>
 <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-<!-- Cart items will be dynamically inserted here -->
 <p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
 </div>
 <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -653,7 +610,7 @@
 </div>
 </div>
 <script src="js/messenger.js"></script>
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1001]" id="new-conversation-modal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
 <h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>

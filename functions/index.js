@@ -11,19 +11,20 @@
 * - Handles following users and creating notifications.
 * - Automatically deletes product images from Storage when a product is deleted.
 * - Securely sets admin and content creator custom claims for user roles.
-* - Manages a secure escrow trading system with Stripe Connect.
+* - Manages a secure escrow trading system with Escrow.com.
 * - Wishlist and Trade Matching functionality.
 */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
+const axios = require("axios"); // Added for making HTTP requests to Escrow.com
+
 // --- START: UPDATED CORS CONFIGURATION ---
-// Explicitly define which domains are allowed to access your function
 const allowedOrigins = [
-    'https://hatake.eu', 
-    'https://hatakesocial-88b5e.web.app', // It's good practice to include your firebase domain too
-    'http://localhost:5000' // And localhost for local testing
+    'https://hatake.eu',
+    'https://hatakesocial-88b5e.web.app',
+    'http://localhost:5000'
 ];
 
 const cors = require('cors')({
@@ -40,6 +41,19 @@ const cors = require('cors')({
 admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
+
+// --- Escrow.com API Configuration ---
+const ESCROW_API_KEY = functions.config().escrow.key;
+const ESCROW_API_USER = functions.config().escrow.user;
+const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/"; // Use the production URL
+
+const escrowApi = axios.create({
+    baseURL: ESCROW_API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${ESCROW_API_USER}:${ESCROW_API_KEY}`).toString('base64')}`
+    }
+});
 
 
 /**
@@ -192,7 +206,7 @@ exports.createCheckoutSession = functions.https.onCall(async (data, context) => 
         const userRef = db.collection('users').doc(context.auth.uid);
         const userSnap = await userRef.get();
         const userData = userSnap.data();
-        
+
         if (userData && referralDiscountPercent <= userData.shopDiscountPercent) {
             const coupon = await stripe.coupons.create({
                 percent_off: referralDiscountPercent,
@@ -284,7 +298,7 @@ exports.onFollow = functions.firestore
                 const followedUserId = context.params.userId;
                 const followerDoc = await db.collection('users').doc(newFollowerId).get();
                 const followerName = followerDoc.data()?.displayName || 'Someone';
-                
+
                 const notification = {
                     type: 'follow',
                     fromId: newFollowerId,
@@ -361,70 +375,70 @@ exports.setContentCreatorClaim = functions.https.onCall(async (data, context) =>
     }
 });
 
-
 // =================================================================================================
-// ESCROW TRADING SYSTEM FUNCTIONS
+// ESCROW.COM TRADING SYSTEM FUNCTIONS
 // =================================================================================================
 
-exports.createStripeConnectedAccount = functions.https.onCall(async (data, context) => {
+exports.createEscrowTransaction = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to become a seller.');
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to create a trade.');
     }
-    try {
-        const account = await stripe.accounts.create({
-            type: 'express',
-            email: context.auth.token.email,
-            capabilities: {
-                card_payments: { requested: true },
-                transfers: { requested: true },
-            },
-        });
-        await db.collection('users').doc(context.auth.uid).update({ stripeAccountId: account.id });
-        const accountLink = await stripe.accountLinks.create({
-            account: account.id,
-            refresh_url: 'https://hatakesocial-88b5e.web.app/trades.html?reauth=true',
-            return_url: 'https://hatakesocial-88b5e.web.app/trades.html?stripe_success=true',
-            type: 'account_onboarding',
-        });
-        return { url: accountLink.url };
-    } catch (error) {
-        console.error("Stripe account creation failed:", error);
-        throw new functions.https.HttpsError('internal', 'Could not create a Stripe account link.');
-    }
-});
 
-exports.createEscrowPayment = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to make a payment.');
+    const { tradeId, buyerUid, sellerUid, amount, description } = data;
+    if (!tradeId || !buyerUid || !sellerUid || !amount || !description) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required trade data.');
     }
-    const { amount, sellerUid } = data; // amount is in cents
-    if (!amount || !sellerUid) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing amount or seller UID.');
-    }
+
+    const buyerDoc = await db.collection('users').doc(buyerUid).get();
     const sellerDoc = await db.collection('users').doc(sellerUid).get();
-    const sellerStripeId = sellerDoc.data()?.stripeAccountId;
-    if (!sellerStripeId) {
-        throw new functions.https.HttpsError('not-found', 'This seller is not configured for payments.');
+    if (!buyerDoc.exists || !sellerDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Buyer or Seller not found.');
     }
-    const applicationFee = Math.round(amount * 0.035);
+    const buyerEmail = buyerDoc.data().email;
+    const sellerEmail = sellerDoc.data().email;
+
+    const transactionData = {
+        parties: [
+            { role: 'buyer', customer: buyerEmail },
+            { role: 'seller', customer: sellerEmail }
+        ],
+        items: [{
+            title: 'HatakeSocial Trade',
+            description: description,
+            quantity: 1,
+            price: amount.toFixed(2), // amount should be in SEK
+            type: 'general_merchandise'
+        }],
+        currency: 'sek',
+        description: `Trade ID: ${tradeId} on HatakeSocial.`,
+        // Note: Escrow.com inspection period is in days. 3 is the minimum.
+        inspection_period: 3, 
+    };
+
     try {
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount,
-            currency: 'usd',
-            capture_method: 'manual',
-            application_fee_amount: applicationFee,
-            transfer_data: {
-                destination: sellerStripeId,
-            },
+        const response = await escrowApi.post('transaction', transactionData);
+        const escrowTransactionId = response.data.id;
+
+        // Save the Escrow.com transaction ID to our trade document
+        await db.collection('trades').doc(tradeId).update({
+            escrowTransactionId: escrowTransactionId,
+            status: 'awaiting_payment'
         });
-        return { clientSecret: paymentIntent.client_secret };
+
+        // The buyer needs to be redirected to Escrow.com to pay.
+        // We return the URL for this.
+        const paymentUrl = `https://www.escrow.com/checkout?transactionId=${escrowTransactionId}`;
+
+        return { success: true, paymentUrl: paymentUrl };
+
     } catch (error) {
-        console.error("Escrow payment intent creation failed:", error);
-        throw new functions.https.HttpsError('internal', 'Could not initiate the trade payment.');
+        console.error("Escrow.com transaction creation failed:", error.response ? error.response.data : error.message);
+        throw new functions.https.HttpsError('internal', 'Could not create the Escrow.com transaction.');
     }
 });
 
-exports.captureAndReleaseFunds = functions.https.onCall(async (data, context) => {
+
+exports.releaseEscrowFunds = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
@@ -437,16 +451,27 @@ exports.captureAndReleaseFunds = functions.https.onCall(async (data, context) =>
     if (!tradeDoc.exists) {
         throw new functions.https.HttpsError('not-found', 'Trade not found.');
     }
+    
     const tradeData = tradeDoc.data();
+    const escrowTransactionId = tradeData.escrowTransactionId;
+
+    if (!escrowTransactionId) {
+         throw new functions.https.HttpsError('failed-precondition', 'This trade does not have an active escrow transaction.');
+    }
     if (tradeData.buyerUid !== context.auth.uid) {
         throw new functions.https.HttpsError('permission-denied', 'Only the buyer can release the funds.');
     }
+    // Note: Escrow.com handles shipment confirmation on their platform. 
+    // We only trigger the final acceptance.
     if (tradeData.status !== 'shipped') {
-         throw new functions.https.HttpsError('failed-precondition', `Trade is not in a releasable state. Current status: ${tradeData.status}`);
+         throw new functions.https.HttpsError('failed-precondition', `Trade must be marked as shipped before funds can be released. Current status: ${tradeData.status}`);
     }
+
     try {
-        await stripe.paymentIntents.capture(tradeData.paymentIntentId);
-        
+        // This call tells Escrow.com the buyer has accepted the items.
+        await escrowApi.post(`transaction/${escrowTransactionId}/accept`);
+
+        // Update our internal trade status and move cards between collections
         const batch = db.batch();
         tradeData.receiverCards.forEach(card => {
             const newCardRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
@@ -464,10 +489,11 @@ exports.captureAndReleaseFunds = functions.https.onCall(async (data, context) =>
         batch.update(tradeRef, { status: 'completed', completedAt: admin.firestore.FieldValue.serverTimestamp() });
         await batch.commit();
 
-        return { success: true, message: 'Funds have been captured and released to the seller.' };
+        return { success: true, message: 'Funds have been released to the seller via Escrow.com.' };
+
     } catch (error) {
-        console.error("Failed to capture funds:", error);
-        await tradeRef.update({ status: 'capture_failed' });
+        console.error("Failed to release funds via Escrow.com:", error.response ? error.response.data : error.message);
+        await tradeRef.update({ status: 'release_failed' });
         throw new functions.https.HttpsError('internal', 'An error occurred while releasing the funds.');
     }
 });
@@ -526,7 +552,7 @@ exports.onCardForTradeCreate = functions.firestore
         // This requires a composite index on the wishlist collection.
         // The index should be on 'cardName' (or a unique card identifier) across all users' wishlists.
         const querySnapshot = await db.collectionGroup('wishlist').where('name', '==', cardData.name).get();
-        
+
         if (querySnapshot.empty) {
             return null;
         }
