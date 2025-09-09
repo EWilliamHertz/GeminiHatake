@@ -1,15 +1,9 @@
 /**
- * HatakeSocial - Messenger Widget Script (v8 - Merged & Finalized)
+ * HatakeSocial - Messenger Widget (v7 - Date Format & Avatar Fix)
  *
- * This version merges the user's implementation with the refactored script.
- * It combines the robust state management (localStorage), avatar-fix, and date formatting
- * from the user's version with the clean, event-driven architecture of the refactored script.
- *
- * - FEAT: Includes formatTimestamp helper for user-preferred date display.
- * - FEAT: Saves widget's minimized/maximized state in localStorage.
- * - FIX: Rebuilds the chat header on conversation select to reliably update avatars.
- * - FIX: Correctly initializes only on pages containing the widget container.
- * - FEAT: Supports the shared 'new conversation' modal logic for use across the site.
+ * - NEW: Adds a `formatTimestamp` helper to display message timestamps according to user preference.
+ * - FIX: The `selectWidgetConversation` function now rebuilds the chat header's innerHTML to reliably update the user's avatar, mirroring the working implementation from the main messages page. This resolves the issue of avatars not loading in the widget's chat view.
+ * - This script manages the functionality of the floating messenger widget.
  */
 
 // --- Date Formatting Helper ---
@@ -41,7 +35,7 @@ const formatTimestamp = (timestamp) => {
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
     const messengerWidgetContainer = document.getElementById('messenger-widget-container');
-    if (!messengerWidgetContainer) return; // Exit if widget isn't on the page
+    if (!messengerWidgetContainer) return;
 
     if (!user) {
         messengerWidgetContainer.style.display = 'none';
@@ -56,10 +50,12 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     // --- DOM Elements ---
     const messengerOpenBtn = document.getElementById('messenger-open-btn');
+    const messengerWidget = document.getElementById('messenger-widget');
     const messengerWidgetHeader = document.getElementById('messenger-widget-header');
     const widgetMainHeaderText = document.getElementById('widget-main-header-text');
     const widgetToggleIcon = document.getElementById('widget-toggle-icon');
-    
+    const messengerWidgetBody = document.getElementById('messenger-widget-body');
+
     const widgetListView = document.getElementById('widget-list-view');
     const widgetConversationsList = document.getElementById('widget-conversations-list');
     
@@ -76,7 +72,14 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     let isForWidget = false; // Flag to distinguish modal usage
 
-    // --- Widget Visibility and State Management ---
+    // --- Widget Visibility and State ---
+    const isVisible = localStorage.getItem('messengerWidget-visible') !== 'false';
+     if (isVisible) {
+        messengerWidgetContainer.classList.remove('hidden');
+    } else {
+        messengerWidgetContainer.classList.add('hidden');
+    }
+
     const isMinimized = localStorage.getItem('messengerWidget-minimized') === 'true';
     if (isMinimized) {
         messengerWidgetContainer.classList.add('minimized');
@@ -90,8 +93,9 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     });
     
     messengerWidgetHeader.addEventListener('click', (e) => {
-        if (e.target.id === 'widget-new-conversation-btn' || e.target.parentElement.id === 'widget-new-conversation-btn') {
-            return; // Prevent minimizing when clicking the 'new conversation' icon
+        // Prevent minimizing when clicking the 'new conversation' icon
+        if (e.target.id === 'widget-new-conversation-btn') {
+            return;
         }
         
         messengerWidgetContainer.classList.toggle('minimized');
@@ -102,34 +106,40 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         widgetToggleIcon.classList.toggle('fa-chevron-up', minimized);
     });
 
-    // --- Core Functions ---
-
     const selectWidgetConversation = (conversationId, otherUser) => {
         activeWidgetConversationId = conversationId;
 
+        // Switch views
         widgetListView.classList.add('hidden');
         widgetChatView.classList.remove('hidden');
         widgetChatView.classList.add('flex');
 
+        // Populate header by rebuilding its content
         const widgetChatHeader = document.getElementById('widget-chat-header');
         if (widgetChatHeader) {
             widgetChatHeader.innerHTML = `
                 <i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
-                <img alt="${otherUser.displayName}" class="w-8 h-8 rounded-full object-cover" src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}"/>
-                <span class="font-semibold truncate">${otherUser.displayName}</span>
+                <img alt="${otherUser.displayName}" class="w-8 h-8 rounded-full object-cover" id="widget-chat-avatar" src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}"/>
+                <span class="font-semibold truncate" id="widget-chat-name">${otherUser.displayName}</span>
             `;
-            
-            document.getElementById('widget-back-btn').addEventListener('click', () => {
-                widgetChatView.classList.add('hidden');
-                widgetChatView.classList.remove('flex');
-                widgetListView.classList.remove('hidden');
-                widgetMainHeaderText.textContent = 'Messages';
-                if (unsubscribeWidgetMessages) unsubscribeWidgetMessages();
-                activeWidgetConversationId = null;
-            });
+
+            // Re-attach event listener for the new back button
+            const newWidgetBackBtn = document.getElementById('widget-back-btn');
+            if(newWidgetBackBtn) {
+                newWidgetBackBtn.addEventListener('click', () => {
+                    widgetChatView.classList.add('hidden');
+                    widgetChatView.classList.remove('flex');
+                    widgetListView.classList.remove('hidden');
+                    widgetMainHeaderText.textContent = 'Messages';
+                    if (unsubscribeWidgetMessages) unsubscribeWidgetMessages();
+                    activeWidgetConversationId = null;
+                });
+            }
         }
         
+        // Update main widget header text
         widgetMainHeaderText.textContent = otherUser.displayName;
+        
         listenForWidgetMessages(conversationId);
     };
 
@@ -145,20 +155,26 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                         renderWidgetMessage(change.doc.data());
                     }
                 });
-                widgetMessagesContainer.scrollTop = widgetMessagesContainer.scrollHeight;
+                scrollToWidgetBottom();
             });
     };
 
     const renderWidgetMessage = (message) => {
         const messageWrapper = document.createElement('div');
         const isCurrentUser = message.senderId === user.uid;
-        messageWrapper.className = `w-full flex my-1 ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
-        messageWrapper.innerHTML = `
-            <div class="p-2 rounded-lg max-w-[80%] text-sm ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}">
-                ${message.text}
-            </div>
-        `;
+
+        messageWrapper.className = `flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`;
+        
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `p-2 rounded-lg max-w-xs text-sm ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
+        messageBubble.textContent = message.text;
+        
+        messageWrapper.appendChild(messageBubble);
         widgetMessagesContainer.appendChild(messageWrapper);
+    };
+
+    const scrollToWidgetBottom = () => {
+        widgetMessagesContainer.scrollTop = widgetMessagesContainer.scrollHeight;
     };
 
     widgetMessageForm.addEventListener('submit', async (e) => {
@@ -189,7 +205,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             await batch.commit();
         } catch (error) {
             console.error("Error sending widget message:", error);
-            widgetMessageInput.value = originalMessage;
+            widgetMessageInput.value = originalMessage; // Restore on error
         }
     });
 
@@ -201,11 +217,11 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             .orderBy('lastUpdated', 'desc')
             .limit(10)
             .onSnapshot(snapshot => {
-                widgetConversationsList.innerHTML = '';
                 if (snapshot.empty) {
                     widgetConversationsList.innerHTML = '<p class="p-4 text-center text-gray-500 text-sm">No conversations yet.</p>';
                     return;
                 }
+                widgetConversationsList.innerHTML = '';
                 snapshot.forEach(doc => {
                     const convo = doc.data();
                     const otherUserId = convo.participants.find(p => p !== user.uid);
@@ -262,12 +278,13 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         }
     };
     
-    // This is called by the button in the widget header
+    const setupNewConversationModal = (forWidget) => {
+        isForWidget = forWidget;
+        newConversationModal.classList.remove('hidden');
+    };
+
     if (newConversationBtn) {
-       newConversationBtn.addEventListener('click', () => {
-           isForWidget = true;
-           newConversationModal.classList.remove('hidden');
-       });
+       newConversationBtn.addEventListener('click', () => setupNewConversationModal(true));
     }
     if (closeModalBtn) {
         closeModalBtn.addEventListener('click', () => newConversationModal.classList.add('hidden'));
@@ -284,7 +301,8 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         searchTimeout = setTimeout(async () => {
             userSearchResults.innerHTML = '<p class="text-gray-500 p-2">Searching...</p>';
             try {
-                const snapshot = await db.collection('users').where('handle', '>=', query).where('handle', '<=', query + '\uf8ff').limit(10).get();
+                const usersRef = db.collection('users');
+                const snapshot = await usersRef.where('handle', '>=', query).where('handle', '<=', query + '\uf8ff').limit(10).get();
                 
                 userSearchResults.innerHTML = '';
                 if (snapshot.empty) {
@@ -304,11 +322,12 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                             <p class="text-sm text-gray-500">@${foundUser.handle}</p>
                         </div>
                     `;
+                    // This listener is defined in messages.js and will handle the case where isForWidget is false
                     resultEl.addEventListener('click', () => {
                          if (isForWidget) {
                             startWidgetConversation(doc.id, foundUser);
                         } else if (window.startConversation) { 
-                            // This is called from messages.js
+                            // Check if startConversation function exists on window (from messages.js)
                             window.startConversation(doc.id, foundUser);
                         }
                     });
@@ -320,6 +339,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             }
         }, 300);
     });
+
 
     // --- Initial Load ---
     listenForWidgetConversations();

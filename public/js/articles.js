@@ -1,9 +1,11 @@
 /**
- * HatakeSocial - Articles & Content Script (v5 - Avatar Fix)
+ * HatakeSocial - Articles & Content Script (v3 - Commenting Update)
  *
- * - FIX: Correctly fetches and displays user avatars (`photoURL`) in comments.
- * - NEW: When creating a comment, the user's `photoURL` is now stored with the comment to improve performance.
- * - UPDATE: The `loadComments` function now only fetches user profiles if the comment doesn't already have the avatar URL, ensuring backward compatibility with old comments.
+ * - NEW: Adds a `formatTimestamp` helper function to display dates according to the user's preference (D/M/Y or M/D/Y).
+ * - UPDATE: All date displays for articles now use the new `formatTimestamp` function.
+ * - This version includes a robust fix for embedding all types of YouTube videos,
+ * including Shorts, by converting them to the correct /embed/ format.
+ * - NEW: Adds commenting functionality to the view-article.html page.
  */
 
 // --- Date Formatting Helper ---
@@ -439,7 +441,6 @@ async function postComment(articleId, user, text) {
             text: text,
             authorId: user.uid,
             authorName: user.displayName,
-            authorPhotoURL: user.photoURL || 'https://i.imgur.com/B06rBhI.png', // Save photoURL
             createdAt: new Date()
         });
         document.getElementById('comment-text').value = '';
@@ -464,56 +465,25 @@ async function loadComments(articleId) {
             return;
         }
 
-        const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Efficiently fetch author data only for old comments that don't have authorPhotoURL
-        const authorsToFetch = comments
-            .filter(comment => !comment.authorPhotoURL)
-            .map(comment => comment.authorId)
-            .filter((value, index, self) => self.indexOf(value) === index); // Unique IDs
-
-        let authorsData = {};
-        if (authorsToFetch.length > 0) {
-            const authorPromises = authorsToFetch.map(id => db.collection('users').doc(id).get());
-            const authorDocs = await Promise.all(authorPromises);
-            authorDocs.forEach(doc => {
-                if (doc.exists) {
-                    authorsData[doc.id] = doc.data();
-                }
-            });
-        }
-
         commentsList.innerHTML = '';
-        comments.forEach(comment => {
-            let avatarUrl = comment.authorPhotoURL;
-            if (!avatarUrl) {
-                const author = authorsData[comment.authorId];
-                avatarUrl = author && author.photoURL ? author.photoURL : 'https://i.imgur.com/B06rBhI.png';
-            }
-
+        snapshot.forEach(doc => {
+            const comment = doc.data();
             const commentEl = document.createElement('div');
-            commentEl.className = 'flex items-start space-x-4 p-4 border-b dark:border-gray-700';
+            commentEl.className = 'p-4 border-b dark:border-gray-700';
             commentEl.innerHTML = `
-                <a href="profile.html?uid=${comment.authorId}">
-                    <img src="${avatarUrl}" alt="${comment.authorName}" class="w-10 h-10 rounded-full object-cover">
-                </a>
-                <div class="flex-1">
-                    <div class="flex items-center mb-1">
-                        <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-blue-600 hover:underline">${comment.authorName}</a>
-                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${formatTimestamp(comment.createdAt)}</span>
-                    </div>
-                    <p class="text-gray-800 dark:text-gray-300">${comment.text}</p>
+                <div class="flex items-center mb-2">
+                    <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-blue-600 hover:underline">${comment.authorName}</a>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">${formatTimestamp(comment.createdAt)}</span>
                 </div>
+                <p class="text-gray-800 dark:text-gray-300">${comment.text}</p>
             `;
             commentsList.appendChild(commentEl);
         });
-
     } catch (error) {
         console.error("Error loading comments:", error);
         commentsList.innerHTML = '<p class="text-center text-red-500">Could not load comments.</p>';
     }
 }
-
 
 
 // --- Edit Article Page ---
