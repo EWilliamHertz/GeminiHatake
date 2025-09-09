@@ -4,6 +4,7 @@
 * HatakeSocial - Firebase Cloud Functions
 *
 * This file contains the backend logic for the application.
+* - ADMIN FUNCTIONS for user management and platform control.
 * - Handles user registration with a referral code.
 * - Creates Stripe checkout sessions for the shop with coupon/referral support.
 * - Validates Stripe promotion codes.
@@ -18,9 +19,9 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
-const axios = require("axios"); // Added for making HTTP requests to Escrow.com
+const axios = require("axios");
 
-// --- START: UPDATED CORS CONFIGURATION ---
+// --- CORS CONFIGURATION ---
 const allowedOrigins = [
     'https://hatake.eu',
     'https://hatakesocial-88b5e.web.app',
@@ -36,7 +37,6 @@ const cors = require('cors')({
     }
   },
 });
-// --- END: UPDATED CORS CONFIGURATION ---
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -55,6 +55,121 @@ const escrowApi = axios.create({
     }
 });
 
+// =================================================================================================
+// ADMIN USER & PLATFORM MANAGEMENT FUNCTIONS
+// =================================================================================================
+
+/**
+ * Helper function to verify that the caller is an administrator.
+ * @param {object} context - The context object from the callable function.
+ */
+const ensureIsAdmin = (context) => {
+    if (!context.auth || context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'You must be an admin to perform this action.');
+    }
+};
+
+/**
+ * Bans a user. Disables them in Firebase Auth and sets a flag in Firestore.
+ */
+exports.banUser = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { uid } = data;
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID is required.');
+    }
+    try {
+        await admin.auth().updateUser(uid, { disabled: true });
+        await db.collection('users').doc(uid).update({ isBanned: true, suspendedUntil: null });
+        return { success: true, message: `User ${uid} has been banned.` };
+    } catch (error) {
+        console.error(`Failed to ban user ${uid}`, error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while banning the user.');
+    }
+});
+
+/**
+ * Un-bans a user. Enables them in Firebase Auth and removes the flag in Firestore.
+ */
+exports.unBanUser = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { uid } = data;
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID is required.');
+    }
+    try {
+        await admin.auth().updateUser(uid, { disabled: false });
+        await db.collection('users').doc(uid).update({ isBanned: false });
+        return { success: true, message: `User ${uid} has been unbanned.` };
+    } catch (error) {
+        console.error(`Failed to unban user ${uid}`, error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while unbanning the user.');
+    }
+});
+
+/**
+ * Suspends a user for a specific duration by setting a timestamp in Firestore.
+ */
+exports.suspendUser = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { uid, suspendedUntil } = data; // suspendedUntil should be an ISO string
+    if (!uid || !suspendedUntil) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID and suspension date are required.');
+    }
+    try {
+        const suspensionDate = new Date(suspendedUntil);
+        await db.collection('users').doc(uid).update({ 
+            suspendedUntil: admin.firestore.Timestamp.fromDate(suspensionDate) 
+        });
+        return { success: true, message: `User ${uid} suspended until ${suspensionDate.toLocaleString()}.` };
+    } catch (error) {
+        console.error(`Failed to suspend user ${uid}`, error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while suspending the user.');
+    }
+});
+
+/**
+ * Sends a notification message to all users on the platform.
+ */
+exports.broadcastMessage = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { message } = data;
+    if (!message) {
+        throw new functions.https.HttpsError('invalid-argument', 'A message is required for the broadcast.');
+    }
+
+    try {
+        const usersSnapshot = await db.collection('users').get();
+        if (usersSnapshot.empty) {
+            return { success: true, message: "No users to notify." };
+        }
+
+        const batch = db.batch();
+        usersSnapshot.forEach(userDoc => {
+            const notificationRef = userDoc.ref.collection('notifications').doc();
+            batch.set(notificationRef, {
+                type: 'broadcast',
+                fromId: 'system',
+                fromName: 'HatakeSocial Admin',
+                message: message,
+                link: '#',
+                isRead: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        return { success: true, message: `Broadcast sent to ${usersSnapshot.size} users.` };
+
+    } catch (error) {
+        console.error('Broadcast failed:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to send broadcast.');
+    }
+});
+
+// =================================================================================================
+// ORIGINAL APPLICATION FUNCTIONS
+// =================================================================================================
 
 /**
 * A callable Cloud Function to handle new user registration with a referral code.
@@ -411,7 +526,6 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
         }],
         currency: 'sek',
         description: `Trade ID: ${tradeId} on HatakeSocial.`,
-        // Note: Escrow.com inspection period is in days. 3 is the minimum.
         inspection_period: 3, 
     };
 
@@ -419,14 +533,11 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
         const response = await escrowApi.post('transaction', transactionData);
         const escrowTransactionId = response.data.id;
 
-        // Save the Escrow.com transaction ID to our trade document
         await db.collection('trades').doc(tradeId).update({
             escrowTransactionId: escrowTransactionId,
             status: 'awaiting_payment'
         });
 
-        // The buyer needs to be redirected to Escrow.com to pay.
-        // We return the URL for this.
         const paymentUrl = `https://www.escrow.com/checkout?transactionId=${escrowTransactionId}`;
 
         return { success: true, paymentUrl: paymentUrl };
@@ -461,17 +572,13 @@ exports.releaseEscrowFunds = functions.https.onCall(async (data, context) => {
     if (tradeData.buyerUid !== context.auth.uid) {
         throw new functions.https.HttpsError('permission-denied', 'Only the buyer can release the funds.');
     }
-    // Note: Escrow.com handles shipment confirmation on their platform. 
-    // We only trigger the final acceptance.
     if (tradeData.status !== 'shipped') {
          throw new functions.https.HttpsError('failed-precondition', `Trade must be marked as shipped before funds can be released. Current status: ${tradeData.status}`);
     }
 
     try {
-        // This call tells Escrow.com the buyer has accepted the items.
         await escrowApi.post(`transaction/${escrowTransactionId}/accept`);
 
-        // Update our internal trade status and move cards between collections
         const batch = db.batch();
         tradeData.receiverCards.forEach(card => {
             const newCardRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
@@ -519,10 +626,8 @@ exports.manageWishlist = functions.https.onCall(async (data, context) => {
     const wishlistRef = db.collection('users').doc(context.auth.uid).collection('wishlist').doc(cardId);
 
     if (action === 'add') {
-        // You might want to fetch card details from your primary card database/API
-        // For now, we'll assume the client sends the necessary card data.
         await wishlistRef.set({
-            ...data.cardData, // Assumes client sends card data to be stored
+            ...data.cardData,
             addedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         return { success: true, message: 'Card added to wishlist.' };
@@ -543,14 +648,10 @@ exports.onCardForTradeCreate = functions.firestore
         const cardData = snap.data();
         const { userId, cardId } = context.params;
 
-        // Only proceed if the card is marked for sale/trade
         if (!cardData.forSale) {
             return null;
         }
 
-        // Query all users who have this card in their wishlist
-        // This requires a composite index on the wishlist collection.
-        // The index should be on 'cardName' (or a unique card identifier) across all users' wishlists.
         const querySnapshot = await db.collectionGroup('wishlist').where('name', '==', cardData.name).get();
 
         if (querySnapshot.empty) {
@@ -563,7 +664,6 @@ exports.onCardForTradeCreate = functions.firestore
         const notifications = [];
         querySnapshot.forEach(doc => {
             const wishingUser = doc.ref.parent.parent.id;
-            // Don't notify the user if they list a card they also want
             if (wishingUser === userId) {
                 return;
             }
@@ -574,7 +674,7 @@ exports.onCardForTradeCreate = functions.firestore
                 fromName: sellerName,
                 fromAvatar: sellerDoc.data()?.photoURL || null,
                 message: `${sellerName} has listed a card from your wishlist: ${cardData.name}.`,
-                link: `card-view.html?id=${cardId}`, // Link to the card view
+                link: `card-view.html?id=${cardId}`,
                 isRead: false,
                 timestamp: admin.firestore.FieldValue.serverTimestamp()
             };
@@ -591,61 +691,48 @@ exports.onCardForTradeCreate = functions.firestore
 // =================================================================================================
 /**
  * Fetches tournament data from a third-party API.
- * This is a placeholder and returns mock data.
- * Replace with a real API call to MTGMelee when you have a key.
- *
- * UPDATED: Switched from onCall to onRequest and added CORS middleware to fix the browser error.
  */
 exports.fetchTournaments = functions.https.onRequest((req, res) => {
-    // Use the cors middleware to automatically handle CORS headers
     cors(req, res, () => {
-        // Mock data based on the swagger documentation
         const mockTournaments = [
-            {
-                id: 1,
-                name: "Legacy Showcase Qualifier",
-                startDate: new Date("2025-08-28T10:00:00Z").toISOString(),
-                status: "Completed",
-                location: "Online",
-                winner: "Jessica Estephan",
-            },
-            {
-                id: 2,
-                name: "Modern $5K",
-                startDate: new Date().toISOString(),
-                status: "Ongoing",
-                location: "ChannelFireball",
-                winner: null,
-            },
-            {
-                id: 3,
-                name: "Standard Weekly",
-                startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-                status: "Upcoming",
-                location: "Your Local Game Store",
-                winner: null,
-            },
-            {
-                id: 4,
-                name: "Pauper Challenge",
-                startDate: new Date("2025-08-25T12:00:00Z").toISOString(),
-                status: "Completed",
-                location: "Online",
-                winner: "Bernardo Torres",
-            },
-            {
-                id: 5,
-                name: "Grand Open Qualifier",
-                startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-                status: "Upcoming",
-                location: "Star City Games",
-                winner: null,
-            }
+            { id: 1, name: "Legacy Showcase Qualifier", startDate: new Date("2025-08-28T10:00:00Z").toISOString(), status: "Completed", location: "Online", winner: "Jessica Estephan", },
+            { id: 2, name: "Modern $5K", startDate: new Date().toISOString(), status: "Ongoing", location: "ChannelFireball", winner: null, },
+            { id: 3, name: "Standard Weekly", startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), status: "Upcoming", location: "Your Local Game Store", winner: null, },
+            { id: 4, name: "Pauper Challenge", startDate: new Date("2025-08-25T12:00:00Z").toISOString(), status: "Completed", location: "Online", winner: "Bernardo Torres", },
+            { id: 5, name: "Grand Open Qualifier", startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), status: "Upcoming", location: "Star City Games", winner: null, }
         ];
-
-        // In a real scenario, you would still perform your API logic here.
-        // For now, we just send the mock data back.
-        // The .send() method is used for onRequest functions instead of returning a value.
         res.status(200).send(mockTournaments);
     });
+});
+
+// =================================================================================================
+// IMPERSONATION FUNCTION
+// =================================================================================================
+
+exports.generateImpersonationToken = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !context.auth.token.admin) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "You must be an admin to perform this action."
+    );
+  }
+
+  const { uid } = data;
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "The function must be called with a 'uid'."
+    );
+  }
+
+  try {
+    const customToken = await admin.auth().createCustomToken(uid);
+    return { token: customToken };
+  } catch (error) {
+    console.error("Failed to create impersonation token:", error);
+    throw new functions.https.HttpsError(
+      "internal",
+      "Could not create an impersonation token."
+    );
+  }
 });
