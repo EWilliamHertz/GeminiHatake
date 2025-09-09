@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Merchandise Gallery - HatakeSocial</title>
+<link href="css/style.css" rel="stylesheet"/>
+<style>
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 20px 0;
+        }
+        .gallery-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #333;
+            aspect-ratio: 1 / 1;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+<div id="sidebar-container"></div>
+<div class="main-content">
+<header>
+<h1>Merchandise Photo Gallery</h1>
+</header>
+<main>
+<p>A collection of photos showcasing our custom merchandise, straight from the source.</p>
+<div class="gallery-grid" id="gallery-container">
+<p>Loading images...</p>
+</div>
+</main>
+<footer>
+<p>© 2025 HatakeSocial. All rights reserved.</p>
+<nav>
+<a href="about.html">About</a>
+<a href="contact.html">Contact</a>
+<a href="privacy.html">Privacy Policy</a>
+<a href="terms.html">Terms of Service</a>
+</nav>
+</footer>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+</script>
+<script src="js/auth.js">
+</script>
+<script src="js/darkmode.js">
+</script>
+<script src="js/gallery.js"></script>
+<div class="minimized" id="messenger-widget-container">
+<div id="messenger-open-btn">
+<i class="fas fa-comments"></i>
+</div>
+<div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+<div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+<i class="fas fa-plus cursor-pointer hover:text-gray-200" id="widget-new-conversation-btn"></i>
+<span class="font-bold truncate" id="widget-main-header-text">Messages</span>
+<i class="fas fa-chevron-down" id="widget-toggle-icon"></i>
+</div>
+<div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col overflow-hidden" id="messenger-widget-body">
+<div class="h-full flex flex-col" id="widget-list-view">
+<div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+<p class="p-4 text-center text-gray-500">Loading...</p>
+</div>
+</div>
+<div class="h-full flex-col hidden" id="widget-chat-view">
+<div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 flex-shrink-0" id="widget-chat-header">
+<i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
+<img alt="Avatar" class="w-8 h-8 rounded-full object-cover" id="widget-chat-avatar" src="https://placehold.co/32x32"/>
+<span class="font-semibold truncate" id="widget-chat-name">User</span>
+</div>
+<div class="flex-grow p-3 overflow-y-auto space-y-3" id="widget-messages-container">
+</div>
+<div class="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+<form class="flex items-center space-x-2" id="widget-message-form">
+<input autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" id="widget-message-input" placeholder="Type a message..." type="text"/>
+<button class="bg-blue-600 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-blue-700 flex-shrink-0" type="submit">
+<i class="fas fa-paper-plane text-xs"></i>
+</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="js/messenger.js"></script>
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+<h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+<div class="max-h-60 overflow-y-auto" id="user-search-results">
+</div>
+<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+            Cancel
+        </button>
+</div>
+</div>
+<!-- Login Modal -->
+
+<!-- Register Modal -->
+
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Login
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="loginForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+<p class="text-red-500 text-sm hidden" id="login-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Login
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Sign in with Google
+            </button>
+</form>
+</div>
+</div><div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Register
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="registerForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+<p class="text-red-500 text-sm hidden" id="register-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Register
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Register with Google
+            </button>
+</form>
+</div>
+</div></body>
+</html>

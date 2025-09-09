@@ -1,40 +1,18 @@
 /**
- * HatakeSocial - Real-time Messaging System (v7 - Date Format Update)
+ * HatakeSocial - Real-time Messaging System (v8 - Modal Fix)
  *
+ * - FIX: The "New Conversation" button now uses the global `openNewConversationModal` function from auth.js, ensuring the user search modal works correctly.
+ * - FIX: Removed outdated modal handling logic that was conflicting with the centralized script in auth.js.
  * - NEW: Adds a `formatTimestamp` helper to display message timestamps according to user preference.
- * - UPDATE: All message and conversation timestamps now use the new formatting function.
- * - This script completely revamps the messaging functionality.
  */
 
-// --- Date Formatting Helper ---
-const formatTimestamp = (timestamp) => {
-    if (!timestamp || !timestamp.toDate) {
-        return ''; // Return empty string if timestamp isn't a valid Firestore Timestamp yet
-    }
-    const date = timestamp.toDate();
-    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
-    
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-
-    let datePart;
-    if (userDateFormat === 'mdy') {
-        datePart = `${month}/${day}/${year}`;
-    } else {
-        datePart = `${day}/${month}/${year}`;
-    }
-
-    // A simple logic to decide if we should show the full date or just the time
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-
-    return isToday ? time : datePart;
-};
-
-
 document.addEventListener('authReady', ({ detail: { user } }) => {
+    // Check if we are on the messages page by looking for a specific container
+    const messagesPageContainer = document.getElementById('chat-window');
+    if (!messagesPageContainer) {
+        return; // Exit if this is not the main messages page
+    }
+
     if (!user) {
         document.getElementById('chat-window').innerHTML = `
             <div class="flex-1 flex flex-col items-center justify-center text-center p-4">
@@ -43,7 +21,8 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                 <p class="text-gray-500 dark:text-gray-400">Please log in to view your messages.</p>
             </div>
         `;
-        document.getElementById('conversations-list').classList.add('hidden');
+        const conversationsList = document.getElementById('conversations-list');
+        if(conversationsList) conversationsList.classList.add('hidden');
         return;
     }
 
@@ -61,10 +40,32 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const newConversationBtn = document.getElementById('new-conversation-btn');
-    const newConversationModal = document.getElementById('new-conversation-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-    const userSearchInput = document.getElementById('user-search-input');
-    const userSearchResults = document.getElementById('user-search-results');
+    
+    // --- Date Formatting Helper ---
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp || !timestamp.toDate) {
+            return '';
+        }
+        const date = timestamp.toDate();
+        const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+        let datePart;
+        if (userDateFormat === 'mdy') {
+            datePart = `${month}/${day}/${year}`;
+        } else {
+            datePart = `${day}/${month}/${year}`;
+        }
+
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+
+        return isToday ? time : datePart;
+    };
     
     const listenForConversations = () => {
         if (unsubscribeConversations) unsubscribeConversations();
@@ -108,7 +109,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                 });
             }, error => {
                 console.error("Firestore Error: Failed to listen for conversations.", error);
-                conversationsContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load conversations. This is likely a permissions issue.</p>';
+                conversationsContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load conversations.</p>';
             });
     };
 
@@ -159,7 +160,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     const renderMessage = (messageId, message) => {
         const messageWrapper = document.createElement('div');
-        messageWrapper.id = `message-${messageId}`; // Assign an ID
+        messageWrapper.id = `message-${messageId}`;
         const isCurrentUser = message.senderId === user.uid;
         
         messageWrapper.className = `flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`;
@@ -169,7 +170,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         messageBubble.textContent = message.text;
 
         const timestampEl = document.createElement('p');
-        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2 timestamp'; // Add a class to find it later
+        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2 timestamp';
         timestampEl.textContent = formatTimestamp(message.timestamp);
         
         messageWrapper.appendChild(messageBubble);
@@ -196,7 +197,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         
         const currentUser = firebase.auth().currentUser;
         if (!currentUser) {
-            showToast("You are not signed in. Please refresh and log in.", "error");
+            console.error("User is not signed in.");
             return;
         }
 
@@ -205,7 +206,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
         const originalMessage = text;
         messageInput.value = '';
-        messageInput.disabled = true;
 
         const messageData = {
             text: originalMessage,
@@ -228,68 +228,12 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             scrollToBottom();
         } catch (error) {
             console.error("Firestore Error: Failed to send message.", error);
-            showToast(`Error: Could not send message. Check Firestore rules.`, "error");
             messageInput.value = originalMessage;
-        } finally {
-            messageInput.disabled = false;
-            messageInput.focus();
         }
     });
 
-    // --- New Conversation Modal Logic ---
-    newConversationBtn.addEventListener('click', () => newConversationModal.classList.remove('hidden'));
-    closeModalBtn.addEventListener('click', () => newConversationModal.classList.add('hidden'));
-
-    let searchTimeout;
-    userSearchInput.addEventListener('keyup', () => {
-        clearTimeout(searchTimeout);
-        const query = userSearchInput.value.trim().toLowerCase();
-        if (query.length < 2) {
-            userSearchResults.innerHTML = '';
-            return;
-        }
-        searchTimeout = setTimeout(async () => {
-            userSearchResults.innerHTML = '<p class="text-gray-500 p-2">Searching...</p>';
-            try {
-                const snapshot = await db.collection('users')
-                    .where('handle', '>=', query)
-                    .where('handle', '<=', query + '\uf8ff')
-                    .limit(10)
-                    .get();
-                
-                userSearchResults.innerHTML = '';
-                if (snapshot.empty) {
-                    userSearchResults.innerHTML = '<p class="text-gray-500 p-2">No users found.</p>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    const foundUser = doc.data();
-                    if (doc.id === user.uid) return;
-
-                    const resultEl = document.createElement('div');
-                    resultEl.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md';
-                    resultEl.innerHTML = `
-                        <img src="${foundUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover mr-3">
-                        <div>
-                            <p class="font-semibold">${foundUser.displayName}</p>
-                            <p class="text-sm text-gray-500">@${foundUser.handle}</p>
-                        </div>
-                    `;
-                    resultEl.addEventListener('click', () => startConversation(doc.id, foundUser));
-                    userSearchResults.appendChild(resultEl);
-                });
-            } catch (error) {
-                 console.error("Firestore Error: Failed to search users.", error);
-                 userSearchResults.innerHTML = '<p class="text-red-500 p-2">Error searching users.</p>';
-            }
-        }, 500);
-    });
-
+    // --- New Conversation Logic ---
     const startConversation = async (otherUserId, otherUserData) => {
-        newConversationModal.classList.add('hidden');
-        userSearchInput.value = '';
-        userSearchResults.innerHTML = '';
-
         const conversationId = [user.uid, otherUserId].sort().join('_');
         const convoRef = db.collection('conversations').doc(conversationId);
         
@@ -307,9 +251,20 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             selectConversation(conversationId, otherUserData);
         } catch (error) {
             console.error("Firestore Error: Failed to start conversation.", error);
-            showToast(`Error: Could not start conversation. Check permissions.`, "error");
         }
     };
+    
+    if (newConversationBtn) {
+        newConversationBtn.addEventListener('click', () => {
+            if (window.openNewConversationModal) {
+                // Use the centralized modal function from auth.js
+                // Pass 'false' for isForWidget, and our startConversation function as the callback
+                window.openNewConversationModal(false, startConversation);
+            } else {
+                console.error('openNewConversationModal function not found. Is auth.js loaded correctly?');
+            }
+        });
+    }
 
     // --- Initial Load ---
     listenForConversations();

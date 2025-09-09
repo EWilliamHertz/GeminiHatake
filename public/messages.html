@@ -159,13 +159,6 @@
 <i class="fas fa-plus mr-2"></i>
 <span>New Message</span>
 </button>
-<div class="flex items-center space-x-2">
-<span class="text-sm text-gray-600 dark:text-gray-400">Widget</span>
-<label class="inline-flex relative items-center cursor-pointer" for="toggle-messenger-messages">
-<input class="sr-only peer" id="toggle-messenger-messages" type="checkbox" value=""/>
-<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-</label>
-</div>
 </div>
 <div class="flex-1 overflow-y-auto" id="conversations-container">
 <p class="p-4 text-center text-gray-500">
@@ -202,55 +195,6 @@
 </div>
 </div>
 </main>
-</div>
-<div class="minimized" id="messenger-widget-container">
-<div id="messenger-open-btn">
-<i class="fas fa-comments"></i>
-</div>
-<div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
-<div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
-<i class="fas fa-plus cursor-pointer hover:text-gray-200" id="widget-new-conversation-btn"></i>
-<span class="font-bold truncate" id="widget-main-header-text">Messages</span>
-<i class="fas fa-chevron-down" id="widget-toggle-icon"></i>
-</div>
-<div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col overflow-hidden" id="messenger-widget-body">
-<div class="h-full flex flex-col" id="widget-list-view">
-<div class="flex-grow overflow-y-auto" id="widget-conversations-list">
-<p class="p-4 text-center text-gray-500">Loading...</p>
-</div>
-</div>
-<div class="h-full flex-col hidden" id="widget-chat-view">
-<div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 flex-shrink-0" id="widget-chat-header">
-<i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
-<img alt="Avatar" class="w-8 h-8 rounded-full object-cover" id="widget-chat-avatar" src="https://placehold.co/32x32"/>
-<span class="font-semibold truncate" id="widget-chat-name">User</span>
-</div>
-<div class="flex-grow p-3 overflow-y-auto space-y-3" id="widget-messages-container">
-</div>
-<div class="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-<form class="flex items-center space-x-2" id="widget-message-form">
-<input autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" id="widget-message-input" placeholder="Type a message..." type="text"/>
-<button class="bg-blue-600 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-blue-700 flex-shrink-0" type="submit">
-<i class="fas fa-paper-plane text-xs"></i>
-</button>
-</form>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50" id="new-conversation-modal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-<h2 class="text-2xl font-bold mb-4">
-     Start a new conversation
-    </h2>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
-<div class="max-h-60 overflow-y-auto" id="user-search-results">
-</div>
-<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="close-modal-btn">
-     Cancel
-    </button>
-</div>
 </div>
 <script src="js/auth.js">
 </script>
@@ -308,27 +252,6 @@
             sidebarOverlay.classList.add('hidden');
         });
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const toggleMessenger = document.getElementById('toggle-messenger-messages');
-
-        // Set initial state of the toggle based on localStorage
-        const isVisible = localStorage.getItem('messengerWidget-visible');
-        if (isVisible === 'false' || isVisible === null) {
-            toggleMessenger.checked = false;
-        } else {
-            toggleMessenger.checked = true;
-        }
-
-        toggleMessenger.addEventListener('change', (e) => {
-            localStorage.setItem('messengerWidget-visible', e.target.checked);
-            
-            const messengerWidget = document.getElementById('messenger-widget-container');
-            if(messengerWidget) {
-                messengerWidget.classList.toggle('hidden', !e.target.checked);
-            }
-        });
-    });
 </script>
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
@@ -381,5 +304,6 @@
             </button>
 </form>
 </div>
-</div></body>
+</div>
+</body>
 </html>

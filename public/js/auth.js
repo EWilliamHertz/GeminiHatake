@@ -1,12 +1,10 @@
 /**
- * HatakeSocial - Merged Authentication & Global UI Script
+ * HatakeSocial - Merged Authentication & Global UI Script (v13 - Widget Default Fix)
  *
- * This version includes fixes for admin role detection and dynamically adds
+ * - FIX: Sets a default value for 'messengerWidget-visible' to 'false' in localStorage if it's not already set. This ensures the widget is hidden by default for all new users, as intended.
+ * - This version includes fixes for admin role detection and dynamically adds
  * the "Admin Panel" link to the main sidebar for authorized users. It also
  * corrects a race condition that caused admin-only pages to appear blank.
- *
- * CORRECTION: Moved modal helper functions to the global scope to prevent
- * a race condition with the onAuthStateChanged listener.
  */
 
 // --- Global Toast Notification Function ---
@@ -42,7 +40,6 @@ const showToast = (message, type = 'info') => {
 };
 
 // --- Global Modal Helper Functions ---
-// Moved to global scope to be available immediately, preventing a race condition.
 window.openModal = (modal) => { 
     if (modal) {
         modal.classList.remove('hidden');
@@ -63,12 +60,12 @@ window.closeModal = (modal) => {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Hide body initially to prevent flash of unstyled/un-authed content
-    // The opacity will be set to 1 at the end of onAuthStateChanged
     document.body.style.opacity = '0';
 
     // --- Firebase Initialization ---
     if (!firebase.apps.length) {
+        // Since you are not using a config object here, 
+        // this assumes you are loading config from /__/firebase/init.js
         firebase.initializeApp();
     }
     if (typeof firebase.analytics === 'function') {
@@ -83,13 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.functions = firebase.functions();
     } else {
         window.functions = null;
-        console.warn('Firebase Functions library not loaded. Some features may not work.');
+        console.warn('Firebase Functions library not loaded.');
     }
 
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
 
+    // --- MESSENGER WIDGET FIX ---
+    // Set the default visibility for the messenger widget if it's not already set.
+    // This ensures it is hidden by default for new users or fresh browser sessions.
+    if (localStorage.getItem('messengerWidget-visible') === null) {
+        localStorage.setItem('messengerWidget-visible', 'false');
+    }
 
     // --- Internationalization & Currency ---
     window.HatakeSocial = {
@@ -102,14 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `0.00 ${toCurrency}`;
             }
             const fromRate = this.conversionRates[fromCurrency];
-            if (fromRate === undefined) {
-                 return `N/A`;
-            }
+            if (fromRate === undefined) return `N/A`;
             const amountInSEK = amount / fromRate;
             const toRate = this.conversionRates[toCurrency];
-             if (toRate === undefined) {
-                 return `N/A`;
-            }
+            if (toRate === undefined) return `N/A`;
             const convertedAmount = amountInSEK * toRate;
             return `${convertedAmount.toFixed(2)} ${toCurrency}`;
         }
@@ -504,7 +503,6 @@ function handleAdminAccess(isAdmin) {
 
     if (adminPages.includes(currentPage)) {
         if (isAdmin) {
-            // Use 'block' for standard pages or 'flex' if the body's direct child is a flex container
             const displayStyle = document.body.classList.contains('flex') ? 'flex' : 'block';
             document.body.style.display = displayStyle;
         } else {
@@ -512,7 +510,6 @@ function handleAdminAccess(isAdmin) {
             window.location.href = 'index.html';
         }
     } else {
-        // For non-admin pages, just ensure they are visible.
         const displayStyle = document.body.classList.contains('flex') ? 'flex' : 'block';
         document.body.style.display = displayStyle;
     }

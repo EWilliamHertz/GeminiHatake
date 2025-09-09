@@ -1,10 +1,11 @@
 /**
- * HatakeSocial - Settings Page Script (v9 - Date Format Preference)
+ * HatakeSocial - Settings Page Script (v11 - Instant Widget Toggle)
  *
- * - NEW: Adds a "Date Format" option in the Display settings to switch between D/M/Y and M/D/Y.
- * - NEW: Saves the date format preference to the user's profile in Firestore.
- * - NEW: Updates localStorage with the new date format setting on save, for immediate use by other scripts.
- * - FIX: Wraps all logic in the 'authReady' event listener to ensure the user object is available before any functions are called.
+ * - NEW: When saving display settings, this script now calls global functions (`initializeMessengerWidget` or `destroyMessengerWidget`) to make the widget appear or disappear immediately, without requiring a page reload.
+ * - Adds a "Messenger Widget" option in the Display settings to show or hide the floating widget.
+ * - Saves the messenger visibility preference to the user's profile in Firestore.
+ * - Updates localStorage with the new messenger visibility setting on save.
+ * - Adds a "Date Format" option in the Display settings.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -74,6 +75,7 @@ document.addEventListener('authReady', (e) => {
 
     // Display Section
     const dateFormatSelect = document.getElementById('date-format-select');
+    const messengerWidgetToggle = document.getElementById('messenger-widget-toggle');
 
 
     // --- Tab Switching Logic ---
@@ -127,7 +129,10 @@ document.addEventListener('authReady', (e) => {
             accountEmailEl.textContent = user.email;
             primaryCurrencySelect.value = data.primaryCurrency || 'SEK';
             priceSourceSelect.value = data.priceSource || 'eur';
-            dateFormatSelect.value = data.dateFormat || 'dmy'; // Load date format
+            dateFormatSelect.value = data.dateFormat || 'dmy';
+            if (messengerWidgetToggle) {
+                messengerWidgetToggle.checked = data.messengerWidgetVisible !== false; // Default to true if not set
+            }
             
             if (data.shippingProfile) {
                 shippingDomesticInput.value = data.shippingProfile.domestic || '';
@@ -233,12 +238,30 @@ document.addEventListener('authReady', (e) => {
 
         try {
             const newDateFormat = dateFormatSelect.value;
+            const isMessengerVisible = messengerWidgetToggle ? messengerWidgetToggle.checked : true;
+            
             await db.collection('users').doc(user.uid).update({
-                dateFormat: newDateFormat
+                dateFormat: newDateFormat,
+                messengerWidgetVisible: isMessengerVisible
             });
-            // Update localStorage for immediate effect across the site
+
             localStorage.setItem('userDateFormat', newDateFormat);
+            localStorage.setItem('messengerWidget-visible', isMessengerVisible);
+            
+            // --- INSTANT WIDGET UPDATE ---
+            if (isMessengerVisible) {
+                if (typeof window.initializeMessengerWidget === 'function' && !document.getElementById('messenger-widget-container')) {
+                    window.initializeMessengerWidget({ detail: { user } });
+                }
+            } else {
+                if (typeof window.destroyMessengerWidget === 'function') {
+                    window.destroyMessengerWidget();
+                }
+            }
+            // --- END INSTANT WIDGET UPDATE ---
+
             alert("Display settings saved successfully!");
+
         } catch (error) {
             console.error("Error saving display settings:", error);
             alert("Could not save display settings. " + error.message);
