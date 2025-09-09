@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Articles - HatakeSocial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+<link href="css/style.css" rel="stylesheet"/>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+<div class="flex h-screen">
+<div id="sidebar-container">
+<div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+<div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+<a class="flex flex-col items-center space-y-1" href="app.html">
+<img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+<span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+</a>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog"><i class="fas fa-blog w-6 text-center"></i><span class="ml-3">Hatake Blog</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
+</nav>
+<div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info"></div>
+</aside>
+</div>
+<div class="flex-1 flex flex-col overflow-hidden">
+<div id="header-container">
+<header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+<div class="flex items-center">
+<button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle"><i class="fas fa-bars text-xl"></i></button>
+<div class="relative">
+<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+<input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+<div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results"></div>
+</div>
+</div>
+<div class="flex items-center space-x-5" id="user-actions">
+</div>
+</header>
+</div>
+<main class="flex-1 overflow-y-auto p-6">
+<div class="container mx-auto">
+<div class="flex justify-between items-center mb-6">
+<h1 class="text-4xl font-extrabold text-gray-800 dark:text-white" id="page-title"></h1>
+<a class="hidden px-6 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700" href="create-article.html" id="write-new-article-btn">
+<i class="fas fa-pen-alt mr-2"></i> Write New Post
+                        </a>
+</div>
+<div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4" id="filters">
+<input class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="article-search" placeholder="Search..." type="text"/>
+<select class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="article-category-filter">
+<option value="">All Categories</option>
+<option value="Deck Primer">Deck Primer</option>
+<option value="Strategy Guide">Strategy Guide</option>
+<option value="Tournament Report">Tournament Report</option>
+<option value="Community News">Community News</option>
+</select>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="articles-list">
+</div>
+</div>
+</main>
+</div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
+<script>
+        // Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+  authDomain: "hatakesocial-88b5e.firebaseapp.com",
+  projectId: "hatakesocial-88b5e",
+  storageBucket: "hatakesocial-88b5e.firebasestorage.app",
+  messagingSenderId: "1091697032506",
+  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+  measurementId: "G-EH0PS2Z84J"
+};
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+        const analytics = firebase.analytics();
+    </script>
+<script src="js/auth.js"></script>
+<script src="js/articles.js"></script>
+<script src="js/darkmode.js"></script>
+<script>
+        // Mobile sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+        }
+    </script>
+<div class="minimized" id="messenger-widget-container">
+<div id="messenger-open-btn">
+<i class="fas fa-comments"></i>
+</div>
+<div class="fixed bottom-0 right-5 w-80 z-[1000]" id="messenger-widget">
+<div class="bg-blue-700 text-white p-3 rounded-t-lg cursor-pointer flex justify-between items-center" id="messenger-widget-header">
+<i class="fas fa-plus cursor-pointer hover:text-gray-200" id="widget-new-conversation-btn"></i>
+<span class="font-bold truncate" id="widget-main-header-text">Messages</span>
+<i class="fas fa-chevron-down" id="widget-toggle-icon"></i>
+</div>
+<div class="bg-white dark:bg-gray-800 h-96 border-x border-b border-gray-300 dark:border-gray-600 rounded-b-lg flex flex-col overflow-hidden" id="messenger-widget-body">
+<div class="h-full flex flex-col" id="widget-list-view">
+<div class="flex-grow overflow-y-auto" id="widget-conversations-list">
+<p class="p-4 text-center text-gray-500">Loading...</p>
+</div>
+</div>
+<div class="h-full flex-col hidden" id="widget-chat-view">
+<div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center space-x-3 flex-shrink-0" id="widget-chat-header">
+<i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
+<img alt="Avatar" class="w-8 h-8 rounded-full object-cover" id="widget-chat-avatar" src="https://placehold.co/32x32"/>
+<span class="font-semibold truncate" id="widget-chat-name">User</span>
+</div>
+<div class="flex-grow p-3 overflow-y-auto space-y-3" id="widget-messages-container">
+</div>
+<div class="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+<form class="flex items-center space-x-2" id="widget-message-form">
+<input autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm" id="widget-message-input" placeholder="Type a message..." type="text"/>
+<button class="bg-blue-600 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-blue-700 flex-shrink-0" type="submit">
+<i class="fas fa-paper-plane text-xs"></i>
+</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="js/messenger.js"></script>
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+<h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+<div class="max-h-60 overflow-y-auto" id="user-search-results">
+</div>
+<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+            Cancel
+        </button>
+</div>
+</div>
+<!-- Login Modal -->
+
+<!-- Register Modal -->
+
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Login
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="loginForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+<p class="text-red-500 text-sm hidden" id="login-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Login
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Sign in with Google
+            </button>
+</form>
+</div>
+</div><div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Register
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="registerForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+<p class="text-red-500 text-sm hidden" id="register-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Register
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Register with Google
+            </button>
+</form>
+</div>
+</div></body>
+</html>

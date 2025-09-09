@@ -1,3 +1,6 @@
+(function() {
+    'use strict';
+
 /**
  * HatakeSocial - Messenger Widget (v7 - Date Format & Avatar Fix)
  *
@@ -344,3 +347,5 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     // --- Initial Load ---
     listenForWidgetConversations();
 });
+
+})();
