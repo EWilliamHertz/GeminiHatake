@@ -610,13 +610,13 @@ exports.releaseEscrowFunds = functions.https.onCall(async (data, context) => {
     const escrowTransactionId = tradeData.escrowTransactionId;
 
     if (!escrowTransactionId) {
-         throw new functions.https.HttpsError('failed-precondition', 'This trade does not have an active escrow transaction.');
+       throw new functions.https.HttpsError('failed-precondition', 'This trade does not have an active escrow transaction.');
     }
     if (tradeData.buyerUid !== context.auth.uid) {
         throw new functions.https.HttpsError('permission-denied', 'Only the buyer can release the funds.');
     }
     if (tradeData.status !== 'shipped') {
-         throw new functions.https.HttpsError('failed-precondition', `Trade must be marked as shipped before funds can be released. Current status: ${tradeData.status}`);
+       throw new functions.https.HttpsError('failed-precondition', `Trade must be marked as shipped before funds can be released. Current status: ${tradeData.status}`);
     }
 
     try {
@@ -727,26 +727,6 @@ exports.onCardForTradeCreate = functions.firestore
         await Promise.all(notifications);
         return null;
     });
-
-
-// =================================================================================================
-// MAJOR TOURNAMENT DATA FUNCTIONS
-// =================================================================================================
-/**
- * Fetches tournament data from a third-party API.
- */
-exports.fetchTournaments = functions.https.onRequest((req, res) => {
-    cors(req, res, () => {
-        const mockTournaments = [
-            { id: 1, name: "Legacy Showcase Qualifier", startDate: new Date("2025-08-28T10:00:00Z").toISOString(), status: "Completed", location: "Online", winner: "Jessica Estephan", },
-            { id: 2, name: "Modern $5K", startDate: new Date().toISOString(), status: "Ongoing", location: "ChannelFireball", winner: null, },
-            { id: 3, name: "Standard Weekly", startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), status: "Upcoming", location: "Your Local Game Store", winner: null, },
-            { id: 4, name: "Pauper Challenge", startDate: new Date("2025-08-25T12:00:00Z").toISOString(), status: "Completed", location: "Online", winner: "Bernardo Torres", },
-            { id: 5, name: "Grand Open Qualifier", startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), status: "Upcoming", location: "Star City Games", winner: null, }
-        ];
-        res.status(200).send(mockTournaments);
-    });
-});
 
 // =================================================================================================
 // IMPERSONATION FUNCTION

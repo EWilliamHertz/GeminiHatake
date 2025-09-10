@@ -1,10 +1,9 @@
 /**
- * HatakeSocial - Events Page Script (v7 - Date Format Update & Consistency)
+ * HatakeSocial - Integrated Events & Tournaments Script
  *
- * - NEW: Adds a `formatTimestamp` helper to display event dates according to user preference.
- * - UPDATE: All event date displays, including multi-day ranges and single-day times, now use the new formatting function for consistency.
- * - Retains admin controls for editing and deleting events.
- * - Retains support for different event and tournament types.
+ * This script now manages both "Local Events" and user-created "Tournaments".
+ * - It fetches all events from Firestore and filters them into the correct tabs based on the 'eventType' field.
+ * - All existing functionality for creating, viewing details, joining, and managing events/tournaments is preserved and works across both tabs.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -18,6 +17,7 @@ document.addEventListener('authReady', (e) => {
     const eventsMainView = document.getElementById('events-main-view');
     const eventDetailsSection = document.getElementById('event-details-section');
     const eventsListContainer = document.getElementById('events-list');
+    const tournamentsListContainer = document.getElementById('tournaments-list'); // NEW: Container for tournaments
     const createEventBtn = document.getElementById('create-event-btn');
     const createEventModal = document.getElementById('create-event-modal');
     const closeEventModalBtn = document.getElementById('close-event-modal');
@@ -25,7 +25,7 @@ document.addEventListener('authReady', (e) => {
     const reportMatchModal = document.getElementById('report-match-modal');
     const closeMatchModalBtn = document.getElementById('close-match-modal');
     const reportMatchForm = document.getElementById('report-match-form');
-    
+
     let currentEditEventId = null; // State for editing
 
     if (!eventsMainView) return;
@@ -115,35 +115,61 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-    // --- Main Loading Functions ---
+    // --- Main Loading Function (UPDATED) ---
     const loadAllEvents = async () => {
         eventsMainView.classList.remove('hidden');
         eventDetailsSection.classList.add('hidden');
-        eventsListContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">Loading events...</p>';
+        
+        const loadingHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">Loading...</p>';
+        eventsListContainer.innerHTML = loadingHTML;
+        tournamentsListContainer.innerHTML = loadingHTML;
+
         try {
-            const snapshot = await db.collection('events').orderBy('date', 'desc').get();
-            if (snapshot.empty) {
-                eventsListContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">No events found. Create one to get started!</p>';
-                return;
-            }
+            // Create two separate queries
+            const generalEventsQuery = db.collection('events').where('eventType', '==', 'general').orderBy('date', 'desc').get();
+            const tournamentEventsQuery = db.collection('events').where('eventType', '==', 'tournament').orderBy('date', 'desc').get();
+
+            const [generalSnapshot, tournamentSnapshot] = await Promise.all([generalEventsQuery, tournamentEventsQuery]);
+
+            // Populate General Events Tab
             eventsListContainer.innerHTML = '';
-            snapshot.forEach(doc => {
-                const event = doc.data();
-                const eventCard = createEventCard(event, doc.id);
-                eventsListContainer.appendChild(eventCard);
-            });
+            if (generalSnapshot.empty) {
+                eventsListContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">No local events found. Create one to get started!</p>';
+            } else {
+                generalSnapshot.forEach(doc => {
+                    const event = doc.data();
+                    const eventCard = createEventCard(event, doc.id);
+                    eventsListContainer.appendChild(eventCard);
+                });
+            }
+
+            // Populate Tournaments Tab
+            tournamentsListContainer.innerHTML = '';
+             if (tournamentSnapshot.empty) {
+                tournamentsListContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">No tournaments found. Create one to get started!</p>';
+            } else {
+                tournamentSnapshot.forEach(doc => {
+                    const event = doc.data();
+                    const eventCard = createEventCard(event, doc.id);
+                    tournamentsListContainer.appendChild(eventCard);
+                });
+            }
+
         } catch (error) {
             console.error("Error loading events:", error);
-            eventsListContainer.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load events.</p>';
+            const errorHTML = '<p class="text-center text-red-500 col-span-full">Could not load events.</p>';
+            eventsListContainer.innerHTML = errorHTML;
+            tournamentsListContainer.innerHTML = errorHTML;
         }
     };
 
-    // --- Date Formatting Helpers ---
+
+    // --- Date Formatting Helpers (No changes needed) ---
     const formatSingleTimestamp = (timestamp) => {
         if (!timestamp || !timestamp.seconds) return '';
         const date = new Date(timestamp.seconds * 1000);
         const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
-        
+
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
@@ -158,16 +184,16 @@ document.addEventListener('authReady', (e) => {
         if (!start || !start.seconds) return 'Date not available';
         const startDate = new Date(start.seconds * 1000);
         const formattedStartDate = formatSingleTimestamp(start);
-        
+
         if (end && end.seconds) {
             const endDate = new Date(end.seconds * 1000);
-             const formattedEndDate = formatSingleTimestamp(end);
+            const formattedEndDate = formatSingleTimestamp(end);
             if (startDate.toDateString() === endDate.toDateString()) {
-                 return `${formattedStartDate} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                return `${formattedStartDate} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
             }
             return `${formattedStartDate} - ${formattedEndDate}`;
         }
-        
+
         return `${formattedStartDate} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     };
 
@@ -179,12 +205,12 @@ document.addEventListener('authReady', (e) => {
         return localDate.toISOString().slice(0, 16);
     };
 
-    // --- UI Rendering ---
+    // --- UI Rendering (No changes needed, it's generic) ---
     const createEventCard = (event, id) => {
         const card = document.createElement('div');
         card.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer hover:shadow-xl transition-shadow overflow-hidden flex flex-col';
         card.dataset.id = id;
-    
+
         const statusColors = {
             upcoming: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
             ongoing: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
@@ -193,7 +219,7 @@ document.addEventListener('authReady', (e) => {
         const eventDate = formatEventDate(event.date, event.endDate);
         const descriptionSnippet = event.description ? (event.description.length > 100 ? event.description.substring(0, 97) + '...' : event.description) : 'No description provided.';
         const imageUrl = event.imageUrl || 'https://placehold.co/600x400?text=Event';
-    
+
         card.innerHTML = `
             <img src="${imageUrl}" alt="${event.name}" class="w-full h-48 object-cover">
             <div class="p-6 flex-grow flex flex-col">
@@ -213,13 +239,16 @@ document.addEventListener('authReady', (e) => {
                 </div>
             </div>
         `;
-        
+
         card.addEventListener('click', (e) => {
             if (e.target.closest('a')) return;
             loadEventDetails(id);
         });
         return card;
     };
+
+    // The rest of the file remains exactly the same as it contains all the powerful logic
+    // for details pages, Swiss tournaments, etc., which we want to keep.
 
     const loadEventDetails = (eventId) => {
         eventsMainView.classList.add('hidden');
@@ -383,7 +412,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Admin Actions ---
     const openEditEventModal = (eventData, eventId) => {
         currentEditEventId = eventId;
         document.querySelector('#create-event-modal h2').textContent = 'Edit Event';
@@ -421,7 +449,6 @@ document.addEventListener('authReady', (e) => {
         }
     };
     
-    // --- Swiss Tournament Logic ---
     const renderSwissView = async (container, eventData, eventId, isOrganizer) => {
         container.innerHTML = `
             <div id="swiss-container">
@@ -590,7 +617,6 @@ document.addEventListener('authReady', (e) => {
         alert(`Round ${roundNumber} pairings generated!`);
     };
     
-    // --- General Event Actions & Match Reporting ---
     const joinEvent = async (eventId) => {
         if (!user) return alert('You must be logged in to join.');
         const eventRef = db.collection('events').doc(eventId);
@@ -694,7 +720,7 @@ document.addEventListener('authReady', (e) => {
     loadAllEvents();
 });
 
-// --- Tab switching logic ---
+// --- Tab switching logic (No changes needed)---
 document.addEventListener('DOMContentLoaded', () => {
     const localEventsTab = document.getElementById('local-events-tab');
     if (!localEventsTab) return; 
