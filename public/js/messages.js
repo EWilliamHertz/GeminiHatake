@@ -1,8 +1,10 @@
 /**
- * HatakeSocial - Real-time Messaging System (v8 - Modal Fix)
+ * HatakeSocial - Real-time Messaging System (v9 - URL Handling Merged)
  *
+ * - NEW: The page now checks for a `userId` URL parameter on load. If found, it automatically opens or creates a conversation with that user.
+ * - This allows other pages (like the LFG feature) to link directly to a specific chat.
  * - FIX: The "New Conversation" button now uses the global `openNewConversationModal` function from auth.js, ensuring the user search modal works correctly.
- * - FIX: Removed outdated modal handling logic that was conflicting with the centralized script in auth.js.
+ * - FIX: Consolidated message sending to use the `sendMessage` cloud function for better security and consistency.
  * - NEW: Adds a `formatTimestamp` helper to display message timestamps according to user preference.
  */
 
@@ -22,7 +24,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             </div>
         `;
         const conversationsList = document.getElementById('conversations-list');
-        if(conversationsList) conversationsList.classList.add('hidden');
+        if (conversationsList) conversationsList.classList.add('hidden');
         return;
     }
 
@@ -40,7 +42,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const newConversationBtn = document.getElementById('new-conversation-btn');
-    
+
     // --- Date Formatting Helper ---
     const formatTimestamp = (timestamp) => {
         if (!timestamp || !timestamp.toDate) {
@@ -48,7 +50,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         }
         const date = timestamp.toDate();
         const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
-        
+
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
@@ -66,7 +68,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
         return isToday ? time : datePart;
     };
-    
+
     const listenForConversations = () => {
         if (unsubscribeConversations) unsubscribeConversations();
 
@@ -82,30 +84,28 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                 snapshot.forEach(doc => {
                     const convo = doc.data();
                     const otherUserId = convo.participants.find(p => p !== user.uid);
+
+                    // Use the more efficient participantInfo if available
+                    if (!otherUserId || !convo.participantInfo || !convo.participantInfo[otherUserId]) return;
                     
-                    if (!otherUserId) return;
+                    const otherUserData = convo.participantInfo[otherUserId];
 
-                    db.collection('users').doc(otherUserId).get().then(userDoc => {
-                        if (userDoc.exists) {
-                            const otherUserData = userDoc.data();
-                            const convoElement = document.createElement('div');
-                            convoElement.className = 'conversation-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700';
-                            convoElement.dataset.conversationId = doc.id;
+                    const convoElement = document.createElement('div');
+                    convoElement.className = 'conversation-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700';
+                    convoElement.dataset.conversationId = doc.id;
 
-                            convoElement.innerHTML = `
-                                <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
-                                <div class="flex-1 truncate">
-                                    <div class="flex justify-between items-center">
-                                        <p class="font-semibold">${otherUserData.displayName}</p>
-                                        <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
-                                    </div>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
-                                </div>
-                            `;
-                            convoElement.addEventListener('click', () => selectConversation(doc.id, otherUserData));
-                            conversationsContainer.appendChild(convoElement);
-                        }
-                    });
+                    convoElement.innerHTML = `
+                        <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
+                        <div class="flex-1 truncate">
+                            <div class="flex justify-between items-center">
+                                <p class="font-semibold">${otherUserData.displayName}</p>
+                                <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
+                        </div>
+                    `;
+                    convoElement.addEventListener('click', () => selectConversation(doc.id, otherUserData));
+                    conversationsContainer.appendChild(convoElement);
                 });
             }, error => {
                 console.error("Firestore Error: Failed to listen for conversations.", error);
@@ -126,9 +126,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         activeChatContainer.classList.remove('hidden');
         activeChatContainer.classList.add('flex');
 
-        // Preserve the mobile back button if it exists
         const existingBackButton = chatHeader.querySelector('#mobile-back-btn');
-        
         chatHeader.innerHTML = `
             <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
             <div>
@@ -136,8 +134,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                 <p class="text-xs text-gray-500">@${otherUser.handle || otherUser.displayName}</p>
             </div>
         `;
-        
-        // Re-add the back button if it existed
         if (existingBackButton) {
             chatHeader.prepend(existingBackButton);
         }
@@ -156,9 +152,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                     if (change.type === 'added') {
                         renderMessage(change.doc.id, change.doc.data());
                     }
-                    if (change.type === 'modified') {
-                        updateMessage(change.doc.id, change.doc.data());
-                    }
                 });
                 scrollToBottom();
             }, error => {
@@ -171,9 +164,9 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         const messageWrapper = document.createElement('div');
         messageWrapper.id = `message-${messageId}`;
         const isCurrentUser = message.senderId === user.uid;
-        
-        messageWrapper.className = `flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`;
-        
+
+        messageWrapper.className = `flex flex-col mb-3 ${isCurrentUser ? 'items-end' : 'items-start'}`;
+
         const messageBubble = document.createElement('div');
         messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
         messageBubble.textContent = message.text;
@@ -181,20 +174,10 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         const timestampEl = document.createElement('p');
         timestampEl.className = 'text-xs text-gray-400 mt-1 px-2 timestamp';
         timestampEl.textContent = formatTimestamp(message.timestamp);
-        
+
         messageWrapper.appendChild(messageBubble);
         messageWrapper.appendChild(timestampEl);
         messagesContainer.appendChild(messageWrapper);
-    };
-    
-    const updateMessage = (messageId, message) => {
-        const messageWrapper = document.getElementById(`message-${messageId}`);
-        if (messageWrapper) {
-            const timestampEl = messageWrapper.querySelector('.timestamp');
-            if (timestampEl) {
-                timestampEl.textContent = formatTimestamp(message.timestamp);
-            }
-        }
     };
 
     const scrollToBottom = () => {
@@ -203,54 +186,48 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     messageForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const currentUser = firebase.auth().currentUser;
-        if (!currentUser) {
-            console.error("User is not signed in.");
-            return;
-        }
-
         const text = messageInput.value.trim();
         if (text === '' || !activeConversationId) return;
 
         const originalMessage = text;
         messageInput.value = '';
 
-        const messageData = {
-            text: originalMessage,
-            senderId: currentUser.uid,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        const convoRef = db.collection('conversations').doc(activeConversationId);
-        const messageRef = convoRef.collection('messages').doc();
-        
-        const batch = db.batch();
-        batch.set(messageRef, messageData);
-        batch.update(convoRef, {
-            lastMessage: originalMessage,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
+        const sendMessage = firebase.functions().httpsCallable('sendMessage');
         try {
-            await batch.commit();
+            const recipientId = activeConversationId.replace(user.uid, '').replace('_', '');
+            await sendMessage({ recipientId: recipientId, messageText: originalMessage });
             scrollToBottom();
         } catch (error) {
-            console.error("Firestore Error: Failed to send message.", error);
-            messageInput.value = originalMessage;
+            console.error("Error sending message via Cloud Function:", error);
+            alert("Could not send message.");
+            messageInput.value = originalMessage; // Restore message on failure
         }
     });
 
-    // --- New Conversation Logic ---
     const startConversation = async (otherUserId, otherUserData) => {
         const conversationId = [user.uid, otherUserId].sort().join('_');
         const convoRef = db.collection('conversations').doc(conversationId);
-        
+
         try {
             const doc = await convoRef.get();
             if (!doc.exists) {
+                const currentUserDoc = await db.collection('users').doc(user.uid).get();
+                const currentUserData = currentUserDoc.data();
+                
                 const convoData = {
                     participants: [user.uid, otherUserId],
+                    participantInfo: {
+                        [user.uid]: {
+                            displayName: currentUserData.displayName,
+                            photoURL: currentUserData.photoURL,
+                            handle: currentUserData.handle
+                        },
+                        [otherUserId]: {
+                            displayName: otherUserData.displayName,
+                            photoURL: otherUserData.photoURL,
+                            handle: otherUserData.handle
+                        }
+                    },
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
                     lastMessage: ''
@@ -260,14 +237,13 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             selectConversation(conversationId, otherUserData);
         } catch (error) {
             console.error("Firestore Error: Failed to start conversation.", error);
+            alert("Could not start conversation.");
         }
     };
-    
+
     if (newConversationBtn) {
         newConversationBtn.addEventListener('click', () => {
             if (window.openNewConversationModal) {
-                // Use the centralized modal function from auth.js
-                // Pass 'false' for isForWidget, and our startConversation function as the callback
                 window.openNewConversationModal(false, startConversation);
             } else {
                 console.error('openNewConversationModal function not found. Is auth.js loaded correctly?');
@@ -275,8 +251,29 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         });
     }
 
+    const checkForUrlParams = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const userIdToMessage = params.get('userId');
+
+        if (userIdToMessage && userIdToMessage !== user.uid) {
+            try {
+                const userToMessageDoc = await db.collection('users').doc(userIdToMessage).get();
+                if (userToMessageDoc.exists) {
+                    await startConversation(userIdToMessage, userToMessageDoc.data());
+                    // Clean the URL
+                    history.replaceState(null, '', window.location.pathname);
+                } else {
+                    console.warn("User from URL parameter not found.");
+                }
+            } catch (error) {
+                console.error("Error starting conversation from URL:", error);
+            }
+        }
+    };
+
     // --- Initial Load ---
     listenForConversations();
+    checkForUrlParams(); // This will handle direct links to messages
 });
 
 // --- Mobile View Toggling ---
@@ -285,12 +282,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatWindow = document.getElementById('chat-window');
     const backToConversationsButton = document.getElementById('back-to-conversations');
 
-    // Function to switch to chat view on mobile
     window.showChatArea = () => {
         if (window.innerWidth < 1024) { // Tailwind's 'lg' breakpoint
-            if (conversationsList) {
-                conversationsList.classList.add('hidden');
-            }
+            if (conversationsList) conversationsList.classList.add('hidden');
             if (chatWindow) {
                 chatWindow.classList.remove('hidden');
                 chatWindow.classList.add('flex');
@@ -298,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Event listener for the back button
     if (backToConversationsButton) {
         backToConversationsButton.addEventListener('click', () => {
             if (window.innerWidth < 1024) {
@@ -306,11 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     chatWindow.classList.add('hidden');
                     chatWindow.classList.remove('flex');
                 }
-                if (conversationsList) {
-                    conversationsList.classList.remove('hidden');
-                }
+                if (conversationsList) conversationsList.classList.remove('hidden');
             }
         });
     }
 });
-

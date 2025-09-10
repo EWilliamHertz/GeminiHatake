@@ -1,13 +1,10 @@
 /**
-* HatakeSocial - Community Page Script (v8 - LFG Integration)
+* HatakeSocial - Community Page Script (v9 - LFG to Messages Page)
 *
 * This script handles all logic for the community.html page.
-* - NEW: Integrated the "Looking for Game" (LFG) feature.
-* - REMOVED: Removed the "Articles & Strategy" section as requested.
-* - PRESERVED: Retains all advanced Friends and Groups functionality.
+* - FIX: The LFG "Message" button now correctly initiates a conversation and redirects to the main messages.html page, making it functional on all devices.
+* - REMOVED: Removed dependency on the messenger widget for starting LFG conversations.
 */
-
-
 
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
@@ -1416,16 +1413,39 @@ document.addEventListener('authReady', (e) => {
         return card;
     }
     
-    const startConversation = (userId) => {
-        console.log(`Attempting to start conversation with user: ${userId}`);
-        if (window.messenger && typeof window.messenger.startNewConversation === 'function') {
-            window.messenger.startNewConversation(userId);
-        } else {
-            alert(`Messaging feature is not available. Could not message user ${userId}.`);
-            console.error("window.messenger.startNewConversation is not a function. Make sure messenger.js is loaded and exposes this function.");
-        }
+    // Replace the old startConversation function in public/js/community.js with this one.
+
+const startConversation = async (otherUserId) => {
+    if (!currentUser) return alert('You must be logged in to send a message.');
+    if (currentUser.uid === otherUserId) return;
+
+    // Provide immediate feedback to the user that something is happening
+    const lfgButton = document.querySelector(`.message-lfg-user-btn[data-user-id="${otherUserId}"]`);
+    if (lfgButton) {
+        lfgButton.disabled = true;
+        lfgButton.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Starting...`;
     }
 
+    const ensureConversation = firebase.functions().httpsCallable('ensureConversationExists');
+
+    try {
+        // Call the new backend function to create the conversation securely
+        await ensureConversation({ otherUserId: otherUserId });
+        
+        // If successful, redirect to the messages page
+        window.location.href = `messages.html?userId=${otherUserId}`;
+
+    } catch (error) {
+        console.error("Error starting conversation via Cloud Function:", error);
+        alert(`Could not start conversation: ${error.message}`);
+        
+        // Re-enable the button if an error occurs
+        if (lfgButton) {
+            lfgButton.disabled = false;
+            lfgButton.innerHTML = `<i class="fas fa-comments mr-2"></i>Message`;
+        }
+    }
+};
     // --- INITIALIZE ALL FEATURES ---
     if (currentUser) {
         initializeLfgFeature(currentUser, db);
