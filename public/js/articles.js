@@ -534,10 +534,10 @@ function initEditArticlePage(user) {
         quill.root.innerHTML = articleData.content;
 
         if (articleData.type === 'blog_post') {
-            tcgCategorySection.style.display = 'none';
+            if (tcgCategorySection) tcgCategorySection.style.display = 'none';
         } else {
-            tcgCategorySection.style.display = 'block';
-            articleCategorySelect.value = articleData.category;
+            if (tcgCategorySection) tcgCategorySection.style.display = 'block';
+            if (articleCategorySelect) articleCategorySelect.value = articleData.category;
         }
 
     }).catch(error => {
@@ -555,33 +555,35 @@ function initEditArticlePage(user) {
         });
     }
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const title = articleTitleInput.value;
-        const type = articleTypeSelect.value;
-        const category = (type === 'tcg_article') ? articleCategorySelect.value : 'Blog Post';
-        const content = quill.root.innerHTML;
+    if(form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = articleTitleInput.value;
+            const type = articleTypeSelect.value;
+            const category = (type === 'tcg_article') ? articleCategorySelect.value : 'Blog Post';
+            const content = quill.root.innerHTML;
 
-        if (!title.trim() || quill.getLength() < 10) {
-            alert('Please provide a title and some content for your post.');
-            return;
-        }
+            if (!title.trim() || quill.getLength() < 10) {
+                alert('Please provide a title and some content for your post.');
+                return;
+            }
 
-        const updatedData = {
-            title,
-            type,
-            category,
-            content,
-            updatedAt: new Date()
-        };
+            const updatedData = {
+                title,
+                type,
+                category,
+                content,
+                updatedAt: new Date()
+            };
 
-        try {
-            await articleRef.update(updatedData);
-            alert('Post updated successfully!');
-            window.location.href = `view-article.html?id=${articleId}`;
-        } catch (error) {
-            console.error("Error updating post:", error);
-            alert('Failed to update post.');
-        }
-    });
+            try {
+                await articleRef.update(updatedData);
+                alert('Post updated successfully!');
+                window.location.href = `view-article.html?id=${articleId}`;
+            } catch (error) {
+                console.error("Error updating post:", error);
+                alert('Failed to update post.');
+            }
+        });
+    }
 }
