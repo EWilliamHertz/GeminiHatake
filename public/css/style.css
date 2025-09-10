@@ -1629,3 +1629,142 @@ body.dark-mode .close-button:focus {
     align-items: center;
     justify-content: center;
 }
+
+
+/* --- Mobile Messaging Styles --- */
+@media (max-width: 640px) {
+    #mobile-back-btn {
+        position: absolute;
+        top: 50%;
+        left: 12px;
+        transform: translateY(-50%);
+        z-index: 10;
+        display: block !important;
+    }
+    
+    .mobile-chat-active #mobile-back-btn {
+        display: block !important;
+    }
+    
+    #chat-header {
+        padding-left: 80px !important;
+    }
+    
+    .mobile-chat-active #chat-header {
+        padding-left: 80px !important;
+    }
+    
+    /* Hide chat elements by default on mobile */
+    #active-chat-container {
+        display: none !important;
+    }
+    
+    /* Only show chat when mobile-chat-active */
+    .mobile-chat-active #active-chat-container {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100vh !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 1000 !important;
+        background: #f9fafb !important;
+    }
+    
+    .mobile-chat-active #messages-container {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 12px !important;
+        padding-bottom: 140px !important; /* Full space for message timestamps */
+        margin-bottom: 0 !important;
+    }
+    
+    /* Message form fixed at bottom with proper spacing */
+    .mobile-chat-active #message-form {
+        display: flex !important;
+        gap: 8px !important;
+        padding: 12px !important;
+        background: white !important;
+        border-top: 1px solid #e5e7eb !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1001 !important;
+        margin: 0 !important;
+        height: 68px !important; /* Fixed height */
+        box-sizing: border-box !important;
+    }
+    
+    .mobile-chat-active #message-input {
+        flex: 1 !important;
+        min-width: 0 !important;
+        padding: 10px 15px !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 25px !important;
+        background: #f9fafb !important;
+        font-size: 16px !important;
+        height: 44px !important;
+        box-sizing: border-box !important;
+    }
+    
+    .mobile-chat-active #message-form button {
+        flex-shrink: 0 !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        background: #2563eb !important;
+        color: white !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    /* Dark mode support for mobile */
+    .dark .mobile-chat-active #active-chat-container {
+        background: #111827 !important;
+    }
+    
+    .dark .mobile-chat-active #message-form {
+        background: #1f2937 !important;
+        border-top-color: #374151 !important;
+    }
+    
+    .dark .mobile-chat-active #message-input {
+        background: #374151 !important;
+        border-color: #4b5563 !important;
+        color: white !important;
+    }
+}
+
+/* --- Mobile Conversations List --- */
+@media (max-width: 640px) {
+    /* Hide conversations list when chat is active */
+    .mobile-chat-active #conversations-list {
+        display: none !important;
+    }
+    
+    /* Hide chat window by default, only show when chat is active */
+    #chat-window {
+        display: flex !important;
+    }
+    
+    .mobile-chat-active #chat-window {
+        width: 100% !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 999 !important;
+    }
+    
+    /* Ensure placeholder is hidden when chat is active */
+    .mobile-chat-active #chat-placeholder {
+        display: none !important;
+    }
+}
+

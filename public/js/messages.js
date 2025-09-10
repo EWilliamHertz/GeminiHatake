@@ -114,6 +114,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     };
 
     const selectConversation = (conversationId, otherUser) => {
+        showChatArea();
         activeConversationId = conversationId;
 
         document.querySelectorAll('.conversation-item').forEach(el => {
@@ -125,13 +126,21 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         activeChatContainer.classList.remove('hidden');
         activeChatContainer.classList.add('flex');
 
+        // Preserve the mobile back button if it exists
+        const existingBackButton = chatHeader.querySelector('#mobile-back-btn');
+        
         chatHeader.innerHTML = `
             <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
             <div>
                 <p class="font-bold">${otherUser.displayName}</p>
-                <p class="text-xs text-gray-500">@${otherUser.handle}</p>
+                <p class="text-xs text-gray-500">@${otherUser.handle || otherUser.displayName}</p>
             </div>
         `;
+        
+        // Re-add the back button if it existed
+        if (existingBackButton) {
+            chatHeader.prepend(existingBackButton);
+        }
 
         listenForMessages(conversationId);
     };
@@ -269,3 +278,39 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     // --- Initial Load ---
     listenForConversations();
 });
+
+// --- Mobile View Toggling ---
+document.addEventListener('DOMContentLoaded', () => {
+    const conversationsList = document.getElementById('conversations-list');
+    const chatWindow = document.getElementById('chat-window');
+    const backToConversationsButton = document.getElementById('back-to-conversations');
+
+    // Function to switch to chat view on mobile
+    window.showChatArea = () => {
+        if (window.innerWidth < 1024) { // Tailwind's 'lg' breakpoint
+            if (conversationsList) {
+                conversationsList.classList.add('hidden');
+            }
+            if (chatWindow) {
+                chatWindow.classList.remove('hidden');
+                chatWindow.classList.add('flex');
+            }
+        }
+    };
+
+    // Event listener for the back button
+    if (backToConversationsButton) {
+        backToConversationsButton.addEventListener('click', () => {
+            if (window.innerWidth < 1024) {
+                if (chatWindow) {
+                    chatWindow.classList.add('hidden');
+                    chatWindow.classList.remove('flex');
+                }
+                if (conversationsList) {
+                    conversationsList.classList.remove('hidden');
+                }
+            }
+        });
+    }
+});
+
