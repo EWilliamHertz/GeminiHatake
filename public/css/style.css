@@ -1623,3 +1623,9 @@ body.dark-mode .close-button:focus {
 #widget-message-form {
     flex-shrink: 0;
 }
+/* Force centering for the dynamically created terms modal */
+#terms-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

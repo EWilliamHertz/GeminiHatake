@@ -172,6 +172,49 @@ exports.broadcastMessage = functions.https.onCall(async (data, context) => {
 // =================================================================================================
 
 /**
+ * Handles the creation of a new user account.
+ * This function triggers when a new user is created in Firebase Authentication.
+ * It automatically creates a corresponding user document in Firestore.
+ */
+exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
+  const { uid, email, displayName, photoURL } = user;
+  
+  // Create a default display name and handle from the email
+  const defaultDisplayName = displayName || email.split('@')[0];
+  const handle = defaultDisplayName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+  // Create a default avatar image
+  const defaultPhotoURL = photoURL || `https://ui-avatars.com/api/?name=${defaultDisplayName.charAt(0)}&background=random&color=fff`;
+
+  // The new user document
+  const newUser = {
+    displayName: defaultDisplayName,
+    displayName_lower: defaultDisplayName.toLowerCase(),
+    email: email,
+    photoURL: defaultPhotoURL,
+    handle: handle,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    bio: "New HatakeSocial user!",
+    favoriteTcg: "Not set",
+    city: "",
+    country: "",
+    referrer: "",
+    isAdmin: false, // Ensure users are never admins by default
+    primaryCurrency: 'SEK'
+  };
+
+  try {
+    await db.collection('users').doc(uid).set(newUser);
+    console.log(`Successfully created profile for user: ${uid}`);
+    return null;
+  } catch (error) {
+    console.error(`Error creating profile for user: ${uid}`, error);
+    return null;
+  }
+});
+
+
+/**
 * A callable Cloud Function to handle new user registration with a referral code.
 */
 exports.registerUserWithReferral = functions.https.onCall(async (data, context) => {
