@@ -1,31 +1,30 @@
 /**
- * HatakeSocial - Bulk Add from Text Script
+ * HatakeSocial - Bulk Add from Text Script (v2.0 - Pokemon Support)
  *
  * This script handles all logic for the bulk_add.html page.
  * - Implements a helper function `getCardImageUrl` to correctly display images for all card types.
  * - Parses a user's pasted text list of cards.
- * - Fetches potential matches from the Scryfall API.
+ * - Fetches potential matches from the Scryfall API (for Magic) or Pokemon TCG API (for Pokemon).
  * - Presents a step-by-step UI for the user to confirm each card and its details.
  * - Adds the confirmed cards to the user's Firestore collection.
  */
 
 /**
- * Gets the correct image URL for any card type from Scryfall data.
- * Handles standard, double-faced, and split cards.
- * @param {object} cardData The full card data object from Scryfall.
+ * Gets the correct image URL for any card type from Scryfall or Pokemon TCG data.
+ * @param {object} cardData The full card data object.
  * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
  * @returns {string} The URL of the card image or a placeholder.
  */
 function getCardImageUrl(cardData, size = 'normal') {
-    // Case 1: The card has multiple faces (MDFCs, split cards, etc.)
+    if (cardData.tcg === 'Pokémon') {
+        return size === 'small' ? cardData.images?.small : cardData.images?.large;
+    }
     if (cardData.card_faces && cardData.card_faces[0].image_uris) {
         return cardData.card_faces[0].image_uris[size];
     }
-    // Case 2: The card is a standard, single-faced card
     if (cardData.image_uris) {
         return cardData.image_uris[size];
     }
-    // Fallback if no image is found
     return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
 }
 
@@ -33,7 +32,6 @@ function getCardImageUrl(cardData, size = 'normal') {
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const db = firebase.firestore();
-    const functions = firebase.functions();
     const container = document.getElementById('bulk-add-container');
     if (!container) return;
 
@@ -48,6 +46,7 @@ document.addEventListener('authReady', (e) => {
     const step3 = document.getElementById('step-3-complete');
     const pasteForm = document.getElementById('paste-form');
     const cardListInput = document.getElementById('card-list-input');
+    const gameSelect = document.getElementById('game-select');
     const confirmationArea = document.getElementById('card-confirmation-area');
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
@@ -57,61 +56,79 @@ document.addEventListener('authReady', (e) => {
     let linesToProcess = [];
     let confirmedCards = [];
     let currentIndex = 0;
+    const pokemonApiKey = '60a08d4a-3a34-43d8-8f41-827b58cfac6d'; // Your Pokemon TCG API Key
 
     /**
      * Parses the raw text from the textarea into a structured array.
-     * Extracts quantity, card name, and set code/name.
      */
     const parseCardList = (rawText) => {
         const lines = rawText.split('\n').filter(line => line.trim() !== '');
         return lines.map(line => {
             let quantity = 1;
             let name = line.trim();
-            
-            // Regex to find quantity (e.g., "4x ", "4 ", "x4 ")
             const qtyMatch = line.match(/^(?:(\d+)\s?x?\s*|x\s*(\d+)\s+)/i);
             if (qtyMatch) {
                 quantity = parseInt(qtyMatch[1] || qtyMatch[2], 10);
                 name = name.replace(qtyMatch[0], '').trim();
             }
-
-            // Regex to find set code/name (e.g., "[SOM]", "(SLD)")
             let set = null;
-            const setMatch = name.match(/\s*[\[\(]([A-Z0-9]{3,})[\]\)]/i);
+            const setMatch = name.match(/\s*[\[\(](.*?)[\]\)]/i);
             if(setMatch) {
                 set = setMatch[1];
                 name = name.replace(setMatch[0], '').trim();
             }
-
             return { originalLine: line, quantity, name, set };
         });
     };
 
     /**
-     * Fetches card data from Scryfall API for a single parsed line.
+     * Fetches card data from the appropriate API for a single parsed line.
      */
     const fetchCardVersions = async (line) => {
-        let apiUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(line.name)}&unique=prints&order=released&dir=desc`;
-        if (line.set) {
-            apiUrl += `+set%3A${line.set}`;
-        }
-        
+        const game = gameSelect.value;
         try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) return [];
-            const result = await response.json();
-            return result.data.map(card => ({
-                id: card.id,
-                name: card.name,
-                set: card.set,
-                setName: card.set_name,
-                rarity: card.rarity,
-                collector_number: card.collector_number,
-                imageUrl: getCardImageUrl(card, 'normal'),
-                priceUsd: card.prices?.usd || null,
-                priceUsdFoil: card.prices?.usd_foil || null,
-                tcg: 'Magic: The Gathering'
-            }));
+            if (game === 'magic') {
+                let apiUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(line.name)}&unique=prints&order=released&dir=desc`;
+                if (line.set) apiUrl += `+set%3A${line.set}`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) return [];
+                const result = await response.json();
+                return result.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    set: card.set,
+                    setName: card.set_name,
+                    rarity: card.rarity,
+                    collector_number: card.collector_number,
+                    imageUrl: getCardImageUrl(card, 'normal'),
+                    priceUsd: card.prices?.usd || null,
+                    priceUsdFoil: card.prices?.usd_foil || null,
+                    tcg: 'Magic: The Gathering',
+                    image_uris: card.image_uris,
+                    card_faces: card.card_faces
+                }));
+            } else if (game === 'pokemon') {
+                let query = `name:"${line.name}"`;
+                if (line.set) query += ` set.name:"${line.set}"`;
+                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${query}`, {
+                    headers: { 'X-Api-Key': pokemonApiKey }
+                });
+                if (!response.ok) return [];
+                const result = await response.json();
+                return result.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    set: card.set.id,
+                    setName: card.set.name,
+                    rarity: card.rarity,
+                    collector_number: card.number,
+                    imageUrl: card.images.small,
+                    priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                    priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || null,
+                    tcg: 'Pokémon',
+                    images: card.images
+                }));
+            }
         } catch (error) {
             console.error(`Error fetching ${line.name}:`, error);
             return [];
@@ -154,7 +171,7 @@ document.addEventListener('authReady', (e) => {
                     <p class="font-bold dark:text-white">${v.name}</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">${v.setName} (#${v.collector_number})</p>
                 </div>
-                <p class="text-sm font-semibold dark:text-gray-300">${window.HatakeSocial.convertAndFormatPrice(v.priceUsd, 'USD')}</p>
+                <p class="text-sm font-semibold dark:text-gray-300">${safeFormatPrice(v.priceUsd)}</p>
             </label>
         `).join('');
 
@@ -203,8 +220,13 @@ document.addEventListener('authReady', (e) => {
                 forSale: false,
                 purchasePrice: 0 // Default purchase price
             };
+
+            if (cardToAdd.tcg === 'Magic: The Gathering') {
+                cardToAdd.scryfallId = selectedCardData.id;
+            } else if (cardToAdd.tcg === 'Pokémon') {
+                cardToAdd.pokemonTcgId = selectedCardData.id;
+            }
             delete cardToAdd.id;
-            cardToAdd.scryfallId = selectedCardData.id;
 
             confirmedCards.push(cardToAdd);
             moveToNextCard();

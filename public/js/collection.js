@@ -1,19 +1,22 @@
 /**
- * HatakeSocial - My Collection Page Script (v29.5 - Wishlist Click Fix 2)
+ * HatakeSocial - My Collection Page Script (v29.7 - Manual Add Click Fix)
  *
  * This script handles all logic for the my_collection.html page.
- * - FIX: Corrected the event listener logic to properly handle clicks on wishlist items.
+ * - FIX: Corrected the event listener for manual card adding.
  */
 
 // --- Helper Functions (Global Scope) ---
 
 /**
- * Gets the correct image URL for any card type from Scryfall data.
- * @param {object} cardData The full card data object from Scryfall or Firestore.
+ * Gets the correct image URL for any card type from Scryfall or Pokemon TCG data.
+ * @param {object} cardData The full card data object from Scryfall, Firestore, or Pokemon TCG API.
  * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
  * @returns {string} The URL of the card image or a placeholder.
  */
 function getCardImageUrl(cardData, size = 'normal') {
+    if (cardData?.tcg === 'Pokémon') {
+        return size === 'small' ? cardData.images?.small : cardData.images?.large;
+    }
     if (cardData?.card_faces?.[0]?.image_uris?.[size]) {
         return cardData.card_faces[0].image_uris[size];
     }
@@ -53,21 +56,22 @@ function closeModal(modal) {
 // --- Main Script ---
 
 document.addEventListener('authReady', (e) => {
-    console.log('[Collection v29.5] Auth ready. Initializing script...');
+    console.log('[Collection v29.7] Auth ready. Initializing script...');
     const user = e.detail.user;
+    const db = firebase.firestore();
     const mainContainer = document.querySelector('main.container');
 
     if (!mainContainer) {
-        console.error('[Collection v29.5] Critical error: main container not found. Script cannot run.');
+        console.error('[Collection v29.7] Critical error: main container not found. Script cannot run.');
         return;
     }
 
     if (!user) {
-        console.log('[Collection v29.5] No user found. Displaying login message.');
+        console.log('[Collection v29.7] No user found. Displaying login message.');
         mainContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
         return;
     }
-    console.log(`[Collection v29.5] User ${user.uid} authenticated. Setting up page elements.`);
+    console.log(`[Collection v29.7] User ${user.uid} authenticated. Setting up page elements.`);
 
     // --- State ---
     let bulkEditMode = false;
@@ -77,6 +81,8 @@ document.addEventListener('authReady', (e) => {
     let fullWishlist = [];
     let filteredCollection = [];
     let currentView = 'grid';
+    const pokemonApiUrl = 'https://api.pokemontcg.io/v2/cards';
+    const pokemonApiKey = '60a08d4a-3a34-43d8-8f41-827b58cfac6d';
 
     // --- DOM Element References ---
     const elements = {
@@ -126,12 +132,12 @@ document.addEventListener('authReady', (e) => {
             const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
             fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             filteredCollection = [...fullCollection];
-            console.log(`[Collection v29.5] Loaded ${fullCollection.length} cards from Firestore.`);
+            console.log(`[Collection v29.7] Loaded ${fullCollection.length} cards from Firestore.`);
             calculateAndDisplayStats(fullCollection);
             populateFilters();
             renderCurrentView();
         } catch (error) {
-            console.error(`[Collection v29.5] Error loading collection:`, error);
+            console.error(`[Collection v29.7] Error loading collection:`, error);
             if (elements.collectionGridView) elements.collectionGridView.innerHTML = `<p class="text-center text-red-500 p-4">Could not load collection. See console for details.</p>`;
         }
     };
@@ -144,7 +150,7 @@ document.addEventListener('authReady', (e) => {
             fullWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderWishlist(fullWishlist);
         } catch (error) {
-            console.error(`[Collection v29.5] Error loading wishlist:`, error);
+            console.error(`[Collection v29.7] Error loading wishlist:`, error);
             if(elements.wishlistListContainer) elements.wishlistListContainer.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your wishlist.</p>`;
         }
     };
@@ -320,7 +326,7 @@ document.addEventListener('authReady', (e) => {
     const handleCsvUpload = (file) => {
         if (!file) return;
         if (typeof Papa === 'undefined') {
-            console.error("[Collection v29.5] PapaParse library is not loaded. CSV upload is disabled.");
+            console.error("[Collection v29.7] PapaParse library is not loaded. CSV upload is disabled.");
             if (elements.csvStatus) elements.csvStatus.textContent = "Error: CSV parsing library not loaded.";
             return;
         }
@@ -333,7 +339,7 @@ document.addEventListener('authReady', (e) => {
             header: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                console.log("[Collection v29.5] CSV Parsed:", results);
+                console.log("[Collection v29.7] CSV Parsed:", results);
                 if (elements.csvStatus) elements.csvStatus.textContent = `Found ${results.data.length} cards. Importing... This may take a moment.`;
 
                 const collectionRef = db.collection('users').doc(user.uid).collection('collection');
@@ -410,7 +416,7 @@ document.addEventListener('authReady', (e) => {
                 loadCollectionData();
             },
             error: (err) => {
-                console.error("[Collection v29.5] CSV Parsing Error:", err);
+                console.error("[Collection v29.7] CSV Parsing Error:", err);
                 if (elements.csvStatus) {
                     elements.csvStatus.textContent = "Error parsing CSV file.";
                     elements.csvStatus.classList.add('text-red-500');
@@ -706,34 +712,177 @@ document.addEventListener('authReady', (e) => {
     if (elements.saveQuickEditsBtn) elements.saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
     if (elements.exportCollectionBtn) elements.exportCollectionBtn.addEventListener('click', exportCollectionAsText);
 
+    if (elements.searchCardVersionsBtn) {
+        elements.searchCardVersionsBtn.addEventListener('click', async () => {
+            const cardName = document.getElementById('manual-card-name').value.trim();
+            const game = elements.manualGameSelect.value;
+
+            if (!cardName) {
+                alert("Please enter a card name.");
+                return;
+            }
+
+            elements.manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+            
+            let versions = [];
+            try {
+                if (game === 'magic') {
+                    let searchUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released&dir=desc`;
+                    const response = await fetch(searchUrl);
+                    if (!response.ok) throw new Error('Card not found.');
+                    const result = await response.json();
+                    versions = result.data.map(card => ({
+                        id: card.id,
+                        name: card.name,
+                        set: card.set,
+                        setName: card.set_name,
+                        rarity: card.rarity,
+                        collector_number: card.collector_number,
+                        imageUrl: getCardImageUrl(card, 'small'),
+                        priceUsd: card.prices?.usd || null,
+                        priceUsdFoil: card.prices?.usd_foil || null,
+                        tcg: 'Magic: The Gathering',
+                        colors: (card.card_faces ? card.card_faces[0].colors : card.colors) || [],
+                        card_faces: card.card_faces,
+                        image_uris: card.image_uris
+                    }));
+                } else if (game === 'pokemon') {
+                    const response = await fetch(`${pokemonApiUrl}?q=name:"${cardName}"`, {
+                        headers: { 'X-Api-Key': pokemonApiKey }
+                    });
+                    if (!response.ok) throw new Error('Card not found.');
+                    const result = await response.json();
+                    versions = result.data.map(card => ({
+                        id: card.id,
+                        name: card.name,
+                        set: card.set.id,
+                        setName: card.set.name,
+                        rarity: card.rarity,
+                        collector_number: card.number,
+                        imageUrl: card.images.small,
+                        priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                        priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || null,
+                        tcg: 'Pokémon',
+                        types: card.types,
+                        images: card.images
+                    }));
+                }
+                
+                let versionsHtml = versions.map(v => `
+                    <div class="flex items-center p-2 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer add-version-btn" data-card='${JSON.stringify(v)}'>
+                        <img src="${v.imageUrl}" class="w-10 h-14 object-cover rounded-sm mr-3">
+                        <div class="flex-grow">
+                            <p class="font-semibold dark:text-white">${v.name}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${v.setName} (#${v.collector_number})</p>
+                        </div>
+                    </div>
+                `).join('');
+                elements.manualAddResultsContainer.innerHTML = versionsHtml;
+                
+            } catch (error) {
+                console.error("Error fetching card versions:", error);
+                elements.manualAddResultsContainer.innerHTML = '<p class="text-center text-red-500">An error occurred while searching.</p>';
+            }
+        });
+    }
+
+    if (elements.addVersionForm) {
+        elements.addVersionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cardData = JSON.parse(document.getElementById('add-version-data').value);
+            const list = document.getElementById('add-to-list-select').value;
+            const quantity = parseInt(document.getElementById('add-version-quantity').value, 10);
+            const condition = document.getElementById('add-version-condition').value;
+            const language = document.getElementById('add-version-language').value;
+            const purchasePrice = parseFloat(document.getElementById('add-version-purchase-price').value) || 0;
+            const notes = document.getElementById('add-version-notes').value;
+            const isFoil = document.getElementById('add-version-foil').checked;
+            const isSigned = document.getElementById('add-version-signed').checked;
+
+            const cardDoc = {
+                scryfallId: cardData.tcg === 'Magic: The Gathering' ? cardData.id : null,
+                pokemonTcgId: cardData.tcg === 'Pokémon' ? cardData.id : null,
+                name: cardData.name,
+                name_lower: cardData.name.toLowerCase(),
+                set: cardData.set,
+                setName: cardData.setName,
+                rarity: cardData.rarity,
+                collector_number: cardData.collector_number,
+                imageUrl: getCardImageUrl(cardData, 'normal'),
+                priceUsd: cardData.priceUsd,
+                priceUsdFoil: cardData.priceUsdFoil,
+                tcg: cardData.tcg,
+                colors: cardData.colors,
+                types: cardData.types,
+                quantity,
+                condition,
+                language,
+                purchasePrice,
+                notes,
+                isFoil,
+                isSigned,
+                addedAt: new Date(),
+                forSale: false
+            };
+            
+            try {
+                await db.collection('users').doc(user.uid).collection(list).add(cardDoc);
+                alert("Card added successfully!");
+                closeModal(elements.addVersionModal);
+                if (list === 'collection') {
+                    loadCollectionData();
+                } else {
+                    loadWishlistData();
+                }
+            } catch (error) {
+                console.error("Error adding card:", error);
+                alert("An error occurred while adding the card.");
+            }
+        });
+    }
+
     mainContainer.addEventListener('click', (e) => {
         const target = e.target;
-        const cardElement = target.closest('.group[data-id]');
-        if (!cardElement) return;
 
-        const cardId = cardElement.dataset.id;
-        const listType = cardElement.closest('#wishlist-list') ? 'wishlist' : 'collection';
-
-        const isActionBtn = target.closest('.edit-card-btn, .delete-card-btn, .manage-listing-btn');
-
-        if (bulkEditMode && listType === 'collection' && !isActionBtn) {
-            handleCardSelection(cardId);
+        const addVersionButton = target.closest('.add-version-btn');
+        if (addVersionButton) {
+            const cardData = JSON.parse(addVersionButton.dataset.card);
+            openModal(elements.addVersionModal);
+            document.getElementById('add-version-image').src = getCardImageUrl(cardData, 'normal');
+            document.getElementById('add-version-name').textContent = cardData.name;
+            document.getElementById('add-version-set').textContent = cardData.setName;
+            document.getElementById('add-version-data').value = JSON.stringify(cardData);
             return;
         }
 
-        if (target.closest('.edit-card-btn')) {
-            openModalHandler(elements.editCardModal, cardId, listType);
-        } else if (target.closest('.delete-card-btn')) {
-            if (confirm('Are you sure you want to delete this card?')) {
-                deleteCard(cardId, listType);
+        const cardElement = target.closest('.group[data-id]');
+        if (cardElement) {
+            const cardId = cardElement.dataset.id;
+            const listType = cardElement.closest('#wishlist-list') ? 'wishlist' : 'collection';
+    
+            const isActionBtn = target.closest('.edit-card-btn, .delete-card-btn, .manage-listing-btn');
+    
+            if (bulkEditMode && listType === 'collection' && !isActionBtn) {
+                handleCardSelection(cardId);
+                return;
             }
-        } else if (target.closest('.manage-listing-btn')) {
-            openModalHandler(elements.manageListingModal, cardId, listType);
-        } else if (!isActionBtn) {
-            const cardDataSource = listType === 'collection' ? fullCollection : fullWishlist;
-            const cardData = cardDataSource.find(c => c.id === cardId);
-            if (cardData && cardData.scryfallId) {
-                window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+    
+            if (target.closest('.edit-card-btn')) {
+                openModalHandler(elements.editCardModal, cardId, listType);
+            } else if (target.closest('.delete-card-btn')) {
+                if (confirm('Are you sure you want to delete this card?')) {
+                    deleteCard(cardId, listType);
+                }
+            } else if (target.closest('.manage-listing-btn')) {
+                openModalHandler(elements.manageListingModal, cardId, listType);
+            } else if (!isActionBtn) {
+                const cardDataSource = listType === 'collection' ? fullCollection : fullWishlist;
+                const cardData = cardDataSource.find(c => c.id === cardId);
+                if (cardData && cardData.scryfallId) {
+                    window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+                } else if (cardData && cardData.pokemonTcgId) {
+                    window.location.href = `card-view.html?id=${cardData.pokemonTcgId}&game=pokemon`;
+                }
             }
         }
     });
@@ -866,7 +1015,7 @@ document.addEventListener('authReady', (e) => {
     });
 
     // --- Initial Load ---
-    console.log('[Collection v29.5] Starting initial data load.');
+    console.log('[Collection v29.7] Starting initial data load.');
     loadCollectionData();
     loadWishlistData();
 });

@@ -1,967 +1,1796 @@
-import { auth } from "firebase-admin"
+We cannot search for cards in my_collection.html.
+This is my_collection.html
+<!DOCTYPE html>
 
-This is what it says in the functions page on Firebase:
-releaseEscrowFunds 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/releaseEscrowFunds 
-v1 0 0 / — 1 m broadcastMessage 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/broadcastMessage 
-v1 0 0 / — 1 m createEscrowTransaction 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/createEscrowTransaction 
-v1 0 0 / — 1 m suspendUser 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/suspendUser 
-v1 0 0 / — 1 m onUserCreate 
-us-central1 
-user.create 
-v1 3 0 / 3000 1 m onFollow 
-us-central1 
-document.update 
-users/{userId} 
-v1 0 0 / 3000 1 m setUserAdminClaim 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/setUserAdminClaim 
-v1 0 0 / — 1 m onProductDelete 
-us-central1 
-document.delete 
-products/{productId} 
-v1 0 0 / 3000 1 m onCardForTradeCreate 
-us-central1 
-document.create 
-users/{userId}/collection/{cardId} 
-v1 2 0 / 3000 1 m sendMessage 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/sendMessage 
-v1 24 1 / — 1 m onPostCreate 
-us-central1 
-document.create 
-posts/{postId} 
-v1 0 0 / 3000 1 m onNewMessage 
-us-central1 
-document.create 
-conversations/{conversationId}/messages/{messageId} 
-v1 11 0 / 3000 1 m banUser 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/banUser 
-v1 0 0 / — 1 m validateCoupon 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/validateCoupon 
-v1 0 0 / — 1 m toggleFollowUser 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/toggleFollowUser 
-v1 0 0 / — 1 m ensureConversationExists 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/ensureConversationExists 
-v1 17 0 / — 1 m generateImpersonationToken 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/generateImpersonationToken 
-v1 0 0 / — 1 m unBanUser 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/unBanUser 
-v1 0 0 / — 1 m setContentCreatorClaim 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/setContentCreatorClaim 
-v1 0 0 / — 1 m manageWishlist 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/manageWishlist 
-v1 0 0 / — 1 m registerUserWithReferral 
-us-central1 
-Request 
-https://us-central1-hatakesocial-88b5e.cloudfunctions.net/registerUserWithReferral 
-v1 0 0 / — 1 m onUserDeleted 
-us-central1 
-user.delete 
-v1 0 0 / 3000 1 m createCheckoutSession 
-us-central1
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>
+   My Collection - HatakeSocial
+  </title>
+<script src="https://cdn.tailwindcss.com">
+</script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+<link href="css/style.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
+</script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+<div class="flex h-screen"><div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+<div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+<a class="flex flex-col items-center space-y-1" href="app.html">
+<img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+<span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+</a>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+<i class="fas fa-home w-6 text-center">
+</i>
+<span class="ml-3">
+       Feed
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+<i class="fas fa-comments w-6 text-center">
+</i>
+<span class="ml-3">
+       Messages
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+<i class="fas fa-users w-6 text-center">
+</i>
+<span class="ml-3">
+       Community
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a><a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog"><i class="fas fa-blog w-6 text-center"></i><span class="ml-3">Hatake Blog</span></a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+<i class="fas fa-calendar-alt w-6 text-center">
+</i>
+<span class="ml-3">
+       Events
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+<i class="fas fa-layer-group w-6 text-center">
+</i>
+<span class="ml-3">
+       My Collection
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+<i class="fas fa-book-open w-6 text-center">
+</i>
+<span class="ml-3">
+       Deck Builder
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+<i class="fas fa-shopping-cart w-6 text-center">
+</i>
+<span class="ml-3">
+       Shop
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+<i class="fas fa-store w-6 text-center">
+</i>
+<span class="ml-3">
+       Marketplace
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+<i class="fas fa-exchange-alt w-6 text-center">
+</i>
+<span class="ml-3">
+       Trades
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+<i class="fas fa-user w-6 text-center">
+</i>
+<span class="ml-3">
+       Profile
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+<i class="fas fa-cog w-6 text-center">
+</i>
+<span class="ml-3">
+       Settings
+      </span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+<i class="fas fa-info-circle w-6 text-center">
+</i>
+<span class="ml-3">
+       About Us
+      </span>
+</a>
+</nav>
+<div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-y-auto">
+<header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+<div class="flex items-center">
+<button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+<i class="fas fa-bars text-xl">
+</i>
+</button>
+<div class="relative">
+<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+</i>
+<input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+<div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-5" id="user-actions">
+<div class="space-x-2">
+<button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
+        Login
+       </button>
+<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="header-register-btn">
+        Register
+       </button>
+</div>
+</div>
+</header>
+<main class="flex-grow container mx-auto px-4 py-8">
+<div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+<nav aria-label="Tabs" class="flex -mb-px space-x-8">
+<button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600" id="tab-collection">
+        My Collection
+       </button>
+<button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-wishlist">
+        My Wishlist
+       </button>
+</nav>
+</div>
+<div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center" id="collection-stats-section">
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Total Cards
+       </h4>
+<p class="text-2xl font-bold dark:text-white" id="stats-total-cards">
+        0
+       </p>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Unique Cards
+       </h4>
+<p class="text-2xl font-bold dark:text-white" id="stats-unique-cards">
+        0
+       </p>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Total Value
+       </h4>
+<p class="text-2xl font-bold dark:text-white" id="stats-total-value">
+        $0.00
+       </p>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Rarity Breakdown
+       </h4>
+<div class="text-lg font-bold dark:text-white flex justify-center space-x-3 mt-2" id="stats-rarity-breakdown">
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Add to Your Lists
+      </h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div>
+<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         Manually Add a Card
+        </h3>
+<div class="space-y-3" id="manual-add-form">
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
+<option value="magic">
+           Magic: The Gathering
+          </option>
+<option value="pokemon">
+           Pokémon
+          </option>
+</select>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required="" type="text"/>
+<button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">
+          Search for Card
+         </button>
+</div>
+<div class="mt-4 space-y-2 max-h-96 overflow-y-auto" id="manual-add-results">
+</div>
+</div>
+<div>
+<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         Import from ManaBox (.csv)
+        </h3>
+<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+         Export your collection from ManaBox and upload it here.
+        </p>
+<input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file"/>
+<button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">
+         Upload CSV
+        </button>
+<p class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status">
+</p>
+</div>
+<div>
+<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         Bulk Add from Text
+        </h3>
+<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+         Paste a list of cards for a guided, step-by-step import process.
+        </p>
+<a class="w-full mt-3 bg-purple-600 text-white py-2 px-4 rounded-full hover:bg-purple-700 text-center block" href="bulk_add.html">
+<i class="fas fa-paste mr-2">
+</i>
+         Go to Bulk Add Tool
+        </a>
+</div>
+</div>
+</div>
+<div class="mt-8">
+<div class="tab-content" id="content-collection">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+<h2 class="text-3xl font-bold text-gray-800 dark:text-white">
+         My Collection
+        </h2>
+<div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
+<div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
+<button class="view-btn p-2 rounded-full leading-none bg-white dark:bg-gray-800 shadow text-blue-600" id="grid-view-btn" title="Grid View">
+<i class="fas fa-th-large">
+</i>
+</button>
+<button class="view-btn p-2 rounded-full leading-none text-gray-500 dark:text-gray-400" id="list-view-btn" title="List View">
+<i class="fas fa-list">
+</i>
+</button>
+</div>
+<button class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600" id="export-collection-btn">
+<i class="fas fa-file-export mr-2">
+</i>
+          Export as Text
+         </button>
+<button class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600" id="quick-edit-btn">
+<i class="fas fa-edit mr-2">
+</i>
+          Quick Edit
+         </button>
+<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="bulk-edit-btn">
+          Bulk Edit
+         </button>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6" id="collection-filters">
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-name">
+           Name
+          </label>
+<input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-name" placeholder="Search by name..." type="text"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-set">
+           Set
+          </label>
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-set">
+<option value="all">
+            All Sets
+           </option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-rarity">
+           Rarity
+          </label>
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-rarity">
+<option value="all">
+            All Rarities
+           </option>
+<option value="common">
+            Common
+           </option>
+<option value="uncommon">
+            Uncommon
+           </option>
+<option value="rare">
+            Rare
+           </option>
+<option value="mythic">
+            Mythic
+           </option>
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-color">
+           Color
+          </label>
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-color">
+<option value="all">
+            All Colors
+           </option>
+<option value="W">
+            White
+           </option>
+<option value="U">
+            Blue
+           </option>
+<option value="B">
+            Black
+           </option>
+<option value="R">
+            Red
+           </option>
+<option value="G">
+            Green
+           </option>
+<option value="C">
+            Colorless
+           </option>
+<option value="M">
+            Multi-color
+           </option>
+</select>
+</div>
+<div class="flex items-end">
+<button class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-500" id="reset-filters-btn">
+           Reset
+          </button>
+</div>
+</div>
+</div>
+<div class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40" id="bulk-action-bar">
+<div class="flex items-center space-x-3">
+<input class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500" id="select-all-checkbox" type="checkbox"/>
+<label class="font-medium dark:text-white" for="select-all-checkbox">
+          Select All
+         </label>
+<span class="text-gray-600 dark:text-gray-300" id="selected-count">
+          0 cards selected
+         </span>
+</div>
+<div class="space-x-2">
+<button class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" id="list-selected-btn">
+          List for Sale
+         </button>
+<button class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700" id="delete-selected-btn">
+          Delete
+         </button>
+</div>
+</div>
+<div class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40" id="quick-edit-save-bar">
+<p class="font-semibold text-green-800 dark:text-green-200">
+<i class="fas fa-info-circle mr-2">
+</i>
+         You are in Quick Edit mode. Make your changes below and save.
+        </p>
+<button class="px-6 py-2 bg-green-600 text-white font-bold rounded-full hover:bg-green-700" id="save-quick-edits-btn">
+<i class="fas fa-save mr-2">
+</i>
+         Save All Changes
+        </button>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="collection-grid-view">
+</div>
+<div class="hidden overflow-x-auto" id="collection-table-view">
+</div>
+</div>
+<div class="tab-content hidden" id="content-wishlist">
+<h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+        My Wishlist
+       </h2>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="wishlist-list">
+</div>
+</div>
+</div>
+</main>
+<div class="modal-overlay" id="add-version-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-add-version-modal">
+       ×
+      </button>
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Add Card
+      </h2>
+<div class="flex items-center space-x-4 mb-4" id="add-version-preview">
+<img class="w-24 rounded-lg" id="add-version-image" src="https://placehold.co/100x140"/>
+<div>
+<h3 class="text-lg font-bold dark:text-white" id="add-version-name">
+         Card Name
+        </h3>
+<p class="text-sm text-gray-500 dark:text-gray-400" id="add-version-set">
+         Set Name
+        </p>
+</div>
+</div>
+<form class="space-y-4" id="add-version-form">
+<input id="add-version-data" type="hidden"/>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-to-list-select">
+         Add to:
+        </label>
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-to-list-select">
+<option value="collection">
+          My Collection
+         </option>
+<option value="wishlist">
+          My Wishlist
+         </option>
+</select>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-quantity">
+         Quantity
+        </label>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-quantity" min="1" required="" type="number" value="1"/>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-condition">
+         Condition
+        </label>
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-condition">
+<option>
+          Near Mint
+         </option>
+<option>
+          Lightly Played
+         </option>
+<option>
+          Moderately Played
+         </option>
+<option>
+          Heavily Played
+         </option>
+<option>
+          Damaged
+         </option>
+</select>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-language">
+         Language
+        </label>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-language" type="text" value="English"/>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-purchase-price">
+         Purchase Price (per card)
+        </label>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-purchase-price" placeholder="0.00" step="0.01" type="number"/>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-notes">
+         Notes
+        </label>
+<textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-notes"></textarea>
+</div>
+<div>
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="add-version-foil" type="checkbox"/>
+<label class="dark:text-gray-300" for="add-version-foil">
+         Is this card foil?
+        </label>
+</div>
+<div class="flex items-center">
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="add-version-signed" type="checkbox"/>
+<label class="dark:text-gray-300" for="add-version-signed">
+         Is this card signed?
+        </label>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="card-image-upload">
+         Custom Image
+        </label>
+<input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="card-image-upload" type="file"/>
+</div>
+<button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
+        Add Card
+       </button>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="edit-card-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-edit-card-modal">
+       ×
+      </button>
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Edit Card
+      </h2>
+<form id="edit-card-form">
+<input id="edit-card-id" type="hidden"/>
+<input id="edit-card-list-type" type="hidden"/>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-quantity">
+         Quantity
+        </label>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-quantity" min="1" type="number"/>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-condition">
+         Condition
+        </label>
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-condition">
+<option>
+          Near Mint
+         </option>
+<option>
+          Lightly Played
+         </option>
+<option>
+          Moderately Played
+         </option>
+<option>
+          Heavily Played
+         </option>
+<option>
+          Damaged
+         </option>
+</select>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-language">
+         Language
+        </label>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-language" type="text"/>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-purchase-price">
+         Purchase Price
+        </label>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-purchase-price" placeholder="0.00" step="0.01" type="number"/>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-notes">
+         Notes
+        </label>
+<textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-notes"></textarea>
+</div>
+<div class="mb-6">
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="edit-card-foil" type="checkbox"/>
+<label class="dark:text-gray-300" for="edit-card-foil">
+         Foil
+        </label>
+</div>
+<div class="mb-6">
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="edit-card-signed" type="checkbox"/>
+<label class="dark:text-gray-300" for="edit-card-signed">
+         Signed
+        </label>
+</div>
+<div class="mb-6">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-image-upload">
+         Custom Image
+        </label>
+<input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="edit-card-image-upload" type="file"/>
+</div>
+<button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
+        Save Changes
+       </button>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="manage-listing-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-listing-modal">
+       ×
+      </button>
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Manage Listing
+      </h2>
+<div class="flex items-center space-x-4 mb-6" id="listing-card-preview">
+<img class="w-24 rounded-lg" id="listing-card-image" src="https://placehold.co/100x140"/>
+<div>
+<h3 class="text-lg font-bold dark:text-white" id="listing-card-name">
+         Card Name
+        </h3>
+<p class="text-sm text-gray-500 dark:text-gray-400" id="listing-card-set">
+         Set Name
+        </p>
+</div>
+</div>
+<form id="manage-listing-form">
+<input id="listing-card-id" type="hidden"/>
+<div class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+<label class="font-semibold text-gray-700 dark:text-gray-200" for="forSale">
+         List this card for sale/trade?
+        </label>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="forSale" name="forSale" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer" for="forSale">
+</label>
+</div>
+</div>
+<div class="mt-4 hidden" id="price-input-container">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="salePrice">
+         Sale Price (SEK)
+        </label>
+<div class="relative mt-1">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="text-gray-500 sm:text-sm">
+           kr
+          </span>
+</div>
+<input class="pl-7 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="salePrice" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<div class="mt-8 text-right">
+<button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
+         Save Listing
+        </button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="list-for-sale-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-list-sale-modal">
+       ×
+      </button>
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
+       List Selected Cards
+      </h2>
+<p class="mb-4 dark:text-gray-300">
+       You have selected
+       <strong id="list-sale-count">
+        0
+       </strong>
+       cards. How would you like to price them?
+      </p>
+<div class="space-y-4">
+<form class="space-y-2" id="percentage-price-form">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+         Set price based on market value:
+        </label>
+<div class="flex items-center space-x-2">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="percentage-price-input" max="500" min="1" placeholder="e.g., 90" required="" type="number"/>
+<span class="font-bold dark:text-white">
+          %
+         </span>
+<button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" type="submit">
+          Set
+         </button>
+</div>
+</form>
+<div class="relative">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-gray-300 dark:border-gray-600">
+</div>
+</div>
+<div class="relative flex justify-center">
+<span class="px-2 bg-white dark:bg-gray-800 text-sm text-gray-500">
+          OR
+         </span>
+</div>
+</div>
+<form class="space-y-2" id="fixed-undercut-form">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+         Undercut lowest listing by a fixed amount:
+        </label>
+<div class="flex items-center space-x-2">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="fixed-undercut-input" placeholder="e.g., 10.00" required="" step="0.01" type="number"/>
+<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" type="submit">
+          Set
+         </button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</main>
+</div>
+<footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+<div class="container mx-auto py-8 px-4">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       HatakeSocial
+      </h3>
+<p class="text-gray-600 dark:text-gray-400 text-sm">
+       The all-in-one platform for TCG enthusiasts.
+      </p>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Company
+      </h3>
+<ul class="space-y-2 text-sm">
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
+         About Us
+        </a>
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
+         Partners
+        </a>
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
+         Contact
+        </a>
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Legal
+      </h3>
+<ul class="space-y-2 text-sm">
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+         Privacy Policy
+        </a>
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+         Terms of Service
+        </a>
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+       Display Options
+      </h3>
+<div class="flex items-center space-x-4">
+<div>
+<label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
+         Theme
+        </label>
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+<i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
+</i>
+<i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
+</i>
+</button>
+</div>
+<div id="currency-selector-container">
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+<p>
+      © 2025 Hatake. All Rights Reserved.
+     </p>
+<div class="flex space-x-6 mt-4 md:mt-0">
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-twitter">
+</i>
+</a>
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-facebook-f">
+</i>
+</a>
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-instagram">
+</i>
+</a>
+</div>
+</div>
+</div>
+</footer>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js">
+</script>
+<script src="js/auth.js">
+</script>
+<script src="js/collection.js">
+</script>
+<script src="js/notifications.js">
+</script>
+<script src="js/darkmode.js">
+</script>
+<img class="hidden" id="manual-add-tooltip" style="position: absolute; z-index: 100; pointer-events: none; border: 2px solid #000; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); width: 223px; height: 310px;"/>
+<!-- Login Modal -->
+<!-- Register Modal -->
+<script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+<div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
+<div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+<h2 class="text-xl font-bold">Your Cart</h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
+</div>
+<div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+<!-- Cart items will be dynamically inserted here -->
+<p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
+</div>
+<div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+<div class="flex justify-between items-center font-bold text-lg">
+<span>Subtotal</span>
+<span id="cart-subtotal">$0.00</span>
+</div>
+<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Shipping &amp; taxes calculated at checkout.</p>
+<button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
+                    Proceed to Checkout
+                </button>
+</div>
+</div>
+</div>
+<script src="js/cart.js"></script><script>
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-This is auth.js:
-/**
-* HatakeSocial - Merged Authentication & Global UI Script (v18 - New Conversation Modal)
-*
-* - NEW: Added openNewConversationModal function to allow starting new chats from any page.
-* - NEW: Redirects user to app.html immediately after successful login or registration.
-* - NEW: Redirects logged-in users from the landing page (index.html) to app.html automatically.
-* - FIX: Resolves a race condition where the app would try to load a user's profile before the backend function created it, causing a flashing/reload loop. Now uses a Firestore onSnapshot listener to wait for the document to exist.
-* - FIX: Ensures the verification email is sent immediately and reliably upon registration.
-* - FIX: Corrects the logic that was preventing the Terms of Service modal from appearing.
-*/
-
-// --- Global Toast Notification Function ---
-const showToast = (message, type = 'info') => {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        const toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        toastContainer.className = 'fixed bottom-5 right-5 z-[1003]'; // Higher z-index
-        document.body.appendChild(toastContainer);
-        container = toastContainer;
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    let iconClass = 'fa-info-circle';
-    if (type === 'success') iconClass = 'fa-check-circle';
-    if (type === 'error') iconClass = 'fa-exclamation-circle';
-
-    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 100);
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, 5000);
-};
-
-// --- Global Modal Helper Functions ---
-window.openModal = (modal) => {
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        const errorMsg = modal.querySelector('[id$="-error-message"]');
-        if (errorMsg) {
-            errorMsg.classList.add('hidden');
-            errorMsg.textContent = '';
-        }
-    }
-};
-window.closeModal = (modal) => {
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-};
-
-// --- NEW: New Conversation Modal ---
-window.openNewConversationModal = (isWidget = false, callback) => {
-    const existingModal = document.getElementById('new-conversation-modal');
-    if (existingModal) existingModal.remove();
-
-    const modal = document.createElement('div');
-    modal.id = 'new-conversation-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1002]';
-    modal.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col" style="height: 70vh; max-height: 500px;">
-            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                <h2 class="text-xl font-bold">New Message</h2>
-                <button id="close-new-convo-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
-            </div>
-            <div class="p-4">
-                <input type="text" id="user-search-input" placeholder="Search for a user..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div id="user-search-results" class="flex-grow overflow-y-auto p-4 space-y-2">
-                <p class="text-center text-gray-500">Start typing to find users.</p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    const searchInput = modal.querySelector('#user-search-input');
-    const searchResultsContainer = modal.querySelector('#user-search-results');
-    const closeModalBtn = modal.querySelector('#close-new-convo-modal');
-
-    closeModalBtn.addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', (e) => {
-        if (e.target.id === 'new-conversation-modal') {
-            modal.remove();
-        }
-    });
-
-    let searchTimeout;
-    searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimeout);
-        const query = searchInput.value.trim().toLowerCase();
-        if (query.length < 2) {
-            searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 2 characters.</p>';
-            return;
-        }
-
-        searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
-        searchTimeout = setTimeout(async () => {
-            try {
-                const currentUser = firebase.auth().currentUser;
-                if (!currentUser) return;
-
-                const usersRef = firebase.firestore().collection('users');
-                const snapshot = await usersRef.where('displayName_lower', '>=', query).where('displayName_lower', '<=', query + '\uf8ff').limit(10).get();
-                
-                searchResultsContainer.innerHTML = '';
-                if (snapshot.empty) {
-                    searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
-                } else {
-                    snapshot.forEach(doc => {
-                        const userData = doc.data();
-                        if (doc.id === currentUser.uid) return; // Don't show current user
-
-                        const userElement = document.createElement('div');
-                        userElement.className = 'flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
-                        userElement.innerHTML = `
-                            <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
-                            <div>
-                                <p class="font-semibold">${userData.displayName}</p>
-                                <p class="text-sm text-gray-500">@${userData.handle || 'N/A'}</p>
-                            </div>
-                        `;
-                        userElement.addEventListener('click', () => {
-                            if (callback) {
-                                callback(doc.id, userData);
-                            }
-                            modal.remove();
-                        });
-                        searchResultsContainer.appendChild(userElement);
-                    });
-                }
-            } catch (error) {
-                console.error("Error searching for users:", error);
-                searchResultsContainer.innerHTML = '<p class="text-center text-red-500">Error searching for users.</p>';
-            }
-        }, 500);
-    });
-};
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.body.style.opacity = '0';
-
-    // --- Firebase Initialization ---
-    if (!firebase.apps.length) {
-        // Replace with your actual Firebase config if not using /__/firebase/init.js
-        firebase.initializeApp(); 
-    }
-    if (typeof firebase.analytics === 'function') {
-        window.analytics = firebase.analytics();
-    }
-    window.auth = firebase.auth();
-    window.db = firebase.firestore();
-    window.storage = firebase.storage();
-    if (typeof firebase.functions === 'function') {
-        window.functions = firebase.functions();
-    } else {
-        window.functions = null;
-        console.warn('Firebase Functions library not loaded.');
-    }
-
-    const googleProvider = new firebase.auth.GoogleAuthProvider();
-    const loginModal = document.getElementById('loginModal');
-    const registerModal = document.getElementById('registerModal');
-
-    // --- MESSENGER WIDGET FIX ---
-    if (localStorage.getItem('messengerWidget-visible') === null) {
-        localStorage.setItem('messengerWidget-visible', 'false');
-    }
-
-    // --- Internationalization & Currency ---
-    window.HatakeSocial = {
-        conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
-        currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
-        currentUserData: null,
-        convertAndFormatPrice(amount, fromCurrency = 'SEK') {
-            const toCurrency = this.currentCurrency;
-            if (amount === undefined || amount === null || isNaN(amount)) {
-                return `0.00 ${toCurrency}`;
-            }
-            const fromRate = this.conversionRates[fromCurrency];
-            if (fromRate === undefined) return `N/A`;
-            const amountInSEK = amount / fromRate;
-            const toRate = this.conversionRates[toCurrency];
-            if (toRate === undefined) return `N/A`;
-            const convertedAmount = amountInSEK * toRate;
-            return `${convertedAmount.toFixed(2)} ${toCurrency}`;
-        }
-    };
-
-    const setupCurrencySelector = () => {
-        const container = document.getElementById('currency-selector-container');
-        if (!container) return;
-
-        container.innerHTML = `
-        <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
-        <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
-            <option value="SEK">SEK</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-        </select>
-        `;
-        const selector = document.getElementById('currency-selector');
-        selector.value = window.HatakeSocial.currentCurrency;
-
-        selector.addEventListener('change', (e) => {
-            window.HatakeSocial.currentCurrency = e.target.value;
-            localStorage.setItem('hatakeCurrency', e.target.value);
-            window.location.reload();
-        });
-    };
-    
-    const setupGlobalListeners = () => {
-        const headerSearchForm = document.querySelector('header form#header-search-form');
-        const googleLoginButton = document.getElementById('googleLoginButton');
-        const googleRegisterButton = document.getElementById('googleRegisterButton');
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const registerForm = document.getElementById('registerForm');
-
-        document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
-        document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
-
-        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorMessageEl = document.getElementById('login-error-message');
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    window.location.href = 'app.html';
-                })
-                .catch(err => {
-                    errorMessageEl.textContent = err.message;
-                    errorMessageEl.classList.remove('hidden');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
                 });
-        });
-
-        if(registerForm) {
-            registerForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                showTermsModal();
-            });
-        } else {
-            console.warn("Could not find the registration form to attach listener.");
-        }
-
-        const handleGoogleAuth = () => {
-            auth.signInWithPopup(googleProvider)
-                .then(result => {
-                    console.log('Google sign-in successful. Redirecting...');
-                    window.location.href = 'app.html';
-                })
-                .catch(err => showToast(err.message, "error"));
-        };
-
-        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
-        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
-
-        if (headerSearchForm) {
-            headerSearchForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const searchBar = document.getElementById('searchBar');
-                const query = searchBar.value.trim();
-                if (query) {
-                    window.location.href = `search.html?query=${encodeURIComponent(query)}`;
-                }
-            });
-        }
-        
-        const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
-        if (scrollToTopBtn) {
-            window.addEventListener('scroll', () => {
-                scrollToTopBtn.classList.toggle('hidden', window.pageYOffset <= 200);
-            });
-            scrollToTopBtn.addEventListener('click', () => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-        }
-
-        if (mobileMenuButton) {
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
-        }
-    };
-
-    let friendRequestHandshakeListener = null;
-    function listenForAcceptedRequests(user) {
-        if (friendRequestHandshakeListener) {
-            friendRequestHandshakeListener();
-        }
-
-        const sentRequestsRef = db.collection('friendRequests')
-            .where('senderId', '==', user.uid)
-            .where('status', '==', 'accepted');
-
-        friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
-            if (snapshot.empty) return;
-
-            const batch = db.batch();
-            const currentUserRef = db.collection('users').doc(user.uid);
-
-            for (const doc of snapshot.docs) {
-                const request = doc.data();
-                const newFriendId = request.receiverId;
-                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(newFriendId) });
-                batch.delete(doc.ref);
-                const notificationData = {
-                    message: `You are now friends with ${request.receiverName || 'a new user'}.`,
-                    link: `/profile.html?uid=${newFriendId}`,
-                    isRead: false,
-                    timestamp: new Date()
-                };
-                const notificationRef = db.collection('users').doc(user.uid).collection('notifications').doc();
-                batch.set(notificationRef, notificationData);
             }
 
-            try {
-                await batch.commit();
-            } catch (error) {
-                console.error("Error completing friend handshake:", error);
-            }
-        }, error => {
-            console.error("Error listening for accepted friend requests:", error);
-        });
-    }
-
-    function sanitizeHTML(str) {
-        const temp = document.createElement('div');
-        temp.textContent = str;
-        return temp.innerHTML;
-    }
-
-    let unsubscribeNotifications = null;
-    let verificationTimer = null;
-    
-    auth.onAuthStateChanged(async (user) => {
-        if (verificationTimer) {
-            clearInterval(verificationTimer);
-            verificationTimer = null;
-        }
-
-        const mainSidebarNav = document.querySelector('#sidebar nav');
-        const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
-        if (existingAdminSidebarLink) {
-            existingAdminSidebarLink.remove();
-        }
-
-        if (user && !user.emailVerified) {
-            document.body.innerHTML = `
-            <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-                <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
-                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
-                    <p class="text-gray-600 dark:text-gray-400 mb-6">
-                        A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox (and spam folder) and click the link to activate your account.
-                    </p>
-                    <div class="space-x-4">
-                        <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
-                        <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
-                    </div>
-                </div>
-            </div>
-            `;
-            document.getElementById('resend-verification-btn').addEventListener('click', () => {
-                user.sendEmailVerification()
-                    .then(() => showToast('A new verification email has been sent.', 'success'))
-                    .catch(err => showToast('Error sending email: ' + err.message, 'error'));
-            });
-
-            verificationTimer = setInterval(async () => {
-                await user.reload();
-                if (user.emailVerified) {
-                    clearInterval(verificationTimer);
-                    window.location.reload();
-                }
-            }, 5000);
-            document.body.style.opacity = '1';
-            return;
-        }
-
-        const userActions = document.getElementById('user-actions');
-        const authContainerSidebar = document.getElementById('auth-container-sidebar');
-        const mobileUserActions = document.getElementById('mobile-user-actions');
-        
-        if (user) {
-            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
-            if (isIndexPage) {
-                window.location.href = 'app.html';
-                return; 
-            }
-
-            closeModal(loginModal);
-            closeModal(registerModal);
-            try {
-                const userDocRef = db.collection('users').doc(user.uid);
-                let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
-                    if (doc.exists) {
-                        if (unsubscribeUserDoc) unsubscribeUserDoc(); 
-                        const userData = doc.data();
-                        window.HatakeSocial.currentUserData = userData;
-                        const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                        const idTokenResult = await user.getIdTokenResult(true);
-                        const isAdmin = idTokenResult.claims.admin === true;
-                        
-                        handleAdminAccess(isAdmin);
-                        
-                        if (isAdmin && mainSidebarNav) {
-                            const adminLink = document.createElement('a');
-                            adminLink.id = 'admin-sidebar-link';
-                            adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
-                            adminLink.href = 'admin.html';
-                            adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
-                            mainSidebarNav.appendChild(adminLink);
-                        }
-
-                        if (userActions) {
-                            userActions.innerHTML = `
-                            <div class="relative">
-                                <button id="cart-btn" class="text-gray-300 hover:text-indigo-400 text-xl"><i class="fas fa-shopping-cart"></i><span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
-                            </div>
-                            <div class="relative">
-                                <button id="notification-bell-btn" class="text-gray-300 hover:text-indigo-400 text-xl"><i class="fas fa-bell"></i><span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
-                                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
-                                    <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
-                                    <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
-                                    <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
-                                </div>
-                            </div>
-                            <div class="relative">
-                                <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-transparent hover:border-indigo-500"></button>
-                                <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
-                                    <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
-                                    <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                                    ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
-                                    <hr class="border-gray-200 dark:border-gray-600">
-                                    <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
-                                </div>
-                            </div>`;
-                            document.getElementById('cart-btn').addEventListener('click', () => openModal(document.getElementById('cartModal')));
-                            document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
-                            document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
-                            document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
-                        }
-
-                        if (unsubscribeNotifications) unsubscribeNotifications();
-                        unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
-                            const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
-                            const countEl = document.getElementById('notification-count');
-                            const listEl = document.getElementById('notification-list');
-                            if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
-                            if (listEl) {
-                                if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
-                                else {
-                                    listEl.innerHTML = '';
-                                    snapshot.docs.slice(0, 5).forEach(doc => {
-                                        const notif = doc.data();
-                                        const el = document.createElement('a');
-                                        el.href = notif.link || '#';
-                                        el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
-                                        el.innerHTML = `<div class="flex-shrink-0 mr-3"><div class="w-3 h-3 rounded-full ${!notif.isRead ? 'bg-blue-500' : 'bg-transparent'} mt-1.5"></div></div><div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
-                                        el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
-                                        listEl.appendChild(el);
-                                    });
-                                }
-                            }
-                        }, err => console.error("Notification listener error:", err));
-
-                        if (authContainerSidebar) {
-                            authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
-                            document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
-                        }
-
-                        if (mobileUserActions) {
-                            mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
-                            document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
-                        }
-                        listenForAcceptedRequests(user);
-
-                    } else {
-                        console.log("User document not found for uid:", user.uid, ". Waiting for it to be created by the backend function...");
-                    }
-                }, (error) => {
-                    console.error("Error listening to user document:", error);
-                    showToast("Could not load your profile data.", "error");
-                    auth.signOut();
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
                 });
-
-            } catch (error) {
-                console.error("Error during authenticated state setup:", error);
-                showToast("Could not load your profile.", "error");
-                auth.signOut();
             }
-        } else { // User is logged out
-            window.HatakeSocial.currentUserData = null;
-            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
-            if (unsubscribeNotifications) unsubscribeNotifications();
-
-            handleAdminAccess(false);
-
-            const loginButtonsHTML = `
-                <button id="header-login-btn" class="text-gray-300 hover:text-white transition-colors">Log In</button>
-                <button id="header-register-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors">Sign Up Free</button>
-            `;
-            if (userActions) {
-                userActions.innerHTML = loginButtonsHTML;
-                document.getElementById('header-login-btn').addEventListener('click', () => openModal(document.getElementById('loginModal')));
-                document.getElementById('header-register-btn').addEventListener('click', () => openModal(document.getElementById('registerModal')));
-            }
-            if (authContainerSidebar) {
-                authContainerSidebar.innerHTML = loginButtonsHTML.replace('header-login-btn', 'sidebar-login-btn').replace('header-register-btn', 'sidebar-register-btn');
-                document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(document.getElementById('loginModal')));
-                document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(document.getElementById('registerModal')));
-            }
-            if (mobileUserActions) {
-                mobileUserActions.innerHTML = `<div class="space-y-2"><button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button><button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button></div>`;
-                document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(document.getElementById('loginModal')));
-                document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(document.getElementById('registerModal')));
-            }
-        }
-        document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
-        window.authReady = true;
-
-        document.body.style.transition = 'opacity 0.3s ease-in-out';
-        document.body.style.opacity = '1';
-    });
-
-    setupGlobalListeners();
-    setupCurrencySelector();
-
-    window.addEventListener('click', () => {
-        document.getElementById('profile-dropdown')?.classList.add('hidden');
-        document.getElementById('notification-dropdown')?.classList.add('hidden');
-    });
-});
-
-function handleAdminAccess(isAdmin) {
-    const currentPage = window.location.pathname.split('/').pop();
-    const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
-
-    if (adminPages.includes(currentPage) && !isAdmin) {
-        console.log('User is not an admin. Redirecting to home.');
-        window.location.href = 'index.html';
-    }
-
-    const writeArticleBtn = document.getElementById('write-new-article-btn');
-    if (writeArticleBtn) {
-        writeArticleBtn.classList.toggle('hidden', !isAdmin);
-    }
-}
-
-async function showTermsModal() {
-    const termsModal = document.createElement('div');
-    termsModal.id = 'terms-modal';
-    termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
-    let termsContent = '<p>Loading Terms of Service...</p>';
-    let privacyContent = '<p>Loading Privacy Policy...</p>';
-
-    try {
-        const termsResponse = await fetch('terms.html');
-        termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
-        const privacyResponse = await fetch('privacy.html');
-        privacyContent = privacyResponse.ok ? await privacyResponse.text() : '<p>Could not load Privacy Policy.</p>';
-    } catch (error) {
-        console.error('Error fetching legal documents:', error);
-        termsContent = '<p>Error loading content. Please try again later.</p>';
-        privacyContent = '';
-    }
-
-    termsModal.innerHTML = `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 90vh; max-height: 800px;">
-        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-            <h2 class="text-xl font-bold">Terms of Service and Privacy Policy</h2>
-            <button id="close-terms-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
-        </div>
-        <div id="terms-content" class="p-6 flex-grow overflow-y-auto">
-            ${termsContent}
-            <hr class="my-8">
-            ${privacyContent}
-        </div>
-        <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <div class="flex items-center">
-                <input type="checkbox" id="terms-checkbox" disabled class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <label for="terms-checkbox" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                    I have read and agree to the Terms of Service and Privacy Policy.
-                </label>
-            </div>
-            <button id="final-register-btn" disabled class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+        </script>
+<script src="js/messenger.js"></script>
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+<h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+<div class="max-h-60 overflow-y-auto" id="user-search-results">
+</div>
+<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+            Cancel
+        </button>
+</div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Login
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="loginForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+<p class="text-red-500 text-sm hidden" id="login-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Login
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Sign in with Google
+            </button>
+</form>
+</div>
+</div><div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Register
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="registerForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+<p class="text-red-500 text-sm hidden" id="register-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
                 Register
             </button>
-        </div>
-    </div>`;
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Register with Google
+            </button>
+</form>
+</div>
+</div></body>
+</html>
 
-    document.body.appendChild(termsModal);
-
-    const termsContentEl = termsModal.querySelector('#terms-content');
-    const termsCheckbox = termsModal.querySelector('#terms-checkbox');
-    const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
-
-    termsContentEl.addEventListener('scroll', () => {
-        if (termsContentEl.scrollTop + termsContentEl.clientHeight >= termsContentEl.scrollHeight - 10) {
-            termsCheckbox.disabled = false;
-        }
-    });
-
-    termsCheckbox.addEventListener('change', () => {
-        finalRegisterBtn.disabled = !termsCheckbox.checked;
-    });
-
-    termsModal.querySelector('#close-terms-modal').addEventListener('click', () => {
-        termsModal.remove();
-    });
-
-    finalRegisterBtn.addEventListener('click', async () => {
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const errorMessageEl = document.getElementById('register-error-message');
-
-        try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            await userCredential.user.sendEmailVerification();
-            // Redirect immediately. The verification screen will appear on the app.html page.
-            window.location.href = 'app.html';
-        } catch (err) {
-            if(errorMessageEl) {
-                errorMessageEl.textContent = err.message;
-                errorMessageEl.classList.remove('hidden');
-            } else {
-                showToast(err.message, "error");
-            }
-            termsModal.remove();
-        }
-    });
-}
-
-This is messages.js:
+This is collection.js:
 /**
- * HatakeSocial - Real-time Messaging System (v14 - Stable)
- * - This version uses robust, simplified logic for creating conversations and sending messages.
- * - It relies on correct Firestore indexes and security rules to function.
+ * HatakeSocial - My Collection Page Script (v29.5 - Wishlist Click Fix 2)
+ *
+ * This script handles all logic for the my_collection.html page.
+ * - FIX: Corrected the event listener logic to properly handle clicks on wishlist items.
  */
 
-document.addEventListener('authReady', ({ detail: { user } }) => {
-    // Check if we are on the messages page by looking for a specific container
-    const messagesPageContainer = document.getElementById('chat-window');
-    if (!messagesPageContainer) {
-        return; // Exit if this is not the main messages page
-    }
+// --- Helper Functions (Global Scope) ---
 
-    if (!user) {
-        document.getElementById('chat-window').innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-center text-center p-4">
-                <i class="fas fa-lock text-6xl text-gray-300 dark:text-gray-600"></i>
-                <h2 class="mt-4 text-2xl font-semibold">Authentication Required</h2>
-                <p class="text-gray-500 dark:text-gray-400">Please log in to view your messages.</p>
-            </div>
-        `;
-        const conversationsList = document.getElementById('conversations-list');
-        if (conversationsList) conversationsList.classList.add('hidden');
+/**
+ * Gets the correct image URL for any card type from Scryfall data.
+ * @param {object} cardData The full card data object from Scryfall or Firestore.
+ * @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+ * @returns {string} The URL of the card image or a placeholder.
+ */
+function getCardImageUrl(cardData, size = 'normal') {
+    if (cardData?.card_faces?.[0]?.image_uris?.[size]) {
+        return cardData.card_faces[0].image_uris[size];
+    }
+    if (cardData?.image_uris?.[size]) {
+        return cardData.image_uris[size];
+    }
+    if (cardData?.customImageUrl) {
+        return cardData.customImageUrl;
+    }
+    if (cardData?.imageUrl) {
+        return cardData.imageUrl;
+    }
+    console.warn('No image URL found for card:', cardData?.name);
+    return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
+}
+
+/**
+ * Safely converts a price using the global converter, with a fallback.
+ * @param {number} value The price in USD.
+ * @returns {string} The formatted price string.
+ */
+function safeFormatPrice(value) {
+    if (window.HatakeSocial && typeof window.HatakeSocial.convertAndFormatPrice === 'function') {
+        return window.HatakeSocial.convertAndFormatPrice(value, 'USD');
+    }
+    return `$${Number(value).toFixed(2)} USD`;
+}
+
+function openModal(modal) {
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeModal(modal) {
+    if (modal) modal.classList.add('hidden');
+}
+
+// --- Main Script ---
+
+document.addEventListener('authReady', (e) => {
+    console.log('[Collection v29.5] Auth ready. Initializing script...');
+    const user = e.detail.user;
+    const mainContainer = document.querySelector('main.container');
+
+    if (!mainContainer) {
+        console.error('[Collection v29.5] Critical error: main container not found. Script cannot run.');
         return;
     }
 
-    const db = firebase.firestore();
-    const functions = firebase.functions();
-    let activeConversationId = null;
-    let unsubscribeMessages = null;
-    let unsubscribeConversations = null;
+    if (!user) {
+        console.log('[Collection v29.5] No user found. Displaying login message.');
+        mainContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
+        return;
+    }
+    console.log(`[Collection v29.5] User ${user.uid} authenticated. Setting up page elements.`);
 
-    // --- DOM Elements ---
-    const conversationsContainer = document.getElementById('conversations-container');
-    const chatPlaceholder = document.getElementById('chat-placeholder');
-    const activeChatContainer = document.getElementById('active-chat-container');
-    const chatHeader = document.getElementById('chat-header');
-    const messagesContainer = document.getElementById('messages-container');
-    const messageForm = document.getElementById('message-form');
-    const messageInput = document.getElementById('message-input');
-    const newConversationBtn = document.getElementById('new-conversation-btn');
+    // --- State ---
+    let bulkEditMode = false;
+    let quickEditMode = false;
+    let selectedCards = new Set();
+    let fullCollection = [];
+    let fullWishlist = [];
+    let filteredCollection = [];
+    let currentView = 'grid';
 
-    // --- Date Formatting Helper ---
-    const formatTimestamp = (timestamp) => {
-        if (!timestamp || !timestamp.toDate) return '';
-        const date = timestamp.toDate();
-        const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        let datePart = (userDateFormat === 'mdy') ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
-        const isToday = (new Date()).toDateString() === date.toDateString();
-        return isToday ? time : datePart;
+    // --- DOM Element References ---
+    const elements = {
+        tabs: document.querySelectorAll('.tab-button'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        csvUploadBtn: document.getElementById('csv-upload-btn'),
+        csvUploadInput: document.getElementById('csv-upload-input'),
+        csvStatus: document.getElementById('csv-status'),
+        collectionGridView: document.getElementById('collection-grid-view'),
+        collectionTableView: document.getElementById('collection-table-view'),
+        wishlistListContainer: document.getElementById('wishlist-list'),
+        bulkEditBtn: document.getElementById('bulk-edit-btn'),
+        bulkActionBar: document.getElementById('bulk-action-bar'),
+        selectedCountEl: document.getElementById('selected-count'),
+        selectAllCheckbox: document.getElementById('select-all-checkbox'),
+        listSelectedBtn: document.getElementById('list-selected-btn'),
+        deleteSelectedBtn: document.getElementById('delete-selected-btn'),
+        listForSaleModal: document.getElementById('list-for-sale-modal'),
+        editCardModal: document.getElementById('edit-card-modal'),
+        editCardForm: document.getElementById('edit-card-form'),
+        manageListingModal: document.getElementById('manage-listing-modal'),
+        manageListingForm: document.getElementById('manage-listing-form'),
+        quickEditBtn: document.getElementById('quick-edit-btn'),
+        quickEditSaveBar: document.getElementById('quick-edit-save-bar'),
+        saveQuickEditsBtn: document.getElementById('save-quick-edits-btn'),
+        percentagePriceForm: document.getElementById('percentage-price-form'),
+        fixedUndercutForm: document.getElementById('fixed-undercut-form'),
+        manualGameSelect: document.getElementById('manual-game-select'),
+        searchCardVersionsBtn: document.getElementById('search-card-versions-btn'),
+        manualAddResultsContainer: document.getElementById('manual-add-results'),
+        addVersionModal: document.getElementById('add-version-modal'),
+        addVersionForm: document.getElementById('add-version-form'),
+        exportCollectionBtn: document.getElementById('export-collection-btn'),
+        filterNameInput: document.getElementById('filter-name'),
+        filterSetSelect: document.getElementById('filter-set'),
+        filterRaritySelect: document.getElementById('filter-rarity'),
+        filterColorSelect: document.getElementById('filter-color'),
+        resetFiltersBtn: document.getElementById('reset-filters-btn'),
+        gridViewBtn: document.getElementById('grid-view-btn'),
+        listViewBtn: document.getElementById('list-view-btn'),
     };
 
-    const listenForConversations = () => {
-        if (unsubscribeConversations) unsubscribeConversations();
-        unsubscribeConversations = db.collection('conversations')
-            .where('participants', 'array-contains', user.uid)
-            .orderBy('lastUpdated', 'desc')
-            .onSnapshot(snapshot => {
-                if (snapshot.empty) {
-                    conversationsContainer.innerHTML = '<p class="p-4 text-center text-gray-500">No conversations yet.</p>';
-                    return;
-                }
-                conversationsContainer.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const convo = doc.data();
-                    const otherUserId = convo.participants.find(p => p !== user.uid);
-                    if (!otherUserId || !convo.participantInfo || !convo.participantInfo[otherUserId]) return;
-                    const otherUserData = convo.participantInfo[otherUserId];
-                    const convoElement = document.createElement('div');
-                    convoElement.className = 'conversation-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700';
-                    convoElement.dataset.conversationId = doc.id;
-                    convoElement.innerHTML = `
-                        <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
-                        <div class="flex-1 truncate">
-                            <div class="flex justify-between items-center">
-                                <p class="font-semibold">${otherUserData.displayName}</p>
-                                <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
-                            </div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
-                        </div>`;
-                    convoElement.addEventListener('click', () => selectConversation(doc.id, otherUserData));
-                    conversationsContainer.appendChild(convoElement);
-                });
-            }, error => {
-                console.error("Firestore Error: Failed to listen for conversations.", error);
-                conversationsContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load conversations.</p>';
-            });
-    };
-
-    const selectConversation = (conversationId, otherUser) => {
-        if (typeof window.showChatArea === 'function') window.showChatArea();
-        activeConversationId = conversationId;
-        document.querySelectorAll('.conversation-item').forEach(el => {
-            el.classList.toggle('bg-blue-100', el.dataset.conversationId === conversationId);
-            el.classList.toggle('dark:bg-blue-900/50', el.dataset.conversationId === conversationId);
-        });
-        chatPlaceholder.classList.add('hidden');
-        activeChatContainer.classList.remove('hidden');
-        activeChatContainer.classList.add('flex');
-        const existingBackButton = chatHeader.querySelector('#mobile-back-btn');
-        chatHeader.innerHTML = `
-            <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
-            <div>
-                <p class="font-bold">${otherUser.displayName}</p>
-                <p class="text-xs text-gray-500">@${otherUser.handle || otherUser.displayName}</p>
-            </div>`;
-        if (existingBackButton) chatHeader.prepend(existingBackButton);
-        listenForMessages(conversationId);
-    };
-
-    const listenForMessages = (conversationId) => {
-        if (unsubscribeMessages) unsubscribeMessages();
-        messagesContainer.innerHTML = '';
-        unsubscribeMessages = db.collection('conversations').doc(conversationId).collection('messages')
-            .orderBy('timestamp', 'asc')
-            .onSnapshot(snapshot => {
-                snapshot.docChanges().forEach(change => {
-                    if (change.type === 'added') renderMessage(change.doc.id, change.doc.data());
-                });
-                scrollToBottom();
-            }, error => {
-                console.error(`Firestore Error: Failed to listen for messages in ${conversationId}.`, error);
-                messagesContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load messages.</p>';
-            });
-    };
-
-    const renderMessage = (messageId, message) => {
-        const messageWrapper = document.createElement('div');
-        messageWrapper.id = `message-${messageId}`;
-        const isCurrentUser = message.senderId === user.uid;
-        messageWrapper.className = `flex flex-col mb-3 ${isCurrentUser ? 'items-end' : 'items-start'}`;
-        const messageBubble = document.createElement('div');
-        messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
-        messageBubble.textContent = message.text;
-        const timestampEl = document.createElement('p');
-        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2 timestamp';
-        timestampEl.textContent = formatTimestamp(message.timestamp);
-        messageWrapper.appendChild(messageBubble);
-        messageWrapper.appendChild(timestampEl);
-        messagesContainer.appendChild(messageWrapper);
-    };
-
-    const scrollToBottom = () => {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    };
-
-    messageForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = messageInput.value.trim();
-        if (text === '' || !activeConversationId) return;
-        const originalMessage = text;
-        messageInput.value = '';
-        const sendMessage = functions.httpsCallable('sendMessage');
+    const loadCollectionData = async () => {
+        if (!elements.collectionGridView) return;
+        elements.collectionGridView.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading your collection...</p>';
         try {
-            const convoDoc = await db.collection('conversations').doc(activeConversationId).get();
-            if (!convoDoc.exists) throw new Error("Conversation does not exist.");
-            const recipientId = convoDoc.data().participants.find(p => p !== user.uid);
-            await sendMessage({ recipientId, messageText: originalMessage });
-            scrollToBottom();
+            const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
+            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            filteredCollection = [...fullCollection];
+            console.log(`[Collection v29.5] Loaded ${fullCollection.length} cards from Firestore.`);
+            calculateAndDisplayStats(fullCollection);
+            populateFilters();
+            renderCurrentView();
         } catch (error) {
-            console.error("Error sending message via Cloud Function:", error);
-            alert("Could not send message.");
-            messageInput.value = originalMessage;
+            console.error(`[Collection v29.5] Error loading collection:`, error);
+            if (elements.collectionGridView) elements.collectionGridView.innerHTML = `<p class="text-center text-red-500 p-4">Could not load collection. See console for details.</p>`;
+        }
+    };
+
+    const loadWishlistData = async () => {
+        if (!elements.wishlistListContainer) return;
+        elements.wishlistListContainer.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading wishlist...</p>';
+        try {
+            const snapshot = await db.collection('users').doc(user.uid).collection('wishlist').orderBy('name').get();
+            fullWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderWishlist(fullWishlist);
+        } catch (error) {
+            console.error(`[Collection v29.5] Error loading wishlist:`, error);
+            if(elements.wishlistListContainer) elements.wishlistListContainer.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your wishlist.</p>`;
+        }
+    };
+
+    const renderWishlist = (wishlistItems) => {
+        if (!elements.wishlistListContainer) return;
+        if (wishlistItems.length === 0) {
+            elements.wishlistListContainer.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">Your wishlist is empty.</p>`;
+            return;
+        }
+        elements.wishlistListContainer.innerHTML = '';
+        wishlistItems.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'relative group cursor-pointer';
+            cardEl.dataset.id = card.id;
+            cardEl.innerHTML = `
+                <img src="${getCardImageUrl(card, 'normal')}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="edit-card-btn text-white text-xs" data-id="${card.id}" data-list="wishlist"><i class="fas fa-edit"></i></button>
+                    <button class="delete-card-btn text-white text-xs ml-1" data-id="${card.id}" data-list="wishlist"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            elements.wishlistListContainer.appendChild(cardEl);
+        });
+    };
+
+    const calculateAndDisplayStats = (collectionData) => {
+        let totalCards = 0;
+        let totalValue = 0;
+        collectionData.forEach(card => {
+            const quantity = card.quantity || 1;
+            totalCards += quantity;
+            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            totalValue += price * quantity;
+        });
+
+        const statsTotalCardsEl = document.getElementById('stats-total-cards');
+        const statsUniqueCardsEl = document.getElementById('stats-unique-cards');
+        const statsTotalValueEl = document.getElementById('stats-total-value');
+
+        if (statsTotalCardsEl) statsTotalCardsEl.textContent = totalCards;
+        if (statsUniqueCardsEl) statsUniqueCardsEl.textContent = new Set(collectionData.map(c => c.name)).size;
+        if (statsTotalValueEl) statsTotalValueEl.textContent = safeFormatPrice(totalValue);
+    };
+
+    const populateFilters = () => {
+        if (!elements.filterSetSelect) return;
+        const sets = new Set(fullCollection.map(card => card.setName).filter(Boolean));
+        elements.filterSetSelect.innerHTML = '<option value="all">All Sets</option>';
+        [...sets].sort().forEach(setName => {
+            const option = document.createElement('option');
+            option.value = setName;
+            option.textContent = setName;
+            elements.filterSetSelect.appendChild(option);
+        });
+    };
+
+    const applyFilters = () => {
+        const nameFilter = elements.filterNameInput ? elements.filterNameInput.value.toLowerCase() : '';
+        const setFilter = elements.filterSetSelect ? elements.filterSetSelect.value : 'all';
+        const rarityFilter = elements.filterRaritySelect ? elements.filterRaritySelect.value : 'all';
+        const colorFilter = elements.filterColorSelect ? elements.filterColorSelect.value : 'all';
+
+        filteredCollection = fullCollection.filter(card => {
+            const cardColors = card.colors || [];
+            const nameMatch = card.name.toLowerCase().includes(nameFilter);
+            const setMatch = setFilter === 'all' || card.setName === setFilter;
+            const rarityMatch = rarityFilter === 'all' || card.rarity === rarityFilter;
+            let colorMatch = true;
+            if (colorFilter !== 'all') {
+                if (colorFilter === 'M') colorMatch = cardColors.length > 1;
+                else if (colorFilter === 'C') colorMatch = cardColors.length === 0;
+                else colorMatch = cardColors.includes(colorFilter);
+            }
+            return nameMatch && setMatch && rarityMatch && colorMatch;
+        });
+        renderCurrentView();
+    };
+
+    const renderCurrentView = () => {
+        if (currentView === 'grid') renderGridView();
+        else renderListView();
+    };
+
+    const renderGridView = () => {
+        const container = elements.collectionGridView;
+        if (!container) return;
+
+        if (elements.collectionTableView) elements.collectionTableView.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        if (filteredCollection.length === 0) {
+            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">No cards found.</p>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        filteredCollection.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'relative group cursor-pointer';
+            cardEl.dataset.id = card.id;
+
+            const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
+            const isSelected = selectedCards.has(card.id);
+            const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
+            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : '';
+            const priceTagHTML = formattedPrice ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>` : '';
+            const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity || 1}</div>`;
+
+            cardEl.innerHTML = `
+                <div class="relative">
+                    <img src="${getCardImageUrl(card, 'normal')}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                    ${quantityBadge}
+                    ${checkboxOverlay}
+                </div>
+                ${priceTagHTML}
+                <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="edit-card-btn text-white text-xs" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
+                    <button class="delete-card-btn text-white text-xs ml-1" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
+                    <button class="manage-listing-btn text-white text-xs ml-1" data-id="${card.id}" data-list="collection"><i class="fas fa-tags"></i></button>
+                </div>`;
+            container.appendChild(cardEl);
+        });
+    };
+
+    const renderListView = () => {
+        const container = elements.collectionTableView;
+        if (!container) return;
+
+        if (elements.collectionGridView) elements.collectionGridView.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        if (filteredCollection.length === 0) {
+            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
+            return;
+        }
+
+        let tableHTML = `
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Value</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">`;
+        filteredCollection.forEach(card => {
+            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : 'N/A';
+            tableHTML += `
+                <tr class="group" data-id="${card.id}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.setName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.quantity || 1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formattedPrice}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${card.notes || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 space-x-2">
+                        <button class="edit-card-btn text-blue-500 hover:text-blue-700" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
+                        <button class="delete-card-btn text-red-500 hover:text-red-700" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
+                        <button class="manage-listing-btn text-green-500 hover:text-green-700" data-id="${card.id}" data-list="collection"><i class="fas fa-tags"></i></button>
+                    </td>
+                </tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        container.innerHTML = tableHTML;
+    };
+
+    const handleCsvUpload = (file) => {
+        if (!file) return;
+        if (typeof Papa === 'undefined') {
+            console.error("[Collection v29.5] PapaParse library is not loaded. CSV upload is disabled.");
+            if (elements.csvStatus) elements.csvStatus.textContent = "Error: CSV parsing library not loaded.";
+            return;
+        }
+        if (elements.csvStatus) {
+            elements.csvStatus.textContent = `Parsing ${file.name}...`;
+            elements.csvStatus.classList.remove('text-red-500', 'text-green-500');
+        }
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                console.log("[Collection v29.5] CSV Parsed:", results);
+                if (elements.csvStatus) elements.csvStatus.textContent = `Found ${results.data.length} cards. Importing... This may take a moment.`;
+
+                const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+                let importedCount = 0;
+                let errorCount = 0;
+
+                const chunks = [];
+                for (let i = 0; i < results.data.length; i += 250) {
+                    chunks.push(results.data.slice(i, i + 250));
+                }
+
+                for (const chunk of chunks) {
+                    const batch = db.batch();
+                    for (const row of chunk) {
+                        const cardName = row['Name'] || row['Card Name'];
+                        const setName = row['Set Name'] || row['Set'];
+                        const quantity = parseInt(row['Quantity'], 10) || 1;
+                        const condition = row['Condition'] || 'Near Mint';
+                        const isFoil = (row['Foil'] || '').toLowerCase() === 'true' || (row['Finish'] || '').toLowerCase() === 'foil';
+                        const isSigned = (row['Signed'] || '').toLowerCase() === 'true';
+                        const notes = row['Notes'] || '';
+
+                        if (!cardName) continue;
+
+                        try {
+                            let searchUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`;
+                            if (setName) searchUrl += `&set=${encodeURIComponent(setName)}`;
+
+                            const response = await fetch(searchUrl);
+                            await new Promise(resolve => setTimeout(resolve, 100));
+
+                            if (!response.ok) {
+                                console.warn(`Card not found via Scryfall: ${cardName} [${setName || 'any set'}]`);
+                                errorCount++;
+                                continue;
+                            }
+
+                            const cardData = await response.json();
+                            const cardDoc = {
+                                scryfallId: cardData.id,
+                                name: cardData.name,
+                                name_lower: cardData.name.toLowerCase(),
+                                set: cardData.set,
+                                setName: cardData.set_name,
+                                rarity: cardData.rarity,
+                                collector_number: cardData.collector_number,
+                                imageUrl: getCardImageUrl(cardData, 'normal'),
+                                priceUsd: cardData.prices?.usd || null,
+                                priceUsdFoil: cardData.prices?.usd_foil || null,
+                                tcg: 'Magic: The Gathering',
+                                colors: (cardData.card_faces ? cardData.card_faces[0].colors : cardData.colors) || [],
+                                quantity, condition, isFoil, isSigned, notes,
+                                addedAt: new Date(),
+                                forSale: false
+                            };
+
+                            const newDocRef = collectionRef.doc();
+                            batch.set(newDocRef, cardDoc);
+                            importedCount++;
+
+                        } catch (err) {
+                            console.error(`Error importing row: ${cardName}`, err);
+                            errorCount++;
+                        }
+                    }
+                    if(importedCount > 0) await batch.commit();
+                }
+
+                if (elements.csvStatus) {
+                    elements.csvStatus.textContent = `Import complete. Added: ${importedCount}. Failed: ${errorCount}.`;
+                    elements.csvStatus.classList.add('text-green-500');
+                }
+                alert(`Import complete!\nSuccessfully imported: ${importedCount}\nFailed to find: ${errorCount}`);
+                loadCollectionData();
+            },
+            error: (err) => {
+                console.error("[Collection v29.5] CSV Parsing Error:", err);
+                if (elements.csvStatus) {
+                    elements.csvStatus.textContent = "Error parsing CSV file.";
+                    elements.csvStatus.classList.add('text-red-500');
+                }
+            }
+        });
+    };
+
+    const exportCollectionAsText = () => {
+        if (fullCollection.length === 0) {
+            alert("Your collection is empty.");
+            return;
+        }
+
+        const exportModal = document.createElement('div');
+        exportModal.id = 'export-modal';
+        exportModal.className = 'modal-overlay open';
+        exportModal.innerHTML = `
+            <div class="modal-content w-full max-w-lg dark:bg-gray-800">
+                <button id="close-export-modal" class="close-button">&times;</button>
+                <h2 class="text-2xl font-bold mb-4 dark:text-white">Export Collection</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Export Format</label>
+                        <select id="export-format" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="text">Plain Text</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Include Fields</label>
+                        <div id="export-fields" class="mt-2 grid grid-cols-2 gap-2">
+                            <label class="flex items-center"><input type="checkbox" value="set" class="mr-2" checked>Set Code</label>
+                            <label class="flex items-center"><input type="checkbox" value="setName" class="mr-2" checked>Expansion Name</label>
+                            <label class="flex items-center"><input type="checkbox" value="quantity" class="mr-2" checked>Quantity</label>
+                            <label class="flex items-center"><input type="checkbox" value="isFoil" class="mr-2">Is Foil</label>
+                            <label class="flex items-center"><input type="checkbox" value="isSigned" class="mr-2">Is Signed</label>
+                            <label class="flex items-center"><input type="checkbox" value="notes" class="mr-2">Notes</label>
+                            <label class="flex items-center"><input type="checkbox" value="priceUsd" class="mr-2">Market Price</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-right">
+                    <button id="confirm-export-btn" class="px-6 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600">Export</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(exportModal);
+
+        document.getElementById('close-export-modal').addEventListener('click', () => {
+            exportModal.remove();
+        });
+
+        document.getElementById('confirm-export-btn').addEventListener('click', () => {
+            const format = document.getElementById('export-format').value;
+            const selectedFields = Array.from(document.querySelectorAll('#export-fields input:checked')).map(cb => cb.value);
+
+            let output = '';
+            if (format === 'csv') {
+                const headers = ['Name', ...selectedFields].join(',');
+                const rows = fullCollection.map(card => {
+                    const row = [card.name];
+                    selectedFields.forEach(field => row.push(card[field] || ''));
+                    return row.join(',');
+                }).join('\n');
+                output = `${headers}\n${rows}`;
+            } else {
+                output = fullCollection.map(card => {
+                    let line = `${card.quantity || 1} ${card.name}`;
+                    selectedFields.forEach(field => {
+                        if (card[field]) line += ` [${field}: ${card[field]}]`;
+                    });
+                    return line;
+                }).join('\n');
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = output;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert("Collection copied to clipboard!");
+            exportModal.remove();
+        });
+    };
+
+    const toggleBulkEditMode = () => {
+        bulkEditMode = !bulkEditMode;
+        selectedCards.clear();
+        if (elements.selectAllCheckbox) elements.selectAllCheckbox.checked = false;
+
+        if (bulkEditMode) {
+            if (elements.bulkEditBtn) {
+                elements.bulkEditBtn.textContent = 'Cancel';
+                elements.bulkEditBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            }
+            if (elements.bulkActionBar) elements.bulkActionBar.classList.remove('hidden');
+            if (elements.quickEditBtn) elements.quickEditBtn.classList.add('hidden');
+        } else {
+            if (elements.bulkEditBtn) {
+                elements.bulkEditBtn.textContent = 'Bulk Edit';
+                elements.bulkEditBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            }
+            if (elements.bulkActionBar) elements.bulkActionBar.classList.add('hidden');
+            if (elements.quickEditBtn) elements.quickEditBtn.classList.remove('hidden');
+        }
+        updateSelectedCount();
+        renderCurrentView();
+    };
+
+    const toggleQuickEditMode = () => {
+        quickEditMode = !quickEditMode;
+        if (quickEditMode) {
+            currentView = 'list';
+            if (elements.quickEditSaveBar) elements.quickEditSaveBar.classList.remove('hidden');
+            if (elements.bulkEditBtn) elements.bulkEditBtn.classList.add('hidden');
+            if (elements.quickEditBtn) {
+                elements.quickEditBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Cancel';
+                elements.quickEditBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+                elements.quickEditBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+            }
+            renderQuickEditView();
+        } else {
+            currentView = 'grid';
+            if (elements.quickEditSaveBar) elements.quickEditSaveBar.classList.add('hidden');
+            if (elements.bulkEditBtn) elements.bulkEditBtn.classList.remove('hidden');
+            if (elements.quickEditBtn) {
+                elements.quickEditBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Quick Edit';
+                elements.quickEditBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                elements.quickEditBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+            }
+            renderCurrentView();
+        }
+    };
+
+    const renderQuickEditView = () => {
+        const container = elements.collectionTableView;
+        if (!container) return;
+
+        if (elements.collectionGridView) elements.collectionGridView.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        let tableHTML = `
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Lang</th>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Foil</th>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Signed</th>
+                        <th class="p-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">`;
+        fullCollection.forEach(card => {
+            tableHTML += `
+                <tr data-id="${card.id}" class="quick-edit-row">
+                    <td class="p-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name}</td>
+                    <td class="p-2"><input type="number" value="${card.quantity || 1}" class="w-16 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="quantity"></td>
+                    <td class="p-2">
+                        <select class="p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="condition">
+                            <option ${card.condition === 'Near Mint' ? 'selected' : ''}>Near Mint</option>
+                            <option ${card.condition === 'Lightly Played' ? 'selected' : ''}>Lightly Played</option>
+                            <option ${card.condition === 'Moderately Played' ? 'selected' : ''}>Moderately Played</option>
+                            <option ${card.condition === 'Heavily Played' ? 'selected' : ''}>Heavily Played</option>
+                            <option ${card.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                        </select>
+                    </td>
+                    <td class="p-2"><input type="text" value="${card.language || 'English'}" class="w-20 p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="language"></td>
+                    <td class="p-2"><input type="checkbox" ${card.isFoil ? 'checked' : ''} class="h-4 w-4 rounded quick-edit-input" data-field="isFoil"></td>
+                    <td class="p-2"><input type="checkbox" ${card.isSigned ? 'checked' : ''} class="h-4 w-4 rounded quick-edit-input" data-field="isSigned"></td>
+                    <td class="p-2"><input type="text" value="${card.notes || ''}" class="w-full p-1 border rounded dark:bg-gray-900 dark:border-gray-600 quick-edit-input" data-field="notes"></td>
+                </tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        container.innerHTML = tableHTML;
+    };
+
+    const saveQuickEdits = async () => {
+        if (!elements.saveQuickEditsBtn) return;
+        elements.saveQuickEditsBtn.disabled = true;
+        elements.saveQuickEditsBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+
+        const batch = db.batch();
+        const rows = document.querySelectorAll('.quick-edit-row');
+
+        rows.forEach(row => {
+            const docId = row.dataset.id;
+            if (docId) {
+                const docRef = db.collection('users').doc(user.uid).collection('collection').doc(docId);
+                const updatedData = {};
+                row.querySelectorAll('.quick-edit-input').forEach(input => {
+                    const field = input.dataset.field;
+                    let value;
+                    if (input.type === 'checkbox') value = input.checked;
+                    else if (input.type === 'number') value = parseInt(input.value, 10) || 1;
+                    else value = input.value;
+                    updatedData[field] = value;
+                });
+                batch.update(docRef, updatedData);
+            }
+        });
+
+        try {
+            await batch.commit();
+            alert("All changes saved successfully!");
+        } catch (error) {
+            console.error("Error saving quick edits:", error);
+            alert("An error occurred while saving changes.");
+        } finally {
+            elements.saveQuickEditsBtn.disabled = false;
+            elements.saveQuickEditsBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save All Changes';
+            toggleQuickEditMode(); // Exit quick edit mode
+            loadCollectionData(); // Reload data
+        }
+    };
+
+    const updateSelectedCount = () => {
+        if (elements.selectedCountEl) {
+            elements.selectedCountEl.textContent = `${selectedCards.size} cards selected`;
+        }
+    };
+
+    const handleCardSelection = (cardId) => {
+        if (selectedCards.has(cardId)) {
+            selectedCards.delete(cardId);
+        } else {
+            selectedCards.add(cardId);
+        }
+        updateSelectedCount();
+        const cardEl = elements.collectionGridView.querySelector(`div[data-id="${cardId}"]`);
+        if (cardEl) {
+            cardEl.querySelector('.bulk-checkbox-overlay')?.classList.toggle('hidden', !selectedCards.has(cardId));
+        }
+    };
+
+    const openModalHandler = async (modalToOpen, cardId, listType) => {
+        if (!modalToOpen) return;
+        try {
+            const docRef = db.collection('users').doc(user.uid).collection(listType).doc(cardId);
+            const docSnap = await docRef.get();
+            if (!docSnap.exists) {
+                console.error("Card document not found:", cardId);
+                return;
+            }
+            const card = docSnap.data();
+
+            if (modalToOpen === elements.editCardModal) {
+                document.getElementById('edit-card-id').value = cardId;
+                document.getElementById('edit-card-list-type').value = listType;
+                document.getElementById('edit-card-quantity').value = card.quantity || 1;
+                document.getElementById('edit-card-condition').value = card.condition;
+                document.getElementById('edit-card-language').value = card.language || 'English';
+                document.getElementById('edit-card-purchase-price').value = card.purchasePrice || '';
+                document.getElementById('edit-card-notes').value = card.notes || '';
+                document.getElementById('edit-card-foil').checked = card.isFoil || false;
+                document.getElementById('edit-card-signed').checked = card.isSigned || false;
+            } else if (modalToOpen === elements.manageListingModal) {
+                document.getElementById('listing-card-id').value = cardId;
+                document.getElementById('listing-card-image').src = card.customImageUrl || getCardImageUrl(card);
+                document.getElementById('listing-card-name').textContent = card.name;
+                document.getElementById('listing-card-set').textContent = card.setName;
+                const forSaleToggle = document.getElementById('forSale');
+                if(forSaleToggle) {
+                    forSaleToggle.checked = card.forSale || false;
+                    document.getElementById('price-input-container').classList.toggle('hidden', !forSaleToggle.checked);
+                }
+            }
+            openModal(modalToOpen);
+        } catch(error) {
+            console.error("Error opening modal:", error);
+            alert("Could not open the dialog. See console for details.");
+        }
+    };
+
+    const deleteCard = async (cardId, listType) => {
+        try {
+            await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
+            if (listType === 'collection') loadCollectionData();
+            else loadWishlistData();
+        } catch (error) {
+            console.error("Error deleting card:", error);
+            alert("Could not delete card.");
+        }
+    };
+
+    // --- Attaching Event Listeners ---
+    if (elements.bulkEditBtn) elements.bulkEditBtn.addEventListener('click', toggleBulkEditMode);
+    if (elements.quickEditBtn) elements.quickEditBtn.addEventListener('click', toggleQuickEditMode);
+    if (elements.saveQuickEditsBtn) elements.saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
+    if (elements.exportCollectionBtn) elements.exportCollectionBtn.addEventListener('click', exportCollectionAsText);
+
+    mainContainer.addEventListener('click', (e) => {
+        const target = e.target;
+        const cardElement = target.closest('.group[data-id]');
+        if (!cardElement) return;
+
+        const cardId = cardElement.dataset.id;
+        const listType = cardElement.closest('#wishlist-list') ? 'wishlist' : 'collection';
+
+        const isActionBtn = target.closest('.edit-card-btn, .delete-card-btn, .manage-listing-btn');
+
+        if (bulkEditMode && listType === 'collection' && !isActionBtn) {
+            handleCardSelection(cardId);
+            return;
+        }
+
+        if (target.closest('.edit-card-btn')) {
+            openModalHandler(elements.editCardModal, cardId, listType);
+        } else if (target.closest('.delete-card-btn')) {
+            if (confirm('Are you sure you want to delete this card?')) {
+                deleteCard(cardId, listType);
+            }
+        } else if (target.closest('.manage-listing-btn')) {
+            openModalHandler(elements.manageListingModal, cardId, listType);
+        } else if (!isActionBtn) {
+            const cardDataSource = listType === 'collection' ? fullCollection : fullWishlist;
+            const cardData = cardDataSource.find(c => c.id === cardId);
+            if (cardData && cardData.scryfallId) {
+                window.location.href = `card-view.html?id=${cardData.scryfallId}`;
+            }
         }
     });
-    
-    // Uses the 'ensureConversationExists' Cloud Function for robust, secure creation
-    const startConversation = async (otherUserId, otherUserData) => {
-        const ensureConversation = functions.httpsCallable('ensureConversationExists');
-        try {
-            const result = await ensureConversation({ otherUserId });
-            const conversationId = result.data.conversationId;
-            selectConversation(conversationId, otherUserData);
-        } catch (error) {
-            console.error("Error starting or getting conversation:", error);
-            alert("Could not start conversation. " + error.message);
-        }
-    };
 
-    if (newConversationBtn) {
-        newConversationBtn.addEventListener('click', () => {
-            if (window.openNewConversationModal) {
-                window.openNewConversationModal(false, startConversation);
-            } else {
-                console.error('openNewConversationModal function not found. Is auth.js loaded correctly?');
+    if (elements.selectAllCheckbox) {
+        elements.selectAllCheckbox.addEventListener('change', (e) => {
+            filteredCollection.map(c => c.id).forEach(id => {
+                if (e.target.checked) selectedCards.add(id);
+                else selectedCards.delete(id);
+            });
+            updateSelectedCount();
+            renderCurrentView();
+        });
+    }
+
+    if (elements.deleteSelectedBtn) {
+        elements.deleteSelectedBtn.addEventListener('click', async () => {
+            if (selectedCards.size === 0) return alert("Please select cards to delete.");
+            if (confirm(`Are you sure you want to delete ${selectedCards.size} selected cards?`)) {
+                const batch = db.batch();
+                const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+                selectedCards.forEach(cardId => batch.delete(collectionRef.doc(cardId)));
+                try {
+                    await batch.commit();
+                    alert(`${selectedCards.size} cards deleted.`);
+                    toggleBulkEditMode();
+                    loadCollectionData();
+                } catch (error) {
+                    console.error("Error deleting selected cards:", error);
+                    alert("An error occurred while deleting cards.");
+                }
             }
         });
     }
 
-    const checkForUrlParams = async () => {
-        const params = new URLSearchParams(window.location.search);
-        const userIdToMessage = params.get('userId');
-        if (userIdToMessage && userIdToMessage !== user.uid) {
+    if (elements.editCardForm) {
+        elements.editCardForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = elements.editCardForm.querySelector('button[type="submit"]');
+            if(submitButton) submitButton.disabled = true;
             try {
-                const userToMessageDoc = await db.collection('users').doc(userIdToMessage).get();
-                if (userToMessageDoc.exists) {
-                    await startConversation(userIdToMessage, userToMessageDoc.data());
-                    history.replaceState(null, '', window.location.pathname);
-                } else {
-                    console.warn("User from URL parameter not found.");
-                }
+                const cardId = document.getElementById('edit-card-id').value;
+                const listType = document.getElementById('edit-card-list-type').value;
+                const updatedData = {
+                    quantity: parseInt(document.getElementById('edit-card-quantity').value, 10),
+                    condition: document.getElementById('edit-card-condition').value,
+                    language: document.getElementById('edit-card-language').value,
+                    purchasePrice: parseFloat(document.getElementById('edit-card-purchase-price').value) || 0,
+                    notes: document.getElementById('edit-card-notes').value,
+                    isFoil: document.getElementById('edit-card-foil').checked,
+                    isSigned: document.getElementById('edit-card-signed').checked,
+                };
+                await db.collection('users').doc(user.uid).collection(listType).doc(cardId).update(updatedData);
+                alert("Card updated successfully!");
+                closeModal(elements.editCardModal);
+                if (listType === 'collection') loadCollectionData();
+                else loadWishlistData();
             } catch (error) {
-                console.error("Error starting conversation from URL:", error);
+                console.error("Error updating card:", error);
+                alert("Could not update card.");
+            } finally {
+                if(submitButton) submitButton.disabled = false;
             }
+        });
+    }
+
+    if (elements.manageListingForm) {
+        elements.manageListingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cardId = document.getElementById('listing-card-id').value;
+            const isForSale = document.getElementById('forSale').checked;
+            const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
+            const updatedData = {
+                forSale: isForSale,
+                salePrice: isForSale ? salePrice : firebase.firestore.FieldValue.delete()
+            };
+            await db.collection('users').doc(user.uid).collection('collection').doc(cardId).update(updatedData);
+            closeModal(elements.manageListingModal);
+            loadCollectionData();
+        });
+    }
+
+    if (elements.filterNameInput) elements.filterNameInput.addEventListener('input', applyFilters);
+    if (elements.filterSetSelect) elements.filterSetSelect.addEventListener('change', applyFilters);
+    if (elements.filterRaritySelect) elements.filterRaritySelect.addEventListener('change', applyFilters);
+    if (elements.filterColorSelect) elements.filterColorSelect.addEventListener('change', applyFilters);
+    if (elements.resetFiltersBtn) elements.resetFiltersBtn.addEventListener('click', () => {
+        if(elements.filterNameInput) elements.filterNameInput.value = '';
+        if(elements.filterSetSelect) elements.filterSetSelect.value = 'all';
+        if(elements.filterRaritySelect) elements.filterRaritySelect.value = 'all';
+        if(elements.filterColorSelect) elements.filterColorSelect.value = 'all';
+        applyFilters();
+    });
+
+    const switchView = (view) => {
+        currentView = view;
+        if (elements.gridViewBtn && elements.listViewBtn) {
+            elements.gridViewBtn.classList.toggle('bg-blue-600', view === 'grid');
+            elements.gridViewBtn.classList.toggle('text-white', view === 'grid');
+            elements.listViewBtn.classList.toggle('bg-blue-600', view === 'list');
+            elements.listViewBtn.classList.toggle('text-white', view === 'list');
         }
+        renderCurrentView();
     };
 
-    listenForConversations();
-    checkForUrlParams();
-});
+    if (elements.gridViewBtn) elements.gridViewBtn.addEventListener('click', () => switchView('grid'));
+    if (elements.listViewBtn) elements.listViewBtn.addEventListener('click', () => switchView('list'));
 
-document.addEventListener('DOMContentLoaded', () => {
-    const conversationsList = document.getElementById('conversations-list');
-    const chatWindow = document.getElementById('chat-window');
-    window.showChatArea = () => {
-        if (window.innerWidth < 1024) {
-            if (conversationsList) conversationsList.classList.add('hidden');
-            if (chatWindow) {
-                chatWindow.classList.remove('hidden');
-                chatWindow.classList.add('flex');
-            }
-        }
-    };
-});
+    document.getElementById('close-edit-card-modal')?.addEventListener('click', () => closeModal(elements.editCardModal));
+    document.getElementById('close-listing-modal')?.addEventListener('click', () => closeModal(elements.manageListingModal));
+    document.getElementById('close-list-sale-modal')?.addEventListener('click', () => closeModal(elements.listForSaleModal));
+    document.getElementById('close-add-version-modal')?.addEventListener('click', () => closeModal(elements.addVersionModal));
+    
+    // --- Tab Switching Logic ---
+    elements.tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetContentId = `content-${tab.id.split('-')[1]}`;
+            
+            elements.tabs.forEach(t => t.classList.remove('text-blue-600', 'border-blue-600'));
+            tab.classList.add('text-blue-600', 'border-blue-600');
+            
+            elements.tabContents.forEach(content => {
+                if (content.id === targetContentId) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
 
-Please write fully coded files without any placeholder data.
+    // --- Initial Load ---
+    console.log('[Collection v29.5] Starting initial data load.');
+    loadCollectionData();
+    loadWishlistData();
+});
