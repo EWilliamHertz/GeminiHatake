@@ -111,7 +111,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         messageWrapper.id = `message-${messageId}`;
         const isCurrentUser = message.senderId === user.uid;
         messageWrapper.className = `flex flex-col mb-3 ${isCurrentUser ? 'items-end' : 'items-start'}`;
-        messageBubble = document.createElement('div');
+        const messageBubble = document.createElement('div');
         messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
         messageBubble.textContent = message.text;
         const timestampEl = document.createElement('p');
@@ -132,12 +132,25 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         if (text === '' || !activeConversationId) return;
         const originalMessage = text;
         messageInput.value = '';
-        
-        const sendMessage = window.functions.httpsCallable('sendMessage');
+
+        const messageData = {
+            text: originalMessage,
+            senderId: user.uid,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const convoRef = db.collection('conversations').doc(activeConversationId);
+        const messageRef = convoRef.collection('messages').doc();
+
+        const batch = db.batch();
+        batch.set(messageRef, messageData);
+        batch.update(convoRef, {
+            lastMessage: originalMessage,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
         try {
-            const convoDoc = await db.collection('conversations').doc(activeConversationId).get();
-            const recipientId = convoDoc.data().participants.find(p => p !== user.uid);
-            await sendMessage({ recipientId, messageText: originalMessage });
+            await batch.commit();
             scrollToBottom();
         } catch (error) {
             console.error("Error sending message:", error);
@@ -147,10 +160,38 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     });
     
     const startConversation = async (otherUserId, otherUserData) => {
-        const ensureConversation = window.functions.httpsCallable('ensureConversationExists');
+        if (user.uid === otherUserId) {
+            alert("You cannot start a conversation with yourself.");
+            return;
+        }
+
         try {
-            const result = await ensureConversation({ otherUserId });
-            const conversationId = result.data.conversationId;
+            // Create a consistent conversation ID
+            const conversationId = [user.uid, otherUserId].sort().join('_');
+            const convoRef = db.collection('conversations').doc(conversationId);
+            const doc = await convoRef.get();
+
+            if (!doc.exists) {
+                // If the conversation doesn't exist, create it
+                await convoRef.set({
+                    participants: [user.uid, otherUserId],
+                    participantInfo: {
+                        [user.uid]: {
+                            displayName: user.displayName,
+                            photoURL: user.photoURL,
+                            handle: user.handle
+                        },
+                        [otherUserId]: {
+                            displayName: otherUserData.displayName,
+                            photoURL: otherUserData.photoURL,
+                            handle: otherUserData.handle
+                        }
+                    },
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastMessage: ''
+                });
+            }
             selectConversation(conversationId, otherUserData);
         } catch (error) {
             console.error("Error starting conversation:", error);
