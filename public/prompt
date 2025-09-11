@@ -1,312 +1,967 @@
-On messages, the navbar menu is expanded by default and nothing else shows on the page.
-And on the computer there is two navbars, can we try to please re:write messages.html to be mobile optimized? I will send you the original messages.html
-This is messages.html:
-<!DOCTYPE html>
-<html class="dark" lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>
-   Messages - HatakeSocial
-  </title>
-<script src="https://cdn.tailwindcss.com">
-</script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<link href="css/style.css" rel="stylesheet"/>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js">
-</script>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-<div id="toast-container">
-</div>
-<div class="flex h-screen"><div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
-<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-<div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-<a class="flex flex-col items-center space-y-1" href="app.html">
-<img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
-<span class="font-bold text-lg text-blue-600 dark:text-blue-400">
-       HatakeSocial
-      </span>
-</a>
-</div>
-<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
-<i class="fas fa-home w-6 text-center">
-</i>
-<span class="ml-3">
-       Feed
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="messages.html">
-<i class="fas fa-comments w-6 text-center">
-</i>
-<span class="ml-3">
-       Messages
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
-<i class="fas fa-users w-6 text-center">
-</i>
-<span class="ml-3">
-       Community
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a><a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog"><i class="fas fa-blog w-6 text-center"></i><span class="ml-3">Hatake Blog</span></a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
-<i class="fas fa-calendar-alt w-6 text-center">
-</i>
-<span class="ml-3">
-       Events
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
-<i class="fas fa-layer-group w-6 text-center">
-</i>
-<span class="ml-3">
-       My Collection
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
-<i class="fas fa-book-open w-6 text-center">
-</i>
-<span class="ml-3">
-       Deck Builder
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
-<i class="fas fa-shopping-cart w-6 text-center">
-</i>
-<span class="ml-3">
-       Shop
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
-<i class="fas fa-store w-6 text-center">
-</i>
-<span class="ml-3">
-       Marketplace
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
-<i class="fas fa-exchange-alt w-6 text-center">
-</i>
-<span class="ml-3">
-       Trades
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
-<i class="fas fa-user w-6 text-center">
-</i>
-<span class="ml-3">
-       Profile
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
-<i class="fas fa-cog w-6 text-center">
-</i>
-<span class="ml-3">
-       Settings
-      </span>
-</a>
-<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
-<i class="fas fa-info-circle w-6 text-center">
-</i>
-<span class="ml-3">
-       About Us
-      </span>
-</a>
-</nav>
-<div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
-</div>
-</aside>
-<main class="flex-1 flex flex-col overflow-y-auto">
-<header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-<div class="flex items-center">
-<button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-<i class="fas fa-bars text-xl">
-</i>
-</button>
-<div class="relative">
-<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-</i>
-<input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-<div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
-</div>
-</div>
-</div>
-<div class="flex items-center space-x-5" id="user-actions">
-<div class="space-x-2">
-<button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
-        Login
-       </button>
-<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="header-register-btn">
-        Register
-       </button>
-</div>
-</div>
-</header>
-<div class="flex-1 flex overflow-hidden">
-<div class="w-full md:w-1/3 lg:w-1/4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col" id="conversations-list">
-<div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-wrap gap-2">
-<button class="flex-grow bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center" id="new-conversation-btn">
-<i class="fas fa-plus mr-2"></i>
-<span>New Message</span>
-</button>
-</div>
-<div class="flex-1 overflow-y-auto" id="conversations-container">
-<p class="p-4 text-center text-gray-500">
-        Loading conversations...
-       </p>
-</div>
-</div>
-<div class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900" id="chat-window">
-<div class="flex-1 flex flex-col items-center justify-center text-center p-4" id="chat-placeholder">
-<i class="fas fa-comments text-6xl text-gray-300 dark:text-gray-600">
-</i>
-<h2 class="mt-4 text-2xl font-semibold">
-        Select a conversation
-       </h2>
-<p class="text-gray-500 dark:text-gray-400">
-        Choose from your existing conversations or start a new one.
-       </p>
-</div>
-<div class="hidden flex-1 flex flex-col overflow-hidden" id="active-chat-container">
-<div class="flex items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" id="chat-header">
-</div>
-<div class="flex-1 p-4 overflow-y-auto space-y-2" id="messages-container">
-</div>
-<div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-<form class="flex items-center space-x-3" id="message-form">
-<input autocomplete="off" class="flex-1 p-2 border rounded-full bg-gray-100 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="message-input" placeholder="Type a message..." type="text"/>
-<button class="bg-blue-600 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-blue-700 flex-shrink-0" type="submit">
-<i class="fas fa-paper-plane">
-</i>
-</button>
-</form>
-</div>
-</div>
-</div>
-</div>
-</main>
-</div>
-<script src="js/auth.js">
-</script>
-<script src="js/messages.js">
-</script>
-<script src="js/darkmode.js">
-</script>
-<script src="js/messenger.js">
-</script>
+import { auth } from "firebase-admin"
+
+This is what it says in the functions page on Firebase:
+releaseEscrowFunds 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/releaseEscrowFunds 
+v1 0 0 / — 1 m broadcastMessage 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/broadcastMessage 
+v1 0 0 / — 1 m createEscrowTransaction 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/createEscrowTransaction 
+v1 0 0 / — 1 m suspendUser 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/suspendUser 
+v1 0 0 / — 1 m onUserCreate 
+us-central1 
+user.create 
+v1 3 0 / 3000 1 m onFollow 
+us-central1 
+document.update 
+users/{userId} 
+v1 0 0 / 3000 1 m setUserAdminClaim 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/setUserAdminClaim 
+v1 0 0 / — 1 m onProductDelete 
+us-central1 
+document.delete 
+products/{productId} 
+v1 0 0 / 3000 1 m onCardForTradeCreate 
+us-central1 
+document.create 
+users/{userId}/collection/{cardId} 
+v1 2 0 / 3000 1 m sendMessage 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/sendMessage 
+v1 24 1 / — 1 m onPostCreate 
+us-central1 
+document.create 
+posts/{postId} 
+v1 0 0 / 3000 1 m onNewMessage 
+us-central1 
+document.create 
+conversations/{conversationId}/messages/{messageId} 
+v1 11 0 / 3000 1 m banUser 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/banUser 
+v1 0 0 / — 1 m validateCoupon 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/validateCoupon 
+v1 0 0 / — 1 m toggleFollowUser 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/toggleFollowUser 
+v1 0 0 / — 1 m ensureConversationExists 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/ensureConversationExists 
+v1 17 0 / — 1 m generateImpersonationToken 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/generateImpersonationToken 
+v1 0 0 / — 1 m unBanUser 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/unBanUser 
+v1 0 0 / — 1 m setContentCreatorClaim 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/setContentCreatorClaim 
+v1 0 0 / — 1 m manageWishlist 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/manageWishlist 
+v1 0 0 / — 1 m registerUserWithReferral 
+us-central1 
+Request 
+https://us-central1-hatakesocial-88b5e.cloudfunctions.net/registerUserWithReferral 
+v1 0 0 / — 1 m onUserDeleted 
+us-central1 
+user.delete 
+v1 0 0 / 3000 1 m createCheckoutSession 
+us-central1
+
+This is auth.js:
+/**
+* HatakeSocial - Merged Authentication & Global UI Script (v18 - New Conversation Modal)
+*
+* - NEW: Added openNewConversationModal function to allow starting new chats from any page.
+* - NEW: Redirects user to app.html immediately after successful login or registration.
+* - NEW: Redirects logged-in users from the landing page (index.html) to app.html automatically.
+* - FIX: Resolves a race condition where the app would try to load a user's profile before the backend function created it, causing a flashing/reload loop. Now uses a Firestore onSnapshot listener to wait for the document to exist.
+* - FIX: Ensures the verification email is sent immediately and reliably upon registration.
+* - FIX: Corrects the logic that was preventing the Terms of Service modal from appearing.
+*/
+
+// --- Global Toast Notification Function ---
+const showToast = (message, type = 'info') => {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-5 right-5 z-[1003]'; // Higher z-index
+        document.body.appendChild(toastContainer);
+        container = toastContainer;
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 5000);
+};
+
+// --- Global Modal Helper Functions ---
+window.openModal = (modal) => {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const errorMsg = modal.querySelector('[id$="-error-message"]');
+        if (errorMsg) {
+            errorMsg.classList.add('hidden');
+            errorMsg.textContent = '';
+        }
+    }
+};
+window.closeModal = (modal) => {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+// --- NEW: New Conversation Modal ---
+window.openNewConversationModal = (isWidget = false, callback) => {
+    const existingModal = document.getElementById('new-conversation-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'new-conversation-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1002]';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col" style="height: 70vh; max-height: 500px;">
+            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold">New Message</h2>
+                <button id="close-new-convo-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-4">
+                <input type="text" id="user-search-input" placeholder="Search for a user..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="user-search-results" class="flex-grow overflow-y-auto p-4 space-y-2">
+                <p class="text-center text-gray-500">Start typing to find users.</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const searchInput = modal.querySelector('#user-search-input');
+    const searchResultsContainer = modal.querySelector('#user-search-results');
+    const closeModalBtn = modal.querySelector('#close-new-convo-modal');
+
+    closeModalBtn.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target.id === 'new-conversation-modal') {
+            modal.remove();
+        }
+    });
+
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length < 2) {
+            searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 2 characters.</p>';
+            return;
+        }
+
+        searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+        searchTimeout = setTimeout(async () => {
+            try {
+                const currentUser = firebase.auth().currentUser;
+                if (!currentUser) return;
+
+                const usersRef = firebase.firestore().collection('users');
+                const snapshot = await usersRef.where('displayName_lower', '>=', query).where('displayName_lower', '<=', query + '\uf8ff').limit(10).get();
+                
+                searchResultsContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        if (doc.id === currentUser.uid) return; // Don't show current user
+
+                        const userElement = document.createElement('div');
+                        userElement.className = 'flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                        userElement.innerHTML = `
+                            <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            <div>
+                                <p class="font-semibold">${userData.displayName}</p>
+                                <p class="text-sm text-gray-500">@${userData.handle || 'N/A'}</p>
+                            </div>
+                        `;
+                        userElement.addEventListener('click', () => {
+                            if (callback) {
+                                callback(doc.id, userData);
+                            }
+                            modal.remove();
+                        });
+                        searchResultsContainer.appendChild(userElement);
+                    });
+                }
+            } catch (error) {
+                console.error("Error searching for users:", error);
+                searchResultsContainer.innerHTML = '<p class="text-center text-red-500">Error searching for users.</p>';
+            }
+        }, 500);
+    });
+};
 
 
-<script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
-<script src="/__/firebase/init.js"></script>
-<div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
-<div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-<h2 class="text-xl font-bold">Your Cart</h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
-</div>
-<div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-<p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
-</div>
-<div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-<div class="flex justify-between items-center font-bold text-lg">
-<span>Subtotal</span>
-<span id="cart-subtotal">$0.00</span>
-</div>
-<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Shipping &amp; taxes calculated at checkout.</p>
-<button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
-                    Proceed to Checkout
-                </button>
-</div>
-</div>
-</div>
-<script src="js/cart.js"></script>
-<script>
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.style.opacity = '0';
 
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
-            sidebarOverlay.classList.toggle('hidden');
+    // --- Firebase Initialization ---
+    if (!firebase.apps.length) {
+        // Replace with your actual Firebase config if not using /__/firebase/init.js
+        firebase.initializeApp(); 
+    }
+    if (typeof firebase.analytics === 'function') {
+        window.analytics = firebase.analytics();
+    }
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+    window.storage = firebase.storage();
+    if (typeof firebase.functions === 'function') {
+        window.functions = firebase.functions();
+    } else {
+        window.functions = null;
+        console.warn('Firebase Functions library not loaded.');
+    }
+
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+
+    // --- MESSENGER WIDGET FIX ---
+    if (localStorage.getItem('messengerWidget-visible') === null) {
+        localStorage.setItem('messengerWidget-visible', 'false');
+    }
+
+    // --- Internationalization & Currency ---
+    window.HatakeSocial = {
+        conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
+        currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
+        currentUserData: null,
+        convertAndFormatPrice(amount, fromCurrency = 'SEK') {
+            const toCurrency = this.currentCurrency;
+            if (amount === undefined || amount === null || isNaN(amount)) {
+                return `0.00 ${toCurrency}`;
+            }
+            const fromRate = this.conversionRates[fromCurrency];
+            if (fromRate === undefined) return `N/A`;
+            const amountInSEK = amount / fromRate;
+            const toRate = this.conversionRates[toCurrency];
+            if (toRate === undefined) return `N/A`;
+            const convertedAmount = amountInSEK * toRate;
+            return `${convertedAmount.toFixed(2)} ${toCurrency}`;
+        }
+    };
+
+    const setupCurrencySelector = () => {
+        const container = document.getElementById('currency-selector-container');
+        if (!container) return;
+
+        container.innerHTML = `
+        <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
+        <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
+            <option value="SEK">SEK</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+        </select>
+        `;
+        const selector = document.getElementById('currency-selector');
+        selector.value = window.HatakeSocial.currentCurrency;
+
+        selector.addEventListener('change', (e) => {
+            window.HatakeSocial.currentCurrency = e.target.value;
+            localStorage.setItem('hatakeCurrency', e.target.value);
+            window.location.reload();
+        });
+    };
+    
+    const setupGlobalListeners = () => {
+        const headerSearchForm = document.querySelector('header form#header-search-form');
+        const googleLoginButton = document.getElementById('googleLoginButton');
+        const googleRegisterButton = document.getElementById('googleRegisterButton');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const registerForm = document.getElementById('registerForm');
+
+        document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
+
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorMessageEl = document.getElementById('login-error-message');
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    window.location.href = 'app.html';
+                })
+                .catch(err => {
+                    errorMessageEl.textContent = err.message;
+                    errorMessageEl.classList.remove('hidden');
+                });
+        });
+
+        if(registerForm) {
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                showTermsModal();
+            });
+        } else {
+            console.warn("Could not find the registration form to attach listener.");
+        }
+
+        const handleGoogleAuth = () => {
+            auth.signInWithPopup(googleProvider)
+                .then(result => {
+                    console.log('Google sign-in successful. Redirecting...');
+                    window.location.href = 'app.html';
+                })
+                .catch(err => showToast(err.message, "error"));
+        };
+
+        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
+        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
+
+        if (headerSearchForm) {
+            headerSearchForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const searchBar = document.getElementById('searchBar');
+                const query = searchBar.value.trim();
+                if (query) {
+                    window.location.href = `search.html?query=${encodeURIComponent(query)}`;
+                }
+            });
+        }
+        
+        const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+        if (scrollToTopBtn) {
+            window.addEventListener('scroll', () => {
+                scrollToTopBtn.classList.toggle('hidden', window.pageYOffset <= 200);
+            });
+            scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        if (mobileMenuButton) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    };
+
+    let friendRequestHandshakeListener = null;
+    function listenForAcceptedRequests(user) {
+        if (friendRequestHandshakeListener) {
+            friendRequestHandshakeListener();
+        }
+
+        const sentRequestsRef = db.collection('friendRequests')
+            .where('senderId', '==', user.uid)
+            .where('status', '==', 'accepted');
+
+        friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
+            if (snapshot.empty) return;
+
+            const batch = db.batch();
+            const currentUserRef = db.collection('users').doc(user.uid);
+
+            for (const doc of snapshot.docs) {
+                const request = doc.data();
+                const newFriendId = request.receiverId;
+                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(newFriendId) });
+                batch.delete(doc.ref);
+                const notificationData = {
+                    message: `You are now friends with ${request.receiverName || 'a new user'}.`,
+                    link: `/profile.html?uid=${newFriendId}`,
+                    isRead: false,
+                    timestamp: new Date()
+                };
+                const notificationRef = db.collection('users').doc(user.uid).collection('notifications').doc();
+                batch.set(notificationRef, notificationData);
+            }
+
+            try {
+                await batch.commit();
+            } catch (error) {
+                console.error("Error completing friend handshake:", error);
+            }
+        }, error => {
+            console.error("Error listening for accepted friend requests:", error);
         });
     }
 
-    if (sidebarOverlay) {
-        sidebarOverlay.addEventListener('click', () => {
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
+    function sanitizeHTML(str) {
+        const temp = document.createElement('div');
+        temp.textContent = str;
+        return temp.innerHTML;
+    }
+
+    let unsubscribeNotifications = null;
+    let verificationTimer = null;
+    
+    auth.onAuthStateChanged(async (user) => {
+        if (verificationTimer) {
+            clearInterval(verificationTimer);
+            verificationTimer = null;
+        }
+
+        const mainSidebarNav = document.querySelector('#sidebar nav');
+        const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
+        if (existingAdminSidebarLink) {
+            existingAdminSidebarLink.remove();
+        }
+
+        if (user && !user.emailVerified) {
+            document.body.innerHTML = `
+            <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+                <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox (and spam folder) and click the link to activate your account.
+                    </p>
+                    <div class="space-x-4">
+                        <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
+                        <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
+                    </div>
+                </div>
+            </div>
+            `;
+            document.getElementById('resend-verification-btn').addEventListener('click', () => {
+                user.sendEmailVerification()
+                    .then(() => showToast('A new verification email has been sent.', 'success'))
+                    .catch(err => showToast('Error sending email: ' + err.message, 'error'));
+            });
+
+            verificationTimer = setInterval(async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                    clearInterval(verificationTimer);
+                    window.location.reload();
+                }
+            }, 5000);
+            document.body.style.opacity = '1';
+            return;
+        }
+
+        const userActions = document.getElementById('user-actions');
+        const authContainerSidebar = document.getElementById('auth-container-sidebar');
+        const mobileUserActions = document.getElementById('mobile-user-actions');
+        
+        if (user) {
+            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html');
+            if (isIndexPage) {
+                window.location.href = 'app.html';
+                return; 
+            }
+
+            closeModal(loginModal);
+            closeModal(registerModal);
+            try {
+                const userDocRef = db.collection('users').doc(user.uid);
+                let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
+                    if (doc.exists) {
+                        if (unsubscribeUserDoc) unsubscribeUserDoc(); 
+                        const userData = doc.data();
+                        window.HatakeSocial.currentUserData = userData;
+                        const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                        const idTokenResult = await user.getIdTokenResult(true);
+                        const isAdmin = idTokenResult.claims.admin === true;
+                        
+                        handleAdminAccess(isAdmin);
+                        
+                        if (isAdmin && mainSidebarNav) {
+                            const adminLink = document.createElement('a');
+                            adminLink.id = 'admin-sidebar-link';
+                            adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
+                            adminLink.href = 'admin.html';
+                            adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
+                            mainSidebarNav.appendChild(adminLink);
+                        }
+
+                        if (userActions) {
+                            userActions.innerHTML = `
+                            <div class="relative">
+                                <button id="cart-btn" class="text-gray-300 hover:text-indigo-400 text-xl"><i class="fas fa-shopping-cart"></i><span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
+                            </div>
+                            <div class="relative">
+                                <button id="notification-bell-btn" class="text-gray-300 hover:text-indigo-400 text-xl"><i class="fas fa-bell"></i><span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
+                                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                                    <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
+                                    <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
+                                    <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-transparent hover:border-indigo-500"></button>
+                                <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                                    <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
+                                    <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                                    ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
+                                    <hr class="border-gray-200 dark:border-gray-600">
+                                    <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                                </div>
+                            </div>`;
+                            document.getElementById('cart-btn').addEventListener('click', () => openModal(document.getElementById('cartModal')));
+                            document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
+                            document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
+                            document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
+                        }
+
+                        if (unsubscribeNotifications) unsubscribeNotifications();
+                        unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                            const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
+                            const countEl = document.getElementById('notification-count');
+                            const listEl = document.getElementById('notification-list');
+                            if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
+                            if (listEl) {
+                                if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
+                                else {
+                                    listEl.innerHTML = '';
+                                    snapshot.docs.slice(0, 5).forEach(doc => {
+                                        const notif = doc.data();
+                                        const el = document.createElement('a');
+                                        el.href = notif.link || '#';
+                                        el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
+                                        el.innerHTML = `<div class="flex-shrink-0 mr-3"><div class="w-3 h-3 rounded-full ${!notif.isRead ? 'bg-blue-500' : 'bg-transparent'} mt-1.5"></div></div><div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
+                                        el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
+                                        listEl.appendChild(el);
+                                    });
+                                }
+                            }
+                        }, err => console.error("Notification listener error:", err));
+
+                        if (authContainerSidebar) {
+                            authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
+                            document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
+                        }
+
+                        if (mobileUserActions) {
+                            mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
+                            document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
+                        }
+                        listenForAcceptedRequests(user);
+
+                    } else {
+                        console.log("User document not found for uid:", user.uid, ". Waiting for it to be created by the backend function...");
+                    }
+                }, (error) => {
+                    console.error("Error listening to user document:", error);
+                    showToast("Could not load your profile data.", "error");
+                    auth.signOut();
+                });
+
+            } catch (error) {
+                console.error("Error during authenticated state setup:", error);
+                showToast("Could not load your profile.", "error");
+                auth.signOut();
+            }
+        } else { // User is logged out
+            window.HatakeSocial.currentUserData = null;
+            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
+            if (unsubscribeNotifications) unsubscribeNotifications();
+
+            handleAdminAccess(false);
+
+            const loginButtonsHTML = `
+                <button id="header-login-btn" class="text-gray-300 hover:text-white transition-colors">Log In</button>
+                <button id="header-register-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors">Sign Up Free</button>
+            `;
+            if (userActions) {
+                userActions.innerHTML = loginButtonsHTML;
+                document.getElementById('header-login-btn').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+                document.getElementById('header-register-btn').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+            }
+            if (authContainerSidebar) {
+                authContainerSidebar.innerHTML = loginButtonsHTML.replace('header-login-btn', 'sidebar-login-btn').replace('header-register-btn', 'sidebar-register-btn');
+                document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+                document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+            }
+            if (mobileUserActions) {
+                mobileUserActions.innerHTML = `<div class="space-y-2"><button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button><button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button></div>`;
+                document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(document.getElementById('loginModal')));
+                document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(document.getElementById('registerModal')));
+            }
+        }
+        document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
+        window.authReady = true;
+
+        document.body.style.transition = 'opacity 0.3s ease-in-out';
+        document.body.style.opacity = '1';
+    });
+
+    setupGlobalListeners();
+    setupCurrencySelector();
+
+    window.addEventListener('click', () => {
+        document.getElementById('profile-dropdown')?.classList.add('hidden');
+        document.getElementById('notification-dropdown')?.classList.add('hidden');
+    });
+});
+
+function handleAdminAccess(isAdmin) {
+    const currentPage = window.location.pathname.split('/').pop();
+    const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
+
+    if (adminPages.includes(currentPage) && !isAdmin) {
+        console.log('User is not an admin. Redirecting to home.');
+        window.location.href = 'index.html';
+    }
+
+    const writeArticleBtn = document.getElementById('write-new-article-btn');
+    if (writeArticleBtn) {
+        writeArticleBtn.classList.toggle('hidden', !isAdmin);
+    }
+}
+
+async function showTermsModal() {
+    const termsModal = document.createElement('div');
+    termsModal.id = 'terms-modal';
+    termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
+    let termsContent = '<p>Loading Terms of Service...</p>';
+    let privacyContent = '<p>Loading Privacy Policy...</p>';
+
+    try {
+        const termsResponse = await fetch('terms.html');
+        termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
+        const privacyResponse = await fetch('privacy.html');
+        privacyContent = privacyResponse.ok ? await privacyResponse.text() : '<p>Could not load Privacy Policy.</p>';
+    } catch (error) {
+        console.error('Error fetching legal documents:', error);
+        termsContent = '<p>Error loading content. Please try again later.</p>';
+        privacyContent = '';
+    }
+
+    termsModal.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 90vh; max-height: 800px;">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h2 class="text-xl font-bold">Terms of Service and Privacy Policy</h2>
+            <button id="close-terms-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <div id="terms-content" class="p-6 flex-grow overflow-y-auto">
+            ${termsContent}
+            <hr class="my-8">
+            ${privacyContent}
+        </div>
+        <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div class="flex items-center">
+                <input type="checkbox" id="terms-checkbox" disabled class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="terms-checkbox" class="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                    I have read and agree to the Terms of Service and Privacy Policy.
+                </label>
+            </div>
+            <button id="final-register-btn" disabled class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                Register
+            </button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(termsModal);
+
+    const termsContentEl = termsModal.querySelector('#terms-content');
+    const termsCheckbox = termsModal.querySelector('#terms-checkbox');
+    const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
+
+    termsContentEl.addEventListener('scroll', () => {
+        if (termsContentEl.scrollTop + termsContentEl.clientHeight >= termsContentEl.scrollHeight - 10) {
+            termsCheckbox.disabled = false;
+        }
+    });
+
+    termsCheckbox.addEventListener('change', () => {
+        finalRegisterBtn.disabled = !termsCheckbox.checked;
+    });
+
+    termsModal.querySelector('#close-terms-modal').addEventListener('click', () => {
+        termsModal.remove();
+    });
+
+    finalRegisterBtn.addEventListener('click', async () => {
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const errorMessageEl = document.getElementById('register-error-message');
+
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await userCredential.user.sendEmailVerification();
+            // Redirect immediately. The verification screen will appear on the app.html page.
+            window.location.href = 'app.html';
+        } catch (err) {
+            if(errorMessageEl) {
+                errorMessageEl.textContent = err.message;
+                errorMessageEl.classList.remove('hidden');
+            } else {
+                showToast(err.message, "error");
+            }
+            termsModal.remove();
+        }
+    });
+}
+
+This is messages.js:
+/**
+ * HatakeSocial - Real-time Messaging System (v14 - Stable)
+ * - This version uses robust, simplified logic for creating conversations and sending messages.
+ * - It relies on correct Firestore indexes and security rules to function.
+ */
+
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    // Check if we are on the messages page by looking for a specific container
+    const messagesPageContainer = document.getElementById('chat-window');
+    if (!messagesPageContainer) {
+        return; // Exit if this is not the main messages page
+    }
+
+    if (!user) {
+        document.getElementById('chat-window').innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center p-4">
+                <i class="fas fa-lock text-6xl text-gray-300 dark:text-gray-600"></i>
+                <h2 class="mt-4 text-2xl font-semibold">Authentication Required</h2>
+                <p class="text-gray-500 dark:text-gray-400">Please log in to view your messages.</p>
+            </div>
+        `;
+        const conversationsList = document.getElementById('conversations-list');
+        if (conversationsList) conversationsList.classList.add('hidden');
+        return;
+    }
+
+    const db = firebase.firestore();
+    const functions = firebase.functions();
+    let activeConversationId = null;
+    let unsubscribeMessages = null;
+    let unsubscribeConversations = null;
+
+    // --- DOM Elements ---
+    const conversationsContainer = document.getElementById('conversations-container');
+    const chatPlaceholder = document.getElementById('chat-placeholder');
+    const activeChatContainer = document.getElementById('active-chat-container');
+    const chatHeader = document.getElementById('chat-header');
+    const messagesContainer = document.getElementById('messages-container');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const newConversationBtn = document.getElementById('new-conversation-btn');
+
+    // --- Date Formatting Helper ---
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp || !timestamp.toDate) return '';
+        const date = timestamp.toDate();
+        const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        let datePart = (userDateFormat === 'mdy') ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
+        const isToday = (new Date()).toDateString() === date.toDateString();
+        return isToday ? time : datePart;
+    };
+
+    const listenForConversations = () => {
+        if (unsubscribeConversations) unsubscribeConversations();
+        unsubscribeConversations = db.collection('conversations')
+            .where('participants', 'array-contains', user.uid)
+            .orderBy('lastUpdated', 'desc')
+            .onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    conversationsContainer.innerHTML = '<p class="p-4 text-center text-gray-500">No conversations yet.</p>';
+                    return;
+                }
+                conversationsContainer.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const convo = doc.data();
+                    const otherUserId = convo.participants.find(p => p !== user.uid);
+                    if (!otherUserId || !convo.participantInfo || !convo.participantInfo[otherUserId]) return;
+                    const otherUserData = convo.participantInfo[otherUserId];
+                    const convoElement = document.createElement('div');
+                    convoElement.className = 'conversation-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700';
+                    convoElement.dataset.conversationId = doc.id;
+                    convoElement.innerHTML = `
+                        <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
+                        <div class="flex-1 truncate">
+                            <div class="flex justify-between items-center">
+                                <p class="font-semibold">${otherUserData.displayName}</p>
+                                <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
+                        </div>`;
+                    convoElement.addEventListener('click', () => selectConversation(doc.id, otherUserData));
+                    conversationsContainer.appendChild(convoElement);
+                });
+            }, error => {
+                console.error("Firestore Error: Failed to listen for conversations.", error);
+                conversationsContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load conversations.</p>';
+            });
+    };
+
+    const selectConversation = (conversationId, otherUser) => {
+        if (typeof window.showChatArea === 'function') window.showChatArea();
+        activeConversationId = conversationId;
+        document.querySelectorAll('.conversation-item').forEach(el => {
+            el.classList.toggle('bg-blue-100', el.dataset.conversationId === conversationId);
+            el.classList.toggle('dark:bg-blue-900/50', el.dataset.conversationId === conversationId);
+        });
+        chatPlaceholder.classList.add('hidden');
+        activeChatContainer.classList.remove('hidden');
+        activeChatContainer.classList.add('flex');
+        const existingBackButton = chatHeader.querySelector('#mobile-back-btn');
+        chatHeader.innerHTML = `
+            <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
+            <div>
+                <p class="font-bold">${otherUser.displayName}</p>
+                <p class="text-xs text-gray-500">@${otherUser.handle || otherUser.displayName}</p>
+            </div>`;
+        if (existingBackButton) chatHeader.prepend(existingBackButton);
+        listenForMessages(conversationId);
+    };
+
+    const listenForMessages = (conversationId) => {
+        if (unsubscribeMessages) unsubscribeMessages();
+        messagesContainer.innerHTML = '';
+        unsubscribeMessages = db.collection('conversations').doc(conversationId).collection('messages')
+            .orderBy('timestamp', 'asc')
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') renderMessage(change.doc.id, change.doc.data());
+                });
+                scrollToBottom();
+            }, error => {
+                console.error(`Firestore Error: Failed to listen for messages in ${conversationId}.`, error);
+                messagesContainer.innerHTML = '<p class="p-4 text-center text-red-500">Could not load messages.</p>';
+            });
+    };
+
+    const renderMessage = (messageId, message) => {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.id = `message-${messageId}`;
+        const isCurrentUser = message.senderId === user.uid;
+        messageWrapper.className = `flex flex-col mb-3 ${isCurrentUser ? 'items-end' : 'items-start'}`;
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `p-3 rounded-2xl max-w-xs md:max-w-md ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
+        messageBubble.textContent = message.text;
+        const timestampEl = document.createElement('p');
+        timestampEl.className = 'text-xs text-gray-400 mt-1 px-2 timestamp';
+        timestampEl.textContent = formatTimestamp(message.timestamp);
+        messageWrapper.appendChild(messageBubble);
+        messageWrapper.appendChild(timestampEl);
+        messagesContainer.appendChild(messageWrapper);
+    };
+
+    const scrollToBottom = () => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    messageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = messageInput.value.trim();
+        if (text === '' || !activeConversationId) return;
+        const originalMessage = text;
+        messageInput.value = '';
+        const sendMessage = functions.httpsCallable('sendMessage');
+        try {
+            const convoDoc = await db.collection('conversations').doc(activeConversationId).get();
+            if (!convoDoc.exists) throw new Error("Conversation does not exist.");
+            const recipientId = convoDoc.data().participants.find(p => p !== user.uid);
+            await sendMessage({ recipientId, messageText: originalMessage });
+            scrollToBottom();
+        } catch (error) {
+            console.error("Error sending message via Cloud Function:", error);
+            alert("Could not send message.");
+            messageInput.value = originalMessage;
+        }
+    });
+    
+    // Uses the 'ensureConversationExists' Cloud Function for robust, secure creation
+    const startConversation = async (otherUserId, otherUserData) => {
+        const ensureConversation = functions.httpsCallable('ensureConversationExists');
+        try {
+            const result = await ensureConversation({ otherUserId });
+            const conversationId = result.data.conversationId;
+            selectConversation(conversationId, otherUserData);
+        } catch (error) {
+            console.error("Error starting or getting conversation:", error);
+            alert("Could not start conversation. " + error.message);
+        }
+    };
+
+    if (newConversationBtn) {
+        newConversationBtn.addEventListener('click', () => {
+            if (window.openNewConversationModal) {
+                window.openNewConversationModal(false, startConversation);
+            } else {
+                console.error('openNewConversationModal function not found. Is auth.js loaded correctly?');
+            }
         });
     }
-</script>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-bold">
-                Login
-            </h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
-                ×
-            </button>
-</div>
-<form class="mt-4 space-y-4" id="loginForm">
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
-<p class="text-red-500 text-sm hidden" id="login-error-message">
-</p>
-<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-                Login
-            </button>
-<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                Sign in with Google
-            </button>
-</form>
-</div>
-</div><div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-bold">
-                Register
-            </h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
-                ×
-            </button>
-</div>
-<form class="mt-4 space-y-4" id="registerForm">
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-<p class="text-red-500 text-sm hidden" id="register-error-message">
-</p>
-<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-                Register
-            </button>
-<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                Register with Google
-            </button>
-</form>
-</div>
-</div>
-</body>
-</html>
+
+    const checkForUrlParams = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const userIdToMessage = params.get('userId');
+        if (userIdToMessage && userIdToMessage !== user.uid) {
+            try {
+                const userToMessageDoc = await db.collection('users').doc(userIdToMessage).get();
+                if (userToMessageDoc.exists) {
+                    await startConversation(userIdToMessage, userToMessageDoc.data());
+                    history.replaceState(null, '', window.location.pathname);
+                } else {
+                    console.warn("User from URL parameter not found.");
+                }
+            } catch (error) {
+                console.error("Error starting conversation from URL:", error);
+            }
+        }
+    };
+
+    listenForConversations();
+    checkForUrlParams();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const conversationsList = document.getElementById('conversations-list');
+    const chatWindow = document.getElementById('chat-window');
+    window.showChatArea = () => {
+        if (window.innerWidth < 1024) {
+            if (conversationsList) conversationsList.classList.add('hidden');
+            if (chatWindow) {
+                chatWindow.classList.remove('hidden');
+                chatWindow.classList.add('flex');
+            }
+        }
+    };
+});
+
+Please write fully coded files without any placeholder data.

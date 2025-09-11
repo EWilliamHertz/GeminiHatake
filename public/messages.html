@@ -278,22 +278,7 @@
 </div>
 </main>
 </div>
-<script src="js/auth.js">
-</script>
-<script src="js/messages.js">
-</script>
-<script src="js/darkmode.js">
-</script>
-<script src="js/messenger.js">
-</script>
 
-
-<script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
-<script src="/__/firebase/init.js"></script>
 <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
 <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
@@ -315,7 +300,79 @@
 </div>
 </div>
 </div>
+
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Login
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="loginForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+<p class="text-red-500 text-sm hidden" id="login-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Login
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Sign in with Google
+            </button>
+</form>
+</div>
+</div>
+
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
+                Register
+            </h2>
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+                ×
+            </button>
+</div>
+<form class="mt-4 space-y-4" id="registerForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+<p class="text-red-500 text-sm hidden" id="register-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                Register
+            </button>
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                Register with Google
+            </button>
+</form>
+</div>
+</div>
+
+<script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
+<script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
+<script src="/__/firebase/init.js"></script>
+
+<script src="js/auth.js">
+</script>
+<script src="js/messages.js">
+</script>
+<script src="js/darkmode.js">
+</script>
+<script src="js/messenger.js">
+</script>
 <script src="js/cart.js"></script>
+
 <script>
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -402,32 +459,16 @@
             }
         });
 
-        // Store original selectConversation function and enhance it for mobile
-        let originalSelectConversation = null;
-        
-        // Wait for the messages.js to load and then enhance the selectConversation function
-        const waitForMessagesJS = () => {
-            if (window.selectConversation || (window.firebase && window.firebase.auth)) {
-                // Override or enhance the selectConversation function for mobile
-                const originalFunction = window.selectConversation;
-                
-                // Listen for conversation clicks using event delegation
-                document.addEventListener('click', function(e) {
-                    const conversationItem = e.target.closest('.conversation-item');
-                    if (conversationItem && window.innerWidth < 640) {
-                        // On mobile, switch to chat view when conversation is selected
-                        setTimeout(() => {
-                            toggleMobileChat(true);
-                        }, 100); // Small delay to ensure conversation is selected first
-                    }
-                });
-            } else {
-                // Retry after a short delay
-                setTimeout(waitForMessagesJS, 100);
+        // Listen for conversation clicks using event delegation
+        document.addEventListener('click', function(e) {
+            const conversationItem = e.target.closest('.conversation-item');
+            if (conversationItem && window.innerWidth < 640) {
+                // On mobile, switch to chat view when conversation is selected
+                setTimeout(() => {
+                    toggleMobileChat(true);
+                }, 100); // Small delay to ensure conversation is selected first
             }
-        };
-        
-        waitForMessagesJS();
+        });
 
         // Handle window resize to reset mobile state
         window.addEventListener('resize', function() {
@@ -458,57 +499,6 @@
         document.head.appendChild(link);
     }
 </script>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-bold">
-                Login
-            </h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
-                ×
-            </button>
-</div>
-<form class="mt-4 space-y-4" id="loginForm">
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
-<p class="text-red-500 text-sm hidden" id="login-error-message">
-</p>
-<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-                Login
-            </button>
-<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                Sign in with Google
-            </button>
-</form>
-</div>
-</div><div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-<div class="flex justify-between items-center">
-<h2 class="text-xl font-bold">
-                Register
-            </h2>
-<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
-                ×
-            </button>
-</div>
-<form class="mt-4 space-y-4" id="registerForm">
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-<p class="text-red-500 text-sm hidden" id="register-error-message">
-</p>
-<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-                Register
-            </button>
-<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                Register with Google
-            </button>
-</form>
-</div>
-</div>
+
 </body>
 </html>

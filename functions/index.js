@@ -173,78 +173,92 @@ exports.broadcastMessage = functions.https.onCall(async (data, context) => {
 // =================================================================================================
 
 /**
- * Sends a message from one user to another. This is compatible with the client-side messages.js script.
- * Creates a conversation document if one doesn't already exist.
+ * Sends a message from one user to another. (MERGED FUNCTION)
+ * This is the single, definitive function for sending messages.
+ * It is kept "warm" with minInstances to prevent cold start delays.
  */
-exports.sendMessage = functions.https.onCall(async (data, context) => {
+exports.sendMessage = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to send messages.');
     }
-
     const { recipientId, messageText } = data;
     const senderId = context.auth.uid;
 
-    if (!recipientId || !messageText) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing recipientId or messageText.');
-    }
-    
-    if (senderId === recipientId) {
-        throw new functions.https.HttpsError('invalid-argument', 'You cannot send a message to yourself.');
-    }
-
-    const senderRef = db.collection('users').doc(senderId);
-    const recipientRef = db.collection('users').doc(recipientId);
+    if (!recipientId || !messageText) throw new functions.https.HttpsError('invalid-argument', 'Missing recipientId or messageText.');
+    if (senderId === recipientId) throw new functions.https.HttpsError('invalid-argument', 'You cannot send a message to yourself.');
 
     try {
-        const [senderDoc, recipientDoc] = await Promise.all([senderRef.get(), recipientRef.get()]);
-
-        if (!senderDoc.exists || !recipientDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'Sender or recipient not found.');
-        }
-        
-        const senderData = senderDoc.data();
-        const recipientData = recipientDoc.data();
-
-        // Create a consistent conversation ID
         const conversationId = [senderId, recipientId].sort().join('_');
         const conversationRef = db.collection('conversations').doc(conversationId);
-        
         const message = {
             senderId: senderId,
             text: messageText,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
-        
         const conversationUpdateData = {
-            participants: [senderId, recipientId],
-            participantInfo: {
-                [senderId]: {
-                    displayName: senderData.displayName,
-                    photoURL: senderData.photoURL
-                },
-                [recipientId]: {
-                    displayName: recipientData.displayName,
-                    photoURL: recipientData.photoURL
-                }
-            },
             lastMessage: messageText,
             lastUpdated: admin.firestore.FieldValue.serverTimestamp()
         };
-
         const batch = db.batch();
-        
         const newMessageRef = conversationRef.collection('messages').doc();
         batch.set(newMessageRef, message);
-        
         batch.set(conversationRef, conversationUpdateData, { merge: true });
-
         await batch.commit();
-        
         return { success: true, conversationId: conversationId };
-
     } catch (error) {
         console.error("Error sending message:", error);
         throw new functions.https.HttpsError('internal', 'An error occurred while sending the message.');
+    }
+});
+
+/**
+ * Ensures a conversation document exists between two users. Creates one if it doesn't.
+ */
+exports.ensureConversationExists = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    const { otherUserId } = data;
+    const currentUserId = context.auth.uid;
+    if (!otherUserId) throw new functions.https.HttpsError('invalid-argument', 'Missing the other user\'s ID.');
+    if (otherUserId === currentUserId) throw new functions.https.HttpsError('invalid-argument', 'You cannot create a conversation with yourself.');
+    const conversationId = [currentUserId, otherUserId].sort().join('_');
+    const convoRef = db.collection('conversations').doc(conversationId);
+    const doc = await convoRef.get();
+    if (doc.exists) {
+        return { success: true, conversationId: conversationId };
+    }
+    try {
+        const [currentUserDoc, otherUserDoc] = await Promise.all([
+            db.collection('users').doc(currentUserId).get(),
+            db.collection('users').doc(otherUserId).get()
+        ]);
+        if (!currentUserDoc.exists || !otherUserDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'One of the users could not be found.');
+        }
+        const currentUserData = currentUserDoc.data();
+        const otherUserData = otherUserDoc.data();
+        const convoData = {
+            participants: [currentUserId, otherUserId],
+            participantInfo: {
+                [currentUserId]: {
+                    displayName: currentUserData.displayName || "User",
+                    photoURL: currentUserData.photoURL || "",
+                    handle: currentUserData.handle || ""
+                },
+                [otherUserId]: {
+                    displayName: otherUserData.displayName || "User",
+                    photoURL: otherUserData.photoURL || "",
+                    handle: otherUserData.handle || ""
+                }
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessage: ''
+        };
+        await convoRef.set(convoData);
+        return { success: true, conversationId: conversationId };
+    } catch (error) {
+        console.error("Error in ensureConversationExists:", error);
+        throw new functions.https.HttpsError('internal', 'An unexpected error occurred.');
     }
 });
 
@@ -256,33 +270,23 @@ exports.onNewMessage = functions.firestore
     .onCreate(async (snap, context) => {
         const messageData = snap.data();
         const { conversationId } = context.params;
-
         const { senderId, text } = messageData;
-
         const conversationDoc = await db.collection('conversations').doc(conversationId).get();
         if (!conversationDoc.exists) return null;
-        
         const conversationData = conversationDoc.data();
         const recipientId = conversationData.participants.find(uid => uid !== senderId);
-
         if (!recipientId) return null;
-
         const senderName = conversationData.participantInfo[senderId]?.displayName || 'Someone';
-        const senderAvatar = conversationData.participantInfo[senderId]?.photoURL || null;
-
         const notification = {
             type: 'message',
             fromId: senderId,
             fromName: senderName,
-            fromAvatar: senderAvatar,
             message: `Sent you a message: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`,
-            link: `messages.html?conversationId=${conversationId}`,
+            link: `messages.html`,
             isRead: false,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         };
-
         await db.collection('users').doc(recipientId).collection('notifications').add(notification);
-        
         return null;
     });
 

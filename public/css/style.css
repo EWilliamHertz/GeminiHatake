@@ -1768,3 +1768,28 @@ body.dark-mode .close-button:focus {
     }
 }
 
+/* --- New Message Button (Floating Action Button) --- */
+.new-message-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #2563eb; /* blue-600 */
+    color: white;
+    font-size: 24px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s ease-in-out, background-color 0.2s;
+}
+
+.new-message-btn:hover {
+    background-color: #1d4ed8; /* blue-700 */
+    transform: scale(1.1);
+}
