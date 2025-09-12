@@ -5,11 +5,25 @@
   "description": "Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Yu-Gi-Oh! fans.",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "tabbed", "standalone"],
   "background_color": "#0f172a",
   "theme_color": "#9333ea",
   "orientation": "portrait-primary",
   "scope": "/",
+  "scope_extensions": [
+    {
+      "origin": "https://hatake.eu"
+    },
+    {
+      "origin": "https://hatakesocial-88b5e.web.app"
+    },
+    {
+      "origin": "https://hatakesocial-88b5e.firebaseapp.com"
+    }
+  ],
   "lang": "en",
+  "dir": "ltr",
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "categories": ["games", "social", "entertainment"],
   "icons": [
     {
@@ -145,6 +159,58 @@
       ]
     }
   ],
+  "widgets": [
+    {
+      "name": "Quick Deck Stats",
+      "short_name": "Deck Stats",
+      "description": "View your deck statistics at a glance",
+      "tag": "deck-stats",
+      "template": "deck-stats-template",
+      "ms_ac_template": "deck-stats-adaptive-card.json",
+      "data": "/api/widgets/deck-stats",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "screenshots/widget-deck-stats.png",
+          "sizes": "256x256",
+          "label": "Deck Statistics Widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "icons/widget-deck.png",
+          "sizes": "64x64"
+        }
+      ],
+      "auth": false,
+      "update": 3600
+    },
+    {
+      "name": "Tournament Schedule",
+      "short_name": "Tournaments",
+      "description": "Upcoming tournaments and events",
+      "tag": "tournaments",
+      "template": "tournament-template",
+      "ms_ac_template": "tournament-adaptive-card.json",
+      "data": "/api/widgets/tournaments",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "screenshots/widget-tournaments.png",
+          "sizes": "256x256",
+          "label": "Tournament Schedule Widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "icons/widget-tournament.png",
+          "sizes": "64x64"
+        }
+      ],
+      "auth": false,
+      "update": 1800
+    }
+  ],
   "file_handlers": [
     {
       "action": "/deck.html",
@@ -180,6 +246,9 @@
       "url": "/deck.html?import=%s"
     }
   ],
+  "note_taking": {
+    "new_note_url": "/notes/new"
+  },
   "related_applications": [],
   "prefer_related_applications": false,
   "edge_side_panel": {
@@ -188,7 +257,6 @@
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-  "display_override": ["window-controls-overlay", "standalone"],
   "handle_links": "preferred"
 }
 

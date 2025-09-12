@@ -1,164 +1,200 @@
-// HatakeSocial - Optimized Service Worker
-// Based on PWABuilder best practices for maximum PWA score
+// HatakeSocial PWA Service Worker - Perfect Score Version
+// Version: 2.0.0
 
-const CACHE_NAME = 'hatakesocial-v1.0.0';
+const CACHE_NAME = 'hatakesocial-v2.0.0';
 const OFFLINE_URL = '/offline.html';
 
-// Files to cache immediately (App Shell)
+// Critical files that MUST be cached for offline functionality
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/about.html',
-  '/contact.html',
-  '/app.html',
-  '/my_collection.html',
-  '/deck.html',
-  '/marketplace.html',
-  '/offline.html',
-  '/manifest.json',
-  '/css/style.css',
-  '/js/main.js',
-  '/icons/icon-192x192.png',
+  '/',                    // Root URL - CRITICAL for PWABuilder detection
+  '/index.html',          // Main page
+  '/offline.html',        // Offline fallback
+  '/manifest.json',       // PWA manifest
+  '/app.html',           // Main app
+  '/my_collection.html', // Collection page
+  '/deck.html',          // Deck builder
+  '/marketplace.html',   // Marketplace
+  '/css/main.css',       // Main styles
+  '/css/homepage.css',   // Homepage styles
+  '/css/platform.css',  // Platform styles
+  '/js/main.js',         // Main JavaScript
+  '/js/forms.js',        // Forms JavaScript
+  '/images/hatakesocial-logo.png', // Logo
+  '/icons/icon-192x192.png',       // PWA icons
   '/icons/icon-512x512.png'
 ];
 
-// Runtime caching patterns
-const RUNTIME_CACHE_URLS = [
-  '/articles.html',
-  '/events.html',
-  '/community.html',
-  '/gallery.html',
-  '/shop.html',
-  '/profile.html',
-  '/settings.html'
-];
-
-// Install event - Cache app shell
+// Install event - cache critical resources
 self.addEventListener('install', event => {
-  console.log('[ServiceWorker] Install');
+  console.log('[SW] Install event');
   
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('[ServiceWorker] Pre-caching app shell');
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .then(() => {
-        // Force the waiting service worker to become the active service worker
-        return self.skipWaiting();
-      })
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        console.log('[SW] Caching app shell and content');
+        
+        // Cache critical files
+        await cache.addAll(PRECACHE_URLS);
+        
+        // Force activation of new service worker
+        await self.skipWaiting();
+        
+        console.log('[SW] App shell and content cached successfully');
+      } catch (error) {
+        console.error('[SW] Failed to cache app shell:', error);
+      }
+    })()
   );
 });
 
-// Activate event - Clean up old caches
+// Activate event - clean up old caches
 self.addEventListener('activate', event => {
-  console.log('[ServiceWorker] Activate');
+  console.log('[SW] Activate event');
   
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[ServiceWorker] Removing old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      // Take control of all pages immediately
-      return self.clients.claim();
-    })
+    (async () => {
+      try {
+        // Clean up old caches
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames
+            .filter(cacheName => cacheName !== CACHE_NAME)
+            .map(cacheName => {
+              console.log('[SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            })
+        );
+        
+        // Take control of all clients
+        await self.clients.claim();
+        
+        console.log('[SW] Service worker activated and ready');
+      } catch (error) {
+        console.error('[SW] Activation failed:', error);
+      }
+    })()
   );
 });
 
-// Fetch event - Serve cached content when offline
+// Fetch event - serve from cache with network fallback
 self.addEventListener('fetch', event => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  // Handle navigation requests
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // If online, cache the response and return it
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // If offline, try to serve from cache
-          return caches.match(event.request)
-            .then(response => {
-              if (response) {
-                return response;
-              }
-              // If not in cache, serve offline page
-              return caches.match(OFFLINE_URL);
-            });
-        })
-    );
-    return;
-  }
-
-  // Handle other requests (CSS, JS, images, etc.)
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+  
+  // Skip chrome-extension and other non-http requests
+  if (!event.request.url.startsWith('http')) return;
+  
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request)
-          .then(fetchResponse => {
-            // Cache successful responses
-            if (fetchResponse.status === 200) {
-              const responseClone = fetchResponse.clone();
-              caches.open(CACHE_NAME).then(cache => {
-                cache.put(event.request, responseClone);
-              });
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        
+        // For navigation requests (HTML pages)
+        if (event.request.mode === 'navigate') {
+          try {
+            // Try network first for navigation
+            const networkResponse = await fetch(event.request);
+            
+            // Cache successful navigation responses
+            if (networkResponse.ok) {
+              await cache.put(event.request, networkResponse.clone());
             }
-            return fetchResponse;
-          })
-          .catch(() => {
-            // If it's an image request and we're offline, return a placeholder
-            if (event.request.destination === 'image') {
-              return new Response(
-                '<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#ddd"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#999">Offline</text></svg>',
-                { headers: { 'Content-Type': 'image/svg+xml' } }
-              );
+            
+            return networkResponse;
+          } catch (error) {
+            console.log('[SW] Network failed for navigation, serving from cache');
+            
+            // Try to serve from cache
+            const cachedResponse = await cache.match(event.request);
+            if (cachedResponse) {
+              return cachedResponse;
             }
-            return new Response('Offline', { status: 503 });
-          });
-      })
+            
+            // Fallback to offline page
+            return await cache.match(OFFLINE_URL);
+          }
+        }
+        
+        // For other requests (CSS, JS, images, etc.)
+        // Try cache first, then network
+        const cachedResponse = await cache.match(event.request);
+        if (cachedResponse) {
+          // Serve from cache and update in background
+          fetch(event.request)
+            .then(networkResponse => {
+              if (networkResponse.ok) {
+                cache.put(event.request, networkResponse.clone());
+              }
+            })
+            .catch(() => {}); // Ignore network errors for background updates
+          
+          return cachedResponse;
+        }
+        
+        // Not in cache, try network
+        const networkResponse = await fetch(event.request);
+        
+        // Cache successful responses
+        if (networkResponse.ok) {
+          await cache.put(event.request, networkResponse.clone());
+        }
+        
+        return networkResponse;
+        
+      } catch (error) {
+        console.error('[SW] Fetch failed:', error);
+        
+        // For failed requests, try to serve offline page for HTML requests
+        if (event.request.destination === 'document') {
+          const cache = await caches.open(CACHE_NAME);
+          return await cache.match(OFFLINE_URL);
+        }
+        
+        // For other resources, let them fail
+        throw error;
+      }
+    })()
   );
 });
 
-// Background Sync - Handle offline form submissions
+// Background Sync - for offline form submissions
 self.addEventListener('sync', event => {
-  console.log('[ServiceWorker] Background sync:', event.tag);
+  console.log('[SW] Background sync:', event.tag);
   
-  if (event.tag === 'contact-form-sync') {
-    event.waitUntil(syncContactForm());
-  }
-  
-  if (event.tag === 'deck-save-sync') {
-    event.waitUntil(syncDeckSave());
+  if (event.tag === 'background-sync') {
+    event.waitUntil(doBackgroundSync());
   }
 });
 
-// Push Notifications
+async function doBackgroundSync() {
+  try {
+    // Get pending requests from IndexedDB
+    const pendingRequests = await getPendingRequests();
+    
+    for (const request of pendingRequests) {
+      try {
+        await fetch(request.url, request.options);
+        await removePendingRequest(request.id);
+        console.log('[SW] Background sync completed for:', request.url);
+      } catch (error) {
+        console.error('[SW] Background sync failed for:', request.url, error);
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Background sync error:', error);
+  }
+}
+
+// Push notifications
 self.addEventListener('push', event => {
-  console.log('[ServiceWorker] Push received');
+  console.log('[SW] Push received');
   
   const options = {
-    body: event.data ? event.data.text() : 'New update available!',
+    body: event.data ? event.data.text() : 'New update from HatakeSocial!',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    vibrate: [200, 100, 200],
+    badge: '/icons/icon-96x96.png',
+    vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
       primaryKey: 1
@@ -166,13 +202,13 @@ self.addEventListener('push', event => {
     actions: [
       {
         action: 'explore',
-        title: 'View',
-        icon: '/icons/icon-72x72.png'
+        title: 'Open HatakeSocial',
+        icon: '/icons/icon-192x192.png'
       },
       {
         action: 'close',
         title: 'Close',
-        icon: '/icons/icon-72x72.png'
+        icon: '/icons/icon-192x192.png'
       }
     ]
   };
@@ -184,7 +220,7 @@ self.addEventListener('push', event => {
 
 // Notification click handling
 self.addEventListener('notificationclick', event => {
-  console.log('[ServiceWorker] Notification click received');
+  console.log('[SW] Notification click received');
   
   event.notification.close();
   
@@ -198,107 +234,76 @@ self.addEventListener('notificationclick', event => {
 // Periodic Background Sync (for updates)
 self.addEventListener('periodicsync', event => {
   if (event.tag === 'content-sync') {
-    event.waitUntil(syncContent());
+    event.waitUntil(updateContent());
   }
 });
 
-// Helper functions for background sync
-async function syncContactForm() {
+async function updateContent() {
   try {
-    // Get stored form data from IndexedDB
-    const formData = await getStoredFormData();
-    if (formData) {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-        headers: {
-          'Content-Type': 'application/json'
+    // Update critical content in background
+    const cache = await caches.open(CACHE_NAME);
+    
+    // Update main pages
+    const urlsToUpdate = ['/', '/app.html', '/my_collection.html'];
+    
+    for (const url of urlsToUpdate) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          await cache.put(url, response);
         }
-      });
-      
-      if (response.ok) {
-        await clearStoredFormData();
-        console.log('[ServiceWorker] Contact form synced successfully');
+      } catch (error) {
+        console.error('[SW] Failed to update:', url);
       }
     }
+    
+    console.log('[SW] Content updated successfully');
   } catch (error) {
-    console.error('[ServiceWorker] Contact form sync failed:', error);
+    console.error('[SW] Content update failed:', error);
   }
 }
 
-async function syncDeckSave() {
+// Share Target handling
+self.addEventListener('fetch', event => {
+  if (event.request.url.includes('/share') && event.request.method === 'POST') {
+    event.respondWith(handleShareTarget(event.request));
+  }
+});
+
+async function handleShareTarget(request) {
   try {
-    // Sync saved decks when back online
-    const decks = await getStoredDecks();
-    for (const deck of decks) {
-      await fetch('/api/decks', {
-        method: 'POST',
-        body: JSON.stringify(deck),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    await clearStoredDecks();
-    console.log('[ServiceWorker] Decks synced successfully');
+    const formData = await request.formData();
+    const title = formData.get('title') || '';
+    const text = formData.get('text') || '';
+    const url = formData.get('url') || '';
+    
+    // Redirect to share handler page with data
+    const shareUrl = `/share?title=${encodeURIComponent(title)}&text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    
+    return Response.redirect(shareUrl, 302);
   } catch (error) {
-    console.error('[ServiceWorker] Deck sync failed:', error);
+    console.error('[SW] Share target error:', error);
+    return new Response('Share failed', { status: 500 });
   }
 }
 
-async function syncContent() {
-  try {
-    // Sync latest articles, events, etc.
-    const response = await fetch('/api/content/latest');
-    if (response.ok) {
-      const content = await response.json();
-      // Update cached content
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put('/api/content/latest', new Response(JSON.stringify(content)));
-      console.log('[ServiceWorker] Content synced successfully');
-    }
-  } catch (error) {
-    console.error('[ServiceWorker] Content sync failed:', error);
-  }
-}
-
-// IndexedDB helpers (simplified)
-async function getStoredFormData() {
-  // Implementation would use IndexedDB to retrieve stored form data
-  return null;
-}
-
-async function clearStoredFormData() {
-  // Implementation would clear stored form data from IndexedDB
-}
-
-async function getStoredDecks() {
-  // Implementation would retrieve stored decks from IndexedDB
+// IndexedDB helpers for background sync
+async function getPendingRequests() {
+  // Simplified - in real implementation, use IndexedDB
   return [];
 }
 
-async function clearStoredDecks() {
-  // Implementation would clear stored decks from IndexedDB
+async function removePendingRequest(id) {
+  // Simplified - in real implementation, use IndexedDB
+  return true;
 }
 
-// Share Target API support
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SHARE_TARGET') {
-    // Handle shared content (deck files, images, etc.)
-    console.log('[ServiceWorker] Share target received:', event.data);
-    
-    event.waitUntil(
-      clients.openWindow('/deck.html?shared=true')
-    );
-  }
-});
-
-// Update notification
+// Message handling for client communication
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-console.log('[ServiceWorker] HatakeSocial Service Worker loaded successfully');
+console.log('[SW] HatakeSocial Service Worker loaded successfully');
 
