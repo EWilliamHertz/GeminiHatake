@@ -1,0 +1,138 @@
+{
+  "name": "HatakeSocial - Ultimate TCG Social Platform",
+  "short_name": "HatakeSocial",
+  "description": "Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Yu-Gi-Oh! fans.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#9333ea",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["games", "social", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/desktop-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "HatakeSocial Homepage"
+    },
+    {
+      "src": "screenshots/mobile-feed.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Social Feed"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Feed",
+      "short_name": "Feed",
+      "description": "View your social feed",
+      "url": "/feed.html",
+      "icons": [
+        {
+          "src": "icons/shortcut-feed.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Collection",
+      "short_name": "Collection",
+      "description": "Manage your card collection",
+      "url": "/collection.html",
+      "icons": [
+        {
+          "src": "icons/shortcut-collection.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Deck Builder",
+      "short_name": "Deck Builder",
+      "description": "Build and test decks",
+      "url": "/deck-builder.html",
+      "icons": [
+        {
+          "src": "icons/shortcut-deck.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Marketplace",
+      "short_name": "Marketplace",
+      "description": "Buy and sell cards",
+      "url": "/marketplace.html",
+      "icons": [
+        {
+          "src": "icons/shortcut-marketplace.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
+}
+
