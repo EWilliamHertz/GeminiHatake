@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "HatakeSocial - Ultimate TCG Social Platform",
   "short_name": "HatakeSocial",
   "description": "Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Yu-Gi-Oh! fans.",
@@ -66,26 +67,41 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "HatakeSocial Homepage"
+      "label": "HatakeSocial Homepage - Desktop View"
     },
     {
       "src": "screenshots/mobile-feed.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Social Feed"
+      "label": "Social Feed - Mobile View"
+    },
+    {
+      "src": "screenshots/deck-builder.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Deck Builder Interface"
+    },
+    {
+      "src": "screenshots/collection.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Card Collection Manager"
     }
   ],
   "shortcuts": [
     {
       "name": "Feed",
       "short_name": "Feed",
-      "description": "View your social feed",
-      "url": "/feed.html",
+      "description": "View your social feed and latest posts",
+      "url": "/app.html",
       "icons": [
         {
           "src": "icons/shortcut-feed.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
@@ -93,37 +109,75 @@
       "name": "Collection",
       "short_name": "Collection",
       "description": "Manage your card collection",
-      "url": "/collection.html",
+      "url": "/my_collection.html",
       "icons": [
         {
           "src": "icons/shortcut-collection.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Deck Builder",
       "short_name": "Deck Builder",
-      "description": "Build and test decks",
-      "url": "/deck-builder.html",
+      "description": "Build and test competitive decks",
+      "url": "/deck.html",
       "icons": [
         {
           "src": "icons/shortcut-deck.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Marketplace",
       "short_name": "Marketplace",
-      "description": "Buy and sell cards",
+      "description": "Buy and sell cards securely",
       "url": "/marketplace.html",
       "icons": [
         {
           "src": "icons/shortcut-marketplace.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/deck.html",
+      "accept": {
+        "application/x-tcg-deck": [".deck", ".dck"],
+        "text/plain": [".txt"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "deck_file",
+          "accept": ["application/x-tcg-deck", ".deck", ".dck", ".txt"]
+        },
+        {
+          "name": "card_image",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+hatakesocial",
+      "url": "/deck.html?import=%s"
     }
   ],
   "related_applications": [],
@@ -133,6 +187,8 @@
   },
   "launch_handler": {
     "client_mode": "navigate-existing"
-  }
+  },
+  "display_override": ["window-controls-overlay", "standalone"],
+  "handle_links": "preferred"
 }
 
