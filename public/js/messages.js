@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Real-time Messaging System (v16.2 - Undefined Field Fix)
+ * HatakeSocial - Real-time Messaging System (v16.3 - Profile Links Added)
  */
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
@@ -54,15 +54,22 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                     convoElement.className = 'conversation-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700';
                     convoElement.dataset.conversationId = doc.id;
                     convoElement.innerHTML = `
-                        <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
+                        <a href="profile.html?uid=${otherUserId}" class="flex-shrink-0">
+                            <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
+                        </a>
                         <div class="flex-1 truncate">
                             <div class="flex justify-between items-center">
-                                <p class="font-semibold">${otherUserData.displayName || "User"}</p>
+                                <a href="profile.html?uid=${otherUserId}" class="font-semibold hover:underline">${otherUserData.displayName || "User"}</a>
                                 <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
                             </div>
                             <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
                         </div>`;
-                    convoElement.addEventListener('click', () => selectConversation(doc.id, otherUserData));
+                    convoElement.querySelector('.flex-1').addEventListener('click', (e) => {
+                        // Prevent link navigation when clicking the general conversation area
+                        if (e.target.tagName !== 'A') {
+                           selectConversation(doc.id, otherUserData, otherUserId);
+                        }
+                    });
                     conversationsContainer.appendChild(convoElement);
                 });
             }, error => {
@@ -71,7 +78,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             });
     };
 
-    const selectConversation = (conversationId, otherUser) => {
+    const selectConversation = (conversationId, otherUser, otherUserId) => {
         if (typeof window.showChatArea === 'function') window.showChatArea();
         activeConversationId = conversationId;
         document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('bg-blue-100', 'dark:bg-blue-900/50'));
@@ -83,9 +90,11 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         activeChatContainer.classList.add('flex');
         const existingBackButton = chatHeader.querySelector('#mobile-back-btn');
         chatHeader.innerHTML = `
-            <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
+            <a href="profile.html?uid=${otherUserId}">
+                <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
+            </a>
             <div>
-                <p class="font-bold">${otherUser.displayName || "User"}</p>
+                <a href="profile.html?uid=${otherUserId}" class="font-bold hover:underline">${otherUser.displayName || "User"}</a>
                 <p class="text-xs text-gray-500">@${otherUser.handle || otherUser.displayName}</p>
             </div>`;
         if (existingBackButton) chatHeader.prepend(existingBackButton);
@@ -192,7 +201,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             
             await convoRef.set(conversationData, { merge: true }); // Use merge:true to avoid overwriting messages
 
-            selectConversation(conversationId, conversationData.participantInfo[otherUserId]);
+            selectConversation(conversationId, conversationData.participantInfo[otherUserId], otherUserId);
         } catch (error) {
             console.error("Error starting conversation:", error);
             alert("Could not start conversation: " + error.message);
@@ -211,7 +220,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     const checkForUrlParams = async () => {
         const params = new URLSearchParams(window.location.search);
-        const userIdToMessage = params.get('userId');
+        const userIdToMessage = params.get('with'); // Changed from 'userId' to 'with'
         if (userIdToMessage && userIdToMessage !== user.uid) {
             const userToMessageDoc = await db.collection('users').doc(userIdToMessage).get();
             if (userToMessageDoc.exists) {

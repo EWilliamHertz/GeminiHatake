@@ -85,8 +85,7 @@
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info"></div>
     </aside>
 
-    <main class="flex-1 flex flex-col overflow-y-auto">
-        <!-- Header -->
+    <div class="flex-1 flex flex-col overflow-y-auto">
         <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div class="flex items-center">
                 <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
@@ -106,13 +105,11 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="container mx-auto px-4 py-8 flex-grow">
             <div class="flex justify-between items-center mb-4 border-b pb-4 dark:border-gray-700">
                 <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Marketplace</h1>
             </div>
 
-            <!-- ENHANCED: Product Type Tabs -->
             <div class="mb-6">
                 <div class="border-b border-gray-200 dark:border-gray-700">
                     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
@@ -128,10 +125,8 @@
                 </div>
             </div>
 
-            <!-- Search Form -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8" id="search-form-container">
                 <form class="space-y-4" id="marketplace-search-form">
-                    <!-- Primary Filters -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="search-product-name">
@@ -153,7 +148,6 @@
                         </div>
                     </div>
 
-                    <!-- Location Filters -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-country">Seller's Country</label>
@@ -165,78 +159,10 @@
                         </div>
                     </div>
 
-                    <!-- ENHANCED: Product Type Specific Filters -->
                     <div class="pt-4 mt-4 border-t dark:border-gray-700" id="product-specific-filters-container">
-                        <!-- Singles filters (shown by default) -->
                         <div id="singles-filters">
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-color">Color</label>
-                                    <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-color">
-                                        <option value="">Any</option>
-                                        <option value="W">White</option>
-                                        <option value="U">Blue</option>
-                                        <option value="B">Black</option>
-                                        <option value="R">Red</option>
-                                        <option value="G">Green</option>
-                                        <option value="C">Colorless</option>
-                                        <option value="M">Multicolor</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-rarity">Rarity</label>
-                                    <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-rarity">
-                                        <option value="">Any</option>
-                                        <option value="common">Common</option>
-                                        <option value="uncommon">Uncommon</option>
-                                        <option value="rare">Rare</option>
-                                        <option value="mythic">Mythic Rare</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-type">Type</label>
-                                    <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-type">
-                                        <option value="">Any</option>
-                                        <option value="Creature">Creature</option>
-                                        <option value="Instant">Instant</option>
-                                        <option value="Sorcery">Sorcery</option>
-                                        <option value="Enchantment">Enchantment</option>
-                                        <option value="Artifact">Artifact</option>
-                                        <option value="Planeswalker">Planeswalker</option>
-                                        <option value="Land">Land</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-condition">Condition</label>
-                                    <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-condition">
-                                        <option value="">Any</option>
-                                        <option value="mint">Mint</option>
-                                        <option value="near_mint">Near Mint</option>
-                                        <option value="excellent">Excellent</option>
-                                        <option value="good">Good</option>
-                                        <option value="light_played">Light Played</option>
-                                        <option value="played">Played</option>
-                                        <option value="poor">Poor</option>
-                                    </select>
-                                </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        <input type="checkbox" id="filter-foil" class="mr-2">
-                                        Foil Only
-                                    </label>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        <input type="checkbox" id="filter-signed" class="mr-2">
-                                        Signed Only
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
                         
-                        <!-- ENHANCED: Sealed products filters -->
                         <div id="sealed-filters" class="hidden">
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div>
@@ -272,7 +198,6 @@
                         </div>
                     </div>
 
-                    <!-- Search Button -->
                     <div class="pt-4">
                         <button class="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" type="submit">
                             <i class="fas fa-search mr-2"></i>
@@ -282,7 +207,6 @@
                 </form>
             </div>
 
-            <!-- Results Section -->
             <div class="flex justify-between items-center mb-6">
                 <div class="flex items-center space-x-4">
                     <div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
@@ -295,43 +219,45 @@
                     </div>
                 </div>
                 <div>
-                    <select class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sort-select">
-                        <option value="newest">Sort by: Newest</option>
-                        <option value="price_low">Sort by: Price Low to High</option>
-                        <option value="price_high">Sort by: Price High to Low</option>
-                        <option value="name_az">Sort by: Name A-Z</option>
-                        <option value="rarity">Sort by: Rarity</option>
+                    <select class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sort-by">
+                        <option value="addedAt_desc">Sort by: Newest</option>
+                        <option value="price_asc">Sort by: Price Low to High</option>
+                        <option value="price_desc">Sort by: Price High to Low</option>
+                        <option value="name_asc">Sort by: Name A-Z</option>
+                        <option value="rarity_desc">Sort by: Rarity</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Results Grid/List -->
+            <div id="marketplace-message"></div>
+
             <div id="marketplace-results">
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="results-grid">
-                    <!-- Results will be populated here -->
-                </div>
-                <div class="space-y-3 hidden" id="results-list">
-                    <!-- List view results will be populated here -->
-                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="marketplace-grid">
+                    </div>
+                <div class="space-y-3 hidden" id="marketplace-list-view">
+                    </div>
             </div>
 
-            <!-- Loading State -->
-            <div class="text-center py-8 hidden" id="loading-state">
-                <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
-                <p class="mt-2 text-gray-600 dark:text-gray-400">Loading marketplace items...</p>
-            </div>
-
-            <!-- No Results State -->
-            <div class="text-center py-8 hidden" id="no-results-state">
-                <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
-                <h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400 mb-2">No items found</h3>
-                <p class="text-gray-500 dark:text-gray-500">Try adjusting your search criteria or browse all available items.</p>
-            </div>
         </main>
-    </main>
+    </div>
 </div>
 
-<!-- Firebase Scripts -->
+<script>
+  // Your web app's Firebase configuration
+ const firebaseConfig = {
+  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+  authDomain: "hatakesocial-88b5e.firebaseapp.com",
+  projectId: "hatakesocial-88b5e",
+  storageBucket: "hatakesocial-88b5e.firebasestorage.app",
+  messagingSenderId: "1091697032506",
+  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+  measurementId: "G-EH0PS2Z84J"
+};
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
@@ -339,12 +265,11 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
 
-<!-- Application Scripts -->
 <script src="js/auth.js"></script>
 <script src="js/marketplace.js"></script>
 <script src="js/darkmode.js"></script>
+<script src="js/messenger.js"></script>
 
-<!-- Sidebar Toggle Script -->
 <script>
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -365,80 +290,5 @@
     }
 </script>
 
-<!-- Messenger Script -->
-<script src="js/messenger.js"></script>
-
-<!-- New Conversation Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-4">Start a new conversation</h2>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
-        <div class="max-h-60 overflow-y-auto" id="user-search-results"></div>
-        <button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
-            Cancel
-        </button>
-    </div>
-</div>
-
-<!-- Login Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-bold">Login</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
-        </div>
-        <form class="mt-4 space-y-4" id="loginForm">
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
-            <p class="text-red-500 text-sm hidden" id="login-error-message"></p>
-            <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button>
-            <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-                <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                Sign in with Google
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- Register Modal -->
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-bold">Register</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
-        </div>
-        <form class="mt-4 space-y-4" id="registerForm">
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-            <p class="text-red-500 text-sm hidden" id="register-error-message"></p>
-            <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button>
-            <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-                <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                Register with Google
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- Service Worker Registration -->
-<script>
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js')
-                .then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                })
-                .catch(function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-        });
-    }
-</script>
-
 </body>
 </html>
-

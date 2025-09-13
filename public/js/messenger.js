@@ -61,7 +61,7 @@
         document.body.appendChild(widgetContainer);
     };
 
-    const selectWidgetConversation = (conversationId, otherUser) => {
+    const selectWidgetConversation = (conversationId, otherUser, otherUserId) => {
         const messengerWidgetContainer = document.getElementById('messenger-widget-container');
         const widgetListView = document.getElementById('widget-list-view');
         const widgetChatView = document.getElementById('widget-chat-view');
@@ -83,8 +83,10 @@
         const widgetChatHeader = document.getElementById('widget-chat-header');
         widgetChatHeader.innerHTML = `
             <i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
-            <img alt="${otherUser.displayName}" class="w-8 h-8 rounded-full object-cover" src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}"/>
-            <span class="font-semibold truncate">${otherUser.displayName || "User"}</span>
+            <a href="profile.html?uid=${otherUserId}">
+                <img alt="${otherUser.displayName}" class="w-8 h-8 rounded-full object-cover" src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}"/>
+            </a>
+            <a href="profile.html?uid=${otherUserId}" class="font-semibold truncate hover:underline">${otherUser.displayName || "User"}</a>
         `;
         
         document.getElementById('widget-back-btn').addEventListener('click', () => {
@@ -169,7 +171,7 @@
             
             await convoRef.set(conversationData, { merge: true }); // Use merge:true to avoid overwriting messages
             
-            selectWidgetConversation(conversationId, conversationData.participantInfo[otherUserId]);
+            selectWidgetConversation(conversationId, conversationData.participantInfo[otherUserId], otherUserId);
 
         } catch (error) {
             console.error("Error starting new conversation:", error);
@@ -260,15 +262,21 @@
                         const convoElement = document.createElement('div');
                         convoElement.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-lg mx-1';
                         convoElement.innerHTML = `
-                            <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            <a href="profile.html?uid=${otherUserId}" class="flex-shrink-0">
+                               <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            </a>
                             <div class="flex-1 truncate">
                                 <div class="flex justify-between items-center">
-                                    <span class="font-semibold">${otherUserData.displayName || "User"}</span>
+                                    <a href="profile.html?uid=${otherUserId}" class="font-semibold hover:underline">${otherUserData.displayName || "User"}</a>
                                     <span class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</span>
                                 </div>
                                 <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'Start a conversation'}</p>
                             </div>`;
-                        convoElement.addEventListener('click', () => selectWidgetConversation(doc.id, otherUserData));
+                        convoElement.querySelector('.flex-1').addEventListener('click', (e) => {
+                             if(e.target.tagName !== 'A') {
+                                selectWidgetConversation(doc.id, otherUserData, otherUserId)
+                             }
+                        });
                         widgetConversationsList.appendChild(convoElement);
                     });
                 }, error => {
@@ -279,7 +287,9 @@
         
         newConversationBtn.addEventListener('click', () => {
             if(window.openNewConversationModal) {
-                window.openNewConversationModal(true, window.messenger.startNewConversation);
+                window.openNewConversationModal(true, (otherUserId, otherUserData) => {
+                    window.messenger.startNewConversation(otherUserId, otherUserData);
+                });
             }
         });
 

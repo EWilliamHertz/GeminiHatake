@@ -6,6 +6,25 @@
 * - Initializes all necessary Firebase services for the client-side application.
 */
 
+// --- Firebase Initialization (Stable) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+  authDomain: "hatakesocial-88b5e.firebaseapp.com",
+  projectId: "hatakesocial-88b5e",
+  storageBucket: "hatakesocial-88b5e.appspot.com",
+  messagingSenderId: "1091697032506",
+  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+  measurementId: "G-EH0PS2Z84J"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig); 
+}
+window.auth = firebase.auth();
+window.db = firebase.firestore();
+window.storage = firebase.storage();
+window.functions = firebase.functions();
+
 // --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
     let container = document.getElementById('toast-container');
@@ -138,16 +157,7 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
-
-    // --- Firebase Initialization (Stable) ---
-    if (!firebase.apps.length) {
-        firebase.initializeApp(); 
-    }
-    window.auth = firebase.auth();
-    window.db = firebase.firestore();
-    window.storage = firebase.storage();
-    window.functions = firebase.functions(); // Initializes with default region (us-central1)
-
+    
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
@@ -529,4 +539,3 @@ async function showTermsModal() {
         }
     });
 }
-

@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Enhanced Marketplace Script (v14 - Singles & Sealed Products)
+ * HatakeSocial - Enhanced Marketplace Script (v15 - Corrected Data Source)
  *
  * This script handles the enhanced marketplace with separate tabs for:
  * - Singles (individual cards)
@@ -39,9 +39,9 @@ document.addEventListener('authReady', (e) => {
 
     // --- Helper Functions ---
     const showMessage = (html) => {
-        marketplaceGrid.innerHTML = '';
-        marketplaceListView.innerHTML = '';
-        messageContainer.innerHTML = html;
+        if(marketplaceGrid) marketplaceGrid.innerHTML = '';
+        if(marketplaceListView) marketplaceListView.innerHTML = '';
+        if(messageContainer) messageContainer.innerHTML = html;
     };
 
     const sanitizeHTML = (str) => {
@@ -56,7 +56,6 @@ document.addEventListener('authReady', (e) => {
         currentTab = tabName;
         localStorage.setItem('marketplaceTab', tabName);
         
-        // Update tab appearance
         marketplaceTabs.forEach(tab => {
             if (tab.dataset.tab === tabName) {
                 tab.classList.add('active', 'border-blue-500', 'text-blue-600');
@@ -67,7 +66,6 @@ document.addEventListener('authReady', (e) => {
             }
         });
         
-        // Update search form
         if (tabName === 'singles') {
             searchLabel.textContent = 'Card Name';
             searchProductName.placeholder = 'e.g., Sol Ring';
@@ -80,9 +78,8 @@ document.addEventListener('authReady', (e) => {
             sealedFilters.classList.remove('hidden');
         }
         
-        // Re-render filters and search
         renderGameSpecificFilters();
-        performSearch();
+        fetchMarketplaceData(); // Re-fetch data when tab changes
     };
 
     // --- Filter Rendering ---
@@ -146,14 +143,10 @@ document.addEventListener('authReady', (e) => {
             
             let query;
             if (currentTab === 'singles') {
-                // Fetch from both marketplaceListings and user collections marked for sale
-                query = db.collectionGroup('collection')
-                    .where('forSale', '==', true)
-                    .where('productType', 'in', ['single', 'card', null]); // null for backwards compatibility
+                query = db.collection('marketplaceListings')
+                    .where('productType', 'in', ['single', 'card', null]);
             } else {
-                // Fetch sealed products
-                query = db.collectionGroup('collection')
-                    .where('forSale', '==', true)
+                query = db.collection('marketplaceListings')
                     .where('productType', 'in', ['sealed', 'booster_box', 'booster_pack', 'bundle', 'prerelease_kit', 'commander_deck', 'starter_deck']);
             }
             
@@ -164,45 +157,7 @@ document.addEventListener('authReady', (e) => {
                 return;
             }
 
-            const cards = [];
-            const userPromises = [];
-            const userCache = new Map();
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const userId = doc.ref.parent.parent.id;
-                
-                cards.push({
-                    id: doc.id,
-                    userId: userId,
-                    ...data
-                });
-
-                if (!userCache.has(userId)) {
-                    userCache.set(userId, null);
-                    userPromises.push(
-                        db.collection('users').doc(userId).get().then(userDoc => {
-                            if (userDoc.exists) {
-                                userCache.set(userId, userDoc.data());
-                            }
-                        }).catch(() => {
-                            userCache.set(userId, { displayName: 'Unknown User' });
-                        })
-                    );
-                }
-            });
-
-            await Promise.all(userPromises);
-
-            // Attach user data to cards
-            cards.forEach(card => {
-                const userData = userCache.get(card.userId) || { displayName: 'Unknown User' };
-                card.sellerName = userData.displayName || userData.username || 'Unknown User';
-                card.sellerCountry = userData.country || '';
-                card.sellerCity = userData.city || '';
-            });
-
-            allFetchedCards = cards;
+            allFetchedCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             performSearch();
 
         } catch (error) {
@@ -220,16 +175,17 @@ document.addEventListener('authReady', (e) => {
         const cityFilter = document.getElementById('filter-city')?.value.toLowerCase().trim() || '';
 
         let filteredCards = allFetchedCards.filter(card => {
-            // Basic filters
+            const sellerName = card.sellerData?.displayName || '';
+            const sellerCountry = card.sellerData?.country || '';
+            const sellerCity = card.sellerData?.city || '';
+
             if (searchTerm && !card.name.toLowerCase().includes(searchTerm)) return false;
             if (selectedTcg !== 'all' && card.tcg !== selectedTcg) return false;
-            if (sellerFilter && !card.sellerName.toLowerCase().includes(sellerFilter)) return false;
-            if (countryFilter && !card.sellerCountry.toLowerCase().includes(countryFilter)) return false;
-            if (cityFilter && !card.sellerCity.toLowerCase().includes(cityFilter)) return false;
+            if (sellerFilter && !sellerName.toLowerCase().includes(sellerFilter)) return false;
+            if (countryFilter && !sellerCountry.toLowerCase().includes(countryFilter)) return false;
+            if (cityFilter && !sellerCity.toLowerCase().includes(cityFilter)) return false;
 
-            // Tab-specific filters
             if (currentTab === 'singles') {
-                // MTG-specific filters for singles
                 if (selectedTcg === 'Magic: The Gathering') {
                     const colorFilters = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
                     const rarityFilters = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
@@ -251,7 +207,6 @@ document.addEventListener('authReady', (e) => {
                     if (signedFilter && !card.signed) return false;
                 }
             } else {
-                // Sealed product filters
                 const sealedTypeFilter = document.getElementById('sealed-type-filter')?.value || '';
                 const sealedSetFilter = document.getElementById('sealed-set-filter')?.value.toLowerCase().trim() || '';
                 const sealedConditionFilter = document.getElementById('sealed-condition-filter')?.value || '';
@@ -264,7 +219,6 @@ document.addEventListener('authReady', (e) => {
             return true;
         });
 
-        // Sort results
         const sortBy = sortByEl.value;
         filteredCards.sort((a, b) => {
             switch (sortBy) {
@@ -278,7 +232,7 @@ document.addEventListener('authReady', (e) => {
                     return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
                 case 'addedAt_desc':
                 default:
-                    return (b.addedAt?.toDate() || new Date(0)) - (a.addedAt?.toDate() || new Date(0));
+                    return (b.lastUpdated?.toDate() || 0) - (a.lastUpdated?.toDate() || 0);
             }
         });
 
@@ -311,6 +265,8 @@ document.addEventListener('authReady', (e) => {
             const price = card.salePrice ? `${card.salePrice.toFixed(2)} ${card.currency || 'SEK'}` : 'Price not set';
             const condition = card.condition || 'Unknown';
             const quantity = card.quantity || 1;
+            const sellerName = card.sellerData?.displayName || 'Unknown';
+            const sellerCountry = card.sellerData?.country || '';
             
             return `
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer marketplace-card" data-card-id="${card.id}">
@@ -328,8 +284,8 @@ document.addEventListener('authReady', (e) => {
                         </div>
                         <div class="text-xs text-gray-600 dark:text-gray-400">
                             <div>Condition: ${condition}</div>
-                            <div>Seller: ${sanitizeHTML(card.sellerName)}</div>
-                            ${card.sellerCountry ? `<div>Location: ${sanitizeHTML(card.sellerCountry)}</div>` : ''}
+                            <div>Seller: ${sanitizeHTML(sellerName)}</div>
+                            ${sellerCountry ? `<div>Location: ${sanitizeHTML(sellerCountry)}</div>` : ''}
                         </div>
                         <button class="w-full mt-2 bg-blue-600 text-white text-sm py-1 px-2 rounded hover:bg-blue-700 add-to-cart-btn" data-card-id="${card.id}">
                             Add to Cart
@@ -346,6 +302,8 @@ document.addEventListener('authReady', (e) => {
             const price = card.salePrice ? `${card.salePrice.toFixed(2)} ${card.currency || 'SEK'}` : 'Price not set';
             const condition = card.condition || 'Unknown';
             const quantity = card.quantity || 1;
+            const sellerName = card.sellerData?.displayName || 'Unknown';
+            const sellerCountry = card.sellerData?.country || '';
             
             return `
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center space-x-4 hover:shadow-lg transition-shadow marketplace-card" data-card-id="${card.id}">
@@ -356,8 +314,8 @@ document.addEventListener('authReady', (e) => {
                         <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                             <span>Condition: ${condition}</span>
                             <span>Qty: ${quantity}</span>
-                            <span>Seller: ${sanitizeHTML(card.sellerName)}</span>
-                            ${card.sellerCountry ? `<span>Location: ${sanitizeHTML(card.sellerCountry)}</span>` : ''}
+                            <span>Seller: ${sanitizeHTML(sellerName)}</span>
+                            ${sellerCountry ? `<span>Location: ${sanitizeHTML(sellerCountry)}</span>` : ''}
                         </div>
                     </div>
                     <div class="text-right">
@@ -374,13 +332,11 @@ document.addEventListener('authReady', (e) => {
     // --- Image URL Helper ---
     const getCardImageUrl = (card) => {
         if (currentTab === 'sealed') {
-            // For sealed products, try to get set symbol or use placeholder
             if (card.set_icon_svg_uri) return card.set_icon_svg_uri;
             if (card.icon_svg_uri) return card.icon_svg_uri;
             return 'https://via.placeholder.com/200x280/374151/9CA3AF?text=Sealed+Product';
         }
         
-        // For singles, use the existing image logic
         if (card.image_uris?.normal) return card.image_uris.normal;
         if (card.image_uris?.large) return card.image_uris.large;
         if (card.image_uris?.small) return card.image_uris.small;
@@ -405,69 +361,44 @@ document.addEventListener('authReady', (e) => {
     };
 
     // --- Event Listeners ---
-    
-    // Tab switching
     marketplaceTabs.forEach(tab => {
         tab.addEventListener('click', () => {
             switchTab(tab.dataset.tab);
         });
     });
 
-    // Search form
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         performSearch();
     });
 
-    // Real-time search
     searchProductName.addEventListener('input', performSearch);
     
-    // Filter changes
     tcgFilterEl.addEventListener('change', () => {
         renderGameSpecificFilters();
         performSearch();
     });
     
     sortByEl.addEventListener('change', performSearch);
+    
+    // Add event listeners for dynamically created filters
+    singlesFilters.addEventListener('change', performSearch);
+    sealedFilters.addEventListener('change', performSearch);
 
-    // View toggles
     gridViewBtn.addEventListener('click', () => setView('grid'));
     listViewBtn.addEventListener('click', () => setView('list'));
 
-    // Add to cart functionality
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('add-to-cart-btn')) {
             const cardId = e.target.dataset.cardId;
             const card = allFetchedCards.find(c => c.id === cardId);
             if (card) {
-                // Add to cart logic here
                 console.log('Adding to cart:', card);
-                // You can integrate with existing cart system
             }
         }
     });
 
     // --- Initialization ---
-    
-    // Set initial tab
     switchTab(currentTab);
-    
-    // Set initial view
     setView(currentView);
-    
-    // Load data
-    fetchMarketplaceData();
-    
-    // Re-fetch data every 30 seconds
-    setInterval(fetchMarketplaceData, 30000);
 });
-
-// Initialize when auth is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        // Auth initialization will trigger the authReady event
-    });
-} else {
-    // Auth initialization will trigger the authReady event
-}
-
