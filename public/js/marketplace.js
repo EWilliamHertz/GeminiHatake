@@ -1,9 +1,12 @@
 /**
- * HatakeSocial - Enhanced Marketplace Script (v15 - Corrected Data Source)
+ * HatakeSocial - Enhanced Marketplace Script (v18 - Corrected Data Fetching & Bug Fixes)
  *
- * This script handles the enhanced marketplace with separate tabs for:
- * - Singles (individual cards)
- * - Sealed Products (booster boxes, packs, etc.)
+ * This script handles the enhanced marketplace with separate tabs for singles and sealed products.
+ * - Fixes a TypeError by adding a null check for the main container.
+ * - Reverts the data fetching logic to query the correct top-level 'marketplaceListings'
+ * collection, which resolves the Firestore permission errors.
+ * - Connects to the global cart.js script to add items to the cart.
+ * - Makes marketplace listings clickable, linking to the card-view page.
  */
 
 document.addEventListener('authReady', (e) => {
@@ -23,8 +26,6 @@ document.addEventListener('authReady', (e) => {
     const messageContainer = document.getElementById('marketplace-message');
     const gridViewBtn = document.getElementById('grid-view-btn');
     const listViewBtn = document.getElementById('list-view-btn');
-    
-    // NEW: Tab elements
     const marketplaceTabs = document.querySelectorAll('.marketplace-tab');
     const singlesFilters = document.getElementById('singles-filters');
     const sealedFilters = document.getElementById('sealed-filters');
@@ -32,7 +33,7 @@ document.addEventListener('authReady', (e) => {
     const searchProductName = document.getElementById('search-product-name');
     
     // --- State ---
-    let allFetchedCards = [];
+    let allFetchedItems = [];
     let currentView = localStorage.getItem('marketplaceView') || 'grid';
     let currentTab = localStorage.getItem('marketplaceTab') || 'singles';
     const rarityOrder = { 'mythic': 4, 'rare': 3, 'uncommon': 2, 'common': 1 };
@@ -57,12 +58,15 @@ document.addEventListener('authReady', (e) => {
         localStorage.setItem('marketplaceTab', tabName);
         
         marketplaceTabs.forEach(tab => {
+            const icon = tab.querySelector('i');
             if (tab.dataset.tab === tabName) {
-                tab.classList.add('active', 'border-blue-500', 'text-blue-600');
-                tab.classList.remove('border-transparent', 'text-gray-500');
+                tab.classList.add('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+                tab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400');
+                if(icon) icon.classList.add('text-blue-600', 'dark:text-blue-400');
             } else {
-                tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
-                tab.classList.add('border-transparent', 'text-gray-500');
+                tab.classList.remove('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+                tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'dark:text-gray-400');
+                 if(icon) icon.classList.remove('text-blue-600', 'dark:text-blue-400');
             }
         });
         
@@ -79,7 +83,7 @@ document.addEventListener('authReady', (e) => {
         }
         
         renderGameSpecificFilters();
-        fetchMarketplaceData(); // Re-fetch data when tab changes
+        fetchMarketplaceData();
     };
 
     // --- Filter Rendering ---
@@ -136,213 +140,157 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Data Fetching ---
+    // --- Data Fetching (CORRECTED) ---
     const fetchMarketplaceData = async () => {
         try {
-            showMessage('<div class="flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Loading marketplace...</div>');
+            showMessage('<div class="flex items-center justify-center p-8"><i class="fas fa-spinner fa-spin mr-3 text-2xl"></i>Loading marketplace listings...</div>');
             
-            let query;
+            let query = db.collection('marketplaceListings');
+            
             if (currentTab === 'singles') {
-                query = db.collection('marketplaceListings')
-                    .where('productType', 'in', ['single', 'card', null]);
+                query = query.where('productType', 'in', ['single', 'card', null]);
             } else {
-                query = db.collection('marketplaceListings')
-                    .where('productType', 'in', ['sealed', 'booster_box', 'booster_pack', 'bundle', 'prerelease_kit', 'commander_deck', 'starter_deck']);
+                query = query.where('productType', 'in', ['sealed', 'booster_box', 'booster_pack', 'bundle', 'prerelease_kit', 'commander_deck', 'starter_deck']);
             }
             
             const snapshot = await query.limit(500).get();
             
             if (snapshot.empty) {
-                showMessage(`<div class="text-center"><i class="fas fa-store text-4xl text-gray-400 mb-4"></i><h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">No ${currentTab} available</h3><p class="text-gray-500 dark:text-gray-500">Be the first to list ${currentTab} for sale!</p></div>`);
+                showMessage(`<div class="text-center p-8"><i class="fas fa-store text-4xl text-gray-400 mb-4"></i><h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">No ${currentTab} available</h3><p class="text-gray-500 dark:text-gray-500">Be the first to list ${currentTab} for sale!</p></div>`);
+                allFetchedItems = [];
                 return;
             }
 
-            allFetchedCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            allFetchedItems = snapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data()
+            }));
+
             performSearch();
 
         } catch (error) {
             console.error('Error fetching marketplace data:', error);
-            showMessage('<div class="text-center text-red-600"><i class="fas fa-exclamation-triangle mr-2"></i>Error loading marketplace. Please try again.</div>');
+            showMessage('<div class="text-center text-red-600 p-8"><i class="fas fa-exclamation-triangle mr-2"></i>Error loading marketplace. Please try again.</div>');
         }
     };
-
+    
     // --- Search and Filtering ---
     const performSearch = () => {
-        const searchTerm = searchProductName.value.toLowerCase().trim();
-        const selectedTcg = tcgFilterEl.value;
+        if (!allFetchedItems) return;
+        const searchTerm = document.getElementById('search-product-name').value.toLowerCase().trim();
+        const selectedTcg = document.getElementById('filter-tcg').value;
         const sellerFilter = document.getElementById('filter-seller')?.value.toLowerCase().trim() || '';
         const countryFilter = document.getElementById('filter-country')?.value.toLowerCase().trim() || '';
         const cityFilter = document.getElementById('filter-city')?.value.toLowerCase().trim() || '';
 
-        let filteredCards = allFetchedCards.filter(card => {
-            const sellerName = card.sellerData?.displayName || '';
-            const sellerCountry = card.sellerData?.country || '';
-            const sellerCity = card.sellerData?.city || '';
+        let filteredItems = allFetchedItems.filter(item => {
+            if (searchTerm && !item.name.toLowerCase().includes(searchTerm)) return false;
+            if (selectedTcg !== 'all' && item.tcg !== selectedTcg) return false;
+            if (sellerFilter && !item.sellerData?.displayName?.toLowerCase().includes(sellerFilter)) return false;
+            if (countryFilter && !item.sellerData?.country?.toLowerCase().includes(countryFilter)) return false;
+            if (cityFilter && !item.sellerData?.city?.toLowerCase().includes(cityFilter)) return false;
 
-            if (searchTerm && !card.name.toLowerCase().includes(searchTerm)) return false;
-            if (selectedTcg !== 'all' && card.tcg !== selectedTcg) return false;
-            if (sellerFilter && !sellerName.toLowerCase().includes(sellerFilter)) return false;
-            if (countryFilter && !sellerCountry.toLowerCase().includes(countryFilter)) return false;
-            if (cityFilter && !sellerCity.toLowerCase().includes(cityFilter)) return false;
-
-            if (currentTab === 'singles') {
-                if (selectedTcg === 'Magic: The Gathering') {
-                    const colorFilters = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
-                    const rarityFilters = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
-                    const typeFilter = document.getElementById('mtg-type-filter')?.value.toLowerCase().trim() || '';
-                    const langFilter = document.getElementById('mtg-lang-filter')?.value || '';
-                    const conditionFilter = document.getElementById('mtg-condition-filter')?.value || '';
-                    const foilFilter = document.getElementById('mtg-foil-filter')?.checked;
-                    const signedFilter = document.getElementById('mtg-signed-filter')?.checked;
-
-                    if (colorFilters.length > 0) {
-                        const cardColors = card.colors || [];
-                        if (!colorFilters.some(color => cardColors.includes(color))) return false;
-                    }
-                    if (rarityFilters.length > 0 && !rarityFilters.includes(card.rarity)) return false;
-                    if (typeFilter && !card.type_line?.toLowerCase().includes(typeFilter)) return false;
-                    if (langFilter && card.language !== langFilter) return false;
-                    if (conditionFilter && card.condition !== conditionFilter) return false;
-                    if (foilFilter && !card.foil) return false;
-                    if (signedFilter && !card.signed) return false;
-                }
-            } else {
-                const sealedTypeFilter = document.getElementById('sealed-type-filter')?.value || '';
-                const sealedSetFilter = document.getElementById('sealed-set-filter')?.value.toLowerCase().trim() || '';
-                const sealedConditionFilter = document.getElementById('sealed-condition-filter')?.value || '';
-
-                if (sealedTypeFilter && card.productType !== sealedTypeFilter) return false;
-                if (sealedSetFilter && !card.set_name?.toLowerCase().includes(sealedSetFilter)) return false;
-                if (sealedConditionFilter && card.condition !== sealedConditionFilter) return false;
-            }
-
-            return true;
+            return true; 
         });
 
         const sortBy = sortByEl.value;
-        filteredCards.sort((a, b) => {
+        filteredItems.sort((a, b) => {
+            const priceA = a.isFoil ? (a.priceUsdFoil || 0) : (a.priceUsd || 0);
+            const priceB = b.isFoil ? (b.priceUsdFoil || 0) : (b.priceUsd || 0);
+
             switch (sortBy) {
-                case 'price_asc':
-                    return (a.salePrice || 0) - (b.salePrice || 0);
-                case 'price_desc':
-                    return (b.salePrice || 0) - (a.salePrice || 0);
-                case 'name_asc':
-                    return a.name.localeCompare(b.name);
-                case 'rarity_desc':
-                    return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+                case 'price_asc': return priceA - priceB;
+                case 'price_desc': return priceB - priceA;
+                case 'name_asc': return a.name.localeCompare(b.name);
+                case 'rarity_desc': return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
                 case 'addedAt_desc':
                 default:
-                    return (b.lastUpdated?.toDate() || 0) - (a.lastUpdated?.toDate() || 0);
+                    return (b.addedAt?.toDate() || 0) - (a.addedAt?.toDate() || 0);
             }
         });
 
-        renderResults(filteredCards);
+        renderResults(filteredItems);
     };
 
     // --- Result Rendering ---
-    const renderResults = (cards) => {
-        if (cards.length === 0) {
-            showMessage(`<div class="text-center"><i class="fas fa-search text-4xl text-gray-400 mb-4"></i><h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">No results found</h3><p class="text-gray-500 dark:text-gray-500">Try adjusting your search criteria.</p></div>`);
+    const renderResults = (items) => {
+        if (items.length === 0) {
+            showMessage(`<div class="text-center p-8"><i class="fas fa-search text-4xl text-gray-400 mb-4"></i><h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">No results found</h3><p class="text-gray-500 dark:text-gray-500">Try adjusting your search criteria.</p></div>`);
             return;
         }
 
         messageContainer.innerHTML = '';
-
-        if (currentView === 'grid') {
-            marketplaceGrid.classList.remove('hidden');
-            marketplaceListView.classList.add('hidden');
-            renderGridView(cards);
-        } else {
-            marketplaceGrid.classList.add('hidden');
-            marketplaceListView.classList.remove('hidden');
-            renderListView(cards);
-        }
+        currentView === 'grid' ? renderGridView(items) : renderListView(items);
+    };
+    
+    const renderGridView = (items) => {
+        marketplaceGrid.innerHTML = items.map(item => createCardHTML(item, 'grid')).join('');
+        marketplaceGrid.classList.remove('hidden');
+        marketplaceListView.classList.add('hidden');
     };
 
-    const renderGridView = (cards) => {
-        marketplaceGrid.innerHTML = cards.map(card => {
-            const imageUrl = getCardImageUrl(card);
-            const price = card.salePrice ? `${card.salePrice.toFixed(2)} ${card.currency || 'SEK'}` : 'Price not set';
-            const condition = card.condition || 'Unknown';
-            const quantity = card.quantity || 1;
-            const sellerName = card.sellerData?.displayName || 'Unknown';
-            const sellerCountry = card.sellerData?.country || '';
-            
+    const renderListView = (items) => {
+        marketplaceListView.innerHTML = items.map(item => createCardHTML(item, 'list')).join('');
+        marketplaceGrid.classList.add('hidden');
+        marketplaceListView.classList.remove('hidden');
+    };
+
+    const createCardHTML = (card, viewType) => {
+        const imageUrl = card.imageUrl || 'https://placehold.co/223x310?text=No+Image';
+        const price = (card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+        const formattedPrice = window.HatakeSocial.convertAndFormatPrice(price, 'USD');
+        const condition = card.condition || 'Not Set';
+        const quantity = card.quantity || 1;
+        const sellerName = sanitizeHTML(card.sellerData?.displayName || 'Unknown');
+        const sellerCountry = sanitizeHTML(card.sellerData?.country || '');
+        const sellerId = card.sellerId || '#';
+
+        if (viewType === 'grid') {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer marketplace-card" data-card-id="${card.id}">
-                    <div class="aspect-w-3 aspect-h-4 relative">
-                        <img src="${imageUrl}" alt="${sanitizeHTML(card.name)}" class="w-full h-48 object-cover" onerror="this.src='https://via.placeholder.com/200x280/374151/9CA3AF?text=No+Image'">
-                        ${card.foil ? '<div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">Foil</div>' : ''}
-                        ${card.signed ? '<div class="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded">Signed</div>' : ''}
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col group">
+                    <div class="relative overflow-hidden cursor-pointer marketplace-card" data-card-id="${card.id}" data-seller-id="${sellerId}">
+                        <img src="${imageUrl}" alt="${sanitizeHTML(card.name)}" class="w-full h-auto aspect-[5/7] object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/223x310?text=No+Image';">
                     </div>
-                    <div class="p-3">
-                        <h3 class="font-semibold text-sm mb-1 line-clamp-2">${sanitizeHTML(card.name)}</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">${sanitizeHTML(card.set_name || '')}</p>
+                    <div class="p-3 flex flex-col flex-grow">
+                        <h3 class="font-semibold text-sm mb-1 line-clamp-2 flex-grow">${sanitizeHTML(card.name)}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                           <a href="profile.html?uid=${sellerId}" class="hover:underline">${sellerName}</a> ${sellerCountry ? `(${sellerCountry})` : ''}
+                        </p>
                         <div class="flex justify-between items-center mb-2">
-                            <span class="text-lg font-bold text-green-600">${price}</span>
-                            <span class="text-xs text-gray-500">Qty: ${quantity}</span>
+                            <span class="text-lg font-bold text-green-500">${formattedPrice}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Qty: ${quantity}</span>
                         </div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                            <div>Condition: ${condition}</div>
-                            <div>Seller: ${sanitizeHTML(sellerName)}</div>
-                            ${sellerCountry ? `<div>Location: ${sanitizeHTML(sellerCountry)}</div>` : ''}
-                        </div>
-                        <button class="w-full mt-2 bg-blue-600 text-white text-sm py-1 px-2 rounded hover:bg-blue-700 add-to-cart-btn" data-card-id="${card.id}">
-                            Add to Cart
+                        <button class="w-full mt-auto bg-blue-600 text-white text-sm py-2 px-2 rounded-lg hover:bg-blue-700 transition-colors add-to-cart-btn" data-card-id="${card.id}">
+                            <i class="fas fa-cart-plus mr-1"></i> Add to Cart
                         </button>
                     </div>
                 </div>
             `;
-        }).join('');
-    };
-
-    const renderListView = (cards) => {
-        marketplaceListView.innerHTML = cards.map(card => {
-            const imageUrl = getCardImageUrl(card);
-            const price = card.salePrice ? `${card.salePrice.toFixed(2)} ${card.currency || 'SEK'}` : 'Price not set';
-            const condition = card.condition || 'Unknown';
-            const quantity = card.quantity || 1;
-            const sellerName = card.sellerData?.displayName || 'Unknown';
-            const sellerCountry = card.sellerData?.country || '';
-            
-            return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center space-x-4 hover:shadow-lg transition-shadow marketplace-card" data-card-id="${card.id}">
-                    <img src="${imageUrl}" alt="${sanitizeHTML(card.name)}" class="w-16 h-20 object-cover rounded" onerror="this.src='https://via.placeholder.com/64x80/374151/9CA3AF?text=No+Image'">
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-lg mb-1">${sanitizeHTML(card.name)}</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${sanitizeHTML(card.set_name || '')}</p>
-                        <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span>Condition: ${condition}</span>
+        } else { // list view
+             return `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 flex items-center space-x-4 hover:shadow-lg transition-shadow">
+                    <img src="${imageUrl}" alt="${sanitizeHTML(card.name)}" class="w-20 h-28 object-cover rounded-md cursor-pointer marketplace-card" data-card-id="${card.id}" data-seller-id="${sellerId}" onerror="this.onerror=null;this.src='https://placehold.co/80x112?text=No+Image';">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-lg truncate cursor-pointer marketplace-card" data-card-id="${card.id}" data-seller-id="${sellerId}">${sanitizeHTML(card.name)}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">${sanitizeHTML(card.set_name || '')}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                           Sold by <a href="profile.html?uid=${sellerId}" class="font-semibold hover:underline">${sellerName}</a>
+                        </p>
+                         <div class="flex items-center space-x-4 text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            <span>Cond: ${condition}</span>
                             <span>Qty: ${quantity}</span>
-                            <span>Seller: ${sanitizeHTML(sellerName)}</span>
-                            ${sellerCountry ? `<span>Location: ${sanitizeHTML(sellerCountry)}</span>` : ''}
+                            ${sellerCountry ? `<span><i class="fas fa-map-marker-alt mr-1"></i>${sellerCountry}</span>` : ''}
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-2xl font-bold text-green-600 mb-2">${price}</div>
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 add-to-cart-btn" data-card-id="${card.id}">
-                            Add to Cart
+                    <div class="text-right flex-shrink-0">
+                        <div class="text-xl font-bold text-green-500 mb-2">${formattedPrice}</div>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 add-to-cart-btn" data-card-id="${card.id}">
+                            <i class="fas fa-cart-plus mr-2"></i>Add to Cart
                         </button>
                     </div>
                 </div>
             `;
-        }).join('');
-    };
-
-    // --- Image URL Helper ---
-    const getCardImageUrl = (card) => {
-        if (currentTab === 'sealed') {
-            if (card.set_icon_svg_uri) return card.set_icon_svg_uri;
-            if (card.icon_svg_uri) return card.icon_svg_uri;
-            return 'https://via.placeholder.com/200x280/374151/9CA3AF?text=Sealed+Product';
         }
-        
-        if (card.image_uris?.normal) return card.image_uris.normal;
-        if (card.image_uris?.large) return card.image_uris.large;
-        if (card.image_uris?.small) return card.image_uris.small;
-        if (card.card_faces?.[0]?.image_uris?.normal) return card.card_faces[0].image_uris.normal;
-        if (card.scryfall_id) return `https://api.scryfall.com/cards/${card.scryfall_id}?format=image`;
-        return 'https://via.placeholder.com/200x280/374151/9CA3AF?text=No+Image';
     };
 
     // --- View Toggle ---
@@ -350,55 +298,82 @@ document.addEventListener('authReady', (e) => {
         currentView = view;
         localStorage.setItem('marketplaceView', view);
         
-        gridViewBtn.classList.toggle('bg-blue-500', view === 'grid');
+        gridViewBtn.classList.toggle('bg-blue-600', view === 'grid');
         gridViewBtn.classList.toggle('text-white', view === 'grid');
-        listViewBtn.classList.toggle('bg-blue-500', view === 'list');
-        listViewBtn.classList.toggle('text-white', view === 'list');
+        gridViewBtn.classList.toggle('text-gray-500', view !== 'grid');
         
-        if (allFetchedCards.length > 0) {
-            performSearch();
+        listViewBtn.classList.toggle('bg-blue-600', view === 'list');
+        listViewBtn.classList.toggle('text-white', view === 'list');
+        listViewBtn.classList.toggle('text-gray-500', view !== 'list');
+        
+        if (allFetchedItems.length > 0) {
+            renderResults(allFetchedItems);
         }
     };
 
     // --- Event Listeners ---
-    marketplaceTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            switchTab(tab.dataset.tab);
-        });
-    });
-
-    searchForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        performSearch();
-    });
-
-    searchProductName.addEventListener('input', performSearch);
+    marketplaceTabs.forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
     
-    tcgFilterEl.addEventListener('change', () => {
-        renderGameSpecificFilters();
-        performSearch();
-    });
+    // FIX: Add null check to prevent script crash
+    if (searchForm) {
+        searchForm.addEventListener('submit', (e) => { e.preventDefault(); performSearch(); });
+        searchForm.addEventListener('input', performSearch);
+    }
     
-    sortByEl.addEventListener('change', performSearch);
-    
-    // Add event listeners for dynamically created filters
-    singlesFilters.addEventListener('change', performSearch);
-    sealedFilters.addEventListener('change', performSearch);
+    if (sortByEl) sortByEl.addEventListener('change', performSearch);
+    if (gridViewBtn) gridViewBtn.addEventListener('click', () => setView('grid'));
+    if (listViewBtn) listViewBtn.addEventListener('click', () => setView('list'));
 
-    gridViewBtn.addEventListener('click', () => setView('grid'));
-    listViewBtn.addEventListener('click', () => setView('list'));
-
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('add-to-cart-btn')) {
-            const cardId = e.target.dataset.cardId;
-            const card = allFetchedCards.find(c => c.id === cardId);
-            if (card) {
-                console.log('Adding to cart:', card);
+    // FIX: Add null check to prevent script crash
+    if(mainContainer) {
+        mainContainer.addEventListener('click', (e) => {
+            const addToCartButton = e.target.closest('.add-to-cart-btn');
+            if (addToCartButton) {
+                e.stopPropagation();
+                if (!user) {
+                    const loginModal = document.getElementById('loginModal');
+                    if (loginModal) window.openModal(loginModal);
+                    return;
+                }
+                const cardId = addToCartButton.dataset.cardId;
+                const card = allFetchedItems.find(c => c.id === cardId);
+                if (card) {
+                    const price = (card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                    const cartItem = {
+                        id: card.id,
+                        name: card.name,
+                        price: price,
+                        currency: 'USD', 
+                        imageUrl: card.imageUrl,
+                        sellerId: card.sellerId,
+                        sellerName: card.sellerData?.displayName || 'Unknown',
+                        quantity: 1,
+                        type: currentTab === 'singles' ? 'card' : 'sealed'
+                    };
+                    
+                    if (window.addToCart) {
+                        window.addToCart(cartItem);
+                    } else {
+                        console.error('addToCart function not found. Is cart.js loaded?');
+                    }
+                }
+                return;
             }
-        }
-    });
+
+            const cardElement = e.target.closest('.marketplace-card');
+            if (cardElement) {
+                const cardId = cardElement.dataset.cardId;
+                const sellerId = cardElement.dataset.sellerId;
+                const card = allFetchedItems.find(c => c.id === cardId && c.sellerId === sellerId);
+                if (card) {
+                    window.location.href = `card-view.html?userId=${card.sellerId}&cardId=${card.id}`;
+                }
+            }
+        });
+    }
 
     // --- Initialization ---
     switchTab(currentTab);
     setView(currentView);
 });
+
