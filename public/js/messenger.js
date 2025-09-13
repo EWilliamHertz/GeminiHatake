@@ -1,6 +1,11 @@
 (function() {
     'use strict';
 
+    // Stop execution immediately if on the main messages page
+    if (window.location.pathname.endsWith('messages.html')) {
+        return;
+    }
+
     if (!window.messenger) {
         window.messenger = {};
     }
@@ -127,8 +132,7 @@
         widgetMessagesContainer.appendChild(messageWrapper);
     };
 
-    // --- MODIFIED FUNCTION ---
-    window.messenger.startNewConversation = async (otherUserId) => {
+    window.messenger.startNewConversation = async (otherUserId, otherUserData) => {
         if (!isInitialized || !currentUser) {
             alert("Messenger is not ready. Please wait a moment.");
             return;
@@ -140,16 +144,15 @@
         }
         
         try {
-            const userDoc = await db.collection('users').doc(otherUserId).get();
-            if (!userDoc.exists) {
-                throw new Error("User not found.");
+            if (!otherUserData) {
+                const userDoc = await db.collection('users').doc(otherUserId).get();
+                if (!userDoc.exists) throw new Error("User not found.");
+                otherUserData = userDoc.data();
             }
-            const otherUserData = userDoc.data();
             
             const conversationId = [currentUser.uid, otherUserId].sort().join('_');
             const convoRef = db.collection('conversations').doc(conversationId);
             
-            // FIX: Ensure all participant info fields have a fallback value to prevent 'undefined' errors.
             const conversationData = {
                 participants: [currentUser.uid, otherUserId],
                 participantInfo: {
@@ -169,7 +172,7 @@
                 lastMessage: ''
             };
             
-            await convoRef.set(conversationData, { merge: true }); // Use merge:true to avoid overwriting messages
+            await convoRef.set(conversationData, { merge: true });
             
             selectWidgetConversation(conversationId, conversationData.participantInfo[otherUserId], otherUserId);
 
@@ -224,7 +227,7 @@
         });
         
         messengerWidgetHeader.addEventListener('click', (e) => {
-            if (e.target.id === 'widget-new-conversation-btn') return;
+            if (e.target.closest('#widget-new-conversation-btn')) return;
             messengerWidgetContainer.classList.toggle('minimized');
             const minimized = messengerWidgetContainer.classList.contains('minimized');
             localStorage.setItem('messengerWidget-minimized', minimized);

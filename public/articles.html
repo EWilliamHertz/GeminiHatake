@@ -1,99 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Articles - HatakeSocial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
-    <link href="css/style.css" rel="stylesheet"/>
-    <link rel="manifest" href="/manifest.json">
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-<div class="flex h-screen">
-    <div id="sidebar-container">
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-                <a class="flex flex-col items-center space-y-1" href="app.html">
-                    <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
-                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-                </a>
-            </div>
-            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog"><i class="fas fa-blog w-6 text-center"></i><span class="ml-3">Hatake Blog</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
-            </nav>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info"></div>
-        </aside>
+ <head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>
+   Articles - HatakeSocial
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <link href="/manifest.json" rel="manifest">
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+  <div class="flex h-screen">
+   <div id="sidebar-container">
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
     </div>
-    <div class="flex-1 flex flex-col overflow-hidden">
-        <div id="header-container">
-            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <div class="flex items-center">
-                    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle"><i class="fas fa-bars text-xl"></i></button>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-                        <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results"></div>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-5" id="user-actions">
-                </div>
-            </header>
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+     <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+      <a class="flex flex-col items-center space-y-1" href="app.html">
+       <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png">
+       <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+        HatakeSocial
+       </span>
+      </a>
+     </div>
+     <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+       <i class="fas fa-home w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Feed
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+       <i class="fas fa-comments w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Messages
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+       <i class="fas fa-users w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Community
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+       <i class="fas fa-newspaper w-6 text-center">
+       </i>
+       <span class="ml-3">
+        TCG Articles
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+       <i class="fas fa-blog w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Hatake Blog
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+       <i class="fas fa-calendar-alt w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Events
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+       <i class="fas fa-layer-group w-6 text-center">
+       </i>
+       <span class="ml-3">
+        My Collection
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+       <i class="fas fa-book-open w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Deck Builder
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+       <i class="fas fa-shopping-cart w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Shop
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+       <i class="fas fa-store w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Marketplace
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+       <i class="fas fa-exchange-alt w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Trades
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+       <i class="fas fa-user w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Profile
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+       <i class="fas fa-cog w-6 text-center">
+       </i>
+       <span class="ml-3">
+        Settings
+       </span>
+      </a>
+      <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+       <i class="fas fa-info-circle w-6 text-center">
+       </i>
+       <span class="ml-3">
+        About Us
+       </span>
+      </a>
+     </nav>
+     <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
+     </div>
+    </aside>
+   </div>
+   <div class="flex-1 flex flex-col overflow-hidden">
+    <div id="header-container">
+     <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div class="flex items-center">
+       <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+        <i class="fas fa-bars text-xl">
+        </i>
+       </button>
+       <div class="relative">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+        </i>
+        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text">
+        <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
         </div>
-        <main class="flex-1 overflow-y-auto p-6">
-            <div class="container mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white" id="page-title"></h1>
-                    <a class="hidden px-6 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700" href="create-article.html" id="write-new-article-btn">
-                        <i class="fas fa-pen-alt mr-2"></i> Write New Post
-                    </a>
-                </div>
-                <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4" id="filters">
-                    <input class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="article-search" placeholder="Search..." type="text"/>
-                    <select class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="article-category-filter">
-                        <option value="all">All Categories</option>
-                        <option value="Deck Primer">Deck Primer</option>
-                        <option value="Strategy Guide">Strategy Guide</option>
-                        <option value="Tournament Report">Tournament Report</option>
-                        <option value="Community News">Community News</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="articles-list">
-                </div>
-            </div>
-        </main>
+       </div>
+      </div>
+      <div class="flex items-center space-x-5" id="user-actions">
+      </div>
+     </header>
     </div>
-</div>
-
-<!-- Firebase Scripts (Corrected and Standardized) -->
-<script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-analytics-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
-<script src="/__/firebase/init.js"></script>
-
-<!-- App Scripts -->
-<script src="js/auth.js"></script>
-<script src="js/articles.js"></script>
-<script src="js/darkmode.js"></script>
-<script>
-    // Mobile sidebar toggle
+    <main class="flex-1 overflow-y-auto p-6">
+     <div class="container mx-auto">
+      <div class="flex justify-between items-center mb-6">
+       <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white" id="page-title">
+       </h1>
+       <a class="hidden px-6 py-3 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700" href="create-article.html" id="write-new-article-btn">
+        <i class="fas fa-pen-alt mr-2">
+        </i>
+        Write New Post
+       </a>
+      </div>
+      <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4" id="filters">
+       <input class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="article-search" placeholder="Search..." type="text">
+       <select class="w-full p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="article-category-filter">
+        <option value="all">
+         All Categories
+        </option>
+        <option value="Deck Primer">
+         Deck Primer
+        </option>
+        <option value="Strategy Guide">
+         Strategy Guide
+        </option>
+        <option value="Tournament Report">
+         Tournament Report
+        </option>
+        <option value="Community News">
+         Community News
+        </option>
+       </select>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="articles-list">
+      </div>
+     </div>
+    </main>
+   </div>
+  </div>
+  <!-- Firebase Scripts (Corrected and Standardized) -->
+  <!-- App Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+  </script>
+  <script src="js/auth.js">
+  </script>
+  <script src="js/articles.js">
+  </script>
+  <script src="js/darkmode.js">
+  </script>
+  <script>
+   // Mobile sidebar toggle
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -111,15 +226,18 @@
             sidebarOverlay.classList.add('hidden');
         });
     }
-</script>
-
-<!-- Modals and other global components -->
-<script src="js/messenger.js"></script>
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal"></div>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal"></div>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal"></div>
-<script>
-    // Service Worker Registration
+  </script>
+  <!-- Modals and other global components -->
+  <script src="js/messenger.js">
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+  </div>
+  <script>
+   // Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
             navigator.serviceWorker.register('/sw.js')
@@ -131,7 +249,6 @@
                 });
         });
     }
-</script>
-</body>
+  </script>
+ </body>
 </html>
-
