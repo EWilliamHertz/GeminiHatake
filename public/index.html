@@ -1,29 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HatakeSocial - Ultimate TCG Social Platform | Trading Cards</title>
-    <meta name="description" content="Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Yu-Gi-Oh! fans.">
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#9333ea">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="HatakeSocial">
-    <meta name="msapplication-TileColor" content="#9333ea">
-    <meta name="msapplication-config" content="/browserconfig.xml">
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
-    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#9333ea">
-    
- <!DOCTYPE html>
 <html class="dark" lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -31,16 +6,33 @@
     <title>HatakeSocial - Ultimate TCG Social Platform | Trading Cards</title>
     <meta content="Join the ultimate TCG social platform for Magic, Pokemon, & Yu-Gi-Oh players. Share decks, find tournaments, and connect with a global trading card game community." name="description"/>
     <meta content="TCG social platform, trading card game community, TCG deck builder, Pokemon TCG community, Magic the Gathering social, TCG tournament finder, TCG collection tracker" name="keywords"/>
+    
+    <meta name="theme-color" content="#9333ea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HatakeSocial">
+    <meta name="msapplication-TileColor" content="#9333ea">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    
+    <link rel="manifest" href="/manifest.json">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#9333ea">
+    
     <meta content="HatakeSocial - The Ultimate TCG Social Platform" property="og:title"/>
     <meta content="The social platform every TCG player needs to build decks, find tournaments, and connect with players worldwide." property="og:description"/>
     <meta content="website" property="og:type"/>
     <meta content="https://www.hatake.eu" property="og:url"/>
     <meta content="https://i.imgur.com/B06rBhI.png" property="og:image"/>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="css/style.css" rel="stylesheet"/>
+    
     <style>
         :root {
             --background-dark: #111827;
@@ -69,9 +61,126 @@
         .gallery-thumbnail { width: 80px; height: 80px; object-fit: cover; cursor: pointer; border-radius: 0.375rem; border: 2px solid transparent; opacity: 0.6; transition: opacity 0.2s ease, border-color 0.2s ease; flex-shrink: 0; }
         .gallery-thumbnail:hover { opacity: 1; }
         .gallery-thumbnail.active { opacity: 1; border-color: #4f46e5; }
+        
+        /* PWA Install Banner Styles */
+        .pwa-install-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideDown 0.5s ease-out;
+            display: none;
+        }
+        
+        .install-content {
+            display: flex;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 1rem;
+        }
+        
+        .install-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+        
+        .install-text {
+            flex: 1;
+        }
+        
+        .install-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .install-description {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .install-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+        
+        .install-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .install-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .install-btn.primary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #4f46e5;
+        }
+        
+        .install-btn.primary:hover {
+            background: white;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .install-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+            
+            .install-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body class="antialiased bg-gray-900">
+    <div id="pwa-install-banner" class="pwa-install-banner">
+        <div class="install-content">
+            <div class="install-icon">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+            <div class="install-text">
+                <div class="install-title">Install HatakeSocial</div>
+                <div class="install-description">Get the full app experience with offline access and push notifications</div>
+            </div>
+            <div class="install-actions">
+                <button id="install-app-btn" class="install-btn primary">
+                    <i class="fas fa-download"></i> Install
+                </button>
+                <button id="dismiss-install-btn" class="install-btn">
+                    <i class="fas fa-times"></i> Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
     <header class="bg-gray-900/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-50 border-b border-gray-800">
         <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
             <a class="flex items-center space-x-3" href="/">
@@ -211,174 +320,135 @@
             </div>
         </div>
     </footer>
-
+    
     <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1001]" id="loginModal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Login</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
-            </div>
-            <form class="mt-4 space-y-4" id="loginForm">
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required type="email"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required type="password"/>
-                <p class="text-red-500 text-sm hidden" id="login-error-message"></p>
-                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button>
-                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/> Sign in with Google
-                </button>
-            </form>
-        </div>
-    </div>
-    
-    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1001]" id="registerModal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Register</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
-            </div>
-            <form class="mt-4 space-y-4" id="registerForm">
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required type="email"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required type="password"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-                <p class="text-red-500 text-sm hidden" id="register-error-message"></p>
-                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button>
-                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/> Register with Google
-                </button>
-            </form>
-        </div>
-    </div>
-    
-    <div class="fixed inset-0 z-[1002] flex items-center justify-center hidden" id="gallery-modal">
-        <div class="absolute inset-0 bg-black/80" id="gallery-backdrop"></div>
-        <div class="relative flex flex-col items-center justify-center">
-            <button class="absolute -top-12 -right-4 text-white hover:text-gray-300 z-10" id="close-gallery-modal">
-                <i class="w-10 h-10" data-lucide="x-circle"></i>
-            </button>
-            <div class="relative mb-4">
-                <img alt="Product Gallery Image" class="gallery-main-image rounded-lg shadow-xl" id="gallery-image" src=""/>
-                <div class="gallery-arrow left" id="gallery-prev"><i class="w-8 h-8" data-lucide="chevron-left"></i></div>
-                <div class="gallery-arrow right" id="gallery-next"><i class="w-8 h-8" data-lucide="chevron-right"></i></div>
-            </div>
-            <div id="gallery-thumbnails"></div>
-        </div>
-    </div>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-    <script src="/__/firebase/init.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/darkmode.js"></script>
+         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+             <div class="flex justify-between items-center">
+                 <h2 class="text-xl font-bold">Login</h2>
+                 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
+             </div>
+             <form class="mt-4 space-y-4" id="loginForm">
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required type="email"/>
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required type="password"/>
+                 <p class="text-red-500 text-sm hidden" id="login-error-message"></p>
+                 <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button>
+                 <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+                     <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/> Sign in with Google
+                 </button>
+             </form>
+         </div>
+     </div>
+     
+     <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1001]" id="registerModal">
+         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+             <div class="flex justify-between items-center">
+                 <h2 class="text-xl font-bold">Register</h2>
+                 <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
+             </div>
+             <form class="mt-4 space-y-4" id="registerForm">
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required type="email"/>
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required type="password"/>
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+                 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+                 <p class="text-red-500 text-sm hidden" id="register-error-message"></p>
+                 <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button>
+                 <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+                     <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/> Register with Google
+                 </button>
+             </form>
+         </div>
+     </div>
+     
+     <div class="fixed inset-0 z-[1002] flex items-center justify-center hidden" id="gallery-modal">
+         <div class="absolute inset-0 bg-black/80" id="gallery-backdrop"></div>
+         <div class="relative flex flex-col items-center justify-center">
+             <button class="absolute -top-12 -right-4 text-white hover:text-gray-300 z-10" id="close-gallery-modal">
+                 <i class="w-10 h-10" data-lucide="x-circle"></i>
+             </button>
+             <div class="relative mb-4">
+                 <img alt="Product Gallery Image" class="gallery-main-image rounded-lg shadow-xl" id="gallery-image" src=""/>
+                 <div class="gallery-arrow left" id="gallery-prev"><i class="w-8 h-8" data-lucide="chevron-left"></i></div>
+                 <div class="gallery-arrow right" id="gallery-next"><i class="w-8 h-8" data-lucide="chevron-right"></i></div>
+             </div>
+             <div id="gallery-thumbnails"></div>
+         </div>
+     </div>
+     
+     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+     <script src="/__/firebase/init.js"></script>
+     <script src="js/auth.js"></script>
+     <script src="js/darkmode.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('install-app-btn');
+        const dismissBtn = document.getElementById('dismiss-install-btn');
 
-            // --- Event Listeners for Buttons ---
-            const registerBtnHero = document.getElementById('register-btn-hero');
-            const registerBtnCta = document.getElementById('register-btn-cta');
-            if (registerBtnHero) {
-                registerBtnHero.addEventListener('click', () => openModal(document.getElementById('registerModal')));
-            }
-             if (registerBtnCta) {
-                registerBtnCta.addEventListener('click', () => openModal(document.getElementById('registerModal')));
-            }
+        // Check if app is already installed or dismissed
+        const isInstalled = localStorage.getItem('pwa-installed') === 'true';
+        const isDismissed = localStorage.getItem('pwa-dismissed') === 'true';
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
             
-            // --- Gallery Modal Logic ---
-            const galleryModal = document.getElementById('gallery-modal');
-            const openGalleryBtn = document.getElementById('open-gallery-btn');
-            const closeGalleryBtn = document.getElementById('close-gallery-modal');
-            const galleryBackdrop = document.getElementById('gallery-backdrop');
-            const galleryImage = document.getElementById('gallery-image');
-            const prevBtn = document.getElementById('gallery-prev');
-            const nextBtn = document.getElementById('gallery-next');
-            const thumbnailsContainer = document.getElementById('gallery-thumbnails');
-
-            let imageUrls = [];
-            let currentIndex = 0;
-
-            function populateThumbnails() {
-                thumbnailsContainer.innerHTML = '';
-                imageUrls.forEach((url, index) => {
-                    const thumb = document.createElement('img');
-                    thumb.src = url;
-                    thumb.classList.add('gallery-thumbnail');
-                    thumb.dataset.index = index;
-                    thumb.addEventListener('click', () => showImage(index));
-                    thumbnailsContainer.appendChild(thumb);
-                });
+            if (!isInstalled && !isDismissed) {
+                setTimeout(() => {
+                    installBanner.style.display = 'block';
+                }, 2000);
             }
-
-            async function fetchProductImages() {
-                if (imageUrls.length > 0) return;
-                try {
-                    const productsSnapshot = await firebase.firestore().collection('products').get();
-                    let allUrls = [];
-                    productsSnapshot.forEach(doc => {
-                        const product = doc.data();
-                        if (product.galleryImageUrls && Array.isArray(product.galleryImageUrls)) {
-                            allUrls = allUrls.concat(product.galleryImageUrls.filter(url => typeof url === 'string' && url.startsWith('http')));
-                        }
-                    });
-                    imageUrls = [...new Set(allUrls)]; 
-                    populateThumbnails();
-                } catch (error) {
-                    console.error("Error fetching product images:", error);
-                }
-            }
-
-            function showImage(index) {
-                if (imageUrls.length === 0) return;
-                currentIndex = (index + imageUrls.length) % imageUrls.length;
-                galleryImage.src = imageUrls[currentIndex];
-
-                const thumbnails = thumbnailsContainer.querySelectorAll('.gallery-thumbnail');
-                thumbnails.forEach((thumb, i) => {
-                    thumb.classList.toggle('active', i === currentIndex);
-                });
-            }
-
-            function openGalleryModal() {
-                 if (imageUrls.length === 0) {
-                     showToast("No merchandise images available yet.", "info");
-                     return;
-                 }
-                 galleryModal.classList.remove('hidden');
-                 galleryModal.classList.add('flex');
-                 showImage(0);
-                 document.addEventListener('keydown', handleKeyPress);
-            }
-            
-            function closeGalleryModal() {
-                galleryModal.classList.add('hidden');
-                galleryModal.classList.remove('flex');
-                document.removeEventListener('keydown', handleKeyPress);
-            }
-
-            function handleKeyPress(e) {
-                if (e.key === 'ArrowRight') showImage(currentIndex + 1);
-                else if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
-                else if (e.key === 'Escape') closeGalleryModal();
-            }
-
-            openGalleryBtn.addEventListener('click', async () => {
-                await fetchProductImages();
-                openGalleryModal();
-            });
-            
-            closeGalleryBtn.addEventListener('click', closeGalleryModal);
-            galleryBackdrop.addEventListener('click', closeGalleryModal);
-            prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
-            nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
         });
-    </script>
-    <script>
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    localStorage.setItem('pwa-installed', 'true');
+                    installBanner.style.display = 'none';
+                }
+                
+                deferredPrompt = null;
+            } else {
+                // Fallback instructions
+                showInstallInstructions();
+            }
+        });
+
+        dismissBtn.addEventListener('click', () => {
+            localStorage.setItem('pwa-dismissed', 'true');
+            installBanner.style.display = 'none';
+        });
+
+        function showInstallInstructions() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            let instructions = '';
+            
+            if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+                instructions = 'To install: Tap the Share button and select "Add to Home Screen"';
+            } else if (userAgent.includes('android')) {
+                instructions = 'To install: Tap the menu button and select "Add to Home Screen" or "Install App"';
+            } else {
+                instructions = 'To install: Look for the install icon in your browser\'s address bar or use "Install App" from the menu';
+            }
+            
+            alert(instructions);
+        }
+
+        // Check if app was launched from home screen
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem('pwa-installed', 'true');
+            installBanner.style.display = 'none';
+        });
+
         // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
@@ -392,5 +462,107 @@
             });
         }
     </script>
+    <script>
+         document.addEventListener('DOMContentLoaded', () => {
+             lucide.createIcons();
+
+             // --- Event Listeners for Buttons ---
+             const registerBtnHero = document.getElementById('register-btn-hero');
+             const registerBtnCta = document.getElementById('register-btn-cta');
+             if (registerBtnHero) {
+                 registerBtnHero.addEventListener('click', () => openModal(document.getElementById('registerModal')));
+             }
+              if (registerBtnCta) {
+                 registerBtnCta.addEventListener('click', () => openModal(document.getElementById('registerModal')));
+             }
+             
+             // --- Gallery Modal Logic ---
+             const galleryModal = document.getElementById('gallery-modal');
+             const openGalleryBtn = document.getElementById('open-gallery-btn');
+             const closeGalleryBtn = document.getElementById('close-gallery-modal');
+             const galleryBackdrop = document.getElementById('gallery-backdrop');
+             const galleryImage = document.getElementById('gallery-image');
+             const prevBtn = document.getElementById('gallery-prev');
+             const nextBtn = document.getElementById('gallery-next');
+             const thumbnailsContainer = document.getElementById('gallery-thumbnails');
+
+             let imageUrls = [];
+             let currentIndex = 0;
+
+             function populateThumbnails() {
+                 thumbnailsContainer.innerHTML = '';
+                 imageUrls.forEach((url, index) => {
+                     const thumb = document.createElement('img');
+                     thumb.src = url;
+                     thumb.classList.add('gallery-thumbnail');
+                     thumb.dataset.index = index;
+                     thumb.addEventListener('click', () => showImage(index));
+                     thumbnailsContainer.appendChild(thumb);
+                 });
+             }
+
+             async function fetchProductImages() {
+                 if (imageUrls.length > 0) return;
+                 try {
+                     const productsSnapshot = await firebase.firestore().collection('products').get();
+                     let allUrls = [];
+                     productsSnapshot.forEach(doc => {
+                         const product = doc.data();
+                         if (product.galleryImageUrls && Array.isArray(product.galleryImageUrls)) {
+                             allUrls = allUrls.concat(product.galleryImageUrls.filter(url => typeof url === 'string' && url.startsWith('http')));
+                         }
+                     });
+                     imageUrls = [...new Set(allUrls)]; 
+                     populateThumbnails();
+                 } catch (error) {
+                     console.error("Error fetching product images:", error);
+                 }
+             }
+
+             function showImage(index) {
+                 if (imageUrls.length === 0) return;
+                 currentIndex = (index + imageUrls.length) % imageUrls.length;
+                 galleryImage.src = imageUrls[currentIndex];
+
+                 const thumbnails = thumbnailsContainer.querySelectorAll('.gallery-thumbnail');
+                 thumbnails.forEach((thumb, i) => {
+                     thumb.classList.toggle('active', i === currentIndex);
+                 });
+             }
+
+             function openGalleryModal() {
+                  if (imageUrls.length === 0) {
+                      showToast("No merchandise images available yet.", "info");
+                      return;
+                  }
+                  galleryModal.classList.remove('hidden');
+                  galleryModal.classList.add('flex');
+                  showImage(0);
+                  document.addEventListener('keydown', handleKeyPress);
+             }
+             
+             function closeGalleryModal() {
+                 galleryModal.classList.add('hidden');
+                 galleryModal.classList.remove('flex');
+                 document.removeEventListener('keydown', handleKeyPress);
+             }
+
+             function handleKeyPress(e) {
+                 if (e.key === 'ArrowRight') showImage(currentIndex + 1);
+                 else if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
+                 else if (e.key === 'Escape') closeGalleryModal();
+             }
+
+             openGalleryBtn.addEventListener('click', async () => {
+                 await fetchProductImages();
+                 openGalleryModal();
+             });
+             
+             closeGalleryBtn.addEventListener('click', closeGalleryModal);
+             galleryBackdrop.addEventListener('click', closeGalleryModal);
+             prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
+             nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
+         });
+     </script>
 </body>
 </html>

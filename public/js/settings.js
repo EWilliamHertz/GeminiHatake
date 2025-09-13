@@ -1,11 +1,12 @@
 /**
- * HatakeSocial - Settings Page Script (v11 - Instant Widget Toggle)
+ * HatakeSocial - Merged Settings Page Script
  *
- * - NEW: When saving display settings, this script now calls global functions (`initializeMessengerWidget` or `destroyMessengerWidget`) to make the widget appear or disappear immediately, without requiring a page reload.
- * - Adds a "Messenger Widget" option in the Display settings to show or hide the floating widget.
- * - Saves the messenger visibility preference to the user's profile in Firestore.
- * - Updates localStorage with the new messenger visibility setting on save.
- * - Adds a "Date Format" option in the Display settings.
+ * Combines all settings functionalities into a single file:
+ * - Profile, Payouts, Account, Shipping, Security, Display settings.
+ * - NEW: Privacy settings (Profile & Collection visibility).
+ * - NEW: Notification settings (Email & Push toggles).
+ * - NEW: App/PWA installation, sharing, and status display.
+ * - Uses a left-side navigation menu to switch between sections.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -21,10 +22,9 @@ document.addEventListener('authReady', (e) => {
     // --- Get DOM Elements ---
     const navButtons = document.querySelectorAll('.settings-nav-btn');
     const sections = document.querySelectorAll('.settings-section');
-    const profileForm = document.getElementById('profile-settings-form');
-    const payoutForm = document.getElementById('payout-settings-form');
-    
+
     // Profile Section
+    const profileForm = document.getElementById('profile-settings-form');
     const profilePicPreview = document.getElementById('profile-pic-preview');
     const profilePicUpload = document.getElementById('profile-pic-upload');
     const bannerPicPreview = document.getElementById('banner-pic-preview');
@@ -35,21 +35,28 @@ document.addEventListener('authReady', (e) => {
     const handleInput = document.getElementById('handle');
     const bioInput = document.getElementById('bio');
     const favoriteTcgInput = document.getElementById('favoriteTcg');
-    
-    // Personality Fields
     const playstyleInput = document.getElementById('playstyle');
     const favoriteFormatInput = document.getElementById('favoriteFormat');
     const petCardInput = document.getElementById('petCard');
     const nemesisCardInput = document.getElementById('nemesisCard');
-    
-    // Address Fields
     const streetInput = document.getElementById('address-street');
     const cityInput = document.getElementById('address-city');
     const stateInput = document.getElementById('address-state');
     const zipInput = document.getElementById('address-zip');
     const countryInput = document.getElementById('address-country');
 
-    // Payout Fields
+    // Privacy Section (New)
+    const profileVisibilitySelect = document.getElementById('profile-visibility-select');
+    const collectionVisibilitySelect = document.getElementById('collection-visibility-select');
+    const savePrivacyBtn = document.getElementById('save-privacy-btn');
+
+    // Notifications Section (New)
+    const emailNotificationsToggle = document.getElementById('email-notifications-toggle');
+    const pushNotificationsToggle = document.getElementById('push-notifications-toggle');
+    const saveNotificationsBtn = document.getElementById('save-notifications-btn');
+
+    // Payout Section
+    const payoutForm = document.getElementById('payout-settings-form');
     const ibanInput = document.getElementById('iban');
     const swiftInput = document.getElementById('swift');
     const clearingInput = document.getElementById('clearing-number');
@@ -60,7 +67,7 @@ document.addEventListener('authReady', (e) => {
     const primaryCurrencySelect = document.getElementById('primaryCurrency');
     const priceSourceSelect = document.getElementById('price-source-select');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
-    
+
     // Shipping Section
     const shippingCurrencyDisplay = document.getElementById('shipping-currency-display');
     const shippingDomesticInput = document.getElementById('shippingDomestic');
@@ -77,17 +84,28 @@ document.addEventListener('authReady', (e) => {
     const dateFormatSelect = document.getElementById('date-format-select');
     const messengerWidgetToggle = document.getElementById('messenger-widget-toggle');
 
+    // App/PWA Section (New)
+    const installAppBtn = document.getElementById('install-app-btn');
+    const shareAppBtn = document.getElementById('share-app-btn');
+    const installStatus = document.getElementById('install-status');
+    const swStatus = document.getElementById('sw-status');
+    const offlineStatus = document.getElementById('offline-status');
 
-    // --- Tab Switching Logic ---
+
+    // --- Section Switching Logic ---
     navButtons.forEach(button => {
         button.addEventListener('click', () => {
             const sectionId = `settings-${button.dataset.section}`;
+
+            // Update button styles
             navButtons.forEach(btn => {
                 btn.classList.remove('bg-blue-100', 'dark:bg-blue-800', 'text-blue-700', 'dark:text-blue-200');
                 btn.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-700');
             });
             button.classList.add('bg-blue-100', 'dark:bg-blue-800', 'text-blue-700', 'dark:text-blue-200');
             button.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-700');
+
+            // Show/Hide content sections
             sections.forEach(section => {
                 section.id === sectionId ? section.classList.remove('hidden') : section.classList.add('hidden');
             });
@@ -99,18 +117,18 @@ document.addEventListener('authReady', (e) => {
         const userDoc = await db.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
             const data = userDoc.data();
+
+            // Profile & Address
             displayNameInput.value = data.displayName || '';
             handleInput.value = data.handle || '';
             bioInput.value = data.bio || '';
             favoriteTcgInput.value = data.favoriteTcg || '';
             profilePicPreview.src = data.photoURL || 'https://placehold.co/96x96';
             bannerPicPreview.src = data.bannerURL || 'https://placehold.co/600x200';
-            
             playstyleInput.value = data.playstyle || '';
             favoriteFormatInput.value = data.favoriteFormat || '';
             petCardInput.value = data.petCard || '';
             nemesisCardInput.value = data.nemesisCard || '';
-
             if (data.address) {
                 streetInput.value = data.address.street || '';
                 cityInput.value = data.address.city || '';
@@ -118,7 +136,20 @@ document.addEventListener('authReady', (e) => {
                 zipInput.value = data.address.zip || '';
                 countryInput.value = data.address.country || '';
             }
-            
+
+            // Privacy
+            if (data.privacy) {
+                profileVisibilitySelect.value = data.privacy.profileVisibility || 'Public';
+                collectionVisibilitySelect.value = data.privacy.collectionVisibility || 'Public';
+            }
+
+            // Notifications
+            if (data.notifications) {
+                emailNotificationsToggle.checked = data.notifications.email === true;
+                pushNotificationsToggle.checked = data.notifications.push === true;
+            }
+
+            // Payouts
             if (data.payoutDetails) {
                 ibanInput.value = data.payoutDetails.iban || '';
                 swiftInput.value = data.payoutDetails.swift || '';
@@ -126,14 +157,16 @@ document.addEventListener('authReady', (e) => {
                 bankAccountInput.value = data.payoutDetails.bankAccount || '';
             }
 
+            // Account & Display
             accountEmailEl.textContent = user.email;
             primaryCurrencySelect.value = data.primaryCurrency || 'SEK';
             priceSourceSelect.value = data.priceSource || 'eur';
             dateFormatSelect.value = data.dateFormat || 'dmy';
             if (messengerWidgetToggle) {
-                messengerWidgetToggle.checked = data.messengerWidgetVisible !== false; // Default to true if not set
+                messengerWidgetToggle.checked = data.messengerWidgetVisible !== false; // Default to true
             }
-            
+
+            // Shipping
             if (data.shippingProfile) {
                 shippingDomesticInput.value = data.shippingProfile.domestic || '';
                 shippingEuropeInput.value = data.shippingProfile.europe || '';
@@ -145,39 +178,14 @@ document.addEventListener('authReady', (e) => {
         loadMfaStatus();
     };
 
-    // --- Event Listeners ---
-    profilePicUpload.addEventListener('change', (e) => {
-        newProfilePicFile = e.target.files[0];
-        if (newProfilePicFile) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                profilePicPreview.src = event.target.result;
-            };
-            reader.readAsDataURL(newProfilePicFile);
-        }
-    });
+    // --- Save Logic & Event Listeners ---
 
-    bannerPicUpload.addEventListener('change', (e) => {
-        newBannerPicFile = e.target.files[0];
-        if (newBannerPicFile) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                bannerPicPreview.src = event.target.result;
-            };
-            reader.readAsDataURL(newBannerPicFile);
-        }
-    });
-
-    primaryCurrencySelect.addEventListener('change', () => {
-        shippingCurrencyDisplay.textContent = primaryCurrencySelect.value;
-    });
-
+    // Profile & Address Save
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const saveBtn = document.getElementById('save-profile-btn');
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving...';
-
         try {
             const updatedData = {
                 displayName: displayNameInput.value,
@@ -196,7 +204,6 @@ document.addEventListener('authReady', (e) => {
                     country: countryInput.value.trim()
                 },
             };
-
             if (newProfilePicFile) {
                 const filePath = `profile-pictures/${user.uid}/${Date.now()}_${newProfilePicFile.name}`;
                 const fileRef = storage.ref(filePath);
@@ -204,24 +211,19 @@ document.addEventListener('authReady', (e) => {
                 updatedData.photoURL = await uploadTask.ref.getDownloadURL();
                 await user.updateProfile({ photoURL: updatedData.photoURL });
             }
-
             if (newBannerPicFile) {
                 const filePath = `banner-pictures/${user.uid}/${Date.now()}_${newBannerPicFile.name}`;
                 const fileRef = storage.ref(filePath);
                 const uploadTask = await fileRef.put(newBannerPicFile);
                 updatedData.bannerURL = await uploadTask.ref.getDownloadURL();
             }
-            
             if (user.displayName !== updatedData.displayName) {
                 await user.updateProfile({ displayName: updatedData.displayName });
             }
-
             await db.collection('users').doc(user.uid).update(updatedData);
-
             alert("Profile settings saved successfully!");
             newProfilePicFile = null;
             newBannerPicFile = null;
-
         } catch (error) {
             console.error("Error saving profile settings:", error);
             alert("Could not save profile settings. " + error.message);
@@ -231,24 +233,58 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
+    // Privacy Save
+    savePrivacyBtn?.addEventListener('click', async () => {
+        savePrivacyBtn.disabled = true;
+        savePrivacyBtn.textContent = 'Saving...';
+        try {
+            await db.collection('users').doc(user.uid).update({
+                'privacy.profileVisibility': profileVisibilitySelect.value,
+                'privacy.collectionVisibility': collectionVisibilitySelect.value
+            });
+            alert('Privacy settings saved successfully!');
+        } catch (error) {
+            console.error("Error saving privacy settings:", error);
+            alert("Could not save privacy settings. " + error.message);
+        } finally {
+            savePrivacyBtn.disabled = false;
+            savePrivacyBtn.textContent = 'Save Privacy Settings';
+        }
+    });
+
+    // Notifications Save
+    saveNotificationsBtn?.addEventListener('click', async () => {
+        saveNotificationsBtn.disabled = true;
+        saveNotificationsBtn.textContent = 'Saving...';
+        try {
+            await db.collection('users').doc(user.uid).update({
+                'notifications.email': emailNotificationsToggle.checked,
+                'notifications.push': pushNotificationsToggle.checked
+            });
+            alert('Notification settings saved successfully!');
+        } catch (error) {
+            console.error("Error saving notification settings:", error);
+            alert("Could not save notification settings. " + error.message);
+        } finally {
+            saveNotificationsBtn.disabled = false;
+            saveNotificationsBtn.textContent = 'Save Notification Settings';
+        }
+    });
+
+    // Display Save
     document.getElementById('save-display-settings-btn')?.addEventListener('click', async () => {
         const saveBtn = document.getElementById('save-display-settings-btn');
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving...';
-
         try {
             const newDateFormat = dateFormatSelect.value;
             const isMessengerVisible = messengerWidgetToggle ? messengerWidgetToggle.checked : true;
-            
             await db.collection('users').doc(user.uid).update({
                 dateFormat: newDateFormat,
                 messengerWidgetVisible: isMessengerVisible
             });
-
             localStorage.setItem('userDateFormat', newDateFormat);
             localStorage.setItem('messengerWidget-visible', isMessengerVisible);
-            
-            // --- INSTANT WIDGET UPDATE ---
             if (isMessengerVisible) {
                 if (typeof window.initializeMessengerWidget === 'function' && !document.getElementById('messenger-widget-container')) {
                     window.initializeMessengerWidget({ detail: { user } });
@@ -258,10 +294,7 @@ document.addEventListener('authReady', (e) => {
                     window.destroyMessengerWidget();
                 }
             }
-            // --- END INSTANT WIDGET UPDATE ---
-
             alert("Display settings saved successfully!");
-
         } catch (error) {
             console.error("Error saving display settings:", error);
             alert("Could not save display settings. " + error.message);
@@ -271,12 +304,12 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
+    // Payout Save
     payoutForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const saveBtn = document.getElementById('save-payout-btn');
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving...';
-
         try {
             const payoutData = {
                 payoutDetails: {
@@ -297,18 +330,34 @@ document.addEventListener('authReady', (e) => {
         }
     });
 
-
+    // Other Listeners
+    profilePicUpload.addEventListener('change', (e) => {
+        newProfilePicFile = e.target.files[0];
+        if (newProfilePicFile) {
+            const reader = new FileReader();
+            reader.onload = (event) => { profilePicPreview.src = event.target.result; };
+            reader.readAsDataURL(newProfilePicFile);
+        }
+    });
+    bannerPicUpload.addEventListener('change', (e) => {
+        newBannerPicFile = e.target.files[0];
+        if (newBannerPicFile) {
+            const reader = new FileReader();
+            reader.onload = (event) => { bannerPicPreview.src = event.target.result; };
+            reader.readAsDataURL(newBannerPicFile);
+        }
+    });
+    primaryCurrencySelect.addEventListener('change', () => {
+        shippingCurrencyDisplay.textContent = primaryCurrencySelect.value;
+    });
     resetPasswordBtn.addEventListener('click', () => {
         auth.sendPasswordResetEmail(user.email)
-            .then(() => {
-                alert("Password reset email sent! Please check your inbox.");
-            })
+            .then(() => { alert("Password reset email sent! Please check your inbox."); })
             .catch((error) => {
                 console.error("Error sending password reset email:", error);
                 alert("Could not send password reset email. " + error.message);
             });
     });
-
     deleteAccountBtn.addEventListener('click', () => {
         const confirmation = prompt("This is a permanent action. To confirm, please type 'DELETE' in all caps.");
         if (confirmation === 'DELETE') {
@@ -317,13 +366,95 @@ document.addEventListener('authReady', (e) => {
                 window.location.href = 'index.html';
             }).catch((error) => {
                 console.error("Error deleting account:", error);
-                alert("Could not delete account. You may need to log in again to perform this action. " + error.message);
+                alert("Could not delete account. You may need to log in again. " + error.message);
             });
         } else {
             alert("Deletion cancelled.");
         }
     });
 
+    // --- PWA / App Section Logic ---
+    const initializePwaSection = () => {
+        let deferredPrompt;
+
+        const setInstallStatus = (installed) => {
+            if (installed) {
+                installStatus.textContent = 'Installed';
+                installStatus.className = 'px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                installAppBtn.textContent = 'Already Installed';
+                installAppBtn.disabled = true;
+                installAppBtn.className = 'bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold cursor-not-allowed';
+            } else {
+                 installStatus.textContent = 'Not Installed';
+                 installStatus.className = 'px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+            }
+        };
+
+        setInstallStatus(localStorage.getItem('pwa-installed') === 'true' || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installAppBtn.style.display = 'block';
+        });
+
+        installAppBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    localStorage.setItem('pwa-installed', 'true');
+                    setInstallStatus(true);
+                }
+                deferredPrompt = null;
+            } else {
+                alert('Installation is not available. Please follow the instructions for your browser.');
+            }
+        });
+
+        shareAppBtn.addEventListener('click', async () => {
+            const shareData = {
+                title: 'HatakeSocial - Ultimate TCG Social Platform',
+                text: 'Join the ultimate TCG social platform for Magic, Pokemon, & Yu-Gi-Oh players!',
+                url: window.location.origin
+            };
+            try {
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                } else {
+                    throw new Error('Share API not supported');
+                }
+            } catch (err) {
+                navigator.clipboard.writeText(shareData.url).then(() => {
+                    alert('App URL copied to clipboard!');
+                }).catch(() => {
+                    prompt('Copy this URL to share the app:', shareData.url);
+                });
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            localStorage.setItem('pwa-installed', 'true');
+            setInstallStatus(true);
+        });
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration().then(registration => {
+                if (registration && registration.active) {
+                    swStatus.textContent = 'Active';
+                    swStatus.className = 'px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                    offlineStatus.textContent = 'Available';
+                    offlineStatus.className = 'px-3 py-1 rounded-full text-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                } else {
+                    swStatus.textContent = 'Inactive';
+                    swStatus.className = 'px-3 py-1 rounded-full text-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                    offlineStatus.textContent = 'Unavailable';
+                    offlineStatus.className = 'px-3 py-1 rounded-full text-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                }
+            });
+        }
+    };
+    
     // --- MFA Functions ---
     const loadMfaStatus = () => {
         const mfaEnabled = user.multiFactor.enrolledFactors.length > 0;
@@ -349,18 +480,11 @@ document.addEventListener('authReady', (e) => {
             setupMfaEventListeners();
         }
     };
-
     const setupMfaEventListeners = () => {
-        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-          'size': 'invisible'
-        });
-
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { 'size': 'invisible' });
         document.getElementById('send-verification-btn').addEventListener('click', async () => {
             const phoneNumber = document.getElementById('phone-number-input').value;
-            if (!phoneNumber) {
-                alert("Please enter a phone number.");
-                return;
-            }
+            if (!phoneNumber) { alert("Please enter a phone number."); return; }
             try {
                 const phoneProvider = new firebase.auth.PhoneAuthProvider();
                 confirmationResult = await phoneProvider.verifyPhoneNumber(phoneNumber, window.recaptchaVerifier);
@@ -371,13 +495,9 @@ document.addEventListener('authReady', (e) => {
                 alert("Error sending code: " + error.message);
             }
         });
-
         document.getElementById('verify-mfa-btn').addEventListener('click', async () => {
             const code = document.getElementById('mfa-code-input').value;
-            if (!code) {
-                alert("Please enter the verification code.");
-                return;
-            }
+            if (!code) { alert("Please enter the verification code."); return; }
             try {
                 const cred = firebase.auth.PhoneAuthProvider.credential(confirmationResult.verificationId, code);
                 await user.multiFactor.enroll(cred, "My Phone");
@@ -389,7 +509,6 @@ document.addEventListener('authReady', (e) => {
             }
         });
     };
-
     const disableMfa = async () => {
         if (confirm("Are you sure you want to disable Multi-Factor Authentication?")) {
             try {
@@ -403,5 +522,7 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
+    // --- Initialize Page ---
     loadUserData();
+    initializePwaSection();
 });
