@@ -1,11 +1,11 @@
 /**
- * HatakeSocial - Marketplace Page Script (v13 - Security & Performance Update)
+ * HatakeSocial - Enhanced Marketplace Script (v14 - Singles & Sealed Products)
  *
- * This script handles all logic for the marketplace.html page.
- * - SECURITY FIX: Changed data source from an insecure 'collectionGroup' query to a dedicated 'marketplaceListings' collection.
- * - This resolves the issue where no cards were displayed due to Firestore security rules.
- * - PERFORMANCE: Simplified data fetching logic, removing the need for separate user profile lookups on the client-side.
+ * This script handles the enhanced marketplace with separate tabs for:
+ * - Singles (individual cards)
+ * - Sealed Products (booster boxes, packs, etc.)
  */
+
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
     const mainContainer = document.querySelector('main.container');
@@ -20,14 +20,21 @@ document.addEventListener('authReady', (e) => {
     const searchForm = document.getElementById('marketplace-search-form');
     const sortByEl = document.getElementById('sort-by');
     const tcgFilterEl = document.getElementById('filter-tcg');
-    const gameSpecificFiltersContainer = document.getElementById('game-specific-filters-container');
     const messageContainer = document.getElementById('marketplace-message');
     const gridViewBtn = document.getElementById('grid-view-btn');
     const listViewBtn = document.getElementById('list-view-btn');
     
+    // NEW: Tab elements
+    const marketplaceTabs = document.querySelectorAll('.marketplace-tab');
+    const singlesFilters = document.getElementById('singles-filters');
+    const sealedFilters = document.getElementById('sealed-filters');
+    const searchLabel = document.getElementById('search-label');
+    const searchProductName = document.getElementById('search-product-name');
+    
     // --- State ---
     let allFetchedCards = [];
     let currentView = localStorage.getItem('marketplaceView') || 'grid';
+    let currentTab = localStorage.getItem('marketplaceTab') || 'singles';
     const rarityOrder = { 'mythic': 4, 'rare': 3, 'uncommon': 2, 'common': 1 };
 
     // --- Helper Functions ---
@@ -44,18 +51,48 @@ document.addEventListener('authReady', (e) => {
         return temp.innerHTML;
     };
 
+    // --- Tab Management ---
+    const switchTab = (tabName) => {
+        currentTab = tabName;
+        localStorage.setItem('marketplaceTab', tabName);
+        
+        // Update tab appearance
+        marketplaceTabs.forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.remove('border-transparent', 'text-gray-500');
+            } else {
+                tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            }
+        });
+        
+        // Update search form
+        if (tabName === 'singles') {
+            searchLabel.textContent = 'Card Name';
+            searchProductName.placeholder = 'e.g., Sol Ring';
+            singlesFilters.classList.remove('hidden');
+            sealedFilters.classList.add('hidden');
+        } else {
+            searchLabel.textContent = 'Product Name';
+            searchProductName.placeholder = 'e.g., Foundations Booster Box';
+            singlesFilters.classList.add('hidden');
+            sealedFilters.classList.remove('hidden');
+        }
+        
+        // Re-render filters and search
+        renderGameSpecificFilters();
+        performSearch();
+    };
+
     // --- Filter Rendering ---
     const renderGameSpecificFilters = () => {
         const selectedGame = tcgFilterEl.value;
-        gameSpecificFiltersContainer.innerHTML = '';
-        gameSpecificFiltersContainer.classList.add('hidden');
-
-        if (selectedGame === 'Magic: The Gathering') {
-            gameSpecificFiltersContainer.classList.remove('hidden');
-            const formats = ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander'];
+        
+        if (currentTab === 'singles' && selectedGame === 'Magic: The Gathering') {
             const languages = { 'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ja': 'Japanese', 'ko': 'Korean', 'ru': 'Russian', 'zhs': 'Simplified Chinese', 'zht': 'Traditional Chinese' };
 
-            gameSpecificFiltersContainer.innerHTML = `
+            singlesFilters.innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Colors</label>
@@ -96,248 +133,341 @@ document.addEventListener('authReady', (e) => {
                         </div>
                     </div>
                 </div>
-                <div class="mt-4 pt-4 border-t dark:border-gray-600">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format Legality</label>
-                     <div id="mtg-format-filters" class="flex flex-wrap gap-x-4 gap-y-2 mt-2">
-                        ${formats.map(f => `<label class="flex items-center space-x-1"><input type="checkbox" value="${f}" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mtg-filter"><span class="dark:text-gray-200 capitalize">${f}</span></label>`).join('')}
-                    </div>
-                </div>
             `;
+        } else {
+            singlesFilters.innerHTML = '';
         }
     };
 
-    // --- Data Fetching and Rendering (MODIFIED) ---
-    const fetchAllListings = async () => {
-        showMessage('<p class="text-gray-500 dark:text-gray-400 flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching all listings from the marketplace...</p>');
+    // --- Data Fetching ---
+    const fetchMarketplaceData = async () => {
         try {
-            // FIX: Query the new public collection instead of the insecure collectionGroup
-            const query = db.collection('marketplaceListings');
-            const snapshot = await query.get();
-
+            showMessage('<div class="flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Loading marketplace...</div>');
+            
+            let query;
+            if (currentTab === 'singles') {
+                // Fetch from both marketplaceListings and user collections marked for sale
+                query = db.collectionGroup('collection')
+                    .where('forSale', '==', true)
+                    .where('productType', 'in', ['single', 'card', null]); // null for backwards compatibility
+            } else {
+                // Fetch sealed products
+                query = db.collectionGroup('collection')
+                    .where('forSale', '==', true)
+                    .where('productType', 'in', ['sealed', 'booster_box', 'booster_pack', 'bundle', 'prerelease_kit', 'commander_deck', 'starter_deck']);
+            }
+            
+            const snapshot = await query.limit(500).get();
+            
             if (snapshot.empty) {
-                allFetchedCards = [];
-                showMessage('<p class="text-gray-500 dark:text-gray-400 text-center mt-8">The marketplace is currently empty.</p>');
+                showMessage(`<div class="text-center"><i class="fas fa-store text-4xl text-gray-400 mb-4"></i><h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">No ${currentTab} available</h3><p class="text-gray-500 dark:text-gray-500">Be the first to list ${currentTab} for sale!</p></div>`);
                 return;
             }
-            
-            // Data now includes seller info, simplifying the process
-            allFetchedCards = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            
+
+            const cards = [];
+            const userPromises = [];
+            const userCache = new Map();
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const userId = doc.ref.parent.parent.id;
+                
+                cards.push({
+                    id: doc.id,
+                    userId: userId,
+                    ...data
+                });
+
+                if (!userCache.has(userId)) {
+                    userCache.set(userId, null);
+                    userPromises.push(
+                        db.collection('users').doc(userId).get().then(userDoc => {
+                            if (userDoc.exists) {
+                                userCache.set(userId, userDoc.data());
+                            }
+                        }).catch(() => {
+                            userCache.set(userId, { displayName: 'Unknown User' });
+                        })
+                    );
+                }
+            });
+
+            await Promise.all(userPromises);
+
+            // Attach user data to cards
+            cards.forEach(card => {
+                const userData = userCache.get(card.userId) || { displayName: 'Unknown User' };
+                card.sellerName = userData.displayName || userData.username || 'Unknown User';
+                card.sellerCountry = userData.country || '';
+                card.sellerCity = userData.city || '';
+            });
+
+            allFetchedCards = cards;
+            performSearch();
+
         } catch (error) {
-            console.error("Fatal error fetching listings:", error);
-            showMessage(`<p class="text-red-500">Could not fetch listings. There might be an issue with the backend service or Firestore rules for 'marketplaceListings'. Error: ${error.message}</p>`);
+            console.error('Error fetching marketplace data:', error);
+            showMessage('<div class="text-center text-red-600"><i class="fas fa-exclamation-triangle mr-2"></i>Error loading marketplace. Please try again.</div>');
         }
     };
 
-    const applyFiltersAndRender = () => {
-        let cardsToDisplay = [...allFetchedCards];
+    // --- Search and Filtering ---
+    const performSearch = () => {
+        const searchTerm = searchProductName.value.toLowerCase().trim();
+        const selectedTcg = tcgFilterEl.value;
+        const sellerFilter = document.getElementById('filter-seller')?.value.toLowerCase().trim() || '';
+        const countryFilter = document.getElementById('filter-country')?.value.toLowerCase().trim() || '';
+        const cityFilter = document.getElementById('filter-city')?.value.toLowerCase().trim() || '';
 
-        const nameFilter = document.getElementById('search-card-name').value.trim().toLowerCase();
-        const tcgFilter = tcgFilterEl.value;
-        const sellerInput = document.getElementById('filter-seller').value;
-        const sellerNames = sellerInput.split(',').map(name => name.trim().toLowerCase()).filter(name => name.length > 0);
-        const cityFilter = document.getElementById('filter-city')?.value.trim().toLowerCase();
-        const countryFilter = document.getElementById('filter-country')?.value.trim().toLowerCase();
+        let filteredCards = allFetchedCards.filter(card => {
+            // Basic filters
+            if (searchTerm && !card.name.toLowerCase().includes(searchTerm)) return false;
+            if (selectedTcg !== 'all' && card.tcg !== selectedTcg) return false;
+            if (sellerFilter && !card.sellerName.toLowerCase().includes(sellerFilter)) return false;
+            if (countryFilter && !card.sellerCountry.toLowerCase().includes(countryFilter)) return false;
+            if (cityFilter && !card.sellerCity.toLowerCase().includes(cityFilter)) return false;
 
-        if (nameFilter) cardsToDisplay = cardsToDisplay.filter(c => c.name.toLowerCase().includes(nameFilter));
-        if (tcgFilter !== 'all') cardsToDisplay = cardsToDisplay.filter(c => c.tcg === tcgFilter);
-        
-        if (sellerNames.length > 0) {
-            cardsToDisplay = cardsToDisplay.filter(c => {
-                const sellerDisplayName = c.sellerData?.displayName?.toLowerCase();
-                return sellerDisplayName && sellerNames.some(searchName => sellerDisplayName.includes(searchName));
-            });
-        }
-        if (cityFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.city?.toLowerCase().includes(cityFilter));
-        if (countryFilter) cardsToDisplay = cardsToDisplay.filter(c => c.sellerData?.country?.toLowerCase().includes(countryFilter));
-        
-        if (tcgFilter === 'Magic: The Gathering' && document.getElementById('mtg-color-filters')) {
-            const selectedColors = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
-            const selectedRarities = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
-            const typeFilter = document.getElementById('mtg-type-filter').value.trim().toLowerCase();
-            const langFilter = document.getElementById('mtg-lang-filter').value;
-            const conditionFilter = document.getElementById('mtg-condition-filter').value;
-            const isFoil = document.getElementById('mtg-foil-filter').checked;
-            const isSigned = document.getElementById('mtg-signed-filter').checked;
-            const selectedFormats = Array.from(document.querySelectorAll('#mtg-format-filters input:checked')).map(cb => cb.value);
+            // Tab-specific filters
+            if (currentTab === 'singles') {
+                // MTG-specific filters for singles
+                if (selectedTcg === 'Magic: The Gathering') {
+                    const colorFilters = Array.from(document.querySelectorAll('#mtg-color-filters input:checked')).map(cb => cb.value);
+                    const rarityFilters = Array.from(document.querySelectorAll('#mtg-rarity-filters input:checked')).map(cb => cb.value);
+                    const typeFilter = document.getElementById('mtg-type-filter')?.value.toLowerCase().trim() || '';
+                    const langFilter = document.getElementById('mtg-lang-filter')?.value || '';
+                    const conditionFilter = document.getElementById('mtg-condition-filter')?.value || '';
+                    const foilFilter = document.getElementById('mtg-foil-filter')?.checked;
+                    const signedFilter = document.getElementById('mtg-signed-filter')?.checked;
 
-            if (selectedColors.length > 0) {
-                cardsToDisplay = cardsToDisplay.filter(c => {
-                    const cardColors = c.colors || (c.color_identity || []);
-                    if (selectedColors.includes('C')) {
-                        return cardColors.length === 0;
+                    if (colorFilters.length > 0) {
+                        const cardColors = card.colors || [];
+                        if (!colorFilters.some(color => cardColors.includes(color))) return false;
                     }
-                    return selectedColors.every(color => cardColors.includes(color));
-                });
+                    if (rarityFilters.length > 0 && !rarityFilters.includes(card.rarity)) return false;
+                    if (typeFilter && !card.type_line?.toLowerCase().includes(typeFilter)) return false;
+                    if (langFilter && card.language !== langFilter) return false;
+                    if (conditionFilter && card.condition !== conditionFilter) return false;
+                    if (foilFilter && !card.foil) return false;
+                    if (signedFilter && !card.signed) return false;
+                }
+            } else {
+                // Sealed product filters
+                const sealedTypeFilter = document.getElementById('sealed-type-filter')?.value || '';
+                const sealedSetFilter = document.getElementById('sealed-set-filter')?.value.toLowerCase().trim() || '';
+                const sealedConditionFilter = document.getElementById('sealed-condition-filter')?.value || '';
+
+                if (sealedTypeFilter && card.productType !== sealedTypeFilter) return false;
+                if (sealedSetFilter && !card.set_name?.toLowerCase().includes(sealedSetFilter)) return false;
+                if (sealedConditionFilter && card.condition !== sealedConditionFilter) return false;
             }
-            if (selectedRarities.length > 0) cardsToDisplay = cardsToDisplay.filter(c => c.rarity && selectedRarities.includes(c.rarity));
-            if (typeFilter) cardsToDisplay = cardsToDisplay.filter(c => c.type_line && c.type_line.toLowerCase().includes(typeFilter));
-            if (langFilter) cardsToDisplay = cardsToDisplay.filter(c => c.lang === langFilter);
-            if (conditionFilter) cardsToDisplay = cardsToDisplay.filter(c => c.condition === conditionFilter);
-            if (isFoil) cardsToDisplay = cardsToDisplay.filter(c => c.isFoil === true);
-            if (isSigned) cardsToDisplay = cardsToDisplay.filter(c => c.isSigned === true);
-            if (selectedFormats.length > 0) {
-                cardsToDisplay = cardsToDisplay.filter(c => c.legalities && selectedFormats.every(format => c.legalities[format] === 'legal'));
-            }
-        }
-        
-        const [sortField, sortDirection] = sortByEl.value.split('_');
-        cardsToDisplay.sort((a, b) => {
-            let valA, valB;
-            switch(sortField) {
-                case 'price': valA = a.salePrice || 0; valB = b.salePrice || 0; break;
-                case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
-                case 'rarity': valA = rarityOrder[a.rarity] || 0; valB = rarityOrder[b.rarity] || 0; break;
-                default: valA = a.addedAt?.seconds || 0; valB = b.addedAt?.seconds || 0; break;
-            }
-            if (typeof valA === 'string') return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            return sortDirection === 'asc' ? valA - valB : valB - valA;
+
+            return true;
         });
 
-        renderResults(cardsToDisplay);
+        // Sort results
+        const sortBy = sortByEl.value;
+        filteredCards.sort((a, b) => {
+            switch (sortBy) {
+                case 'price_asc':
+                    return (a.salePrice || 0) - (b.salePrice || 0);
+                case 'price_desc':
+                    return (b.salePrice || 0) - (a.salePrice || 0);
+                case 'name_asc':
+                    return a.name.localeCompare(b.name);
+                case 'rarity_desc':
+                    return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+                case 'addedAt_desc':
+                default:
+                    return (b.addedAt?.toDate() || new Date(0)) - (a.addedAt?.toDate() || new Date(0));
+            }
+        });
+
+        renderResults(filteredCards);
     };
 
+    // --- Result Rendering ---
     const renderResults = (cards) => {
-        marketplaceGrid.innerHTML = '';
-        marketplaceListView.innerHTML = '';
-        messageContainer.innerHTML = '';
-
         if (cards.length === 0) {
-            showMessage('<p class="text-gray-500 dark:text-gray-400">No cards found that match your search criteria.</p>');
+            showMessage(`<div class="text-center"><i class="fas fa-search text-4xl text-gray-400 mb-4"></i><h3 class="text-xl font-semibold text-gray-600 dark:text-gray-400">No results found</h3><p class="text-gray-500 dark:text-gray-500">Try adjusting your search criteria.</p></div>`);
             return;
         }
 
-        const renderTarget = currentView === 'grid' ? marketplaceGrid : marketplaceListView;
-        const renderFunction = currentView === 'grid' ? renderGridViewCard : renderListViewItem;
-        cards.forEach(card => {
-            if (card && card.sellerData) {
-                renderTarget.appendChild(renderFunction(card));
-            }
-        });
-    };
-    
-    const renderGridViewCard = (card) => {
-        const cardEl = document.createElement('div');
-        cardEl.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col group transition hover:shadow-xl hover:-translate-y-1';
-        const seller = card.sellerData;
-        const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
-        
-        const quantityBadge = `<div class="absolute top-1 right-1 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity}</div>`;
-        const foilIndicatorHTML = card.isFoil ? `<div class="absolute bottom-1.5 left-1.5 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Foil</div>` : '';
-        const signedIndicatorHTML = card.isSigned ? `<div class="absolute bottom-1.5 left-1.5 ml-12 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Signed</div>` : '';
-        const notesDisplayHTML = card.notes ? `<div class="notes-display p-1 text-xs bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 rounded-t-lg truncate" title="${sanitizeHTML(card.notes)}">${sanitizeHTML(card.notes)}</div>` : '';
+        messageContainer.innerHTML = '';
 
-        cardEl.innerHTML = `
-            <a href="card-view.html?id=${card.scryfallId}" class="block h-full flex flex-col">
-                ${notesDisplayHTML}
-                <div class="relative">
-                    <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-full ${card.notes ? 'rounded-b-md' : 'rounded-md'} mb-2 aspect-[5/7] object-cover" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
-                    ${quantityBadge}
-                    ${foilIndicatorHTML}
-                    ${signedIndicatorHTML}
-                </div>
-                <div class="flex-grow flex flex-col p-1">
-                    <h4 class="font-bold text-sm truncate flex-grow text-gray-800 dark:text-white" title="${card.name}">${card.name}</h4>
-                    <p class="text-blue-600 dark:text-blue-400 font-semibold text-lg mt-1">${priceDisplay}</p>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate" title="from ${seller.displayName}">
-                        Seller: ${seller.displayName}
-                    </div>
-                </div>
-            </a>`;
-        return cardEl;
-    };
-    
-    const renderListViewItem = (card) => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center gap-4';
-        const seller = card.sellerData;
-        const priceDisplay = (card.salePrice && card.salePrice > 0) ? window.HatakeSocial.convertAndFormatPrice(card.salePrice, seller.primaryCurrency || 'SEK') : 'For Trade';
-        
-        let tradeButtonHTML = '';
-        if(user && user.uid !== seller.uid){
-            // Use originalCardId for the trade link
-            tradeButtonHTML = `<a href="trades.html?propose_to_card=${card.originalCardId}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-green-600 hover:bg-green-700">Propose Trade</a>`;
-        } else if (user && user.uid === seller.uid) {
-            tradeButtonHTML = `<span class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-gray-400 cursor-not-allowed">Your Listing</span>`;
-        }
-        
-        const notesDisplayHTML = card.notes ? `<p class="text-xs text-yellow-600 dark:text-yellow-400 truncate italic" title="${sanitizeHTML(card.notes)}"><i class="fas fa-sticky-note mr-1"></i>${sanitizeHTML(card.notes)}</p>` : '';
-
-        itemEl.innerHTML = `
-            <img src="${card.customImageUrl || card.imageUrl}" alt="${card.name}" class="w-16 h-22 object-cover rounded-md flex-shrink-0" onerror="this.onerror=null;this.src='https://placehold.co/64x88';">
-            <div class="flex-grow min-w-0">
-                <a href="card-view.html?id=${card.scryfallId}" class="font-bold text-lg text-gray-800 dark:text-white hover:underline truncate block">${card.name} ${card.isFoil ? '<i class="fas fa-star text-yellow-400"></i>' : ''} ${card.isSigned ? '<i class="fas fa-signature text-yellow-500"></i>' : ''}</a>
-                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${card.setName || ''}</p>
-                ${notesDisplayHTML}
-            </div>
-            <div class="text-center w-16 flex-shrink-0">
-                <p class="text-sm text-gray-500 dark:text-gray-400">Qty</p>
-                <p class="font-bold text-lg dark:text-white">${card.quantity}</p>
-            </div>
-            <div class="w-1/4 text-sm text-gray-600 dark:text-gray-300 flex-shrink-0">
-                <p class="font-semibold truncate">${seller.displayName}</p>
-                <p class="truncate">from ${seller.city || 'N/A'}, ${seller.country || 'N/A'}</p>
-            </div>
-            <div class="w-1/6 font-semibold text-lg text-blue-600 dark:text-blue-400 flex-shrink-0">${priceDisplay}</div>
-            ${tradeButtonHTML}
-        `;
-        return itemEl;
-    };
-    
-    const switchView = (view) => {
-        currentView = view;
-        localStorage.setItem('marketplaceView', view);
-        const activeClasses = ['bg-blue-600', 'text-white'];
-        const inactiveClasses = ['text-gray-500', 'dark:text-gray-400'];
-
-        if (view === 'grid') {
+        if (currentView === 'grid') {
             marketplaceGrid.classList.remove('hidden');
             marketplaceListView.classList.add('hidden');
-            gridViewBtn.classList.add(...activeClasses);
-            gridViewBtn.classList.remove(...inactiveClasses);
-            listViewBtn.classList.remove(...activeClasses);
-            listViewBtn.classList.add(...inactiveClasses);
+            renderGridView(cards);
         } else {
             marketplaceGrid.classList.add('hidden');
             marketplaceListView.classList.remove('hidden');
-            listViewBtn.classList.add(...activeClasses);
-            listViewBtn.classList.remove(...inactiveClasses);
-            gridViewBtn.classList.remove(...activeClasses);
-            gridViewBtn.classList.add(...inactiveClasses);
+            renderListView(cards);
         }
-        applyFiltersAndRender();
+    };
+
+    const renderGridView = (cards) => {
+        marketplaceGrid.innerHTML = cards.map(card => {
+            const imageUrl = getCardImageUrl(card);
+            const price = card.salePrice ? `${card.salePrice.toFixed(2)} ${card.currency || 'SEK'}` : 'Price not set';
+            const condition = card.condition || 'Unknown';
+            const quantity = card.quantity || 1;
+            
+            return `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer marketplace-card" data-card-id="${card.id}">
+                    <div class="aspect-w-3 aspect-h-4 relative">
+                        <img src="${imageUrl}" alt="${sanitizeHTML(card.name)}" class="w-full h-48 object-cover" onerror="this.src='https://via.placeholder.com/200x280/374151/9CA3AF?text=No+Image'">
+                        ${card.foil ? '<div class="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">Foil</div>' : ''}
+                        ${card.signed ? '<div class="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded">Signed</div>' : ''}
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-semibold text-sm mb-1 line-clamp-2">${sanitizeHTML(card.name)}</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">${sanitizeHTML(card.set_name || '')}</p>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-lg font-bold text-green-600">${price}</span>
+                            <span class="text-xs text-gray-500">Qty: ${quantity}</span>
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                            <div>Condition: ${condition}</div>
+                            <div>Seller: ${sanitizeHTML(card.sellerName)}</div>
+                            ${card.sellerCountry ? `<div>Location: ${sanitizeHTML(card.sellerCountry)}</div>` : ''}
+                        </div>
+                        <button class="w-full mt-2 bg-blue-600 text-white text-sm py-1 px-2 rounded hover:bg-blue-700 add-to-cart-btn" data-card-id="${card.id}">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const renderListView = (cards) => {
+        marketplaceListView.innerHTML = cards.map(card => {
+            const imageUrl = getCardImageUrl(card);
+            const price = card.salePrice ? `${card.salePrice.toFixed(2)} ${card.currency || 'SEK'}` : 'Price not set';
+            const condition = card.condition || 'Unknown';
+            const quantity = card.quantity || 1;
+            
+            return `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center space-x-4 hover:shadow-lg transition-shadow marketplace-card" data-card-id="${card.id}">
+                    <img src="${imageUrl}" alt="${sanitizeHTML(card.name)}" class="w-16 h-20 object-cover rounded" onerror="this.src='https://via.placeholder.com/64x80/374151/9CA3AF?text=No+Image'">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-lg mb-1">${sanitizeHTML(card.name)}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${sanitizeHTML(card.set_name || '')}</p>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span>Condition: ${condition}</span>
+                            <span>Qty: ${quantity}</span>
+                            <span>Seller: ${sanitizeHTML(card.sellerName)}</span>
+                            ${card.sellerCountry ? `<span>Location: ${sanitizeHTML(card.sellerCountry)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-green-600 mb-2">${price}</div>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 add-to-cart-btn" data-card-id="${card.id}">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    // --- Image URL Helper ---
+    const getCardImageUrl = (card) => {
+        if (currentTab === 'sealed') {
+            // For sealed products, try to get set symbol or use placeholder
+            if (card.set_icon_svg_uri) return card.set_icon_svg_uri;
+            if (card.icon_svg_uri) return card.icon_svg_uri;
+            return 'https://via.placeholder.com/200x280/374151/9CA3AF?text=Sealed+Product';
+        }
+        
+        // For singles, use the existing image logic
+        if (card.image_uris?.normal) return card.image_uris.normal;
+        if (card.image_uris?.large) return card.image_uris.large;
+        if (card.image_uris?.small) return card.image_uris.small;
+        if (card.card_faces?.[0]?.image_uris?.normal) return card.card_faces[0].image_uris.normal;
+        if (card.scryfall_id) return `https://api.scryfall.com/cards/${card.scryfall_id}?format=image`;
+        return 'https://via.placeholder.com/200x280/374151/9CA3AF?text=No+Image';
+    };
+
+    // --- View Toggle ---
+    const setView = (view) => {
+        currentView = view;
+        localStorage.setItem('marketplaceView', view);
+        
+        gridViewBtn.classList.toggle('bg-blue-500', view === 'grid');
+        gridViewBtn.classList.toggle('text-white', view === 'grid');
+        listViewBtn.classList.toggle('bg-blue-500', view === 'list');
+        listViewBtn.classList.toggle('text-white', view === 'list');
+        
+        if (allFetchedCards.length > 0) {
+            performSearch();
+        }
     };
 
     // --- Event Listeners ---
+    
+    // Tab switching
+    marketplaceTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTab(tab.dataset.tab);
+        });
+    });
+
+    // Search form
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        applyFiltersAndRender();
+        performSearch();
     });
-    sortByEl.addEventListener('change', applyFiltersAndRender);
+
+    // Real-time search
+    searchProductName.addEventListener('input', performSearch);
+    
+    // Filter changes
     tcgFilterEl.addEventListener('change', () => {
         renderGameSpecificFilters();
-        applyFiltersAndRender();
+        performSearch();
     });
     
-    gameSpecificFiltersContainer.addEventListener('input', (e) => {
-        if (e.target.matches('.mtg-filter')) {
-           applyFiltersAndRender();
+    sortByEl.addEventListener('change', performSearch);
+
+    // View toggles
+    gridViewBtn.addEventListener('click', () => setView('grid'));
+    listViewBtn.addEventListener('click', () => setView('list'));
+
+    // Add to cart functionality
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('add-to-cart-btn')) {
+            const cardId = e.target.dataset.cardId;
+            const card = allFetchedCards.find(c => c.id === cardId);
+            if (card) {
+                // Add to cart logic here
+                console.log('Adding to cart:', card);
+                // You can integrate with existing cart system
+            }
         }
     });
 
-    gridViewBtn.addEventListener('click', () => switchView('grid'));
-    listViewBtn.addEventListener('click', () => switchView('list'));
-
-    // --- Initial Load ---
-    const initializeMarketplace = async () => {
-        switchView(currentView);
-        renderGameSpecificFilters();
-        await fetchAllListings();
-        applyFiltersAndRender();
-    };
-
-    initializeMarketplace();
+    // --- Initialization ---
+    
+    // Set initial tab
+    switchTab(currentTab);
+    
+    // Set initial view
+    setView(currentView);
+    
+    // Load data
+    fetchMarketplaceData();
+    
+    // Re-fetch data every 30 seconds
+    setInterval(fetchMarketplaceData, 30000);
 });
+
+// Initialize when auth is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Auth initialization will trigger the authReady event
+    });
+} else {
+    // Auth initialization will trigger the authReady event
+}
+

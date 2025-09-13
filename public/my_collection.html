@@ -190,56 +190,90 @@
 <h2 class="text-2xl font-bold mb-4 dark:text-white">
        Add to Your Lists
       </h2>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-<div>
-<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
-         Manually Add a Card
-        </h3>
-<div class="space-y-3" id="manual-add-form">
-<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
-<option value="magic">
-           Magic: The Gathering
-          </option>
-<option value="pokemon">
-           Pokémon
-          </option>
-</select>
-<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required="" type="text"/>
-<button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">
-          Search for Card
-         </button>
-</div>
-<div class="mt-4 space-y-2 max-h-96 overflow-y-auto" id="manual-add-results">
-</div>
-</div>
-<div>
-<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
-         Import from ManaBox (.csv)
-        </h3>
-<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-         Export your collection from ManaBox and upload it here. (Magic: The Gathering only)
-        </p>
-<input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file"/>
-<button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">
-         Upload CSV
-        </button>
-<p class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status">
-</p>
-</div>
-<div>
-<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
-         Bulk Add from Text
-        </h3>
-<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-         Paste a list of cards for a guided, step-by-step import process.
-        </p>
-<a class="w-full mt-3 bg-purple-600 text-white py-2 px-4 rounded-full hover:bg-purple-700 text-center block" href="bulk_add.html">
-<i class="fas fa-paste mr-2">
-</i>
-         Go to Bulk Add Tool
-        </a>
-</div>
-</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div>
+          <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+            Manually Add a Card
+          </h3>
+          <div class="space-y-3" id="manual-add-form">
+            <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
+              <option value="magic">
+                Magic: The Gathering
+              </option>
+              <option value="pokemon">
+                Pokémon
+              </option>
+            </select>
+            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required="" type="text"/>
+            <button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">
+              Search for Card
+            </button>
+          </div>
+          <div class="mt-4 space-y-2 max-h-96 overflow-y-auto" id="manual-add-results">
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+            <i class="fas fa-box mr-2 text-purple-600"></i>
+            Add Sealed Product
+          </h3>
+          <div class="space-y-3" id="sealed-add-form">
+            <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-game-select">
+              <option value="magic">
+                Magic: The Gathering
+              </option>
+              <option value="pokemon">
+                Pokémon
+              </option>
+            </select>
+            <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-product-type">
+              <option value="booster_box">Booster Box</option>
+              <option value="booster_pack">Booster Pack</option>
+              <option value="bundle">Bundle</option>
+              <option value="prerelease_kit">Prerelease Kit</option>
+              <option value="commander_deck">Commander Deck</option>
+              <option value="starter_deck">Starter Deck</option>
+              <option value="collector_booster">Collector Booster</option>
+              <option value="draft_booster">Draft Booster</option>
+              <option value="set_booster">Set Booster</option>
+              <option value="theme_booster">Theme Booster</option>
+            </select>
+            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-set-name" placeholder="Set/Expansion (e.g., Foundations)" required="" type="text"/>
+            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-product-name" placeholder="Product Name (optional)" type="text"/>
+            <button class="w-full bg-purple-600 text-white py-2 rounded-full hover:bg-purple-700" id="add-sealed-product-btn" type="button">
+              <i class="fas fa-plus mr-2"></i>
+              Add Sealed Product
+            </button>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+            Import from ManaBox (.csv)
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Export your collection from ManaBox and upload it here. (Magic: The Gathering only)
+          </p>
+          <input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file"/>
+          <button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">
+            Upload CSV
+          </button>
+          <p class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status">
+          </p>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+            Bulk Add from Text
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Paste a list of cards for a guided, step-by-step import process.
+          </p>
+          <a class="w-full mt-3 bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 text-center block" href="bulk_add.html">
+            <i class="fas fa-paste mr-2">
+            </i>
+            Go to Bulk Add Tool
+          </a>
+        </div>
+      </div>
 </div>
 <div class="mt-8">
 <div class="tab-content" id="content-collection">
@@ -274,7 +308,23 @@
 </div>
 </div>
 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6" id="collection-filters">
-<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+<div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-product-type">
+           Type
+          </label>
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-product-type">
+<option value="all">
+            All Items
+           </option>
+<option value="single">
+            Singles Only
+           </option>
+<option value="sealed">
+            Sealed Only
+           </option>
+</select>
+</div>
 <div>
 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-name">
            Name
@@ -830,12 +880,22 @@
 <script src="js/darkmode.js">
 </script>
 <img class="hidden" id="manual-add-tooltip" style="position: absolute; z-index: 100; pointer-events: none; border: 2px solid #000; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); width: 223px; height: 310px;"/>
-<script src="/__/firebase/9.6.1/firebase-app-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-auth-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-firestore-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-storage-compat.js"></script>
-<script src="/__/firebase/9.6.1/firebase-functions-compat.js"></script>
-<script src="/__/firebase/init.js"></script>
+<!-- Firebase configuration -->
+<script>
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+  authDomain: "hatakesocial-88b5e.firebaseapp.com",
+  projectId: "hatakesocial-88b5e",
+  storageBucket: "hatakesocial-88b5e.firebasestorage.app",
+  messagingSenderId: "1091697032506",
+  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+  measurementId: "G-EH0PS2Z84J"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+</script>
 <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
 <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
