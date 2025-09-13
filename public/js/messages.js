@@ -1,5 +1,5 @@
 /**
- * HatakeSocial - Real-time Messaging System (v16 - Final Stable)
+ * HatakeSocial - Real-time Messaging System (v16.2 - Undefined Field Fix)
  */
 
 document.addEventListener('authReady', ({ detail: { user } }) => {
@@ -57,7 +57,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                         <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="h-12 w-12 rounded-full object-cover mr-4">
                         <div class="flex-1 truncate">
                             <div class="flex justify-between items-center">
-                                <p class="font-semibold">${otherUserData.displayName}</p>
+                                <p class="font-semibold">${otherUserData.displayName || "User"}</p>
                                 <p class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</p>
                             </div>
                             <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'No messages yet'}</p>
@@ -85,7 +85,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         chatHeader.innerHTML = `
             <img src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUser.displayName}" class="h-10 w-10 rounded-full object-cover mr-3">
             <div>
-                <p class="font-bold">${otherUser.displayName}</p>
+                <p class="font-bold">${otherUser.displayName || "User"}</p>
                 <p class="text-xs text-gray-500">@${otherUser.handle || otherUser.displayName}</p>
             </div>`;
         if (existingBackButton) chatHeader.prepend(existingBackButton);
@@ -159,6 +159,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         }
     });
     
+    // --- MODIFIED FUNCTION ---
     const startConversation = async (otherUserId, otherUserData) => {
         if (user.uid === otherUserId) {
             alert("You cannot start a conversation with yourself.");
@@ -166,33 +167,32 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         }
 
         try {
-            // Create a consistent conversation ID
             const conversationId = [user.uid, otherUserId].sort().join('_');
             const convoRef = db.collection('conversations').doc(conversationId);
-            const doc = await convoRef.get();
-
-            if (!doc.exists) {
-                // If the conversation doesn't exist, create it
-                await convoRef.set({
-                    participants: [user.uid, otherUserId],
-                    participantInfo: {
-                        [user.uid]: {
-                            displayName: user.displayName,
-                            photoURL: user.photoURL,
-                            handle: user.handle
-                        },
-                        [otherUserId]: {
-                            displayName: otherUserData.displayName,
-                            photoURL: otherUserData.photoURL,
-                            handle: otherUserData.handle
-                        }
+            
+            // FIX: Ensure all participant info fields have a fallback value to prevent 'undefined' errors.
+            const conversationData = {
+                participants: [user.uid, otherUserId],
+                participantInfo: {
+                    [user.uid]: {
+                        displayName: user.displayName || "User",
+                        photoURL: user.photoURL || null,
+                        handle: user.handle || user.displayName || "user"
                     },
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessage: ''
-                });
-            }
-            selectConversation(conversationId, otherUserData);
+                    [otherUserId]: {
+                        displayName: otherUserData.displayName || "User",
+                        photoURL: otherUserData.photoURL || null,
+                        handle: otherUserData.handle || otherUserData.displayName || "user"
+                    }
+                },
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: ''
+            };
+            
+            await convoRef.set(conversationData, { merge: true }); // Use merge:true to avoid overwriting messages
+
+            selectConversation(conversationId, conversationData.participantInfo[otherUserId]);
         } catch (error) {
             console.error("Error starting conversation:", error);
             alert("Could not start conversation: " + error.message);

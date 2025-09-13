@@ -1,13 +1,10 @@
 /**
- * HatakeSocial - Marketplace Page Script (v12 - Image Fix Applied)
+ * HatakeSocial - Marketplace Page Script (v13 - Security & Performance Update)
  *
  * This script handles all logic for the marketplace.html page.
- * - FIX: Although this page primarily uses Firestore data, the rendering functions have been verified to prioritize `customImageUrl` then `imageUrl`. The root cause of missing images is in how data is added to the collection, which has been fixed in `collection.js`.
- * - NEW: Displays the "notes" field for a card in both grid and list views.
- * - FIX: Corrected the list view rendering to display custom-uploaded images and the "signed" status icon, matching the grid view's functionality.
- * - Displays the user-uploaded custom image for a card if it exists, otherwise falls back to the default image.
- * - Adds a "Signed" filter for Magic: The Gathering cards.
- * - Displays a "Signed" indicator on cards in both grid and list views.
+ * - SECURITY FIX: Changed data source from an insecure 'collectionGroup' query to a dedicated 'marketplaceListings' collection.
+ * - This resolves the issue where no cards were displayed due to Firestore security rules.
+ * - PERFORMANCE: Simplified data fetching logic, removing the need for separate user profile lookups on the client-side.
  */
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -16,6 +13,8 @@ document.addEventListener('authReady', (e) => {
     const marketplaceListView = document.getElementById('marketplace-list-view');
 
     if (!marketplaceGrid) return;
+    
+    const db = firebase.firestore();
 
     // --- DOM Elements ---
     const searchForm = document.getElementById('marketplace-search-form');
@@ -107,32 +106,29 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    // --- Data Fetching and Rendering ---
+    // --- Data Fetching and Rendering (MODIFIED) ---
     const fetchAllListings = async () => {
         showMessage('<p class="text-gray-500 dark:text-gray-400 flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching all listings from the marketplace...</p>');
         try {
-            const query = db.collectionGroup('collection').where('forSale', '==', true);
+            // FIX: Query the new public collection instead of the insecure collectionGroup
+            const query = db.collection('marketplaceListings');
             const snapshot = await query.get();
 
             if (snapshot.empty) {
                 allFetchedCards = [];
+                showMessage('<p class="text-gray-500 dark:text-gray-400 text-center mt-8">The marketplace is currently empty.</p>');
                 return;
             }
-
-            const sellerIds = [...new Set(snapshot.docs.map(doc => doc.ref.parent.parent.id))];
-            const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
-            const sellerDocs = await Promise.all(sellerPromises);
-            const sellers = new Map(sellerDocs.map(doc => [doc.id, { uid: doc.id, ...doc.data() }]));
-
+            
+            // Data now includes seller info, simplifying the process
             allFetchedCards = snapshot.docs.map(doc => ({
                 id: doc.id,
-                sellerData: sellers.get(doc.ref.parent.parent.id) || null,
                 ...doc.data()
             }));
             
         } catch (error) {
             console.error("Fatal error fetching listings:", error);
-            showMessage(`<p class="text-red-500">Could not fetch listings. This is likely a Firestore security rule issue. Please ensure your rules allow collection group queries on the 'collection' group. Error: ${error.message}</p>`);
+            showMessage(`<p class="text-red-500">Could not fetch listings. There might be an issue with the backend service or Firestore rules for 'marketplaceListings'. Error: ${error.message}</p>`);
         }
     };
 
@@ -262,7 +258,8 @@ document.addEventListener('authReady', (e) => {
         
         let tradeButtonHTML = '';
         if(user && user.uid !== seller.uid){
-            tradeButtonHTML = `<a href="trades.html?propose_to_card=${card.id}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-green-600 hover:bg-green-700">Propose Trade</a>`;
+            // Use originalCardId for the trade link
+            tradeButtonHTML = `<a href="trades.html?propose_to_card=${card.originalCardId}" class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-green-600 hover:bg-green-700">Propose Trade</a>`;
         } else if (user && user.uid === seller.uid) {
             tradeButtonHTML = `<span class="px-4 py-2 text-white text-sm font-bold rounded-full flex-shrink-0 bg-gray-400 cursor-not-allowed">Your Listing</span>`;
         }

@@ -15,6 +15,7 @@
 * - Securely sets admin and content creator custom claims for user roles.
 * - Manages a secure escrow trading system with Escrow.com.
 * - Wishlist and Trade Matching functionality.
+* - NEW: Marketplace syncing function.
 */
 
 const functions = require("firebase-functions");
@@ -119,8 +120,8 @@ exports.suspendUser = functions.https.onCall(async (data, context) => {
     }
     try {
         const suspensionDate = new Date(suspendedUntil);
-        await db.collection('users').doc(uid).update({ 
-            suspendedUntil: admin.firestore.Timestamp.fromDate(suspensionDate) 
+        await db.collection('users').doc(uid).update({
+            suspendedUntil: admin.firestore.Timestamp.fromDate(suspensionDate)
         });
         return { success: true, message: `User ${uid} suspended until ${suspensionDate.toLocaleString()}.` };
     } catch (error) {
@@ -288,6 +289,76 @@ exports.onNewMessage = functions.firestore
         };
         await db.collection('users').doc(recipientId).collection('notifications').add(notification);
         return null;
+    });
+
+// =================================================================================================
+// --- NEW MARKETPLACE FUNCTION ---
+// =================================================================================================
+/**
+ * This function triggers whenever a card in a user's collection is created, updated, or deleted.
+ * It keeps a public `marketplaceListings` collection in sync.
+ */
+exports.syncCardToMarketplace = functions.firestore
+    .document('users/{userId}/collection/{cardId}')
+    .onWrite(async (change, context) => {
+        const { userId, cardId } = context.params;
+        const listingRef = db.collection('marketplaceListings').doc(cardId);
+
+        // Card was deleted or is no longer for sale
+        if (!change.after.exists || !change.after.data().forSale) {
+            try {
+                await listingRef.delete();
+                console.log(`Removed listing ${cardId} from the marketplace.`);
+            } catch (error) {
+                console.error(`Failed to remove listing ${cardId} from marketplace:`, error);
+            }
+            return null;
+        }
+
+        // Card was added or updated to be for sale
+        const cardData = change.after.data();
+        
+        // Ensure we only proceed if forSale is explicitly true
+        if (cardData.forSale !== true) {
+            return null;
+        }
+
+        try {
+            const userDoc = await db.collection('users').doc(userId).get();
+            if (!userDoc.exists) {
+                console.error(`User document for seller ${userId} not found.`);
+                return null;
+            }
+            
+            const sellerData = userDoc.data();
+
+            // Create a clean seller object to avoid storing sensitive info
+            const sellerInfo = {
+                uid: userId,
+                displayName: sellerData.displayName || "Unknown Seller",
+                photoURL: sellerData.photoURL || null,
+                city: sellerData.city || null,
+                country: sellerData.country || null,
+                primaryCurrency: sellerData.primaryCurrency || 'SEK',
+                rating: sellerData.rating || 0,
+                ratingCount: sellerData.ratingCount || 0
+            };
+
+            const listingData = {
+                ...cardData,
+                sellerData: sellerInfo,
+                originalCardId: cardId, // Keep track of original ID
+                sellerId: userId,
+                lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            await listingRef.set(listingData, { merge: true });
+            console.log(`Synced card ${cardId} to marketplace for user ${userId}.`);
+            return null;
+        } catch (error) {
+            console.error(`Error syncing card ${cardId} to marketplace:`, error);
+            return null;
+        }
     });
 
 // =================================================================================================
@@ -688,7 +759,7 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
         }],
         currency: 'sek',
         description: `Trade ID: ${tradeId} on HatakeSocial.`,
-        inspection_period: 3, 
+        inspection_period: 3,
     };
 
     try {
@@ -724,7 +795,7 @@ exports.releaseEscrowFunds = functions.https.onCall(async (data, context) => {
     if (!tradeDoc.exists) {
         throw new functions.https.HttpsError('not-found', 'Trade not found.');
     }
-    
+
     const tradeData = tradeDoc.data();
     const escrowTransactionId = tradeData.escrowTransactionId;
 
@@ -877,77 +948,4 @@ exports.generateImpersonationToken = functions.https.onCall(async (data, context
       "Could not create an impersonation token."
     );
   }
-});
-
-// Add this new function to your functions/index.js file
-
-/**
- * Ensures a conversation document exists between two users. Creates one if it doesn't.
- * This is called from the LFG page to bypass client-side permissions for creation.
- */
-exports.ensureConversationExists = functions.https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
-    }
-
-    const { otherUserId } = data;
-    const currentUserId = context.auth.uid;
-
-    if (!otherUserId) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing the other user\'s ID.');
-    }
-
-    if (otherUserId === currentUserId) {
-        throw new functions.https.HttpsError('invalid-argument', 'You cannot create a conversation with yourself.');
-    }
-
-    const conversationId = [currentUserId, otherUserId].sort().join('_');
-    const convoRef = db.collection('conversations').doc(conversationId);
-
-    const doc = await convoRef.get();
-
-    // If the conversation already exists, we don't need to do anything.
-    if (doc.exists) {
-        return { success: true, conversationId: conversationId };
-    }
-
-    // If it doesn't exist, create it with all necessary user info.
-    try {
-        const currentUserDoc = await db.collection('users').doc(currentUserId).get();
-        const otherUserDoc = await db.collection('users').doc(otherUserId).get();
-
-        if (!currentUserDoc.exists || !otherUserDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'One of the users in the conversation could not be found.');
-        }
-
-        const currentUserData = currentUserDoc.data();
-        const otherUserData = otherUserDoc.data();
-
-        const convoData = {
-            participants: [currentUserId, otherUserId],
-            participantInfo: {
-                [currentUserId]: {
-                    displayName: currentUserData.displayName,
-                    photoURL: currentUserData.photoURL,
-                    handle: currentUserData.handle || ''
-                },
-                [otherUserId]: {
-                    displayName: otherUserData.displayName,
-                    photoURL: otherUserData.photoURL,
-                    handle: otherUserData.handle || ''
-                }
-            },
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-            lastMessage: ''
-        };
-
-        await convoRef.set(convoData);
-
-        return { success: true, conversationId: conversationId };
-
-    } catch (error) {
-        console.error("Error ensuring conversation exists:", error);
-        throw new functions.https.HttpsError('internal', 'An unexpected error occurred while creating the conversation.');
-    }
 });

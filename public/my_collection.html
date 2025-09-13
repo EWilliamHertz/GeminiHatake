@@ -249,7 +249,7 @@
         </h2>
 <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
 <div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
-<button class="view-btn p-2 rounded-full leading-none bg-white dark:bg-gray-800 shadow text-blue-600" id="grid-view-btn" title="Grid View">
+<button class="view-btn p-2 rounded-full leading-none bg-blue-600 text-white" id="grid-view-btn" title="Grid View">
 <i class="fas fa-th-large">
 </i>
 </button>
@@ -351,7 +351,7 @@
 </div>
 </div>
 </div>
-<div class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40" id="bulk-action-bar">
+<div class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex-wrap gap-4 items-center justify-between sticky top-20 z-40" id="bulk-action-bar">
 <div class="flex items-center space-x-3">
 <input class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500" id="select-all-checkbox" type="checkbox"/>
 <label class="font-medium dark:text-white" for="select-all-checkbox">
@@ -370,7 +370,7 @@
          </button>
 </div>
 </div>
-<div class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40" id="quick-edit-save-bar">
+<div class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 items-center justify-between sticky top-20 z-40" id="quick-edit-save-bar">
 <p class="font-semibold text-green-800 dark:text-green-200">
 <i class="fas fa-info-circle mr-2">
 </i>
@@ -575,7 +575,32 @@
         </label>
 <input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="edit-card-image-upload" type="file"/>
 </div>
-<button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
+<div class="mt-4 p-3 rounded-lg bg-gray-100 dark:bg-gray-700">
+<div class="flex items-center justify-between">
+<label class="font-semibold text-gray-700 dark:text-gray-200" for="edit-forSale">
+                    List for Sale/Trade?
+                </label>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="edit-forSale" name="forSale" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer" for="edit-forSale">
+</label>
+</div>
+</div>
+<div class="mt-4 hidden" id="edit-price-input-container">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="edit-salePrice">
+                    Sale Price (SEK)
+                </label>
+<div class="relative mt-1">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="text-gray-500 sm:text-sm">
+                        kr
+                    </span>
+</div>
+<input class="pl-7 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="edit-salePrice" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+</div>
+<button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700 mt-6" type="submit">
         Save Changes
        </button>
 </form>

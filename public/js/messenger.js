@@ -1,7 +1,6 @@
 (function() {
     'use strict';
 
-    // Expose the messenger functionality on the window object
     if (!window.messenger) {
         window.messenger = {};
     }
@@ -68,7 +67,6 @@
         const widgetChatView = document.getElementById('widget-chat-view');
         const widgetMainHeaderText = document.getElementById('widget-main-header-text');
 
-        // Bring the widget to view if minimized
         if (messengerWidgetContainer.classList.contains('minimized')) {
             messengerWidgetContainer.classList.remove('minimized');
             localStorage.setItem('messengerWidget-minimized', 'false');
@@ -86,7 +84,7 @@
         widgetChatHeader.innerHTML = `
             <i class="fas fa-arrow-left cursor-pointer p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full" id="widget-back-btn"></i>
             <img alt="${otherUser.displayName}" class="w-8 h-8 rounded-full object-cover" src="${otherUser.photoURL || 'https://i.imgur.com/B06rBhI.png'}"/>
-            <span class="font-semibold truncate">${otherUser.displayName}</span>
+            <span class="font-semibold truncate">${otherUser.displayName || "User"}</span>
         `;
         
         document.getElementById('widget-back-btn').addEventListener('click', () => {
@@ -127,7 +125,7 @@
         widgetMessagesContainer.appendChild(messageWrapper);
     };
 
-    // Publicly exposed function to start a conversation
+    // --- MODIFIED FUNCTION ---
     window.messenger.startNewConversation = async (otherUserId) => {
         if (!isInitialized || !currentUser) {
             alert("Messenger is not ready. Please wait a moment.");
@@ -149,16 +147,29 @@
             const conversationId = [currentUser.uid, otherUserId].sort().join('_');
             const convoRef = db.collection('conversations').doc(conversationId);
             
-            const doc = await convoRef.get();
-            if (!doc.exists) {
-                await convoRef.set({
-                    participants: [currentUser.uid, otherUserId],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastMessage: ''
-                });
-            }
-            selectWidgetConversation(conversationId, otherUserData);
+            // FIX: Ensure all participant info fields have a fallback value to prevent 'undefined' errors.
+            const conversationData = {
+                participants: [currentUser.uid, otherUserId],
+                participantInfo: {
+                    [currentUser.uid]: {
+                        displayName: currentUser.displayName || "User",
+                        photoURL: currentUser.photoURL || null,
+                        handle: currentUser.handle || currentUser.displayName || "user"
+                    },
+                    [otherUserId]: {
+                        displayName: otherUserData.displayName || "User",
+                        photoURL: otherUserData.photoURL || null,
+                        handle: otherUserData.handle || otherUserData.displayName || "user"
+                    }
+                },
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessage: ''
+            };
+            
+            await convoRef.set(conversationData, { merge: true }); // Use merge:true to avoid overwriting messages
+            
+            selectWidgetConversation(conversationId, conversationData.participantInfo[otherUserId]);
 
         } catch (error) {
             console.error("Error starting new conversation:", error);
@@ -243,25 +254,22 @@
                     snapshot.forEach(doc => {
                         const convo = doc.data();
                         const otherUserId = convo.participants.find(p => p !== currentUser.uid);
-                        if (!otherUserId) return;
-                        db.collection('users').doc(otherUserId).get().then(userDoc => {
-                            if (userDoc.exists) {
-                                const otherUserData = userDoc.data();
-                                const convoElement = document.createElement('div');
-                                convoElement.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-lg mx-1';
-                                convoElement.innerHTML = `
-                                    <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
-                                    <div class="flex-1 truncate">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-semibold">${otherUserData.displayName}</span>
-                                            <span class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</span>
-                                        </div>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'Start a conversation'}</p>
-                                    </div>`;
-                                convoElement.addEventListener('click', () => selectWidgetConversation(doc.id, otherUserData));
-                                widgetConversationsList.appendChild(convoElement);
-                            }
-                        });
+                        if (!otherUserId || !convo.participantInfo || !convo.participantInfo[otherUserId]) return;
+                        
+                        const otherUserData = convo.participantInfo[otherUserId];
+                        const convoElement = document.createElement('div');
+                        convoElement.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-lg mx-1';
+                        convoElement.innerHTML = `
+                            <img src="${otherUserData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${otherUserData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            <div class="flex-1 truncate">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-semibold">${otherUserData.displayName || "User"}</span>
+                                    <span class="text-xs text-gray-400">${formatTimestamp(convo.lastUpdated)}</span>
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${convo.lastMessage || 'Start a conversation'}</p>
+                            </div>`;
+                        convoElement.addEventListener('click', () => selectWidgetConversation(doc.id, otherUserData));
+                        widgetConversationsList.appendChild(convoElement);
                     });
                 }, error => {
                     console.error("Error listening for widget conversations:", error);
@@ -271,7 +279,6 @@
         
         newConversationBtn.addEventListener('click', () => {
             if(window.openNewConversationModal) {
-                // The callback is now the globally exposed function
                 window.openNewConversationModal(true, window.messenger.startNewConversation);
             }
         });
