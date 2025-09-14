@@ -1,9 +1,11 @@
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v20 - Complete & Stable)
+* HatakeSocial - Merged Authentication & Global UI Script (v22 - UI Elements Restored)
 * - This is the complete, unabridged version of the global script.
 * - Contains all helper functions for toasts, modals, and user interactions.
 * - Manages user authentication state and dynamically updates all UI components.
-* - Initializes all necessary Firebase services for the client-side application.
+* - Fixes issue where user action icons (Cart, Notifications, Avatar) were not appearing.
+* - Adds the Shopping Cart icon to the header for logged-in users.
+* - Ensures header search bar functionality is initialized.
 */
 
 // --- Firebase Initialization (Stable) ---
@@ -18,7 +20,7 @@ const firebaseConfig = {
 };
 
 if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig); 
+    firebase.initializeApp(firebaseConfig);
 }
 window.auth = firebase.auth();
 window.db = firebase.firestore();
@@ -122,7 +124,7 @@ window.openNewConversationModal = (isWidget = false, callback) => {
                 if (!currentUser) return;
                 const usersRef = firebase.firestore().collection('users');
                 const snapshot = await usersRef.where('displayName_lower', '>=', query).where('displayName_lower', '<=', query + '\uf8ff').limit(10).get();
-                
+
                 searchResultsContainer.innerHTML = '';
                 if (snapshot.empty) {
                     searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
@@ -157,7 +159,7 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.body.style.opacity = '0';
-    
+
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
@@ -203,9 +205,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     };
-    
+
+    const setupHeaderSearch = () => {
+        const searchBar = document.getElementById('main-search-bar');
+        if (searchBar) {
+            searchBar.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = searchBar.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?query=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+    };
+
     const setupGlobalListeners = () => {
-        const headerSearchForm = document.querySelector('header form#header-search-form');
         const googleLoginButton = document.getElementById('googleLoginButton');
         const googleRegisterButton = document.getElementById('googleRegisterButton');
         const mobileMenuButton = document.getElementById('mobile-menu-button');
@@ -288,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let unsubscribeNotifications = null;
     let verificationTimer = null;
-    
+
     auth.onAuthStateChanged(async (user) => {
         if (verificationTimer) {
             clearInterval(verificationTimer);
@@ -332,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const userActions = document.getElementById('user-actions');
         const authContainerSidebar = document.getElementById('auth-container-sidebar');
         const mobileUserActions = document.getElementById('mobile-user-actions');
-        
+
         if (user) {
             const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
             if (isIndexPage) {
@@ -347,15 +363,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
                 if (doc.exists) {
                     if (unsubscribeUserDoc) unsubscribeUserDoc();
-                    
+
                     window.HatakeSocial.currentUserData = doc.data();
                     const userData = doc.data();
                     const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
                     const idTokenResult = await user.getIdTokenResult(true);
                     const isAdmin = idTokenResult.claims.admin === true;
-                    
+
                     handleAdminAccess(isAdmin);
-                    
+
                     if (isAdmin && mainSidebarNav && !document.getElementById('admin-sidebar-link')) {
                         const adminLink = document.createElement('a');
                         adminLink.id = 'admin-sidebar-link';
@@ -367,14 +383,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (userActions) {
                         userActions.innerHTML = `
+                            <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                            </button>
+
                             <div class="relative">
-                                <button id="notification-bell-btn" class="text-gray-300 hover:text-indigo-400 text-xl"><i class="fas fa-bell"></i><span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></button>
+                                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
+                                    <i class="fas fa-bell"></i>
+                                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                                </button>
                                 <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
                                     <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
                                     <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
                                     <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
                                 </div>
                             </div>
+
                             <div class="relative">
                                 <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
                                 <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
@@ -385,6 +410,17 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
                                 </div>
                             </div>`;
+                        
+                        // Add event listeners for the new elements
+                        const cartBtn = document.getElementById('cart-btn');
+                        const cartModal = document.getElementById('cartModal');
+                        if(cartBtn && cartModal) {
+                           cartBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                openModal(cartModal);
+                           });
+                        }
+                        
                         document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
                         document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
                         document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
@@ -417,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
                         document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
                     }
-    
+
                     if (mobileUserActions) {
                         mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
                         document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
@@ -439,15 +475,15 @@ document.addEventListener('DOMContentLoaded', () => {
             handleAdminAccess(false);
 
             const loginButtonsHTML = `
-                <button id="header-login-btn" class="text-gray-300 hover:text-white transition-colors">Log In</button>
-                <button id="header-register-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors">Sign Up Free</button>`;
+                <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
+                <button id="header-register-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button>`;
             if (userActions) {
                 userActions.innerHTML = loginButtonsHTML;
                 document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
                 document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
             }
             if (authContainerSidebar) {
-                authContainerSidebar.innerHTML = loginButtonsHTML.replace('header-login-btn', 'sidebar-login-btn').replace('header-register-btn', 'sidebar-register-btn');
+                authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button></div>`;
                 document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(loginModal));
                 document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(registerModal));
             }
@@ -461,8 +497,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.transition = 'opacity 0.3s ease-in-out';
         document.body.style.opacity = '1';
     });
-    
+
     setupGlobalListeners();
+    setupHeaderSearch();
     setupCurrencySelector();
 
     window.addEventListener('click', () => {
@@ -485,7 +522,7 @@ async function showTermsModal() {
     termsModal.id = 'terms-modal';
     termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
     let termsContent = '<p>Loading...</p>', privacyContent = '<p>Loading...</p>';
-    
+
     try {
         const [termsResponse, privacyResponse] = await Promise.all([fetch('terms.html'), fetch('privacy.html')]);
         termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
@@ -509,7 +546,7 @@ async function showTermsModal() {
     </div>`;
 
     document.body.appendChild(termsModal);
-    
+
     const termsCheckbox = termsModal.querySelector('#terms-checkbox');
     const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
 
@@ -523,7 +560,7 @@ async function showTermsModal() {
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
         const errorMessageEl = document.getElementById('register-error-message');
-        
+
         try {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             await userCredential.user.sendEmailVerification();

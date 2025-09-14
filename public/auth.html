@@ -1,28 +1,44 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
  <head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
    Welcome to HatakeSocial
   </title>
   <script src="https://cdn.tailwindcss.com">
   </script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="css/style.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
   <script>
    // Tailwind dark mode configuration
         tailwind.config = {
             darkMode: 'class',
         }
   </script>
-  <link href="/manifest.json" rel="manifest">
+  <link href="/manifest.json" rel="manifest"/>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen overflow-hidden">
+  <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+   <div class="flex items-center">
+    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+     <i class="fas fa-bars text-xl">
+     </i>
+    </button>
+    <div class="relative">
+     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+     </i>
+     <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+    </div>
+   </div>
+   <div class="flex items-center space-x-5" id="user-actions">
+    <!-- This container is dynamically filled by auth.js -->
+   </div>
+  </header>
   <div class="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl">
    <div class="text-center">
     <a href="app.html" title="Back to Home">
-     <img alt="HatakeSocial Logo" class="w-20 h-20 mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/80x80?text=Logo';" src="https://i.imgur.com/B06rBhI.png">
+     <img alt="HatakeSocial Logo" class="w-20 h-20 mx-auto" onerror="this.onerror=null; this.src='https://placehold.co/80x80?text=Logo';" src="https://i.imgur.com/B06rBhI.png"/>
     </a>
     <h2 class="mt-6 text-3xl font-bold text-gray-900 dark:text-white" id="form-title">
      Login to Your Account
@@ -41,7 +57,7 @@
    </div>
    <div>
     <button class="w-full inline-flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700" id="google-signin-button">
-     <img alt="Google icon" class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg">
+     <img alt="Google icon" class="w-5 h-5" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
      <span class="ml-3">
       Sign in with Google
      </span>
@@ -81,7 +97,7 @@
       Your Cart
      </h2>
      <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
-      &times;
+      ×
      </button>
     </div>
     <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
@@ -100,9 +116,9 @@
       </span>
      </div>
      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-      Shipping & taxes calculated at checkout.
+      Shipping &amp; taxes calculated at checkout.
      </p>
-     <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled id="checkout-btn">
+     <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
       Proceed to Checkout
      </button>
     </div>
@@ -117,65 +133,12 @@
     <h2 class="text-2xl font-bold mb-4">
      Start a new conversation
     </h2>
-    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text">
+    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
     <div class="max-h-60 overflow-y-auto" id="user-search-results">
     </div>
     <button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
      Cancel
     </button>
-   </div>
-  </div>
-  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center">
-     <h2 class="text-xl font-bold">
-      Login
-     </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
-      &times;
-     </button>
-    </div>
-    <form class="mt-4 space-y-4" id="loginForm">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required type="email">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required type="password">
-     <p class="text-red-500 text-sm hidden" id="login-error-message">
-     </p>
-     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-      Login
-     </button>
-     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">
-      Sign in with Google
-     </button>
-    </form>
-   </div>
-  </div>
-  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center">
-     <h2 class="text-xl font-bold">
-      Register
-     </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
-      &times;
-     </button>
-    </div>
-    <form class="mt-4 space-y-4" id="registerForm">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required type="email">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required type="password">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text">
-     <p class="text-red-500 text-sm hidden" id="register-error-message">
-     </p>
-     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-      Register
-     </button>
-     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">
-      Register with Google
-     </button>
-    </form>
    </div>
   </div>
   <script>
@@ -192,5 +155,58 @@
             });
         }
   </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Login
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="loginForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+     <p class="text-red-500 text-sm hidden" id="login-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Login
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Sign in with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Register
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="registerForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+     <p class="text-red-500 text-sm hidden" id="register-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Register
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Register with Google
+     </button>
+    </form>
+   </div>
+  </div>
  </body>
 </html>

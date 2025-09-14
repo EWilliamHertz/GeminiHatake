@@ -29,7 +29,7 @@ export async function searchMagicCards(cardName) {
         setName: card.set_name,
         rarity: card.rarity,
         collector_number: card.collector_number,
-        imageUrl: getCardImageUrl(card, 'small'),
+        imageUrl: getCardImageUrl(card, 'small'), // Use consistent image URL getter
         priceUsd: card.prices?.usd || null,
         priceUsdFoil: card.prices?.usd_foil || null,
         tcg: 'Magic: The Gathering',

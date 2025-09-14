@@ -13,6 +13,22 @@
   <link href="/manifest.json" rel="manifest"/>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+  <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+   <div class="flex items-center">
+    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+     <i class="fas fa-bars text-xl">
+     </i>
+    </button>
+    <div class="relative">
+     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+     </i>
+     <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+    </div>
+   </div>
+   <div class="flex items-center space-x-5" id="user-actions">
+    <!-- This container is dynamically filled by auth.js -->
+   </div>
+  </header>
   <div class="flex h-screen">
    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
    </div>
@@ -129,23 +145,6 @@
     </div>
    </aside>
    <main class="flex-1 flex flex-col overflow-y-auto">
-    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-     <div class="flex items-center">
-      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-       <i class="fas fa-bars text-xl">
-       </i>
-      </button>
-      <div class="relative">
-       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-       </i>
-       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-       <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
-       </div>
-      </div>
-     </div>
-     <div class="flex items-center space-x-5" id="user-actions">
-     </div>
-    </header>
     <div class="container mx-auto px-4 py-8 flex-grow">
      <div class="flex justify-between items-center mb-4 border-b pb-4 dark:border-gray-700">
       <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">
@@ -190,8 +189,8 @@
           <option value="Magic: The Gathering">
            Magic: The Gathering
           </option>
-          <option value="Pok&eacute;mon">
-           Pok&eacute;mon
+          <option value="Pokémon">
+           Pokémon
           </option>
          </select>
         </div>
@@ -356,7 +355,7 @@
       </span>
      </div>
      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-      Shipping & taxes calculated at checkout.
+      Shipping &amp; taxes calculated at checkout.
      </p>
      <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
       Proceed to Checkout
@@ -364,6 +363,47 @@
     </div>
    </div>
   </div>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+  </script>
+  <script src="js/auth.js">
+  </script>
+  <script src="js/marketplace.js">
+  </script>
+  <script src="js/darkmode.js">
+  </script>
+  <script src="js/messenger.js">
+  </script>
+  <script src="js/cart.js">
+  </script>
+  <script>
+   const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        });
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        });
+    }
+  </script>
   <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
     <div class="flex justify-between items-center">
@@ -417,46 +457,5 @@
     </form>
    </div>
   </div>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
-  </script>
-  <script src="js/auth.js">
-  </script>
-  <script src="js/marketplace.js">
-  </script>
-  <script src="js/darkmode.js">
-  </script>
-  <script src="js/messenger.js">
-  </script>
-  <script src="js/cart.js">
-  </script>
-  <script>
-   const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('-translate-x-full');
-            sidebarOverlay.classList.toggle('hidden');
-        });
-    }
-
-    if (sidebarOverlay) {
-        sidebarOverlay.addEventListener('click', () => {
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-        });
-    }
-  </script>
  </body>
 </html>

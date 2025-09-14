@@ -1,7 +1,7 @@
 /**
  * csv.js - Handles parsing and processing of CSV files for collection import.
  */
-import { searchMagicCards } from './api.js'; // Assuming CSV is for Magic cards
+import { searchMagicCards } from './api.js';
 import { showNotification } from './utils.js';
 
 function parseCSVLine(line) {
@@ -52,7 +52,7 @@ async function processCSVLine(line, columnMap, lineNumber) {
         } catch (scryfallError) {
             console.warn(`Scryfall lookup failed for "${cardName}":`, scryfallError.message);
         }
-
+        
         return {
             name: cardName,
             quantity: parseInt(values[columnMap.quantity]) || 1,
@@ -87,7 +87,7 @@ export async function handleCSVUpload(file, db, user, statusEl, onComplete) {
         const columnMap = detectCSVColumns(headers);
         if (columnMap.name === undefined) throw new Error('Could not find a "name" column in CSV.');
 
-        const batch = db.batch();
+        let batch = db.batch();
         let processedCount = 0;
         
         for (let i = 1; i < lines.length; i++) {
@@ -96,7 +96,7 @@ export async function handleCSVUpload(file, db, user, statusEl, onComplete) {
                 const docRef = db.collection('users').doc(user.uid).collection('collection').doc();
                 batch.set(docRef, cardData);
                 processedCount++;
-                 if(processedCount % 500 === 0) { // Commit every 500
+                if (processedCount % 499 === 0) { // Commit every ~500 operations
                     await batch.commit();
                     batch = db.batch();
                 }
@@ -105,7 +105,9 @@ export async function handleCSVUpload(file, db, user, statusEl, onComplete) {
             }
         }
 
-        if (processedCount > 0) await batch.commit();
+        if (processedCount > 0 && processedCount % 499 !== 0) {
+            await batch.commit();
+        }
 
         statusEl.textContent = `Import complete! ${processedCount} cards added.`;
         statusEl.className = 'text-center text-sm mt-2 text-green-600 dark:text-green-400';

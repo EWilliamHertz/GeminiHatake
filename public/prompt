@@ -1,0 +1,3797 @@
+This is my_collection.html:
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>
+   My Collection - HatakeSocial
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+  </script>
+  <link href="/manifest.json" rel="manifest">
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+  <div class="flex h-screen">
+   <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
+   </div>
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+     <a class="flex flex-col items-center space-y-1" href="app.html">
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png">
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       TCG Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+      <i class="fas fa-blog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Hatake Blog
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
+    </nav>
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
+    </div>
+   </aside>
+   <div class="flex-1 flex flex-col overflow-y-auto">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text">
+       <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
+       </div>
+      </div>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+      <div class="space-x-2">
+       <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
+        Login
+       </button>
+       <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="header-register-btn">
+        Register
+       </button>
+      </div>
+     </div>
+    </header>
+    <div class="flex-grow container mx-auto px-4 py-8">
+     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+      <nav aria-label="Tabs" class="flex -mb-px space-x-8">
+       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600" id="tab-collection">
+        My Collection
+       </button>
+       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-wishlist">
+        My Wishlist
+       </button>
+      </nav>
+     </div>
+     <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center" id="collection-stats-section">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Total Cards
+       </h4>
+       <p class="text-2xl font-bold dark:text-white" id="stats-total-cards">
+        0
+       </p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Unique Cards
+       </h4>
+       <p class="text-2xl font-bold dark:text-white" id="stats-unique-cards">
+        0
+       </p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Total Value
+       </h4>
+       <p class="text-2xl font-bold dark:text-white" id="stats-total-value">
+        $0.00
+       </p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Rarity Breakdown
+       </h4>
+       <div class="text-lg font-bold dark:text-white flex justify-center space-x-3 mt-2" id="stats-rarity-breakdown">
+       </div>
+      </div>
+     </div>
+     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+       Add to Your Lists
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+       <div>
+        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         Manually Add a Card
+        </h3>
+        <div class="space-y-3" id="manual-add-form">
+         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
+          <option value="magic">
+           Magic: The Gathering
+          </option>
+          <option value="pokemon">
+           Pok&eacute;mon
+          </option>
+         </select>
+         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required type="text">
+         <button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">
+          Search for Card
+         </button>
+        </div>
+        <div class="mt-4 space-y-2 max-h-96 overflow-y-auto" id="manual-add-results">
+        </div>
+       </div>
+       <div>
+        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         <i class="fas fa-box mr-2 text-purple-600">
+         </i>
+         Add Sealed Product
+        </h3>
+        <div class="space-y-3" id="sealed-add-form">
+         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-game-select">
+          <option value="magic">
+           Magic: The Gathering
+          </option>
+          <option value="pokemon">
+           Pok&eacute;mon
+          </option>
+         </select>
+         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-product-type">
+          <option value="booster_box">
+           Booster Box
+          </option>
+          <option value="booster_pack">
+           Booster Pack
+          </option>
+          <option value="bundle">
+           Bundle
+          </option>
+          <option value="prerelease_kit">
+           Prerelease Kit
+          </option>
+          <option value="commander_deck">
+           Commander Deck
+          </option>
+          <option value="starter_deck">
+           Starter Deck
+          </option>
+          <option value="collector_booster">
+           Collector Booster
+          </option>
+          <option value="draft_booster">
+           Draft Booster
+          </option>
+          <option value="set_booster">
+           Set Booster
+          </option>
+          <option value="theme_booster">
+           Theme Booster
+          </option>
+         </select>
+         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-set-name" placeholder="Set/Expansion (e.g., Foundations)" required type="text">
+         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-product-name" placeholder="Product Name (optional)" type="text">
+         <button class="w-full bg-purple-600 text-white py-2 rounded-full hover:bg-purple-700" id="add-sealed-product-btn" type="button">
+          <i class="fas fa-plus mr-2">
+          </i>
+          Add Sealed Product
+         </button>
+        </div>
+       </div>
+       <div>
+        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         Import from ManaBox (.csv)
+        </h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+         Export your collection from ManaBox and upload it here. (Magic: The Gathering only)
+        </p>
+        <input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file">
+        <button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">
+         Upload CSV
+        </button>
+        <p class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status">
+        </p>
+       </div>
+       <div>
+        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+         Bulk Add from Text
+        </h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+         Paste a list of cards for a guided, step-by-step import process.
+        </p>
+        <a class="w-full mt-3 bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 text-center block" href="bulk_add.html">
+         <i class="fas fa-paste mr-2">
+         </i>
+         Go to Bulk Add Tool
+        </a>
+       </div>
+      </div>
+     </div>
+     <div class="mt-8">
+      <div class="tab-content" id="content-collection">
+       <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">
+         My Collection
+        </h2>
+        <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
+         <div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
+          <button class="view-btn p-2 rounded-full leading-none bg-blue-600 text-white" id="grid-view-btn" title="Grid View">
+           <i class="fas fa-th-large">
+           </i>
+          </button>
+          <button class="view-btn p-2 rounded-full leading-none text-gray-500 dark:text-gray-400" id="list-view-btn" title="List View">
+           <i class="fas fa-list">
+           </i>
+          </button>
+         </div>
+         <button class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600" id="export-collection-btn">
+          <i class="fas fa-file-export mr-2">
+          </i>
+          Export as Text
+         </button>
+         <button class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600" id="quick-edit-btn">
+          <i class="fas fa-edit mr-2">
+          </i>
+          Quick Edit
+         </button>
+         <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="bulk-edit-btn">
+          Bulk Edit
+         </button>
+        </div>
+       </div>
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6" id="collection-filters">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-product-type">
+           Type
+          </label>
+          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-product-type">
+           <option value="all">
+            All Items
+           </option>
+           <option value="single">
+            Singles Only
+           </option>
+           <option value="sealed">
+            Sealed Only
+           </option>
+          </select>
+         </div>
+         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-name">
+           Name
+          </label>
+          <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-name" placeholder="Search by name..." type="text">
+         </div>
+         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-set">
+           Set
+          </label>
+          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-set">
+           <option value="all">
+            All Sets
+           </option>
+          </select>
+         </div>
+         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-rarity">
+           Rarity
+          </label>
+          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-rarity">
+           <option value="all">
+            All Rarities
+           </option>
+           <option value="common">
+            Common
+           </option>
+           <option value="uncommon">
+            Uncommon
+           </option>
+           <option value="rare">
+            Rare
+           </option>
+           <option value="mythic">
+            Mythic
+           </option>
+          </select>
+         </div>
+         <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-color">
+           Color
+          </label>
+          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-color">
+           <option value="all">
+            All Colors
+           </option>
+           <option value="W">
+            White
+           </option>
+           <option value="U">
+            Blue
+           </option>
+           <option value="B">
+            Black
+           </option>
+           <option value="R">
+            Red
+           </option>
+           <option value="G">
+            Green
+           </option>
+           <option value="C">
+            Colorless
+           </option>
+           <option value="M">
+            Multi-color
+           </option>
+          </select>
+         </div>
+         <div class="flex items-end">
+          <button class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-500" id="reset-filters-btn">
+           Reset
+          </button>
+         </div>
+        </div>
+       </div>
+       <div class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex-wrap gap-4 items-center justify-between sticky top-20 z-40" id="bulk-action-bar">
+        <div class="flex items-center space-x-3">
+         <input class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500" id="select-all-checkbox" type="checkbox">
+         <label class="font-medium dark:text-white" for="select-all-checkbox">
+          Select All
+         </label>
+         <span class="text-gray-600 dark:text-gray-300" id="selected-count">
+          0 cards selected
+         </span>
+        </div>
+        <div class="space-x-2">
+         <button class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" id="list-selected-btn">
+          List for Sale
+         </button>
+         <button class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700" id="delete-selected-btn">
+          Delete
+         </button>
+        </div>
+       </div>
+       <div class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 items-center justify-between sticky top-20 z-40" id="quick-edit-save-bar">
+        <p class="font-semibold text-green-800 dark:text-green-200">
+         <i class="fas fa-info-circle mr-2">
+         </i>
+         You are in Quick Edit mode. Make your changes below and save.
+        </p>
+        <button class="px-6 py-2 bg-green-600 text-white font-bold rounded-full hover:bg-green-700" id="save-quick-edits-btn">
+         <i class="fas fa-save mr-2">
+         </i>
+         Save All Changes
+        </button>
+       </div>
+       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="collection-grid-view">
+       </div>
+       <div class="hidden overflow-x-auto" id="collection-table-view">
+       </div>
+      </div>
+      <div class="tab-content hidden" id="content-wishlist">
+       <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+        My Wishlist
+       </h2>
+       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="wishlist-list">
+       </div>
+      </div>
+     </div>
+    </div>
+    <div class="modal-overlay" id="add-version-modal">
+     </div>
+    <div class="modal-overlay" id="edit-card-modal">
+     </div>
+    <div class="modal-overlay" id="manage-listing-modal">
+     </div>
+    <div class="modal-overlay" id="list-for-sale-modal">
+     </div>
+   </div>
+  </div>
+  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+    </footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+  
+  <script src="js/auth.js"></script> 
+  
+  <script type="module" src="js/collection.js"></script>
+  
+  <script src="js/notifications.js"></script>
+  <script src="js/darkmode.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/messenger.js"></script>
+  <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
+   </div>
+  <script src="js/cart.js">
+  </script>
+  <script>
+   const sidebar = document.getElementById('sidebar');
+   const sidebarToggle = document.getElementById('sidebar-toggle');
+   const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+   if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+     sidebar.classList.toggle('-translate-x-full');
+     sidebarOverlay.classList.toggle('hidden');
+    });
+   }
+
+   if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+     sidebar.classList.add('-translate-x-full');
+     sidebarOverlay.classList.add('hidden');
+    });
+   }
+  </script>
+  <script src="js/messenger.js">
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+    </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+    </div>
+  <script>
+   // Service Worker Registration
+   if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+     navigator.serviceWorker.register('/sw.js')
+      .then(function(registration) {
+       console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      })
+      .catch(function(err) {
+       console.log('ServiceWorker registration failed: ', err);
+      });
+    });
+   }
+  </script>
+ </body>
+</html>
+This is collection.js:
+import { showNotification, debounce } from './modules/utils.js';
+import * as from './modules/api.js';
+import { handleCSVUpload } from './modules/csv.js';
+import * as ui from './modules/ui.js';
+
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
+    const mainContainer = document.querySelector('main.container');
+
+    if (!mainContainer) {
+        console.error('Main container not found! Script cannot initialize.');
+        return;
+    }
+    if (!user) {
+        mainContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
+        return;
+    }
+
+    const db = firebase.firestore();
+
+    let state = {
+        fullCollection: [],
+        fullWishlist: [],
+        filteredCollection: [],
+        selectedCards: new Set(),
+        bulkEditMode: false,
+        quickEditMode: false,
+        currentView: 'grid'
+    };
+
+    const elements = {
+        tabs: document.querySelectorAll('.tab-button'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        collectionGridView: document.getElementById('collection-grid-view'),
+        collectionTableView: document.getElementById('collection-table-view'),
+        wishlistListContainer: document.getElementById('wishlist-list'),
+        bulkEditBtn: document.getElementById('bulk-edit-btn'),
+        bulkActionBar: document.getElementById('bulk-action-bar'),
+        selectedCountEl: document.getElementById('selected-count'),
+        selectAllCheckbox: document.getElementById('select-all-checkbox'),
+        deleteSelectedBtn: document.getElementById('delete-selected-btn'),
+        csvUploadBtn: document.getElementById('csv-upload-btn'),
+        csvUploadInput: document.getElementById('csv-upload-input'),
+        csvStatus: document.getElementById('csv-status'),
+        filterNameInput: document.getElementById('filter-name'),
+        filterSetSelect: document.getElementById('filter-set'),
+        filterRaritySelect: document.getElementById('filter-rarity'),
+        filterColorSelect: document.getElementById('filter-color'),
+        filterProductType: document.getElementById('filter-product-type'),
+        resetFiltersBtn: document.getElementById('reset-filters-btn'),
+        gridViewBtn: document.getElementById('grid-view-btn'),
+        listViewBtn: document.getElementById('list-view-btn'),
+        manualCardNameInput: document.getElementById('manual-card-name'),
+        manualGameSelect: document.getElementById('manual-game-select'),
+        searchCardVersionsBtn: document.getElementById('search-card-versions-btn'),
+        manualAddResultsContainer: document.getElementById('manual-add-results'),
+    };
+
+    const loadData = async () => {
+        try {
+            const collectionSnap = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
+            state.fullCollection = collectionSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const wishlistSnap = await db.collection('users').doc(user.uid).collection('wishlist').orderBy('name').get();
+            state.fullWishlist = wishlistSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            ui.populateFilters(elements.filterSetSelect, state.fullCollection);
+            ui.calculateAndDisplayStats(state.fullCollection);
+            applyFilters();
+            ui.renderWishlist(elements.wishlistListContainer, state.fullWishlist, { onCardClick: handleCardClick });
+        } catch (error) {
+            console.error("Error loading data:", error);
+            showNotification("Could not load your data.", "error");
+        }
+    };
+
+    const handleCardClick = (event, cardId, cardData) => {
+        if (event.target.closest('button')) return;
+        if (state.bulkEditMode) {
+            state.selectedCards.has(cardId) ? state.selectedCards.delete(cardId) : state.selectedCards.add(cardId);
+            ui.updateSelectedCount(elements.selectedCountEl, state.selectedCards.size);
+            renderCurrentView();
+        } else {
+            const listType = state.fullWishlist.some(c => c.id === cardId) ? 'wishlist' : 'collection';
+            ui.openCardManagementModal(cardData, { ...cardData, listType }, { onSave: saveCard, onDelete: deleteCard });
+        }
+    };
+
+    const saveCard = async (apiData, formData, existingId) => {
+        const { listType, ...cardDetails } = formData;
+        const dataToSave = { ...apiData, ...cardDetails, lastModified: firebase.firestore.FieldValue.serverTimestamp() };
+
+        if (!existingId) {
+            dataToSave.dateAdded = firebase.firestore.FieldValue.serverTimestamp();
+        }
+
+        const docRef = existingId
+            ? db.collection('users').doc(user.uid).collection(listType).doc(existingId)
+            : db.collection('users').doc(user.uid).collection(listType).doc();
+
+        try {
+            await docRef.set(dataToSave, { merge: true });
+            showNotification("Card saved successfully!", "success");
+            loadData();
+        } catch(e) {
+            console.error("Error saving card:", e);
+            showNotification("Failed to save card.", "error");
+        }
+    };
+
+    const deleteCard = async (cardId, listType) => {
+        if (!confirm("Are you sure you want to delete this card?")) return;
+        try {
+            await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
+            showNotification("Card deleted.", "success");
+            loadData();
+        } catch (e) {
+            console.error("Error deleting card:", e);
+            showNotification("Failed to delete card.", "error");
+        }
+    };
+
+    const applyFilters = () => {
+        const filters = {
+            name: elements.filterNameInput.value.toLowerCase(),
+            set: elements.filterSetSelect.value,
+            rarity: elements.filterRaritySelect.value,
+            color: elements.filterColorSelect.value,
+            productType: elements.filterProductType.value
+        };
+
+        state.filteredCollection = state.fullCollection.filter(card => {
+            if (filters.name && !card.name.toLowerCase().includes(filters.name)) return false;
+            if (filters.set !== 'all' && card.setName !== filters.set) return false;
+            if (filters.rarity !== 'all' && card.rarity !== filters.rarity) return false;
+            return true;
+        });
+
+        renderCurrentView();
+    };
+
+    const renderCurrentView = () => {
+        const handlers = { onCardClick: handleCardClick };
+        const viewState = { bulkEditMode: state.bulkEditMode, selectedCards: state.selectedCards };
+        if (state.currentView === 'grid') {
+            ui.renderGridView(elements.collectionGridView, state.filteredCollection, viewState, handlers);
+        } else {
+            ui.renderListView(elements.collectionTableView, state.filteredCollection, handlers);
+        }
+    };
+    
+    const toggleBulkEditMode = () => {
+        state.bulkEditMode = !state.bulkEditMode;
+        state.selectedCards.clear();
+        elements.selectAllCheckbox.checked = false;
+        elements.bulkActionBar.classList.toggle('hidden', !state.bulkEditMode);
+        elements.bulkEditBtn.textContent = state.bulkEditMode ? 'Cancel Bulk Edit' : 'Bulk Edit';
+        elements.bulkEditBtn.classList.toggle('bg-red-600', state.bulkEditMode);
+        elements.bulkEditBtn.classList.toggle('bg-gray-600', !state.bulkEditMode);
+        ui.updateSelectedCount(elements.selectedCountEl, 0);
+        renderCurrentView();
+    };
+    
+    const deleteSelectedCards = async () => {
+        if (state.selectedCards.size === 0) return;
+        if (!confirm(`Are you sure you want to delete ${state.selectedCards.size} cards?`)) return;
+
+        const batch = db.batch();
+        state.selectedCards.forEach(id => batch.delete(db.collection('users').doc(user.uid).collection('collection').doc(id)));
+        
+        try {
+            await batch.commit();
+            showNotification(`${state.selectedCards.size} cards deleted.`, 'success');
+            toggleBulkEditMode();
+            loadData();
+        } catch (error) {
+            console.error("Error deleting cards:", error);
+            showNotification("Failed to delete cards.", "error");
+        }
+    };
+
+    function initializeEventListeners() {
+        elements.searchCardVersionsBtn?.addEventListener('click', async () => {
+            const cardName = elements.manualCardNameInput.value.trim();
+            const game = elements.manualGameSelect.value;
+            if (!cardName) {
+                return showNotification("Please enter a card name.", "error");
+            }
+            elements.manualAddResultsContainer.innerHTML = `<p class="text-center">Searching...</p>`;
+            try {
+                const searchFn = game === 'magic' ? api.searchMagicCards : api.searchPokemonCards;
+                const cards = await searchFn(cardName);
+                ui.renderManualSearchResults(elements.manualAddResultsContainer, cards, (cardData) => {
+                    ui.openCardManagementModal(cardData, null, { onSave: saveCard });
+                });
+            } catch (error) {
+                elements.manualAddResultsContainer.innerHTML = `<p class="text-center text-red-500">Search failed.</p>`;
+                showNotification("Could not find card. Please try another name.", "error");
+            }
+        });
+
+        elements.csvUploadBtn?.addEventListener('click', () => {
+            const file = elements.csvUploadInput?.files[0];
+            if (!file) {
+                 return showNotification("Please select a CSV file to upload.", "error");
+            }
+            handleCSVUpload(file, db, user, elements.csvStatus, loadData);
+        });
+
+        elements.bulkEditBtn?.addEventListener('click', toggleBulkEditMode);
+        elements.deleteSelectedBtn?.addEventListener('click', deleteSelectedCards);
+        
+        elements.resetFiltersBtn?.addEventListener('click', () => {
+            elements.filterNameInput.value = '';
+            elements.filterSetSelect.value = 'all';
+            elements.filterRaritySelect.value = 'all';
+            elements.filterColorSelect.value = 'all';
+            elements.filterProductType.value = 'all';
+            applyFilters();
+        });
+
+        const filterInputs = [elements.filterNameInput, elements.filterSetSelect, elements.filterRaritySelect, elements.filterColorSelect, elements.filterProductType];
+        filterInputs.forEach(el => {
+            if(el) el.addEventListener('input', debounce(applyFilters, 300));
+        });
+        
+        elements.selectAllCheckbox?.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                state.filteredCollection.forEach(card => state.selectedCards.add(card.id));
+            } else {
+                state.selectedCards.clear();
+            }
+            ui.updateSelectedCount(elements.selectedCountEl, state.selectedCards.size);
+            renderCurrentView();
+        });
+
+        elements.gridViewBtn?.addEventListener('click', () => {
+            state.currentView = 'grid';
+            renderCurrentView();
+        });
+
+         elements.listViewBtn?.addEventListener('click', () => {
+            state.currentView = 'list';
+            renderCurrentView();
+        });
+    }
+
+    initializeEventListeners();
+    loadData();
+});
+This is api.js:
+/**
+ * api.js - Handles all external API calls for card data.
+ */
+import { getCardImageUrl } from './utils.js';
+
+const POKEMON_API_KEY = '60a08d4a-3a34-43d8-8f41-827b58cfac6d';
+const POKEMON_API_URL = 'https://api.pokemontcg.io/v2/cards';
+
+async function makeApiCall(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('API call failed:', url, error);
+        throw error;
+    }
+}
+
+export async function searchMagicCards(cardName) {
+    const searchUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released&dir=desc`;
+    const result = await makeApiCall(searchUrl);
+    return result.data.map(card => ({
+        id: card.id,
+        name: card.name,
+        set: card.set,
+        setName: card.set_name,
+        rarity: card.rarity,
+        collector_number: card.collector_number,
+        imageUrl: getCardImageUrl(card, 'small'), // Use consistent image URL getter
+        priceUsd: card.prices?.usd || null,
+        priceUsdFoil: card.prices?.usd_foil || null,
+        tcg: 'Magic: The Gathering',
+        colors: (card.card_faces ? card.card_faces[0].colors : card.colors) || [],
+        card_faces: card.card_faces,
+        image_uris: card.image_uris
+    }));
+}
+
+export async function searchPokemonCards(cardName) {
+    const searchUrl = `${POKEMON_API_URL}?q=name:"${encodeURIComponent(cardName)}"&pageSize=20`;
+    const result = await makeApiCall(searchUrl, {
+        headers: { 'X-Api-Key': POKEMON_API_KEY }
+    });
+    return result.data.map(card => ({
+        id: card.id,
+        name: card.name,
+        set: card.set.id,
+        setName: card.set.name,
+        rarity: card.rarity,
+        collector_number: card.number,
+        imageUrl: card.images.small,
+        priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+        priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || null,
+        tcg: 'Pokémon',
+        types: card.types,
+        images: card.images
+    }));
+}
+This is csv.js:
+/**
+ * csv.js - Handles parsing and processing of CSV files for collection import.
+ */
+import { searchMagicCards } from './api.js';
+import { showNotification } from './utils.js';
+
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current.trim());
+    return result.map(field => field.replace(/^"|"$/g, ''));
+}
+
+function detectCSVColumns(headers) {
+    const headerMap = {};
+    headers.forEach((header, index) => {
+        const cleanHeader = header.toLowerCase().trim();
+        if (cleanHeader.includes('name') || cleanHeader.includes('card')) headerMap.name = index;
+        else if (cleanHeader.includes('quantity') || cleanHeader.includes('qty')) headerMap.quantity = index;
+        else if (cleanHeader.includes('set') || cleanHeader.includes('expansion')) headerMap.set = index;
+        else if (cleanHeader.includes('condition')) headerMap.condition = index;
+        else if (cleanHeader.includes('foil')) headerMap.foil = index;
+        else if (cleanHeader.includes('price')) headerMap.price = index;
+        else if (cleanHeader.includes('number')) headerMap.collectorNumber = index;
+    });
+    return headerMap;
+}
+
+async function processCSVLine(line, columnMap, lineNumber) {
+    try {
+        const values = parseCSVLine(line);
+        const cardName = values[columnMap.name]?.trim();
+        if (!cardName) throw new Error('SKIP');
+
+        const setName = columnMap.set !== undefined ? values[columnMap.set]?.trim() : null;
+        let scryfallData = null;
+        try {
+            const results = await searchMagicCards(cardName);
+            scryfallData = results.find(c => !setName || c.setName.toLowerCase() === setName.toLowerCase()) || results[0];
+        } catch (scryfallError) {
+            console.warn(`Scryfall lookup failed for "${cardName}":`, scryfallError.message);
+        }
+        
+        return {
+            name: cardName,
+            quantity: parseInt(values[columnMap.quantity]) || 1,
+            condition: values[columnMap.condition]?.trim() || 'Near Mint',
+            isFoil: values[columnMap.foil]?.toLowerCase().includes('foil') || false,
+            purchasePrice: parseFloat(values[columnMap.price]) || null,
+            ...(scryfallData || { setName: setName || 'Unknown Set' }),
+            dateAdded: firebase.firestore.FieldValue.serverTimestamp(),
+            importedFromCSV: true,
+        };
+    } catch (error) {
+        if (error.message === 'SKIP') throw error;
+        throw new Error(`Failed to process line ${lineNumber}: ${error.message}`);
+    }
+}
+
+export async function handleCSVUpload(file, db, user, statusEl, onComplete) {
+    if (!file || !file.name.toLowerCase().endsWith('.csv')) {
+        showNotification('Please select a valid CSV file.', 'error');
+        return;
+    }
+
+    statusEl.textContent = 'Processing CSV file...';
+    statusEl.className = 'text-center text-sm mt-2 text-blue-600 dark:text-blue-400';
+
+    try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) throw new Error('CSV file appears to be empty or invalid.');
+
+        const headers = parseCSVLine(lines[0]);
+        const columnMap = detectCSVColumns(headers);
+        if (columnMap.name === undefined) throw new Error('Could not find a "name" column in CSV.');
+
+        let batch = db.batch();
+        let processedCount = 0;
+        
+        for (let i = 1; i < lines.length; i++) {
+            try {
+                const cardData = await processCSVLine(lines[i], columnMap, i);
+                const docRef = db.collection('users').doc(user.uid).collection('collection').doc();
+                batch.set(docRef, cardData);
+                processedCount++;
+                if (processedCount % 499 === 0) { // Commit every ~500 operations
+                    await batch.commit();
+                    batch = db.batch();
+                }
+            } catch (lineError) {
+                if (lineError.message !== 'SKIP') console.error(lineError);
+            }
+        }
+
+        if (processedCount > 0 && processedCount % 499 !== 0) {
+            await batch.commit();
+        }
+
+        statusEl.textContent = `Import complete! ${processedCount} cards added.`;
+        statusEl.className = 'text-center text-sm mt-2 text-green-600 dark:text-green-400';
+        showNotification('CSV import completed!', 'success');
+        onComplete();
+
+    } catch (error) {
+        console.error('Error processing CSV:', error);
+        statusEl.textContent = `Error: ${error.message}`;
+        statusEl.className = 'text-center text-sm mt-2 text-red-600 dark:text-red-400';
+        showNotification('CSV import failed.', 'error');
+    }
+}
+This is ui.js:
+/**
+ * ui.js - Handles all DOM rendering and manipulation for the collection page.
+ */
+import { getCardImageUrl, safeFormatPrice } from './utils.js';
+import { UtensilsIcon } from 'lucide-react'
+
+// --- VIEW RENDERING ---
+
+export function renderGridView(container, collection, state, handlers) {
+    if (!container) return;
+    container.classList.remove('hidden');
+    document.getElementById('collection-table-view')?.classList.add('hidden');
+    
+    container.innerHTML = '';
+    if (collection.length === 0) {
+        container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">No cards found.</p>`;
+        return;
+    }
+    
+    collection.forEach(card => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'relative group cursor-pointer';
+        cardEl.dataset.id = card.id;
+
+        const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
+        const isSelected = state.selectedCards.has(card.id);
+        const checkboxOverlay = state.bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
+        const price = card.isFoil ? card.priceUsdFoil : card.priceUsd;
+        const priceTagHTML = price ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${safeFormatPrice(price)}</div>` : '';
+        const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity || 1}</div>`;
+
+        cardEl.innerHTML = `
+            <div class="relative">
+                <img src="${getCardImageUrl(card, 'normal')}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                ${quantityBadge}
+                ${checkboxOverlay}
+            </div>
+            ${priceTagHTML}
+            <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="edit-card-btn text-white text-xs p-1" data-id="${card.id}" data-list="collection" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="delete-card-btn text-white text-xs p-1 ml-1" data-id="${card.id}" data-list="collection" title="Delete"><i class="fas fa-trash"></i></button>
+                <button class="manage-listing-btn text-white text-xs p-1 ml-1" data-id="${card.id}" data-list="collection" title="Manage Listing"><i class="fas fa-tags"></i></button>
+            </div>`;
+        
+        cardEl.addEventListener('click', (e) => handlers.onCardClick(e, card.id, card));
+        container.appendChild(cardEl);
+    });
+}
+
+export function renderListView(container, collection, handlers) {
+    if (!container) return;
+    container.classList.remove('hidden');
+    document.getElementById('collection-grid-view')?.classList.add('hidden');
+
+    if (collection.length === 0) {
+        container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
+        return;
+    }
+
+    let tableHTML = `
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Price</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">`;
+
+    collection.forEach(card => {
+        const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+        const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : 'N/A';
+        tableHTML += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" data-card-id="${card.id}">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${card.setName || 'Unknown'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${card.quantity || 1}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${formattedPrice}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button class="text-blue-600 hover:text-blue-900 mr-2 edit-card-btn" data-id="${card.id}" data-list="collection">Edit</button>
+                    <button class="text-red-600 hover:text-red-900 mr-2 delete-card-btn" data-id="${card.id}" data-list="collection">Delete</button>
+                    <button class="text-green-600 hover:text-green-900 manage-listing-btn" data-id="${card.id}" data-list="collection">List</button>
+                </td>
+            </tr>`;
+    });
+    tableHTML += `</tbody></table>`;
+    container.innerHTML = tableHTML;
+    
+    // Add listeners after rendering
+    container.querySelectorAll('tr[data-card-id]').forEach(row => {
+        row.addEventListener('click', e => {
+            if (!e.target.closest('button')) {
+                const card = collection.find(c => c.id === row.dataset.cardId);
+                if (card) handlers.onCardClick(e, card.id, card);
+            }
+        });
+    });
+}
+
+export function renderWishlist(container, wishlistItems, handlers) {
+    if (!container) return;
+    if (wishlistItems.length === 0) {
+        container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">Your wishlist is empty.</p>`;
+        return;
+    }
+    container.innerHTML = '';
+    wishlistItems.forEach(card => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'relative group cursor-pointer';
+        cardEl.dataset.id = card.id;
+        cardEl.innerHTML = `
+            <img src="${getCardImageUrl(card, 'normal')}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+            <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="edit-card-btn text-white text-xs" data-id="${card.id}" data-list="wishlist"><i class="fas fa-edit"></i></button>
+                <button class="delete-card-btn text-white text-xs ml-1" data-id="${card.id}" data-list="wishlist"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        cardEl.addEventListener('click', (e) => handlers.onCardClick(e, card.id, card));
+        container.appendChild(cardEl);
+    });
+}
+
+
+// --- UI STATE AND STATS ---
+
+export function updateSelectedCount(element, count) {
+    if (element) {
+        element.textContent = `${count} cards selected`;
+    }
+}
+
+export function populateFilters(selectElement, collection) {
+    if (!selectElement) return;
+    const sets = [...new Set(collection.map(card => card.setName).filter(Boolean))].sort();
+    selectElement.innerHTML = '<option value="all">All Sets</option>';
+    sets.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        option.textContent = setName;
+        selectElement.appendChild(option);
+    });
+}
+
+export function calculateAndDisplayStats(collection) {
+    let totalCards = 0;
+    let totalValue = 0;
+    collection.forEach(card => {
+        const quantity = card.quantity || 1;
+        totalCards += quantity;
+        const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+        totalValue += price * quantity;
+    });
+
+    document.getElementById('stats-total-cards').textContent = totalCards;
+    document.getElementById('stats-unique-cards').textContent = new Set(collection.map(c => c.name)).size;
+    document.getElementById('stats-total-value').textContent = safeFormatPrice(totalValue);
+    // Rarity breakdown logic can be added here if needed
+}
+
+// --- MODALS AND DYNAMIC UI ---
+
+export function openCardManagementModal(card, existingData, handlers) {
+    const existingModal = document.getElementById('card-management-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'card-management-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    // Use the same modal for adding a new card and editing an existing one
+    // The `existingData` object determines if it's an edit or a new card
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold dark:text-white">${existingData ? 'Edit Card' : 'Add Card'}</h2>
+                <button class="close-modal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                </div>
+            <div class="flex justify-end p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                <button class="cancel-btn px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 mr-2">Cancel</button>
+                <button class="save-btn px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save Changes</button>
+            </div>
+        </div>
+    `;
+
+    const formContainer = modal.querySelector('.p-6');
+    populateAddEditForm(formContainer, card, existingData);
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    modal.querySelector('.close-modal').addEventListener('click', closeModal);
+    modal.querySelector('.cancel-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    modal.querySelector('.save-btn').addEventListener('click', () => {
+        const formData = getFormData(formContainer);
+        handlers.onSave(card, formData, existingData?.id);
+        closeModal();
+    });
+}
+
+function populateAddEditForm(container, card, data) {
+    // `card` has the scryfall data, `data` has the user's saved data (if it exists)
+    container.innerHTML = `
+        <div class="flex items-center space-x-4 mb-4">
+            <img class="w-24 rounded-lg" src="${getCardImageUrl(card, 'normal')}">
+            <div>
+                <h3 class="text-lg font-bold dark:text-white">${card.name}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">${card.setName}</p>
+            </div>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block font-bold mb-1 dark:text-gray-200">Add to:</label>
+                <select id="form-list-select" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <option value="collection" ${data?.listType === 'collection' || !data ? 'selected' : ''}>My Collection</option>
+                    <option value="wishlist" ${data?.listType === 'wishlist' ? 'selected' : ''}>My Wishlist</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-bold mb-1 dark:text-gray-200">Quantity</label>
+                <input id="form-quantity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" min="1" type="number" value="${data?.quantity || 1}">
+            </div>
+            <div>
+                <label class="block font-bold mb-1 dark:text-gray-200">Condition</label>
+                <select id="form-condition" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <option>Near Mint</option>
+                    <option>Lightly Played</option>
+                    <option>Moderately Played</option>
+                    <option>Heavily Played</option>
+                    <option>Damaged</option>
+                </select>
+            </div>
+                <div class="flex items-center">
+                    <input id="form-foil" class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" type="checkbox" ${data?.isFoil ? 'checked' : ''}>
+                    <label class="dark:text-gray-300" for="form-foil">Is this card foil?</label>
+                </div>
+            </div>
+    `;
+    // Pre-select the condition
+    if (data?.condition) {
+        container.querySelector('#form-condition').value = data.condition;
+    }
+}
+
+function getFormData(container) {
+    return {
+        listType: container.querySelector('#form-list-select').value,
+        quantity: parseInt(container.querySelector('#form-quantity').value, 10) || 1,
+        condition: container.querySelector('#form-condition').value,
+        isFoil: container.querySelector('#form-foil').checked,
+        // Get other form values
+    };
+}
+
+
+export function renderManualSearchResults(container, cards, onAdd) {
+    if (!cards || cards.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-500">No cards found.</p>';
+        return;
+    }
+    container.innerHTML = cards.map(card => `
+        <div class="flex items-center justify-between p-2 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div class="flex items-center">
+                <img src="${card.imageUrl}" class="w-10 h-14 object-cover rounded-sm mr-3">
+                <div>
+                    <p class="font-semibold">${card.name}</p>
+                    <p class="text-xs text-gray-500">${card.setName}</p>
+                </div>
+            </div>
+            <button class="add-manual-btn text-blue-500 hover:text-blue-700" data-card='${JSON.stringify(card)}'>
+                <i class="fas fa-plus-circle text-xl"></i>
+            </button>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.add-manual-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cardData = JSON.parse(btn.dataset.card);
+            onAdd(cardData);
+        });
+    });
+}
+
+This is utils.js:
+/**
+ * utils.js - A collection of shared helper functions.
+ */
+
+/**
+ * Shows a notification message on the screen.
+ * @param {string} message The message to display.
+ * @param {string} [type='info'] 'info', 'success', or 'error'.
+ */
+export function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    const typeClasses = {
+        success: 'bg-green-500 text-white',
+        error: 'bg-red-500 text-white',
+        info: 'bg-blue-500 text-white'
+    };
+    const iconClasses = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+    };
+    notification.className = `fixed top-20 right-4 z-[1002] p-4 rounded-lg shadow-lg max-w-sm ${typeClasses[type] || typeClasses.info}`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${iconClasses[type] || iconClasses.info} mr-3"></i>
+            <span>${message}</span>
+        </div>`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 5000);
+}
+
+/**
+ * Gets the correct image URL for any card from Scryfall or Pokemon TCG data.
+ * @param {object} cardData The full card data object.
+ * @param {string} [size='normal'] The desired image size.
+ * @returns {string} The URL of the card image or a placeholder.
+ */
+export function getCardImageUrl(cardData, size = 'normal') {
+    if (!cardData) {
+        return 'https://placehold.co/223x310/cccccc/969696?text=No+Data';
+    }
+
+    if (cardData.productType === 'sealed') {
+        const imageMap = {
+            'booster_box': 'https://placehold.co/223x310/4F46E5/FFFFFF?text=Booster+Box',
+            'booster_pack': 'https://placehold.co/223x310/059669/FFFFFF?text=Booster+Pack',
+            'bundle': 'https://placehold.co/223x310/DC2626/FFFFFF?text=Bundle',
+        };
+        return imageMap[cardData.sealedType] || 'https://placehold.co/223x310/6B7280/FFFFFF?text=Sealed';
+    }
+
+    if (cardData.customImageUrl) return cardData.customImageUrl;
+    if (cardData.image_uris) return cardData.image_uris[size] || cardData.image_uris.normal;
+    if (cardData.card_faces) return cardData.card_faces[0].image_uris[size] || cardData.card_faces[0].image_uris.normal;
+    if (cardData.images) return cardData.images.large || cardData.images.small;
+    if (cardData.imageUrl) return cardData.imageUrl;
+
+    const cardName = cardData?.name || 'Unknown';
+    const encodedName = encodeURIComponent(cardName.substring(0, 20));
+    return `https://placehold.co/223x310/cccccc/969696?text=${encodedName}`;
+}
+
+/**
+ * Safely converts a price using the global converter, with a fallback.
+ * @param {number|string} value The price in USD.
+ * @returns {string} The formatted price string.
+ */
+export function safeFormatPrice(value) {
+    if (window.HatakeSocial && typeof window.HatakeSocial.convertAndFormatPrice === 'function') {
+        return window.HatakeSocial.convertAndFormatPrice(value, 'USD');
+    }
+    const price = Number(value);
+    if (isNaN(price)) return '$0.00 USD';
+    return `$${price.toFixed(2)} USD`;
+}
+
+/**
+ * Debounce function to limit the rate at which a function gets called.
+ * @param {Function} func The function to debounce.
+ * @param {number} wait The delay in milliseconds.
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+This is bulk_add.js
+import { showNotification } from './modules/utils.js';
+import * as api from './modules/api.js';
+
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
+    if (!user) {
+        document.getElementById('bulk-add-container').innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to use this feature.</p>';
+        return;
+    }
+
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    const elements = {
+        step1: document.getElementById('step-1-input'),
+        step2: document.getElementById('step-2-confirm'),
+        pasteForm: document.getElementById('paste-form'),
+        cardListInput: document.getElementById('card-list-input'),
+        interactiveListArea: document.getElementById('interactive-list-area'),
+        saveAllBtn: document.getElementById('save-all-btn'),
+    };
+
+    const parseCardList = (rawText) => {
+        return rawText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line)
+            .map((line, index) => {
+                let quantity = 1;
+                let name = line;
+                const qtyMatch = line.match(/^(?:(\d+)\s?x?\s*)/i);
+                if (qtyMatch) {
+                    quantity = parseInt(qtyMatch[1], 10);
+                    name = name.replace(qtyMatch[0], '').trim();
+                }
+                return { id: `card-row-${index}`, originalLine: line, quantity, name };
+            });
+    };
+
+    const fetchAllCardPrintings = async (parsedLines) => {
+        elements.interactiveListArea.innerHTML = `<p class="text-center p-4">Fetching card data... This may take a moment for large lists.</p>`;
+        const promises = parsedLines.map(line => <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Bulk Add Cards - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <link href="/manifest.json" rel="manifest"/>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
+<div class="flex h-screen flex-col">
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+        </aside>
+
+    <div class="flex-1 flex flex-col overflow-y-auto">
+        <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            </header>
+
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="max-w-7xl mx-auto" id="bulk-add-container">
+                <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+                    <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Bulk Add from Text</h1>
+                    <a class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" href="my_collection.html">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Collection
+                    </a>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="step-1-input">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Step 1: Paste Your Card List</h2>
+                    <form id="paste-form">
+                        <textarea class="w-full h-64 p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="card-list-input" placeholder="1x Sol Ring..."></textarea>
+                        <button class="mt-4 w-full bg-blue-600 text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors" type="submit">
+                            <i class="fas fa-cogs mr-2"></i>Process List
+                        </button>
+                    </form>
+                </div>
+
+                <div class="hidden mt-8" id="step-2-confirm">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white text-center">Step 2: Review and Configure Cards</h2>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="interactive-list-area">
+                        </div>
+                    <div class="mt-6 flex justify-end">
+                        <button id="save-all-btn" class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>Save All to Collection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+        authDomain: "hatakesocial-88b5e.firebaseapp.com",
+        projectId: "hatakesocial-88b5e",
+        storageBucket: "hatakesocial-88b5e.appspot.com",
+        messagingSenderId: "1091697032506",
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+        measurementId: "G-EH0PS2Z84J"
+    };
+    firebase.initializeApp(firebaseConfig);
+</script>
+<script src="js/auth.js"></script>
+<script type="module" src="js/bulk_add.js"></script>
+<script src="js/darkmode.js"></script>
+</body>
+</html>.searchMagicCards(line.name).catch(err => ({ error: true, line })));
+        return Promise.allSettled(promises);
+    };
+
+    const renderInteractiveList = (parsedLines, results) => {
+        let html = '';
+        results.forEach((result, index) => {
+            const line = parsedLines[index];
+            if (result.status === 'rejected' || result.value.error || result.value.length === 0) {
+                html += `<div class="p-4 border-b dark:border-gray-700 text-red-500">Could not find any match for "${line.originalLine}".</div>`;
+            } else {
+                const versions = result.value;
+                const options = versions.map(v => `<option value='${JSON.stringify(v)}'>${v.setName} (${v.set.toUpperCase()})</option>`).join('');
+                const firstVersion = versions[0];
+
+                html += `
+                    <div id="${line.id}" class="card-entry grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-4 border-b dark:border-gray-700">
+                        <div class="md:col-span-2">
+                            <img src="${firstVersion.imageUrl}" class="card-image rounded-lg w-full">
+                        </div>
+                        <div class="md:col-span-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-1">Card</label>
+                                <p class="font-semibold">${line.name}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-1">Expansion</label>
+                                <select class="set-select w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">${options}</select>
+                            </div>
+                             <div>
+                                <label class="block text-sm font-bold mb-1">Quantity</label>
+                                <input type="number" value="${line.quantity}" min="1" class="quantity-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-1">Image</label>
+                                <input type="file" class="image-upload text-xs">
+                            </div>
+                            <div class="col-span-full flex items-center space-x-4 mt-2">
+                                <label><input type="checkbox" class="is-foil mr-1">Foil</label>
+                                <label><input type="checkbox" class="is-signed mr-1">Signed</label>
+                                <label><input type="checkbox" class="is-altered mr-1">Altered</label>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        elements.interactiveListArea.innerHTML = `<div class="space-y-4">${html}</div>`;
+    };
+    
+    elements.pasteForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const rawText = elements.cardListInput.value;
+        if (!rawText.trim()) {
+            showNotification("Please paste a card list.", "error");
+            return;
+        }
+
+        elements.step1.classList.add('hidden');
+        elements.step2.classList.remove('hidden');
+        
+        const parsedLines = parseCardList(rawText);
+        const results = await fetchAllCardPrintings(parsedLines);
+        renderInteractiveList(parsedLines, results);
+    });
+
+    elements.interactiveListArea.addEventListener('change', (e) => {
+        if (e.target.classList.contains('set-select')) {
+            const cardRow = e.target.closest('.card-entry');
+            const cardImage = cardRow.querySelector('.card-image');
+            const selectedData = JSON.parse(e.target.value);
+            cardImage.src = selectedData.imageUrl;
+        }
+    });
+
+    elements.saveAllBtn.addEventListener('click', async () => {
+        const cardEntries = elements.interactiveListArea.querySelectorAll('.card-entry');
+        if (cardEntries.length === 0) {
+            showNotification("Nothing to save!", "info");
+            return;
+        }
+
+        elements.saveAllBtn.disabled = true;
+        elements.saveAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+
+        const batch = db.batch();
+        const collectionRef = db.collection('users').doc(user.uid).collection('collection');
+        let saveCount = 0;
+
+        for (const entry of cardEntries) {
+            const selectedData = JSON.parse(entry.querySelector('.set-select').value);
+            
+            const cardDoc = {
+                ...selectedData,
+                quantity: parseInt(entry.querySelector('.quantity-input').value, 10) || 1,
+                isFoil: entry.querySelector('.is-foil').checked,
+                isSigned: entry.querySelector('.is-signed').checked,
+                isAltered: entry.querySelector('.is-altered').checked,
+                condition: 'Near Mint', // Default condition
+                dateAdded: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            
+            // Handle image upload
+            const imageFile = entry.querySelector('.image-upload').files[0];
+            if(imageFile) {
+                const imageRef = storage.ref(`user_uploads/${user.uid}/${Date.now()}_${imageFile.name}`);
+                const snapshot = await imageRef.put(imageFile);
+                cardDoc.customImageUrl = await snapshot.ref.getDownloadURL();
+            }
+
+            const docRef = collectionRef.doc();
+            batch.set(docRef, cardDoc);
+            saveCount++;
+        }
+
+        try {
+            await batch.commit();
+            showNotification(`${saveCount} cards have been successfully added to your collection.`, 'success');
+            elements.step2.classList.add('hidden');
+            elements.step1.classList.remove('hidden');
+            elements.cardListInput.value = '';
+        } catch (error) {
+            console.error("Error saving cards:", error);
+            showNotification("An error occurred while saving. Please try again.", "error");
+        } finally {
+            elements.saveAllBtn.disabled = false;
+            elements.saveAllBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save All to Collection';
+        }
+    });
+});
+This is bulk_add.html:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Bulk Add Cards - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <link href="/manifest.json" rel="manifest"/>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
+<div class="flex h-screen flex-col">
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+        </aside>
+
+    <div class="flex-1 flex flex-col overflow-y-auto">
+        <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            </header>
+
+        <main class="flex-grow container mx-auto px-4 py-8">
+            <div class="max-w-7xl mx-auto" id="bulk-add-container">
+                <div class="flex justify-between items-center mb-6 border-b pb-4 dark:border-gray-700">
+                    <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Bulk Add from Text</h1>
+                    <a class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" href="my_collection.html">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Collection
+                    </a>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="step-1-input">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white">Step 1: Paste Your Card List</h2>
+                    <form id="paste-form">
+                        <textarea class="w-full h-64 p-3 border rounded-md dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="card-list-input" placeholder="1x Sol Ring..."></textarea>
+                        <button class="mt-4 w-full bg-blue-600 text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors" type="submit">
+                            <i class="fas fa-cogs mr-2"></i>Process List
+                        </button>
+                    </form>
+                </div>
+
+                <div class="hidden mt-8" id="step-2-confirm">
+                    <h2 class="text-2xl font-bold mb-4 dark:text-white text-center">Step 2: Review and Configure Cards</h2>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md" id="interactive-list-area">
+                        </div>
+                    <div class="mt-6 flex justify-end">
+                        <button id="save-all-btn" class="px-8 py-3 bg-green-600 text-white font-bold rounded-full hover:bg-green-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>Save All to Collection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+        authDomain: "hatakesocial-88b5e.firebaseapp.com",
+        projectId: "hatakesocial-88b5e",
+        storageBucket: "hatakesocial-88b5e.appspot.com",
+        messagingSenderId: "1091697032506",
+        appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+        measurementId: "G-EH0PS2Z84J"
+    };
+    firebase.initializeApp(firebaseConfig);
+</script>
+<script src="js/auth.js"></script>
+<script type="module" src="js/bulk_add.js"></script>
+<script src="js/darkmode.js"></script>
+</body>
+</html>
+This is the original collection.js:
+/**
+* HatakeSocial - My Collection Page Script (v30.5 - FIXED Manual Card Adding & Image Loading)
+*
+* This script handles all logic for the my_collection.html page.
+* - FIXED: Robust CSV import with better error handling
+* - FIXED: Scryfall API calls with proper fallbacks
+* - FIXED: Firebase data validation to prevent undefined fields
+* - FIXED: Manual card adding - saveCardVersions function now properly handles new vs existing cards
+* - FIXED: Image loading consistency - getCardImageUrl function handles all Scryfall data structures
+*/
+
+// --- Helper Functions (Global Scope) ---
+
+/**
+* FIXED: Gets the correct image URL for any card type from Scryfall or Pokemon TCG data.
+* Improved to handle various Scryfall data structures and edge cases better.
+* @param {object} cardData The full card data object from Scryfall, Firestore, or Pokemon TCG API.
+* @param {string} [size='normal'] The desired image size ('small', 'normal', 'large').
+* @returns {string} The URL of the card image or a placeholder.
+*/
+function getCardImageUrl(cardData, size = 'normal') {
+    // Early return if no card data
+    if (!cardData) {
+        console.warn('No card data provided to getCardImageUrl');
+        return 'https://placehold.co/223x310/cccccc/969696?text=No+Data';
+    }
+
+    // Handle Pokémon TCG cards
+    if (cardData?.tcg === 'Pokémon' || cardData?.game === 'Pokémon') {
+        if (cardData.images) {
+            // Standard Pokémon TCG API structure
+            if (size === 'small' && cardData.images.small) {
+                return cardData.images.small;
+            }
+            if (size === 'large' && cardData.images.large) {
+                return cardData.images.large;
+            }
+            // Fallback to any available image
+            return cardData.images.large || cardData.images.small || cardData.images.normal;
+        }
+    }
+
+    // Handle custom uploaded images first (highest priority)
+    if (cardData.customImageUrl) {
+        return cardData.customImageUrl;
+    }
+
+    // Handle legacy imageUrl field
+    if (cardData.imageUrl) {
+        return cardData.imageUrl;
+    }
+
+    // Handle double-faced cards (card_faces structure)
+    if (cardData.card_faces && Array.isArray(cardData.card_faces) && cardData.card_faces.length > 0) {
+        const firstFace = cardData.card_faces[0];
+        if (firstFace.image_uris && typeof firstFace.image_uris === 'object') {
+            // Try requested size first
+            if (firstFace.image_uris[size]) {
+                return firstFace.image_uris[size];
+            }
+            // Fallback to other sizes
+            return firstFace.image_uris.normal || 
+                   firstFace.image_uris.large || 
+                   firstFace.image_uris.small || 
+                   firstFace.image_uris.png ||
+                   firstFace.image_uris.border_crop ||
+                   firstFace.image_uris.art_crop;
+        }
+    }
+
+    // Handle single-faced cards (standard image_uris structure)
+    if (cardData.image_uris && typeof cardData.image_uris === 'object') {
+        // Try requested size first
+        if (cardData.image_uris[size]) {
+            return cardData.image_uris[size];
+        }
+        // Fallback to other sizes in order of preference
+        return cardData.image_uris.normal || 
+               cardData.image_uris.large || 
+               cardData.image_uris.small || 
+               cardData.image_uris.png ||
+               cardData.image_uris.border_crop ||
+               cardData.image_uris.art_crop;
+    }
+
+    // Handle alternative image URL structures that might exist in imported data
+    if (cardData.image_url) {
+        return cardData.image_url;
+    }
+
+    if (cardData.img_url) {
+        return cardData.img_url;
+    }
+
+    if (cardData.picture_url) {
+        return cardData.picture_url;
+    }
+
+    // Handle nested image structures
+    if (cardData.images && typeof cardData.images === 'object') {
+        // Try different possible structures
+        if (cardData.images[size]) {
+            return cardData.images[size];
+        }
+        if (cardData.images.normal) {
+            return cardData.images.normal;
+        }
+        if (cardData.images.large) {
+            return cardData.images.large;
+        }
+        if (cardData.images.small) {
+            return cardData.images.small;
+        }
+        // If images is an object but doesn't match expected structure, try to find any URL
+        const imageValues = Object.values(cardData.images);
+        const validUrl = imageValues.find(val => 
+            typeof val === 'string' && 
+            (val.startsWith('http') || val.startsWith('https'))
+        );
+        if (validUrl) {
+            return validUrl;
+        }
+    }
+
+    // Handle Scryfall ID-based fallback (construct URL from ID if available)
+    if (cardData.id && typeof cardData.id === 'string') {
+        // Scryfall image URL pattern
+        const sizeMap = {
+            'small': 'small',
+            'normal': 'normal', 
+            'large': 'large',
+            'png': 'png',
+            'art_crop': 'art_crop',
+            'border_crop': 'border_crop'
+        };
+        const scryfallSize = sizeMap[size] || 'normal';
+        return `https://cards.scryfall.io/${scryfallSize}/front/${cardData.id.charAt(0)}/${cardData.id.charAt(1)}/${cardData.id}.jpg`;
+    }
+
+    // Log detailed information for debugging
+    console.warn('No image URL found for card:', {
+        name: cardData?.name,
+        id: cardData?.id,
+        tcg: cardData?.tcg,
+        hasImageUris: !!cardData?.image_uris,
+        hasCardFaces: !!cardData?.card_faces,
+        hasCustomImage: !!cardData?.customImageUrl,
+        hasLegacyImage: !!cardData?.imageUrl,
+        availableKeys: Object.keys(cardData || {})
+    });
+
+    // Return placeholder with card name if available
+    const cardName = cardData?.name || 'Unknown';
+    const encodedName = encodeURIComponent(cardName.substring(0, 20));
+    return `https://placehold.co/223x310/cccccc/969696?text=${encodedName}`;
+}
+
+/**
+* Safely converts a price using the global converter, with a fallback.
+* @param {number} value The price in USD.
+* @returns {string} The formatted price string.
+*/
+function safeFormatPrice(value) {
+    if (window.HatakeSocial && typeof window.HatakeSocial.convertAndFormatPrice === 'function') {
+        return window.HatakeSocial.convertAndFormatPrice(value, 'USD');
+    }
+    return `$${Number(value).toFixed(2)} USD`;
+}
+
+function openModal(modal) {
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeModal(modal) {
+    if (modal) modal.classList.add('hidden');
+}
+
+/**
+* Makes API calls with proper error handling and no CORS proxy
+* @param {string} url The API endpoint URL
+* @param {object} options Fetch options
+* @returns {Promise} The fetch response
+*/
+async function makeApiCall(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('API call failed:', error);
+        throw error;
+    }
+}
+
+// Debounce function for search optimization
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// FIXED: Robust Scryfall search with better error handling and fallbacks
+async function searchScryfallByName(cardName, setName = null) {
+    try {
+        // Clean the card name for better search results
+        const cleanCardName = cardName.trim().replace(/[^\w\s'-]/g, '');
+        
+        let searchQuery = `"${cleanCardName}"`;
+        if (setName) {
+            const cleanSetName = setName.trim().replace(/[^\w\s'-]/g, '');
+            searchQuery += ` set:"${cleanSetName}"`;
+        }
+        
+        const searchUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(searchQuery)}&unique=prints&order=released&dir=desc`;
+        
+        try {
+            const result = await makeApiCall(searchUrl);
+            
+            if (result.data && result.data.length > 0) {
+                const card = result.data[0]; // Get the most recent printing
+                
+                // Validate and clean the card data before returning
+                const cleanCardData = {
+                    id: card.id || null,
+                    name: card.name || cardName,
+                    set: card.set || null,
+                    setName: card.set_name || setName || 'Unknown Set',
+                    rarity: card.rarity || 'common',
+                    collector_number: card.collector_number || null,
+                    imageUrl: getCardImageUrl(card, 'normal'),
+                    priceUsd: (card.prices?.usd && !isNaN(parseFloat(card.prices.usd))) ? parseFloat(card.prices.usd) : null,
+                    priceUsdFoil: (card.prices?.usd_foil && !isNaN(parseFloat(card.prices.usd_foil))) ? parseFloat(card.prices.usd_foil) : null,
+                    tcg: 'Magic: The Gathering',
+                    colors: Array.isArray(card.colors) ? card.colors : (card.card_faces?.[0]?.colors || []),
+                    // Only include card_faces if it exists and is valid
+                    ...(card.card_faces && Array.isArray(card.card_faces) ? { card_faces: card.card_faces } : {}),
+                    // Only include image_uris if it exists and is valid
+                    ...(card.image_uris && typeof card.image_uris === 'object' ? { image_uris: card.image_uris } : {})
+                };
+                
+                return cleanCardData;
+            }
+        } catch (exactSearchError) {
+            console.log(`Exact search failed for "${cardName}", trying fuzzy search...`);
+            
+            // Fallback to fuzzy search
+            const fuzzySearchUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cleanCardName)}&unique=prints&order=released&dir=desc`;
+            
+            try {
+                const fuzzyResult = await makeApiCall(fuzzySearchUrl);
+                
+                if (fuzzyResult.data && fuzzyResult.data.length > 0) {
+                    const card = fuzzyResult.data[0];
+                    
+                    const cleanCardData = {
+                        id: card.id || null,
+                        name: card.name || cardName,
+                        set: card.set || null,
+                        setName: card.set_name || setName || 'Unknown Set',
+                        rarity: card.rarity || 'common',
+                        collector_number: card.collector_number || null,
+                        imageUrl: getCardImageUrl(card, 'normal'),
+                        priceUsd: (card.prices?.usd && !isNaN(parseFloat(card.prices.usd))) ? parseFloat(card.prices.usd) : null,
+                        priceUsdFoil: (card.prices?.usd_foil && !isNaN(parseFloat(card.prices.usd_foil))) ? parseFloat(card.prices.usd_foil) : null,
+                        tcg: 'Magic: The Gathering',
+                        colors: Array.isArray(card.colors) ? card.colors : (card.card_faces?.[0]?.colors || []),
+                        ...(card.card_faces && Array.isArray(card.card_faces) ? { card_faces: card.card_faces } : {}),
+                        ...(card.image_uris && typeof card.image_uris === 'object' ? { image_uris: card.image_uris } : {})
+                    };
+                    
+                    return cleanCardData;
+                }
+            } catch (fuzzySearchError) {
+                console.log(`Fuzzy search also failed for "${cardName}"`);
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error(`Error searching Scryfall for "${cardName}":`, error);
+        return null;
+    }
+}
+
+// FIXED: Enhanced CSV parsing with better column detection
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    
+    result.push(current.trim());
+    return result.map(field => field.replace(/^"|"$/g, '')); // Remove surrounding quotes
+}
+
+// FIXED: Better column detection for various CSV formats
+function detectCSVColumns(headers) {
+    const headerMap = {};
+    
+    headers.forEach((header, index) => {
+        const cleanHeader = header.toLowerCase().trim();
+        
+        // Card name detection
+        if (cleanHeader.includes('name') || cleanHeader.includes('card') || cleanHeader === 'title') {
+            headerMap.name = index;
+        }
+        // Quantity detection
+        else if (cleanHeader.includes('quantity') || cleanHeader.includes('qty') || cleanHeader.includes('count')) {
+            headerMap.quantity = index;
+        }
+        // Set detection
+        else if (cleanHeader.includes('set') || cleanHeader.includes('expansion') || cleanHeader.includes('edition')) {
+            headerMap.set = index;
+        }
+        // Condition detection
+        else if (cleanHeader.includes('condition') || cleanHeader.includes('grade')) {
+            headerMap.condition = index;
+        }
+        // Foil detection
+        else if (cleanHeader.includes('foil') || cleanHeader.includes('finish')) {
+            headerMap.foil = index;
+        }
+        // Price detection
+        else if (cleanHeader.includes('price') || cleanHeader.includes('value') || cleanHeader.includes('cost')) {
+            headerMap.price = index;
+        }
+        // Collector number detection
+        else if (cleanHeader.includes('number') || cleanHeader.includes('collector') || cleanHeader.includes('#')) {
+            headerMap.collectorNumber = index;
+        }
+    });
+    
+    return headerMap;
+}
+
+// --- Main Script ---
+
+document.addEventListener('authReady', (e) => {
+    console.log('[Collection v30.4] Auth ready. Initializing script...');
+    const user = e.detail.user;
+    const db = firebase.firestore();
+    const mainContainer = document.querySelector('main.container');
+
+    if (!mainContainer) {
+        console.error('[Collection v30.4] Critical error: main container not found. Script cannot run.');
+        return;
+    }
+
+    if (!user) {
+        console.log('[Collection v30.4] No user found. Displaying login message.');
+        mainContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
+        return;
+    }
+    console.log(`[Collection v30.4] User ${user.uid} authenticated. Setting up page elements.`);
+
+    // --- State ---
+    let bulkEditMode = false;
+    let quickEditMode = false;
+    let selectedCards = new Set();
+    let fullCollection = [];
+    let fullWishlist = [];
+    let filteredCollection = [];
+    let currentView = 'grid';
+    const pokemonApiUrl = 'https://api.pokemontcg.io/v2/cards';
+    const pokemonApiKey = '60a08d4a-3a34-43d8-8f41-827b58cfac6d';
+    let versionCount = 0;
+
+    // --- DOM Element References ---
+    const elements = {
+        tabs: document.querySelectorAll('.tab-button'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        csvUploadBtn: document.getElementById('csv-upload-btn'),
+        csvUploadInput: document.getElementById('csv-upload-input'),
+        csvStatus: document.getElementById('csv-status'),
+        collectionGridView: document.getElementById('collection-grid-view'),
+        collectionTableView: document.getElementById('collection-table-view'),
+        wishlistListContainer: document.getElementById('wishlist-list'),
+        bulkEditBtn: document.getElementById('bulk-edit-btn'),
+        bulkActionBar: document.getElementById('bulk-action-bar'),
+        selectedCountEl: document.getElementById('selected-count'),
+        selectAllCheckbox: document.getElementById('select-all-checkbox'),
+        listSelectedBtn: document.getElementById('list-selected-btn'),
+        deleteSelectedBtn: document.getElementById('delete-selected-btn'),
+        listForSaleModal: document.getElementById('list-for-sale-modal'),
+        editCardModal: document.getElementById('edit-card-modal'),
+        editCardForm: document.getElementById('edit-card-form'),
+        manageListingModal: document.getElementById('manage-listing-modal'),
+        manageListingForm: document.getElementById('manage-listing-form'),
+        quickEditBtn: document.getElementById('quick-edit-btn'),
+        quickEditSaveBar: document.getElementById('quick-edit-save-bar'),
+        saveQuickEditsBtn: document.getElementById('save-quick-edits-btn'),
+        percentagePriceForm: document.getElementById('percentage-price-form'),
+        fixedUndercutForm: document.getElementById('fixed-undercut-form'),
+        manualGameSelect: document.getElementById('manual-game-select'),
+        searchCardVersionsBtn: document.getElementById('search-card-versions-btn'),
+        manualAddResultsContainer: document.getElementById('manual-add-results'),
+        addVersionModal: document.getElementById('add-version-modal'),
+        addVersionForm: document.getElementById('add-version-form'),
+        exportCollectionBtn: document.getElementById('export-collection-btn'),
+        filterNameInput: document.getElementById('filter-name'),
+        filterSetSelect: document.getElementById('filter-set'),
+        filterRaritySelect: document.getElementById('filter-rarity'),
+        filterColorSelect: document.getElementById('filter-color'),
+        resetFiltersBtn: document.getElementById('reset-filters-btn'),
+        gridViewBtn: document.getElementById('grid-view-btn'),
+        listViewBtn: document.getElementById('list-view-btn'),
+        cardVersionsContainer: document.getElementById('card-versions-container'),
+        addAnotherVersionBtn: document.getElementById('add-another-version-btn'),
+    };
+
+    const loadCollectionData = async () => {
+        if (!elements.collectionGridView) return;
+        elements.collectionGridView.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading your collection...</p>';
+        try {
+            const snapshot = await db.collection('users').doc(user.uid).collection('collection').orderBy('name').get();
+            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            filteredCollection = [...fullCollection];
+            console.log(`[Collection v30.4] Loaded ${fullCollection.length} cards from Firestore.`);
+            calculateAndDisplayStats(fullCollection);
+            populateFilters();
+            renderCurrentView();
+        } catch (error) {
+            console.error(`[Collection v30.4] Error loading collection:`, error);
+            if (elements.collectionGridView) elements.collectionGridView.innerHTML = `<p class="text-center text-red-500 p-4">Could not load collection. See console for details.</p>`;
+        }
+    };
+
+    const loadWishlistData = async () => {
+        if (!elements.wishlistListContainer) return;
+        elements.wishlistListContainer.innerHTML = '<p class="text-center p-4 text-gray-500 dark:text-gray-400">Loading wishlist...</p>';
+        try {
+            const snapshot = await db.collection('users').doc(user.uid).collection('wishlist').orderBy('name').get();
+            fullWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderWishlist(fullWishlist);
+        } catch (error) {
+            console.error(`[Collection v30.4] Error loading wishlist:`, error);
+            if (elements.wishlistListContainer) elements.wishlistListContainer.innerHTML = `<p class="text-center text-red-500 p-4">Could not load your wishlist.</p>`;
+        }
+    };
+
+    const renderWishlist = (wishlistItems) => {
+        if (!elements.wishlistListContainer) return;
+        if (wishlistItems.length === 0) {
+            elements.wishlistListContainer.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">Your wishlist is empty.</p>`;
+            return;
+        }
+        elements.wishlistListContainer.innerHTML = '';
+        wishlistItems.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'relative group cursor-pointer';
+            cardEl.dataset.id = card.id;
+            cardEl.innerHTML = `
+                <img src="${getCardImageUrl(card, 'normal')}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                <div class="card-actions absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="edit-card-btn text-white text-xs" data-id="${card.id}" data-list="wishlist"><i class="fas fa-edit"></i></button>
+                    <button class="delete-card-btn text-white text-xs ml-1" data-id="${card.id}" data-list="wishlist"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            // Add click event for modal
+            cardEl.addEventListener('click', (e) => {
+                if (!e.target.closest('.card-actions')) {
+                    openCardManagementModal(card);
+                }
+            });
+            elements.wishlistListContainer.appendChild(cardEl);
+        });
+    };
+
+    const calculateAndDisplayStats = (collectionData) => {
+        let totalCards = 0;
+        let totalValue = 0;
+        collectionData.forEach(card => {
+            const quantity = card.quantity || 1;
+            totalCards += quantity;
+            const price = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            totalValue += price * quantity;
+        });
+
+        const statsTotalCardsEl = document.getElementById('stats-total-cards');
+        const statsUniqueCardsEl = document.getElementById('stats-unique-cards');
+        const statsTotalValueEl = document.getElementById('stats-total-value');
+
+        if (statsTotalCardsEl) statsTotalCardsEl.textContent = totalCards;
+        if (statsUniqueCardsEl) statsUniqueCardsEl.textContent = new Set(collectionData.map(c => c.name)).size;
+        if (statsTotalValueEl) statsTotalValueEl.textContent = safeFormatPrice(totalValue);
+    };
+
+    const populateFilters = () => {
+        if (!elements.filterSetSelect) return;
+        const sets = new Set(fullCollection.map(card => card.setName).filter(Boolean));
+        elements.filterSetSelect.innerHTML = '<option value="all">All Sets</option>';
+        [...sets].sort().forEach(setName => {
+            const option = document.createElement('option');
+            option.value = setName;
+            option.textContent = setName;
+            elements.filterSetSelect.appendChild(option);
+        });
+    };
+
+    const applyFilters = () => {
+        const nameFilter = elements.filterNameInput ? elements.filterNameInput.value.toLowerCase() : '';
+        const setFilter = elements.filterSetSelect ? elements.filterSetSelect.value : 'all';
+        const rarityFilter = elements.filterRaritySelect ? elements.filterRaritySelect.value : 'all';
+        const colorFilter = elements.filterColorSelect ? elements.filterColorSelect.value : 'all';
+
+        filteredCollection = fullCollection.filter(card => {
+            const cardColors = card.colors || [];
+            const nameMatch = card.name.toLowerCase().includes(nameFilter);
+            const setMatch = setFilter === 'all' || card.setName === setFilter;
+            const rarityMatch = rarityFilter === 'all' || card.rarity === rarityFilter;
+            let colorMatch = true;
+            if (colorFilter !== 'all') {
+                if (colorFilter === 'M') colorMatch = cardColors.length > 1;
+                else if (colorFilter === 'C') colorMatch = cardColors.length === 0;
+                else colorMatch = cardColors.includes(colorFilter);
+            }
+            return nameMatch && setMatch && rarityMatch && colorMatch;
+        });
+        renderCurrentView();
+    };
+
+    const renderCurrentView = () => {
+        if (currentView === 'grid') renderGridView();
+        else renderListView();
+    };
+
+    const renderGridView = () => {
+        const container = elements.collectionGridView;
+        if (!container) return;
+
+        if (elements.collectionTableView) elements.collectionTableView.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        if (filteredCollection.length === 0) {
+            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400 col-span-full">No cards found.</p>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        filteredCollection.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'relative group cursor-pointer';
+            cardEl.dataset.id = card.id;
+
+            const forSaleIndicator = card.forSale ? 'border-4 border-green-500' : '';
+            const isSelected = selectedCards.has(card.id);
+            const checkboxOverlay = bulkEditMode ? `<div class="bulk-checkbox-overlay absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-3xl ${isSelected ? '' : 'hidden'}"><i class="fas fa-check-circle"></i></div>` : '';
+            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : '';
+            const priceTagHTML = formattedPrice ? `<div class="absolute top-1.5 left-1.5 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>` : '';
+            const quantityBadge = `<div class="absolute top-1.5 right-1.5 bg-gray-900 bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">x${card.quantity || 1}</div>`;
+
+            cardEl.innerHTML = `
+                <div class="relative">
+                    <img src="${getCardImageUrl(card, 'normal')}" alt="${card.name}" class="rounded-lg shadow-md w-full ${forSaleIndicator}" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
+                    ${quantityBadge}
+                    ${checkboxOverlay}
+                </div>
+                ${priceTagHTML}
+                <div class="card-actions absolute bottom-0 right-0 p-1 bg-black bg-opacity-50 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="edit-card-btn text-white text-xs" data-id="${card.id}" data-list="collection"><i class="fas fa-edit"></i></button>
+                    <button class="delete-card-btn text-white text-xs ml-1" data-id="${card.id}" data-list="collection"><i class="fas fa-trash"></i></button>
+                    <button class="manage-listing-btn text-white text-xs ml-1" data-id="${card.id}" data-list="collection"><i class="fas fa-tags"></i></button>
+                </div>`;
+            
+            // Add click event for modal (only if not in bulk edit mode)
+            cardEl.addEventListener('click', (e) => {
+                if (bulkEditMode) {
+                    handleCardSelection(card.id);
+                } else if (!e.target.closest('.card-actions')) {
+                    openCardManagementModal(card);
+                }
+            });
+            container.appendChild(cardEl);
+        });
+    };
+
+    const renderListView = () => {
+        const container = elements.collectionTableView;
+        if (!container) return;
+
+        if (elements.collectionGridView) elements.collectionGridView.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        if (filteredCollection.length === 0) {
+            container.innerHTML = `<p class="text-center p-4 text-gray-500 dark:text-gray-400">No cards match your filters.</p>`;
+            return;
+        }
+
+        let tableHTML = `
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">`;
+        
+        filteredCollection.forEach(card => {
+            const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            const formattedPrice = priceUsd > 0 ? safeFormatPrice(priceUsd) : 'N/A';
+            tableHTML += `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" data-card-id="${card.id}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${card.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${card.setName || 'Unknown'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${card.quantity || 1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">${formattedPrice}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 mr-2 edit-card-btn" data-id="${card.id}" data-list="collection">Edit</button>
+                        <button class="text-red-600 hover:text-red-900 mr-2 delete-card-btn" data-id="${card.id}" data-list="collection">Delete</button>
+                        <button class="text-green-600 hover:text-green-900 manage-listing-btn" data-id="${card.id}" data-list="collection">List</button>
+                    </td>
+                </tr>`;
+        });
+        tableHTML += `</tbody></table>`;
+        container.innerHTML = tableHTML;
+    };
+
+    // Enhanced card management modal without shipping costs and with delete button
+    const openCardManagementModal = (card, existingData = null) => {
+        // Remove existing modal if it exists
+        const existingModal = document.getElementById('card-management-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'card-management-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center p-6 border-b dark:border-gray-700">
+                    <h2 class="text-2xl font-bold dark:text-white">Manage Card</h2>
+                    <button class="close-modal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row gap-6 mb-6">
+                        <div class="flex-shrink-0">
+                            <img class="card-image w-48 rounded-lg shadow-md" src="${getCardImageUrl(card, 'normal')}" alt="Card Image">
+                        </div>
+                        <div class="flex-grow">
+                            <h3 class="card-name text-xl font-bold dark:text-white mb-2">${card.name}</h3>
+                            <p class="card-set text-gray-600 dark:text-gray-400 mb-4">${card.setName || 'Unknown Set'} ${card.collector_number ? `(#${card.collector_number})` : ''}</p>
+                            <div class="card-versions-list space-y-4"></div>
+                            <button class="add-version-btn mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-plus mr-2"></i>Add Another Version
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="delete-card-btn px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                            <i class="fas fa-trash mr-2"></i>Delete Card
+                        </button>
+                        <div class="space-x-3">
+                            <button class="cancel-btn px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                            <button class="save-btn px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add event listeners
+        modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+        modal.querySelector('.cancel-btn').addEventListener('click', () => modal.remove());
+        modal.querySelector('.add-version-btn').addEventListener('click', () => addCardVersion(modal, card));
+        modal.querySelector('.save-btn').addEventListener('click', () => saveCardVersions(modal, card));
+        modal.querySelector('.delete-card-btn').addEventListener('click', () => deleteCardFromModal(modal, card));
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        // Add initial version
+        const versionsList = modal.querySelector('.card-versions-list');
+        versionsList.innerHTML = '';
+        addCardVersion(modal, card, existingData);
+
+        document.body.appendChild(modal);
+    };
+
+    // Delete card from modal
+    const deleteCardFromModal = async (modal, card) => {
+        if (confirm(`Are you sure you want to delete "${card.name}" from your collection?`)) {
+            try {
+                await db.collection('users').doc(user.uid).collection('collection').doc(card.id).delete();
+                modal.remove();
+                loadCollectionData();
+                showNotification('Card deleted successfully!', 'success');
+            } catch (error) {
+                console.error('Error deleting card:', error);
+                showNotification('Error deleting card. Please try again.', 'error');
+            }
+        }
+    };
+
+    // Enhanced version creation without shipping costs and fixed for sale toggle
+    const addCardVersion = (modal, card, existingData = null) => {
+        const versionsList = modal.querySelector('.card-versions-list');
+        versionCount++;
+        
+        const versionDiv = document.createElement('div');
+        versionDiv.className = 'card-version border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700';
+        versionDiv.dataset.versionId = `version-${versionCount}`;
+        
+        versionDiv.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="text-lg font-semibold dark:text-white">Version ${versionsList.children.length + 1}</h4>
+                <button class="remove-version text-red-500 hover:text-red-700">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+                    <input type="number" min="1" value="${existingData?.quantity || 1}" class="quantity-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Condition</label>
+                    <select class="condition-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        <option ${existingData?.condition === 'Near Mint' ? 'selected' : ''}>Near Mint</option>
+                        <option ${existingData?.condition === 'Lightly Played' ? 'selected' : ''}>Lightly Played</option>
+                        <option ${existingData?.condition === 'Moderately Played' ? 'selected' : ''}>Moderately Played</option>
+                        <option ${existingData?.condition === 'Heavily Played' ? 'selected' : ''}>Heavily Played</option>
+                        <option ${existingData?.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
+                    <input type="text" value="${existingData?.language || 'English'}" class="language-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Purchase Price</label>
+                    <input type="number" step="0.01" value="${existingData?.purchasePrice || ''}" class="purchase-price-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Add to List</label>
+                    <select class="list-select w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        <option value="collection">Collection</option>
+                        <option value="wishlist">Wishlist</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- FOR SALE SECTION (FIXED) -->
+            <div class="for-sale-section border-t dark:border-gray-600 pt-4 mb-4">
+                <div class="flex items-center mb-3">
+                    <input type="checkbox" ${existingData?.forSale ? 'checked' : ''} class="for-sale-toggle mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">List for Sale</label>
+                </div>
+                <div class="for-sale-details ${existingData?.forSale ? '' : 'hidden'}">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sale Price</label>
+                        <input type="number" step="0.01" value="${existingData?.salePrice || ''}" class="sale-price-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 grid grid-cols-3 gap-4">
+                <label class="flex items-center">
+                    <input type="checkbox" ${existingData?.isFoil ? 'checked' : ''} class="foil-input mr-2">
+                    <span class="text-sm dark:text-gray-300">Foil</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" ${existingData?.isSigned ? 'checked' : ''} class="signed-input mr-2">
+                    <span class="text-sm dark:text-gray-300">Signed</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" ${existingData?.isAltered ? 'checked' : ''} class="altered-input mr-2">
+                    <span class="text-sm dark:text-gray-300">Altered</span>
+                </label>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photo Upload</label>
+                <input type="file" accept="image/*" class="photo-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <div class="photo-preview mt-2 hidden">
+                    <img class="w-32 h-32 object-cover rounded-md" alt="Card photo">
+                    <button type="button" class="remove-photo mt-1 text-xs text-red-500 hover:text-red-700">Remove Photo</button>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                <textarea class="notes-input w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" rows="2" placeholder="Additional notes...">${existingData?.notes || ''}</textarea>
+            </div>
+        `;
+
+        // For sale toggle event listener
+        const forSaleToggle = versionDiv.querySelector('.for-sale-toggle');
+        const forSaleDetails = versionDiv.querySelector('.for-sale-details');
+        
+        forSaleToggle.addEventListener('change', () => {
+            if (forSaleToggle.checked) {
+                forSaleDetails.classList.remove('hidden');
+            } else {
+                forSaleDetails.classList.add('hidden');
+            }
+        });
+
+        // Add remove functionality
+        versionDiv.querySelector('.remove-version').addEventListener('click', () => {
+            if (versionsList.children.length > 1) {
+                versionDiv.remove();
+                updateVersionNumbers(modal);
+            } else {
+                alert('You must have at least one version of the card.');
+            }
+        });
+
+        // Add photo preview functionality
+        const photoInput = versionDiv.querySelector('.photo-input');
+        const photoPreview = versionDiv.querySelector('.photo-preview');
+        const photoImg = photoPreview.querySelector('img');
+        const removePhotoBtn = photoPreview.querySelector('.remove-photo');
+
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photoImg.src = e.target.result;
+                    photoPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                photoPreview.classList.add('hidden');
+            }
+        });
+
+        removePhotoBtn.addEventListener('click', () => {
+            photoInput.value = '';
+            photoPreview.classList.add('hidden');
+        });
+
+        versionsList.appendChild(versionDiv);
+        updateVersionNumbers(modal);
+    };
+
+    const updateVersionNumbers = (modal) => {
+        const versions = modal.querySelectorAll('.card-version');
+        versions.forEach((version, index) => {
+            const header = version.querySelector('h4');
+            header.textContent = `Version ${index + 1}`;
+        });
+    };
+
+    // FIXED: Save card versions without duplication - handles new vs existing cards properly
+    const saveCardVersions = async (modal, card) => {
+        const versions = modal.querySelectorAll('.card-version');
+        const saveBtn = modal.querySelector('.save-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+        
+        try {
+            // If this is a single version, check if we should update existing or create new
+            if (versions.length === 1) {
+                const version = versions[0];
+                const listType = version.querySelector('.list-select').value;
+                const versionData = {
+                    ...card,
+                    quantity: parseInt(version.querySelector('.quantity-input').value) || 1,
+                    condition: version.querySelector('.condition-input').value,
+                    language: version.querySelector('.language-input').value,
+                    purchasePrice: parseFloat(version.querySelector('.purchase-price-input').value) || null,
+                    isFoil: version.querySelector('.foil-input').checked,
+                    isSigned: version.querySelector('.signed-input').checked,
+                    isAltered: version.querySelector('.altered-input').checked,
+                    notes: version.querySelector('.notes-input').value,
+                    forSale: version.querySelector('.for-sale-toggle').checked,
+                    salePrice: parseFloat(version.querySelector('.sale-price-input').value) || null,
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Handle photo upload if present
+                const photoInput = version.querySelector('.photo-input');
+                if (photoInput.files[0]) {
+                    const reader = new FileReader();
+                    const fileData = await new Promise((resolve) => {
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(photoInput.files[0]);
+                    });
+                    versionData.customImageUrl = fileData;
+                }
+
+                // FIXED: Check if document exists before trying to update
+                if (card.id) {
+                    try {
+                        const docRef = db.collection('users').doc(user.uid).collection(listType).doc(card.id);
+                        const docSnapshot = await docRef.get();
+                        
+                        if (docSnapshot.exists) {
+                            // Document exists, update it
+                            await docRef.update(versionData);
+                        } else {
+                            // Document doesn't exist, create it with set()
+                            versionData.dateAdded = firebase.firestore.FieldValue.serverTimestamp();
+                            await docRef.set(versionData);
+                        }
+                    } catch (updateError) {
+                        console.warn('Update failed, creating new document:', updateError);
+                        // If update fails for any reason, create a new document
+                        versionData.dateAdded = firebase.firestore.FieldValue.serverTimestamp();
+                        const newDocRef = db.collection('users').doc(user.uid).collection(listType).doc();
+                        await newDocRef.set(versionData);
+                    }
+                } else {
+                    // No card.id, definitely a new card
+                    versionData.dateAdded = firebase.firestore.FieldValue.serverTimestamp();
+                    const newDocRef = db.collection('users').doc(user.uid).collection(listType).doc();
+                    await newDocRef.set(versionData);
+                }
+            } else {
+                // Multiple versions - always create new documents
+                const batch = db.batch();
+                
+                for (const version of versions) {
+                    const listType = version.querySelector('.list-select').value;
+                    const versionData = {
+                        ...card,
+                        quantity: parseInt(version.querySelector('.quantity-input').value) || 1,
+                        condition: version.querySelector('.condition-input').value,
+                        language: version.querySelector('.language-input').value,
+                        purchasePrice: parseFloat(version.querySelector('.purchase-price-input').value) || null,
+                        isFoil: version.querySelector('.foil-input').checked,
+                        isSigned: version.querySelector('.signed-input').checked,
+                        isAltered: version.querySelector('.altered-input').checked,
+                        notes: version.querySelector('.notes-input').value,
+                        forSale: version.querySelector('.for-sale-toggle').checked,
+                        salePrice: parseFloat(version.querySelector('.sale-price-input').value) || null,
+                        dateAdded: firebase.firestore.FieldValue.serverTimestamp(),
+                        versionId: version.dataset.versionId
+                    };
+
+                    // Handle photo upload if present
+                    const photoInput = version.querySelector('.photo-input');
+                    if (photoInput.files[0]) {
+                        const reader = new FileReader();
+                        const fileData = await new Promise((resolve) => {
+                            reader.onload = (e) => resolve(e.target.result);
+                            reader.readAsDataURL(photoInput.files[0]);
+                        });
+                        versionData.customImageUrl = fileData;
+                    }
+
+                    const newDocRef = db.collection('users').doc(user.uid).collection(listType).doc();
+                    batch.set(newDocRef, versionData);
+                }
+
+                await batch.commit();
+            }
+
+            modal.remove();
+            
+            // Reload the appropriate data
+            loadCollectionData();
+            loadWishlistData();
+            
+            // Show success message
+            showNotification('Card saved successfully!', 'success');
+        } catch (error) {
+            console.error('Error saving card:', error);
+            showNotification('Error saving card. Please try again.', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = 'Save Changes';
+        }
+    };
+
+    // Notification system
+    const showNotification = (message, type = 'info') => {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+                <span>${message}</span>
+                <button class="ml-auto text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    };
+
+    // Optimized Pokemon TCG API search with better query format
+    const searchPokemonCards = async (cardName) => {
+        try {
+            // Optimized query format - use exact name matching first, then fallback to wildcard
+            let searchUrl = `${pokemonApiUrl}?q=name:"${encodeURIComponent(cardName)}"&pageSize=20`;
+            
+            let response = await fetch(searchUrl, {
+                headers: {
+                    'X-Api-Key': pokemonApiKey
+                }
+            });
+
+            if (!response.ok) {
+                // Fallback to wildcard search if exact match fails
+                searchUrl = `${pokemonApiUrl}?q=name:${encodeURIComponent(cardName)}*&pageSize=20`;
+                response = await fetch(searchUrl, {
+                    headers: {
+                        'X-Api-Key': pokemonApiKey
+                    }
+                });
+            }
+
+            if (!response.ok) {
+                throw new Error(`Pokemon API error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return result.data.map(card => ({
+                id: card.id,
+                name: card.name,
+                set: card.set.id,
+                setName: card.set.name,
+                rarity: card.rarity,
+                collector_number: card.number,
+                imageUrl: card.images.small,
+                priceUsd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+                priceUsdFoil: card.tcgplayer?.prices?.reverseHolofoil?.market || null,
+                tcg: 'Pokémon',
+                types: card.types,
+                images: card.images
+            }));
+        } catch (error) {
+            console.error('Error searching Pokemon cards:', error);
+            throw error;
+        }
+    };
+
+    // Fixed Magic: The Gathering API search
+    const searchMagicCards = async (cardName) => {
+        try {
+            const searchUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints&order=released&dir=desc`;
+            const result = await makeApiCall(searchUrl);
+            return result.data.map(card => ({
+                id: card.id,
+                name: card.name,
+                set: card.set,
+                setName: card.set_name,
+                rarity: card.rarity,
+                collector_number: card.collector_number,
+                imageUrl: getCardImageUrl(card, 'small'),
+                priceUsd: card.prices?.usd || null,
+                priceUsdFoil: card.prices?.usd_foil || null,
+                tcg: 'Magic: The Gathering',
+                colors: (card.card_faces ? card.card_faces[0].colors : card.colors) || [],
+                card_faces: card.card_faces,
+                image_uris: card.image_uris
+            }));
+        } catch (error) {
+            console.error('Error searching Magic cards:', error);
+            throw error;
+        }
+    };
+
+    // Bulk edit functionality
+    const toggleBulkEditMode = () => {
+        bulkEditMode = !bulkEditMode;
+        selectedCards.clear();
+        if (elements.selectAllCheckbox) elements.selectAllCheckbox.checked = false;
+
+        if (bulkEditMode) {
+            if (elements.bulkEditBtn) {
+                elements.bulkEditBtn.textContent = 'Cancel Bulk Edit';
+                elements.bulkEditBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                elements.bulkEditBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+            }
+            if (elements.bulkActionBar) elements.bulkActionBar.classList.remove('hidden');
+            if (elements.quickEditBtn) elements.quickEditBtn.classList.add('hidden');
+        } else {
+            if (elements.bulkEditBtn) {
+                elements.bulkEditBtn.textContent = 'Bulk Edit';
+                elements.bulkEditBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                elements.bulkEditBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            }
+            if (elements.bulkActionBar) elements.bulkActionBar.classList.add('hidden');
+            if (elements.quickEditBtn) elements.quickEditBtn.classList.remove('hidden');
+        }
+        updateSelectedCount();
+        renderCurrentView();
+    };
+
+    // Quick edit functionality
+    const toggleQuickEditMode = () => {
+        quickEditMode = !quickEditMode;
+        
+        if (quickEditMode) {
+            if (elements.quickEditBtn) {
+                elements.quickEditBtn.textContent = 'Cancel Quick Edit';
+                elements.quickEditBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                elements.quickEditBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+            }
+            if (elements.quickEditSaveBar) elements.quickEditSaveBar.classList.remove('hidden');
+            if (elements.bulkEditBtn) elements.bulkEditBtn.classList.add('hidden');
+            
+            // Add quick edit inputs to cards
+            addQuickEditInputs();
+        } else {
+            if (elements.quickEditBtn) {
+                elements.quickEditBtn.textContent = 'Quick Edit';
+                elements.quickEditBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                elements.quickEditBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+            }
+            if (elements.quickEditSaveBar) elements.quickEditSaveBar.classList.add('hidden');
+            if (elements.bulkEditBtn) elements.bulkEditBtn.classList.remove('hidden');
+            
+            // Remove quick edit inputs
+            removeQuickEditInputs();
+        }
+    };
+
+    const addQuickEditInputs = () => {
+        const cardElements = document.querySelectorAll('[data-id]');
+        cardElements.forEach(cardEl => {
+            const cardId = cardEl.dataset.id;
+            const card = fullCollection.find(c => c.id === cardId);
+            if (!card) return;
+
+            const quickEditOverlay = document.createElement('div');
+            quickEditOverlay.className = 'quick-edit-overlay absolute inset-0 bg-white bg-opacity-95 dark:bg-gray-800 dark:bg-opacity-95 p-2 rounded-lg';
+            quickEditOverlay.innerHTML = `
+                <div class="space-y-2 text-xs">
+                    <input type="number" min="1" value="${card.quantity || 1}" class="quick-quantity w-full p-1 border rounded text-xs" placeholder="Qty">
+                    <select class="quick-condition w-full p-1 border rounded text-xs">
+                        <option ${card.condition === 'Near Mint' ? 'selected' : ''}>Near Mint</option>
+                        <option ${card.condition === 'Lightly Played' ? 'selected' : ''}>Lightly Played</option>
+                        <option ${card.condition === 'Moderately Played' ? 'selected' : ''}>Moderately Played</option>
+                        <option ${card.condition === 'Heavily Played' ? 'selected' : ''}>Heavily Played</option>
+                        <option ${card.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                    </select>
+                    <input type="number" step="0.01" value="${card.salePrice || ''}" class="quick-sale-price w-full p-1 border rounded text-xs" placeholder="Sale Price">
+                    <label class="flex items-center text-xs">
+                        <input type="checkbox" ${card.forSale ? 'checked' : ''} class="quick-for-sale mr-1">
+                        For Sale
+                    </label>
+                </div>
+            `;
+            cardEl.appendChild(quickEditOverlay);
+        });
+    };
+
+    const removeQuickEditInputs = () => {
+        document.querySelectorAll('.quick-edit-overlay').forEach(overlay => {
+            overlay.remove();
+        });
+    };
+
+    // Save quick edits functionality
+    const saveQuickEdits = async () => {
+        const saveBtn = elements.saveQuickEditsBtn;
+        if (!saveBtn) return;
+
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+
+        try {
+            const batch = db.batch();
+            const cardElements = document.querySelectorAll('[data-id]');
+            
+            cardElements.forEach(cardEl => {
+                const cardId = cardEl.dataset.id;
+                const overlay = cardEl.querySelector('.quick-edit-overlay');
+                if (!overlay) return;
+
+                const quantity = parseInt(overlay.querySelector('.quick-quantity').value) || 1;
+                const condition = overlay.querySelector('.quick-condition').value;
+                const salePrice = parseFloat(overlay.querySelector('.quick-sale-price').value) || null;
+                const forSale = overlay.querySelector('.quick-for-sale').checked;
+
+                const docRef = db.collection('users').doc(user.uid).collection('collection').doc(cardId);
+                batch.update(docRef, {
+                    quantity,
+                    condition,
+                    salePrice,
+                    forSale,
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+
+            await batch.commit();
+            toggleQuickEditMode(); // Exit quick edit mode
+            loadCollectionData(); // Reload data
+            showNotification('Quick edits saved successfully!', 'success');
+        } catch (error) {
+            console.error('Error saving quick edits:', error);
+            showNotification('Error saving quick edits. Please try again.', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save All Changes';
+        }
+    };
+
+    const handleCardSelection = (cardId) => {
+        if (selectedCards.has(cardId)) {
+            selectedCards.delete(cardId);
+        } else {
+            selectedCards.add(cardId);
+        }
+        updateSelectedCount();
+        const cardEl = elements.collectionGridView.querySelector(`div[data-id="${cardId}"]`);
+        if (cardEl) {
+            cardEl.querySelector('.bulk-checkbox-overlay')?.classList.toggle('hidden', !selectedCards.has(cardId));
+        }
+    };
+
+    const updateSelectedCount = () => {
+        if (elements.selectedCountEl) {
+            elements.selectedCountEl.textContent = `${selectedCards.size} cards selected`;
+        }
+    };
+
+    // Enhanced bulk list for sale with percentage and advanced options
+    const showBulkListForSaleModal = () => {
+        if (selectedCards.size === 0) {
+            alert('Please select cards to list for sale.');
+            return;
+        }
+
+        // Remove existing modal if it exists
+        const existingModal = document.getElementById('bulk-list-for-sale-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'bulk-list-for-sale-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="flex justify-between items-center p-6 border-b dark:border-gray-700">
+                    <h2 class="text-2xl font-bold dark:text-white">Bulk List for Sale</h2>
+                    <button class="close-modal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">Selected ${selectedCards.size} cards for listing</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="pricing-method" value="percentage" class="mr-2" checked>
+                                <span class="font-medium dark:text-white">Percentage of Market Value</span>
+                            </label>
+                            <div class="ml-6 mt-2 percentage-options">
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="percentage-value" value="90" min="1" max="200" class="w-20 p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="dark:text-gray-300">% of market value</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="pricing-method" value="fixed" class="mr-2">
+                                <span class="font-medium dark:text-white">Fixed Price</span>
+                            </label>
+                            <div class="ml-6 mt-2 fixed-options hidden">
+                                <div class="flex items-center space-x-2">
+                                    <span class="dark:text-gray-300">$</span>
+                                    <input type="number" id="fixed-price" step="0.01" placeholder="0.00" class="w-32 p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="dark:text-gray-300">for all selected cards</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="flex items-center">
+                                <input type="radio" name="pricing-method" value="advanced" class="mr-2">
+                                <span class="font-medium dark:text-white">Advanced Settings</span>
+                            </label>
+                            <div class="ml-6 mt-2 advanced-options hidden">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Set individual prices for each card</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button class="cancel-btn px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                        <button class="apply-pricing-btn px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Apply Pricing</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add event listeners
+        modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+        modal.querySelector('.cancel-btn').addEventListener('click', () => modal.remove());
+        modal.querySelector('.apply-pricing-btn').addEventListener('click', () => applyBulkPricing(modal));
+
+        // Radio button functionality
+        const radioButtons = modal.querySelectorAll('input[name="pricing-method"]');
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', () => {
+                modal.querySelector('.percentage-options').classList.toggle('hidden', radio.value !== 'percentage');
+                modal.querySelector('.fixed-options').classList.toggle('hidden', radio.value !== 'fixed');
+                modal.querySelector('.advanced-options').classList.toggle('hidden', radio.value !== 'advanced');
+            });
+        });
+
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        document.body.appendChild(modal);
+    };
+
+    // Apply bulk pricing
+    const applyBulkPricing = async (modal) => {
+        const pricingMethod = modal.querySelector('input[name="pricing-method"]:checked').value;
+        const applyBtn = modal.querySelector('.apply-pricing-btn');
+        
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Applying...';
+
+        try {
+            if (pricingMethod === 'advanced') {
+                // Show advanced pricing modal
+                modal.remove();
+                showAdvancedPricingModal();
+                return;
+            }
+
+            const batch = db.batch();
+            const selectedCardIds = Array.from(selectedCards);
+            
+            for (const cardId of selectedCardIds) {
+                const card = fullCollection.find(c => c.id === cardId);
+                if (!card) continue;
+
+                let salePrice;
+                if (pricingMethod === 'percentage') {
+                    const percentage = parseFloat(modal.querySelector('#percentage-value').value) || 90;
+                    const marketPrice = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                    salePrice = marketPrice * (percentage / 100);
+                } else if (pricingMethod === 'fixed') {
+                    salePrice = parseFloat(modal.querySelector('#fixed-price').value) || 0;
+                }
+
+                if (salePrice > 0) {
+                    const docRef = db.collection('users').doc(user.uid).collection('collection').doc(cardId);
+                    batch.update(docRef, {
+                        forSale: true,
+                        salePrice: salePrice,
+                        listedDate: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
+
+            await batch.commit();
+            modal.remove();
+            selectedCards.clear();
+            toggleBulkEditMode(); // Exit bulk edit mode
+            loadCollectionData(); // Reload data
+            showNotification(`${selectedCardIds.length} cards listed for sale!`, 'success');
+        } catch (error) {
+            console.error('Error applying bulk pricing:', error);
+            showNotification('Error applying pricing. Please try again.', 'error');
+        } finally {
+            applyBtn.disabled = false;
+            applyBtn.innerHTML = 'Apply Pricing';
+        }
+    };
+
+    // Advanced pricing modal
+    const showAdvancedPricingModal = () => {
+        const modal = document.createElement('div');
+        modal.id = 'advanced-pricing-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+        
+        const selectedCardIds = Array.from(selectedCards);
+        const cardRows = selectedCardIds.map(cardId => {
+            const card = fullCollection.find(c => c.id === cardId);
+            if (!card) return '';
+            
+            const marketPrice = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+            return `
+                <tr data-card-id="${cardId}">
+                    <td class="px-4 py-2 text-sm dark:text-white">${card.name}</td>
+                    <td class="px-4 py-2 text-sm dark:text-gray-300">$${marketPrice.toFixed(2)}</td>
+                    <td class="px-4 py-2">
+                        <input type="number" step="0.01" value="${(marketPrice * 0.9).toFixed(2)}" class="individual-price w-24 p-1 border rounded text-sm dark:bg-gray-700 dark:border-gray-600">
+                    </td>
+                    <td class="px-4 py-2">
+                        <input type="number" min="1" max="200" value="90" class="individual-percentage w-16 p-1 border rounded text-sm dark:bg-gray-700 dark:border-gray-600">%
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+                <div class="flex justify-between items-center p-6 border-b dark:border-gray-700">
+                    <h2 class="text-2xl font-bold dark:text-white">Advanced Pricing</h2>
+                    <button class="close-modal text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[60vh]">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b dark:border-gray-700">
+                                <th class="text-left px-4 py-2 dark:text-white">Card Name</th>
+                                <th class="text-left px-4 py-2 dark:text-white">Market Price</th>
+                                <th class="text-left px-4 py-2 dark:text-white">Sale Price</th>
+                                <th class="text-left px-4 py-2 dark:text-white">Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cardRows}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+                    <button class="cancel-btn px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button class="apply-advanced-pricing-btn px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Apply Pricing</button>
+                </div>
+            </div>
+        `;
+
+        // Add event listeners
+        modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+        modal.querySelector('.cancel-btn').addEventListener('click', () => modal.remove());
+        modal.querySelector('.apply-advanced-pricing-btn').addEventListener('click', () => applyAdvancedPricing(modal));
+
+        // Sync percentage and price inputs
+        modal.querySelectorAll('.individual-percentage').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const row = e.target.closest('tr');
+                const cardId = row.dataset.cardId;
+                const card = fullCollection.find(c => c.id === cardId);
+                const marketPrice = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                const percentage = parseFloat(e.target.value) || 0;
+                const newPrice = marketPrice * (percentage / 100);
+                row.querySelector('.individual-price').value = newPrice.toFixed(2);
+            });
+        });
+
+        modal.querySelectorAll('.individual-price').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const row = e.target.closest('tr');
+                const cardId = row.dataset.cardId;
+                const card = fullCollection.find(c => c.id === cardId);
+                const marketPrice = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
+                const salePrice = parseFloat(e.target.value) || 0;
+                const percentage = marketPrice > 0 ? (salePrice / marketPrice) * 100 : 0;
+                row.querySelector('.individual-percentage').value = percentage.toFixed(0);
+            });
+        });
+
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+
+        document.body.appendChild(modal);
+    };
+
+    // Apply advanced pricing
+    const applyAdvancedPricing = async (modal) => {
+        const applyBtn = modal.querySelector('.apply-advanced-pricing-btn');
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Applying...';
+
+        try {
+            const batch = db.batch();
+            const rows = modal.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const cardId = row.dataset.cardId;
+                const salePrice = parseFloat(row.querySelector('.individual-price').value) || 0;
+                
+                if (salePrice > 0) {
+                    const docRef = db.collection('users').doc(user.uid).collection('collection').doc(cardId);
+                    batch.update(docRef, {
+                        forSale: true,
+                        salePrice: salePrice,
+                        listedDate: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            });
+
+            await batch.commit();
+            modal.remove();
+            selectedCards.clear();
+            toggleBulkEditMode(); // Exit bulk edit mode
+            loadCollectionData(); // Reload data
+            showNotification(`Cards listed for sale with custom pricing!`, 'success');
+        } catch (error) {
+            console.error('Error applying advanced pricing:', error);
+            showNotification('Error applying pricing. Please try again.', 'error');
+        } finally {
+            applyBtn.disabled = false;
+            applyBtn.innerHTML = 'Apply Pricing';
+        }
+    };
+
+    // Bulk delete functionality
+    const deleteSelectedCards = async () => {
+        if (selectedCards.size === 0) {
+            alert('Please select cards to delete.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete ${selectedCards.size} selected cards? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const batch = db.batch();
+            selectedCards.forEach(cardId => {
+                const docRef = db.collection('users').doc(user.uid).collection('collection').doc(cardId);
+                batch.delete(docRef);
+            });
+
+            await batch.commit();
+            const deletedCount = selectedCards.size;
+            selectedCards.clear();
+            toggleBulkEditMode(); // Exit bulk edit mode
+            loadCollectionData(); // Reload data
+            showNotification(`${deletedCount} cards deleted successfully!`, 'success');
+        } catch (error) {
+            console.error('Error deleting cards:', error);
+            showNotification('Error deleting cards. Please try again.', 'error');
+        }
+    };
+
+    // Delete card functionality
+    const deleteCard = async (cardId, listType) => {
+        if (confirm('Are you sure you want to delete this card?')) {
+            try {
+                await db.collection('users').doc(user.uid).collection(listType).doc(cardId).delete();
+                if (listType === 'collection') loadCollectionData();
+                else loadWishlistData();
+                showNotification('Card deleted successfully!', 'success');
+            } catch (error) {
+                console.error("Error deleting card:", error);
+                showNotification('Could not delete card.', 'error');
+            }
+        }
+    };
+
+    // FIXED: Robust CSV upload functionality with better error handling
+    const handleCSVUpload = async () => {
+        const fileInput = elements.csvUploadInput;
+        const statusEl = elements.csvStatus;
+        
+        if (!fileInput || !fileInput.files[0]) {
+            alert('Please select a CSV file first.');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            alert('Please select a valid CSV file.');
+            return;
+        }
+
+        statusEl.textContent = 'Processing CSV file...';
+        statusEl.className = 'text-center text-sm mt-2 text-blue-600 dark:text-blue-400';
+
+        try {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                throw new Error('CSV file appears to be empty or invalid.');
+            }
+
+            // FIXED: Better CSV parsing
+            const headers = parseCSVLine(lines[0]);
+            const columnMap = detectCSVColumns(headers);
+            
+            if (columnMap.name === undefined) {
+                throw new Error('Could not find card name column in CSV. Please ensure your CSV has a column with "name" or "card" in the header.');
+            }
+
+            console.log('Detected columns:', columnMap);
+            console.log('Headers:', headers);
+
+            const batch = db.batch();
+            let processedCount = 0;
+            let errorCount = 0;
+            let skippedCount = 0;
+
+            statusEl.textContent = 'Looking up card data from Scryfall...';
+
+            // Process cards in smaller batches to avoid overwhelming the API
+            const batchSize = 5;
+            for (let i = 1; i < lines.length; i += batchSize) {
+                const batchPromises = [];
+                
+                for (let j = i; j < Math.min(i + batchSize, lines.length); j++) {
+                    batchPromises.push(processCSVLine(lines[j], columnMap, j));
+                }
+                
+                const batchResults = await Promise.allSettled(batchPromises);
+                
+                batchResults.forEach((result, index) => {
+                    if (result.status === 'fulfilled' && result.value) {
+                        const cardData = result.value;
+                        const docRef = db.collection('users').doc(user.uid).collection('collection').doc();
+                        batch.set(docRef, cardData);
+                        processedCount++;
+                    } else {
+                        if (result.reason?.message === 'SKIP') {
+                            skippedCount++;
+                        } else {
+                            errorCount++;
+                            console.error(`Error processing line ${i + index}:`, result.reason);
+                        }
+                    }
+                });
+
+                // Update status every batch
+                statusEl.textContent = `Processed ${processedCount} cards, ${errorCount} errors, ${skippedCount} skipped...`;
+                
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            if (processedCount > 0) {
+                await batch.commit();
+            }
+            
+            statusEl.textContent = `Import completed! ${processedCount} cards added${errorCount > 0 ? `, ${errorCount} errors` : ''}${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}`;
+            statusEl.className = 'text-center text-sm mt-2 text-green-600 dark:text-green-400';
+            
+            // Clear the file input
+            fileInput.value = '';
+            
+            // Reload collection data
+            loadCollectionData();
+            
+            showNotification(`CSV import completed! ${processedCount} cards added with Scryfall data.`, 'success');
+        } catch (error) {
+            console.error('Error processing CSV:', error);
+            statusEl.textContent = `Error: ${error.message}`;
+            statusEl.className = 'text-center text-sm mt-2 text-red-600 dark:text-red-400';
+            showNotification('CSV import failed. Please check the file format.', 'error');
+        }
+    };
+
+    // FIXED: Process individual CSV line with better error handling
+    async function processCSVLine(line, columnMap, lineNumber) {
+        try {
+            const values = parseCSVLine(line);
+            const cardName = values[columnMap.name]?.trim();
+            
+            if (!cardName) {
+                throw new Error('SKIP'); // Skip empty card names
+            }
+
+            const setName = columnMap.set !== undefined ? values[columnMap.set]?.trim() : null;
+            const quantity = columnMap.quantity !== undefined ? parseInt(values[columnMap.quantity]) || 1 : 1;
+            const condition = columnMap.condition !== undefined ? values[columnMap.condition]?.trim() : 'Near Mint';
+            const isFoil = columnMap.foil !== undefined ? (values[columnMap.foil]?.toLowerCase().includes('foil') || values[columnMap.foil]?.toLowerCase().includes('yes')) : false;
+            const purchasePrice = columnMap.price !== undefined ? parseFloat(values[columnMap.price]) || null : null;
+            
+            // FIXED: Look up card data from Scryfall with better error handling
+            let scryfallData = null;
+            try {
+                scryfallData = await searchScryfallByName(cardName, setName);
+            } catch (scryfallError) {
+                console.warn(`Scryfall lookup failed for "${cardName}":`, scryfallError.message);
+            }
+            
+            // Create card data with fallbacks
+            const cardData = {
+                name: cardName,
+                quantity: quantity,
+                condition: condition,
+                language: 'English',
+                isFoil: isFoil,
+                tcg: 'Magic: The Gathering',
+                dateAdded: firebase.firestore.FieldValue.serverTimestamp(),
+                importedFromCSV: true,
+                ...(purchasePrice !== null ? { purchasePrice } : {}),
+                // Add Scryfall data if found, otherwise use fallbacks
+                ...(scryfallData ? scryfallData : {
+                    setName: setName || 'Unknown Set',
+                    imageUrl: 'https://placehold.co/223x310/cccccc/969696?text=No+Image',
+                    priceUsd: null,
+                    priceUsdFoil: null,
+                    rarity: 'common',
+                    colors: []
+                })
+            };
+
+            return cardData;
+        } catch (error) {
+            if (error.message === 'SKIP') {
+                throw error;
+            }
+            throw new Error(`Failed to process line ${lineNumber}: ${error.message}`);
+        }
+    }
+
+    // Event listeners for search functionality with debouncing
+    const debouncedSearch = debounce(async (cardName, game) => {
+        if (!cardName) {
+            alert("Please enter a card name.");
+            return;
+        }
+
+        elements.manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+
+        let versions = [];
+        try {
+            if (game === 'magic') {
+                versions = await searchMagicCards(cardName);
+            } else if (game === 'pokemon') {
+                versions = await searchPokemonCards(cardName);
+            }
+
+            if (versions.length === 0) {
+                elements.manualAddResultsContainer.innerHTML = '<p class="text-center text-gray-500">No cards found. Try a different search term.</p>';
+                return;
+            }
+
+            let versionsHtml = versions.map(v => `
+                <div class="flex items-center p-3 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer add-version-btn transition-colors" data-card='${JSON.stringify(v)}'>
+                    <img src="${v.imageUrl}" class="w-12 h-16 object-cover rounded-sm mr-3 shadow-sm" onerror="this.src='https://placehold.co/48x64/cccccc/969696?text=No+Image'">
+                    <div class="flex-grow">
+                        <p class="font-semibold dark:text-white">${v.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${v.setName} (#${v.collector_number})</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">${v.tcg}</p>
+                        ${v.priceUsd ? `<p class="text-xs text-green-600 dark:text-green-400">$${v.priceUsd}</p>` : ''}
+                    </div>
+                    <div class="text-blue-600 dark:text-blue-400">
+                        <i class="fas fa-plus-circle text-lg"></i>
+                    </div>
+                </div>
+            `).join('');
+            elements.manualAddResultsContainer.innerHTML = versionsHtml;
+
+            // Add click events to search results
+            elements.manualAddResultsContainer.querySelectorAll('.add-version-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cardData = JSON.parse(btn.dataset.card);
+                    openCardManagementModal(cardData);
+                });
+            });
+
+        } catch (error) {
+            console.error("Error fetching card versions:", error);
+            elements.manualAddResultsContainer.innerHTML = '<p class="text-center text-red-500">An error occurred while searching. Please try again.</p>';
+        }
+    }, 500); // 500ms debounce
+
+    if (elements.searchCardVersionsBtn) {
+        elements.searchCardVersionsBtn.addEventListener('click', () => {
+            const cardName = document.getElementById('manual-card-name').value.trim();
+            const game = elements.manualGameSelect.value;
+            debouncedSearch(cardName, game);
+        });
+    }
+
+    // Event listeners for existing functionality
+    if (elements.bulkEditBtn) elements.bulkEditBtn.addEventListener('click', toggleBulkEditMode);
+    if (elements.quickEditBtn) elements.quickEditBtn.addEventListener('click', toggleQuickEditMode);
+    if (elements.saveQuickEditsBtn) elements.saveQuickEditsBtn.addEventListener('click', saveQuickEdits);
+    if (elements.listSelectedBtn) elements.listSelectedBtn.addEventListener('click', showBulkListForSaleModal);
+    if (elements.deleteSelectedBtn) elements.deleteSelectedBtn.addEventListener('click', deleteSelectedCards);
+    if (elements.csvUploadBtn) elements.csvUploadBtn.addEventListener('click', handleCSVUpload);
+
+    // Select all checkbox functionality
+    if (elements.selectAllCheckbox) {
+        elements.selectAllCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                filteredCollection.forEach(card => selectedCards.add(card.id));
+            } else {
+                selectedCards.clear();
+            }
+            updateSelectedCount();
+            renderCurrentView();
+        });
+    }
+
+    // Event delegation for card actions
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.edit-card-btn')) {
+            const btn = e.target.closest('.edit-card-btn');
+            const cardId = btn.dataset.id;
+            const listType = btn.dataset.list;
+            try {
+                const docRef = db.collection('users').doc(user.uid).collection(listType).doc(cardId);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    const card = { id: cardId, ...docSnap.data() };
+                    openCardManagementModal(card, docSnap.data());
+                }
+            } catch (error) {
+                console.error("Error loading card for edit:", error);
+                showNotification('Could not load card details.', 'error');
+            }
+        }
+        
+        if (e.target.closest('.delete-card-btn')) {
+            const btn = e.target.closest('.delete-card-btn');
+            const cardId = btn.dataset.id;
+            const listType = btn.dataset.list;
+            deleteCard(cardId, listType);
+        }
+
+        if (e.target.closest('.manage-listing-btn')) {
+            const btn = e.target.closest('.manage-listing-btn');
+            const cardId = btn.dataset.id;
+            const listType = btn.dataset.list;
+            try {
+                const docRef = db.collection('users').doc(user.uid).collection(listType).doc(cardId);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    const card = { id: cardId, ...docSnap.data() };
+                    openCardManagementModal(card, docSnap.data());
+                }
+            } catch (error) {
+                console.error("Error loading card for listing:", error);
+                showNotification('Could not load card details.', 'error');
+            }
+        }
+    });
+
+    // Filter event listeners with debouncing
+    const debouncedFilter = debounce(applyFilters, 300);
+    if (elements.filterNameInput) elements.filterNameInput.addEventListener('input', debouncedFilter);
+    if (elements.filterSetSelect) elements.filterSetSelect.addEventListener('change', applyFilters);
+    if (elements.filterRaritySelect) elements.filterRaritySelect.addEventListener('change', applyFilters);
+    if (elements.filterColorSelect) elements.filterColorSelect.addEventListener('change', applyFilters);
+    if (elements.resetFiltersBtn) elements.resetFiltersBtn.addEventListener('click', () => {
+        if (elements.filterNameInput) elements.filterNameInput.value = '';
+        if (elements.filterSetSelect) elements.filterSetSelect.value = 'all';
+        if (elements.filterRaritySelect) elements.filterRaritySelect.value = 'all';
+        if (elements.filterColorSelect) elements.filterColorSelect.value = 'all';
+        applyFilters();
+    });
+
+    // View switching
+    const switchView = (view) => {
+        currentView = view;
+        if (elements.gridViewBtn && elements.listViewBtn) {
+            elements.gridViewBtn.classList.toggle('bg-blue-600', view === 'grid');
+            elements.gridViewBtn.classList.toggle('text-white', view === 'grid');
+            elements.listViewBtn.classList.toggle('bg-blue-600', view === 'list');
+            elements.listViewBtn.classList.toggle('text-white', view === 'list');
+        }
+        renderCurrentView();
+    };
+
+    if (elements.gridViewBtn) elements.gridViewBtn.addEventListener('click', () => switchView('grid'));
+    if (elements.listViewBtn) elements.listViewBtn.addEventListener('click', () => switchView('list'));
+
+    // Tab switching logic
+    elements.tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetContentId = `content-${tab.id.split('-')[1]}`;
+
+            elements.tabs.forEach(t => t.classList.remove('text-blue-600', 'border-blue-600'));
+            tab.classList.add('text-blue-600', 'border-blue-600');
+
+            elements.tabContents.forEach(content => {
+                if (content.id === targetContentId) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    // --- ENHANCED: Sealed Products Functionality ---
+    
+    /**
+     * Add sealed product to collection
+     */
+    async function addSealedProduct(productData) {
+        try {
+            const sealedProductData = {
+                name: productData.name,
+                set_name: productData.setName,
+                productType: 'sealed',
+                sealedType: productData.type,
+                tcg: productData.tcg || 'Magic: The Gathering',
+                quantity: productData.quantity || 1,
+                condition: productData.condition || 'Factory Sealed',
+                price: productData.price || 0,
+                currency: productData.currency || 'SEK',
+                forSale: false,
+                addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                image_uris: {
+                    normal: getDefaultSealedProductImage(productData.type)
+                },
+                // Add some default fields for consistency
+                rarity: 'special',
+                colors: []
+            };
+            
+            const docRef = await db.collection('users').doc(user.uid).collection('collection').add(sealedProductData);
+            console.log('Sealed product added with ID:', docRef.id);
+            
+            return { success: true, id: docRef.id };
+            
+        } catch (error) {
+            console.error('Error adding sealed product:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get default image for sealed product types
+     */
+    function getDefaultSealedProductImage(type) {
+        const imageMap = {
+            'booster_box': 'https://via.placeholder.com/200x280/4F46E5/FFFFFF?text=Booster+Box',
+            'booster_pack': 'https://via.placeholder.com/200x280/059669/FFFFFF?text=Booster+Pack',
+            'bundle': 'https://via.placeholder.com/200x280/DC2626/FFFFFF?text=Bundle',
+            'prerelease_kit': 'https://via.placeholder.com/200x280/7C2D12/FFFFFF?text=Prerelease+Kit',
+            'commander_deck': 'https://via.placeholder.com/200x280/1F2937/FFFFFF?text=Commander+Deck',
+            'starter_deck': 'https://via.placeholder.com/200x280/374151/FFFFFF?text=Starter+Deck',
+            'collector_booster': 'https://via.placeholder.com/200x280/7C3AED/FFFFFF?text=Collector+Booster',
+            'draft_booster': 'https://via.placeholder.com/200x280/059669/FFFFFF?text=Draft+Booster',
+            'set_booster': 'https://via.placeholder.com/200x280/0891B2/FFFFFF?text=Set+Booster',
+            'theme_booster': 'https://via.placeholder.com/200x280/EA580C/FFFFFF?text=Theme+Booster'
+        };
+        return imageMap[type] || 'https://via.placeholder.com/200x280/6B7280/FFFFFF?text=Sealed+Product';
+    }
+
+    /**
+     * Get display name for product types
+     */
+    function getProductTypeDisplayName(type) {
+        const displayNames = {
+            'booster_box': 'Booster Box',
+            'booster_pack': 'Booster Pack',
+            'bundle': 'Bundle',
+            'prerelease_kit': 'Prerelease Kit',
+            'commander_deck': 'Commander Deck',
+            'starter_deck': 'Starter Deck',
+            'collector_booster': 'Collector Booster',
+            'draft_booster': 'Draft Booster',
+            'set_booster': 'Set Booster',
+            'theme_booster': 'Theme Booster'
+        };
+        return displayNames[type] || type;
+    }
+
+    /**
+     * Handle sealed product form submission
+     */
+    async function handleAddSealedProduct() {
+        const tcgSelect = document.getElementById('sealed-game-select');
+        const productTypeSelect = document.getElementById('sealed-product-type');
+        const setNameInput = document.getElementById('sealed-set-name');
+        const productNameInput = document.getElementById('sealed-product-name');
+        
+        if (!tcgSelect || !productTypeSelect || !setNameInput) {
+            console.error('Sealed product form elements not found');
+            return;
+        }
+        
+        const setName = setNameInput.value.trim();
+        if (!setName) {
+            alert('Please enter a set/expansion name');
+            return;
+        }
+        
+        const productData = {
+            tcg: tcgSelect.value === 'magic' ? 'Magic: The Gathering' : 'Pokémon',
+            type: productTypeSelect.value,
+            setName: setName,
+            name: productNameInput.value.trim() || `${setName} ${getProductTypeDisplayName(productTypeSelect.value)}`
+        };
+        
+        try {
+            await addSealedProduct(productData);
+            alert(`${productData.name} added to collection!`);
+            
+            // Clear form
+            setNameInput.value = '';
+            productNameInput.value = '';
+            
+            // Refresh collection
+            await loadCollectionData();
+            
+        } catch (error) {
+            console.error('Error adding sealed product:', error);
+            alert('Error adding sealed product. Please try again.');
+        }
+    }
+
+    // Add event listener for sealed product button
+    const addSealedProductBtn = document.getElementById('add-sealed-product-btn');
+    if (addSealedProductBtn) {
+        addSealedProductBtn.addEventListener('click', handleAddSealedProduct);
+    }
+
+    // --- ENHANCED: Update getCardImageUrl to handle sealed products ---
+    const originalGetCardImageUrl = getCardImageUrl;
+    getCardImageUrl = function(cardData, size = 'normal') {
+        // Handle sealed products
+        if (cardData && cardData.productType === 'sealed') {
+            return getDefaultSealedProductImage(cardData.sealedType || 'booster_box');
+        }
+        
+        // Use original function for singles
+        return originalGetCardImageUrl(cardData, size);
+    };
+
+    // --- ENHANCED: Update filtering to support product types ---
+    const originalApplyFilters = applyFilters;
+    applyFilters = function() {
+        const productTypeFilter = document.getElementById('filter-product-type');
+        const productTypeValue = productTypeFilter ? productTypeFilter.value : 'all';
+        
+        // Apply product type filter first
+        if (productTypeValue !== 'all') {
+            collectionData = collectionData.filter(item => {
+                if (productTypeValue === 'single') {
+                    return !item.productType || item.productType === 'single';
+                } else if (productTypeValue === 'sealed') {
+                    return item.productType === 'sealed';
+                }
+                return true;
+            });
+        }
+        
+        // Apply original filters
+        if (originalApplyFilters) {
+            originalApplyFilters();
+        }
+    };
+
+    // Add event listener for product type filter
+    const productTypeFilter = document.getElementById('filter-product-type');
+    if (productTypeFilter) {
+        productTypeFilter.addEventListener('change', () => {
+            applyFilters();
+            renderCollection();
+        });
+    }
+
+    // Initialize the page
+    console.log('[Collection v30.5 - Enhanced with Sealed Products] Starting initial data load.');
+    loadCollectionData();
+    loadWishlistData();
+});
+
+My collection doesn’t work, I can’t add cards through bulk-edit, manually adding cards or importing an csv file.
+We need it split up in the current modules and possibly some more, please forget about previous tasks and focus on these files instead.
+I need to be able to select condition, foil, quantity, signed, altered, notes, upload pictures on a pop up modal on every single card after processing a list from the bulk-add page.
+The current cards in users collection isn't visible.

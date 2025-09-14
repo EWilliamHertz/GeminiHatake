@@ -1,246 +1,306 @@
 /**
- * HatakeSocial - Search Page Script (v3 - Advanced Filters)
+ * HatakeSocial - Search Page Script (v4 - Complete Overhaul)
  *
- * This version adds advanced filtering options for card searches.
- * - Filters by card type, color, mana value, and price.
- * - Combines Firestore queries with client-side filtering for complex searches.
+ * - Handles all search logic for the platform, including Cards, Users, Articles, and Products.
+ * - Dynamically shows/hides advanced filter options based on selected categories.
+ * - Fetches card data from external APIs (Scryfall for MTG, Pokémon TCG for Pokémon).
+ * - Queries Firestore for internal data (Users, Articles, Products, and card sale status).
+ * - Displays a loading indicator during searches.
  */
-document.addEventListener('authReady', (e) => {
+document.addEventListener('authReady', () => {
     const db = firebase.firestore();
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('query');
+    let user = firebase.auth().currentUser;
 
     // --- DOM Elements ---
     const searchQueryDisplay = document.getElementById('search-query-display');
-    const searchBarPage = document.getElementById('search-bar-page');
-    const searchFormPage = document.getElementById('search-form-page');
-    
-    const filterForm = document.getElementById('filter-form');
-    const filterUsersCheckbox = document.getElementById('filter-users');
-    const filterDecksCheckbox = document.getElementById('filter-decks');
-    const filterCardsCheckbox = document.getElementById('filter-cards');
-    
-    // Advanced Filter Elements
-    const filterCardType = document.getElementById('filter-card-type');
-    const filterColor = document.getElementById('filter-color');
-    const filterManaValue = document.getElementById('filter-mana-value');
-    const filterPriceMin = document.getElementById('filter-price-min');
-    const filterPriceMax = document.getElementById('filter-price-max');
+    const headerSearchBar = document.getElementById('main-search-bar');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const resultsArea = document.getElementById('search-results-area');
+    const filterForm = document.getElementById('search-filter-form');
 
-    // --- Helper to generate a Firestore index creation link ---
-    const generateIndexCreationLink = (collection, fields) => {
-        const projectId = db.app.options.projectId;
-        let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
-        fields.forEach(field => {
-            url += `&fields=${field.name},${field.order.toUpperCase()}`;
-        });
-        return url;
+    // Filter Inputs
+    const categoryFilter = document.getElementById('filter-category');
+    const cardFiltersContainer = document.getElementById('card-filters-container');
+    const tcgFilter = document.getElementById('filter-tcg');
+    const forSaleFilter = document.getElementById('filter-for-sale');
+    const mtgFilters = document.getElementById('mtg-filters');
+    const pokemonFilters = document.getElementById('pokemon-filters');
+    const allFilterInputs = filterForm.querySelectorAll('input, select');
+
+    // --- State ---
+    let currentQuery = '';
+
+    // --- Helper Functions ---
+    const sanitizeHTML = (str) => {
+        const temp = document.createElement('div');
+        temp.textContent = str || '';
+        return temp.innerHTML;
     };
 
-    // --- Initial Setup ---
-    if (searchQueryDisplay) {
-        searchQueryDisplay.textContent = query || '';
-    }
-    if (searchBarPage) {
-        searchBarPage.value = query || '';
-    }
+    const toggleLoading = (isLoading) => {
+        loadingIndicator.classList.toggle('hidden', !isLoading);
+        resultsArea.classList.toggle('hidden', isLoading);
+    };
 
-    // --- Event Listeners ---
-    if (searchFormPage) {
-        searchFormPage.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newQuery = searchBarPage.value.trim();
-            if (newQuery) {
-                // Build a new query string with all filters
-                const params = new URLSearchParams();
-                params.set('query', newQuery);
-                if (filterCardType.value) params.set('type', filterCardType.value);
-                if (filterColor.value) params.set('color', filterColor.value);
-                if (filterManaValue.value) params.set('cmc', filterManaValue.value);
-                if (filterPriceMin.value) params.set('minPrice', filterPriceMin.value);
-                if (filterPriceMax.value) params.set('maxPrice', filterPriceMax.value);
+    // --- Render Functions ---
+    const renderSection = (id, title, content) => {
+        if (!content) return '';
+        return `
+            <div id="${id}-results-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-600 pb-2">${title}</h2>
+                <div id="${id}-results">${content}</div>
+            </div>
+        `;
+    };
 
-                window.location.href = `search.html?${params.toString()}`;
-            }
-        });
-    }
+    const renderNoResults = (type) => `<p class="text-gray-500 dark:text-gray-400">No ${type} found.</p>`;
 
-    if (filterForm) {
-        filterForm.addEventListener('change', () => {
-            runSearches(query);
-        });
-    }
+    const renderUserResults = (users) => {
+        if (users.length === 0) return renderNoResults('users');
+        const userCards = users.map(user => `
+            <a href="profile.html?uid=${user.id}" class="flex items-center p-3 -mx-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <img src="${sanitizeHTML(user.photoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(user.displayName)}" class="w-12 h-12 rounded-full object-cover mr-4">
+                <div>
+                    <h3 class="font-bold text-gray-800 dark:text-white">${sanitizeHTML(user.displayName)}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">@${sanitizeHTML(user.handle)}</p>
+                </div>
+            </a>
+        `).join('');
+        return `<div class="space-y-2">${userCards}</div>`;
+    };
+    
+    const renderArticleResults = (articles) => {
+        if (articles.length === 0) return renderNoResults('articles');
+        const articleCards = articles.map(article => `
+             <a href="article-view.html?id=${article.id}" class="block p-3 -mx-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <h3 class="font-bold text-lg text-blue-600 dark:text-blue-400">${sanitizeHTML(article.title)}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">${sanitizeHTML(article.summary || '')}</p>
+                <p class="text-xs text-gray-400 mt-1">By ${sanitizeHTML(article.authorName)}</p>
+            </a>
+        `).join('');
+        return `<div class="space-y-4">${articleCards}</div>`;
+    };
+
+    const renderProductResults = (products) => {
+        if (products.length === 0) return renderNoResults('shop products');
+         const productCards = products.map(product => `
+             <a href="product-view.html?id=${product.id}" class="flex items-center p-3 -mx-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                 <img src="${sanitizeHTML(product.imageUrl) || 'https://placehold.co/100'}" alt="${sanitizeHTML(product.name)}" class="w-16 h-16 rounded-md object-cover mr-4">
+                 <div>
+                    <h3 class="font-bold text-gray-800 dark:text-white">${sanitizeHTML(product.name)}</h3>
+                    <p class="text-sm font-semibold text-green-600 dark:text-green-400">${window.HatakeSocial.convertAndFormatPrice(product.price, product.currency)}</p>
+                 </div>
+            </a>
+         `).join('');
+        return `<div class="space-y-2">${productCards}</div>`;
+    };
+    
+    const renderCardResults = (cards, forSaleMap) => {
+        if (cards.length === 0) return renderNoResults('cards');
+        const cardGrid = cards.map(card => {
+             const forSaleCount = forSaleMap.get(card.id) || 0;
+             return `
+                <a href="card-view.html?id=${card.id}&api=${card.api}" class="block text-center bg-gray-50 dark:bg-gray-800/50 rounded-lg shadow-md p-2 transition hover:shadow-xl hover:-translate-y-1">
+                    <img src="${sanitizeHTML(card.imageUrl)}" alt="${sanitizeHTML(card.name)}" class="w-full rounded-md aspect-[0.71]" loading="lazy">
+                    <div class="pt-2">
+                        <p class="font-semibold text-sm truncate text-gray-800 dark:text-white">${sanitizeHTML(card.name)}</p>
+                         ${forSaleCount > 0 
+                            ? `<p class="text-xs text-blue-500 font-semibold">${forSaleCount} for sale</p>` 
+                            : '<p class="text-xs text-gray-500">Check Listings</p>'}
+                    </div>
+                </a>
+             `;
+        }).join('');
+        return `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">${cardGrid}</div>`;
+    };
+
 
     // --- Search Functions ---
-    function runSearches(searchTerm) {
-        if (!searchTerm) return;
-
-        document.getElementById('users-results-container').style.display = filterUsersCheckbox.checked ? 'block' : 'none';
-        document.getElementById('decks-results-container').style.display = filterDecksCheckbox.checked ? 'block' : 'none';
-        document.getElementById('cards-results-container').style.display = filterCardsCheckbox.checked ? 'block' : 'none';
-
-        if (filterUsersCheckbox.checked) searchUsers(searchTerm);
-        if (filterDecksCheckbox.checked) searchDecks(searchTerm);
-        if (filterCardsCheckbox.checked) searchCards(searchTerm);
-    }
-
-    async function searchUsers(searchTerm) {
-        const container = document.getElementById('users-results');
-        container.innerHTML = '<p class="text-gray-500">Searching for users...</p>';
+    const performUserSearch = async (term) => {
         const usersRef = db.collection('users');
-        const searchTermLower = searchTerm.toLowerCase();
-        const snapshot = await usersRef.orderBy('displayName_lower').startAt(searchTermLower).endAt(searchTermLower + '\uf8ff').get();
+        const termLower = term.toLowerCase();
+        const snapshot = await usersRef.orderBy('displayName_lower').startAt(termLower).endAt(termLower + '\uf8ff').limit(10).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    };
 
-        if (snapshot.empty) {
-            container.innerHTML = '<p class="text-gray-500">No users found.</p>';
+    const performArticleSearch = async (term) => {
+        // NOTE: Firestore does not support full-text search natively. This is a basic "tags" or "title" search.
+        // For a real app, use a dedicated search service like Algolia, Typesense, or Meilisearch.
+        const articlesRef = db.collection('articles');
+        const termLower = term.toLowerCase();
+        // This query requires a composite index on (keywords, publishedAt).
+        const snapshot = await articlesRef.where('keywords', 'array-contains', termLower).orderBy('publishedAt', 'desc').limit(10).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    };
+
+    const performProductSearch = async (term) => {
+        const productsRef = db.collection('products');
+        const termLower = term.toLowerCase();
+        const snapshot = await productsRef.where('searchTerms', 'array-contains', termLower).limit(10).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    };
+
+    const performCardSearch = async (term, filters) => {
+        try {
+            let apiResults = [];
+            if (filters.tcg === 'mtg') {
+                let scryfallQuery = term;
+                if (filters.color) scryfallQuery += ` color=${filters.color}`;
+                if (filters.type) scryfallQuery += ` t:${filters.type}`;
+                if (filters.artist) scryfallQuery += ` a:"${filters.artist}"`;
+                
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(scryfallQuery)}`);
+                if (!response.ok) return [];
+                const data = await response.json();
+                apiResults = data.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    imageUrl: card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal,
+                    api: 'scryfall'
+                }));
+            } else if (filters.tcg === 'pokemon') {
+                // WARNING: THIS IS INSECURE. The API key should be in a Cloud Function.
+                const POKEMON_TCG_API_KEY = '60a08d4a-3a34-43d8-8f41-827b58cfac6d'; // Replace with your actual key
+                let pokemonQuery = `name:"${term}*"`;
+                if(filters.type) pokemonQuery += ` types:${filters.type}`;
+                if(filters.supertype) pokemonQuery += ` supertype:${filters.supertype}`;
+                if(filters.rarity) pokemonQuery += ` rarity:"${filters.rarity}"`;
+
+                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(pokemonQuery)}`, {
+                    headers: { 'X-Api-Key': POKEMON_TCG_API_KEY }
+                });
+                if (!response.ok) return [];
+                const data = await response.json();
+                apiResults = data.data.map(card => ({
+                    id: card.id,
+                    name: card.name,
+                    imageUrl: card.images.large,
+                    api: 'pokemontcg'
+                }));
+            }
+            
+            if (apiResults.length === 0) return { cards: [], forSaleMap: new Map() };
+
+            const cardIds = apiResults.map(c => c.id);
+            const forSaleMap = new Map();
+            
+            // Firestore allows 'in' queries for up to 10 items at a time. We must batch.
+            const batches = [];
+            for (let i = 0; i < cardIds.length; i += 10) {
+                batches.push(cardIds.slice(i, i + 10));
+            }
+
+            for (const batch of batches) {
+                const collectionRef = db.collectionGroup('collection')
+                    .where('apiId', 'in', batch)
+                    .where('forSale', '==', true);
+                const snapshot = await collectionRef.get();
+                snapshot.forEach(doc => {
+                    const cardData = doc.data();
+                    const count = forSaleMap.get(cardData.apiId) || 0;
+                    forSaleMap.set(cardData.apiId, count + 1);
+                });
+            }
+
+            // Client-side filter for "for sale" if checked
+            const finalCards = filters.forSale ? apiResults.filter(card => forSaleMap.has(card.id)) : apiResults;
+
+            return { cards: finalCards, forSaleMap };
+
+        } catch (error) {
+            console.error("Card search error:", error);
+            return { cards: [], forSaleMap: new Map() };
+        }
+    };
+
+
+    // --- Main Execution ---
+    const runSearch = async () => {
+        toggleLoading(true);
+
+        const category = categoryFilter.value;
+        
+        let usersHTML = '', articlesHTML = '', productsHTML = '', cardsHTML = '';
+
+        const cardSearchFilters = {
+            tcg: tcgFilter.value,
+            forSale: forSaleFilter.checked,
+            // MTG
+            color: document.getElementById('mtg-color-filter').value,
+            type: document.getElementById('mtg-type-filter').value.trim(),
+            artist: document.getElementById('mtg-artist-filter').value.trim(),
+            // Pokemon
+            supertype: document.getElementById('pokemon-supertype-filter').value,
+            type: document.getElementById('pokemon-type-filter').value.trim(),
+            rarity: document.getElementById('pokemon-rarity-filter').value.trim()
+        };
+
+        const promises = [];
+        if (category === 'all' || category === 'users') {
+            promises.push(performUserSearch(currentQuery).then(res => { usersHTML = renderSection('users', 'Users', renderUserResults(res)); }));
+        }
+        if (category === 'all' || category === 'articles') {
+            promises.push(performArticleSearch(currentQuery).then(res => { articlesHTML = renderSection('articles', 'Articles', renderArticleResults(res)); }));
+        }
+        if (category === 'all' || category === 'products') {
+            promises.push(performProductSearch(currentQuery).then(res => { productsHTML = renderSection('products', 'Shop Products', renderProductResults(res)); }));
+        }
+        if (category === 'all' || category === 'cards') {
+            promises.push(performCardSearch(currentQuery, cardSearchFilters).then(res => { cardsHTML = renderSection('cards', 'Cards', renderCardResults(res.cards, res.forSaleMap)); }));
+        }
+
+        await Promise.all(promises);
+
+        resultsArea.innerHTML = usersHTML + articlesHTML + productsHTML + cardsHTML;
+        
+        if (resultsArea.innerHTML.trim() === '') {
+            resultsArea.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 text-lg">No results found for "${sanitizeHTML(currentQuery)}". Try a different search term or adjust your filters.</p>`;
+        }
+
+        toggleLoading(false);
+    };
+
+    // --- Event Listeners and Initialization ---
+    const setupEventListeners = () => {
+        allFilterInputs.forEach(input => {
+            input.addEventListener('change', runSearch);
+        });
+        
+        // Also listen for typing in text inputs
+        document.getElementById('mtg-type-filter').addEventListener('keyup', runSearch);
+        document.getElementById('mtg-artist-filter').addEventListener('keyup', runSearch);
+        document.getElementById('pokemon-type-filter').addEventListener('keyup', runSearch);
+        document.getElementById('pokemon-rarity-filter').addEventListener('keyup', runSearch);
+
+        categoryFilter.addEventListener('change', (e) => {
+            cardFiltersContainer.classList.toggle('hidden', e.target.value !== 'cards');
+        });
+
+        tcgFilter.addEventListener('change', (e) => {
+            mtgFilters.classList.toggle('hidden', e.target.value !== 'mtg');
+            pokemonFilters.classList.toggle('hidden', e.target.value !== 'pokemon');
+        });
+    };
+
+    const initialize = () => {
+        const params = new URLSearchParams(window.location.search);
+        currentQuery = params.get('query') || '';
+
+        if (!currentQuery) {
+            resultsArea.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 text-lg">Please enter a search term in the bar above.</p>';
             return;
         }
 
-        container.innerHTML = '';
-        snapshot.forEach(doc => {
-            const user = doc.data();
-            const userCard = `
-                <a href="profile.html?uid=${doc.id}" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center space-x-4 hover:shadow-lg transition-shadow">
-                    <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${user.displayName}" class="w-16 h-16 rounded-full object-cover">
-                    <div>
-                        <h3 class="font-bold text-lg text-gray-800 dark:text-white">${user.displayName}</h3>
-                        <p class="text-gray-500 dark:text-gray-400">@${user.handle}</p>
-                    </div>
-                </a>
-            `;
-            container.innerHTML += userCard;
-        });
-    }
+        searchQueryDisplay.textContent = currentQuery;
+        headerSearchBar.value = currentQuery;
 
-    async function searchDecks(searchTerm) {
-        const container = document.getElementById('decks-results');
-        container.innerHTML = '<p class="text-gray-500">Searching for decks...</p>';
-        const decksRef = db.collectionGroup('decks');
-        try {
-            const searchTermLower = searchTerm.toLowerCase();
-            const snapshot = await decksRef.where('name_lower', '>=', searchTermLower).where('name_lower', '<=', searchTermLower + '\uf8ff').get();
+        setupEventListeners();
+        // Trigger initial visibility of card filters if needed
+        categoryFilter.dispatchEvent(new Event('change'));
+        tcgFilter.dispatchEvent(new Event('change'));
 
-            if (snapshot.empty) {
-                container.innerHTML = '<p class="text-gray-500">No decks found.</p>';
-                return;
-            }
+        runSearch();
+    };
 
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const deck = doc.data();
-                const deckCard = `
-                    <a href="deck.html?deckId=${doc.id}" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow block">
-                        <h3 class="font-bold text-lg truncate text-gray-800 dark:text-white">${deck.name}</h3>
-                        <p class="text-gray-500 dark:text-gray-400">by ${deck.authorName}</p>
-                        <p class="text-sm text-gray-400 mt-2">${deck.format || deck.tcg}</p>
-                    </a>
-                `;
-                container.innerHTML += deckCard;
-            });
-        } catch (error) {
-            console.error("Deck search error: ", error);
-            if (error.code === 'failed-precondition') {
-                 const indexLink = generateIndexCreationLink('decks', [{ name: 'name_lower', order: 'asc' }]);
-                 const errorMessage = `
-                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
-                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                           Click Here to Create the Index
-                        </a>
-                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
-                    </div>
-                 `;
-                 container.innerHTML = errorMessage;
-            } else {
-                container.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred while searching decks.</p>`;
-            }
-        }
-    }
-
-    async function searchCards(searchTerm) {
-        const container = document.getElementById('cards-results');
-        container.innerHTML = '<p class="text-gray-500">Searching for cards...</p>';
-        let cardsQuery = db.collectionGroup('collection');
-        
-        try {
-            const searchTermLower = searchTerm.toLowerCase();
-            if (searchTerm) {
-                 cardsQuery = cardsQuery.where('name_lower', '>=', searchTermLower).where('name_lower', '<=', searchTermLower + '\uf8ff');
-            }
-            // Add other filters if available
-            // Note: Firestore has limitations on combining inequality filters.
-            // For a production app, a dedicated search service like Algolia would be better here.
-            // For now, we will perform some filtering on the client side.
-
-            const snapshot = await cardsQuery.get();
-
-            if (snapshot.empty) {
-                container.innerHTML = '<p class="text-gray-500">No cards with that name found in any collection.</p>';
-                return;
-            }
-            
-            let allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Client-side filtering for advanced fields
-            const typeFilter = filterCardType.value;
-            const colorFilter = filterColor.value;
-            const cmcFilter = parseInt(filterManaValue.value, 10);
-            const minPriceFilter = parseFloat(filterPriceMin.value);
-            const maxPriceFilter = parseFloat(filterPriceMax.value);
-
-            if (typeFilter) allCards = allCards.filter(c => c.type_line && c.type_line.includes(typeFilter));
-            if (colorFilter) allCards = allCards.filter(c => c.colors && c.colors.includes(colorFilter));
-            if (!isNaN(cmcFilter)) allCards = allCards.filter(c => c.cmc === cmcFilter);
-            if (!isNaN(minPriceFilter)) allCards = allCards.filter(c => parseFloat(c.priceUsd) >= minPriceFilter);
-            if (!isNaN(maxPriceFilter)) allCards = allCards.filter(c => parseFloat(c.priceUsd) <= maxPriceFilter);
-
-            const uniqueCards = {};
-            allCards.forEach(card => {
-                if (!uniqueCards[card.name]) {
-                    uniqueCards[card.name] = { name: card.name, imageUrl: card.imageUrl, count: 0 };
-                }
-                if (card.forSale) {
-                    uniqueCards[card.name].count++;
-                }
-            });
-
-            container.innerHTML = '';
-            Object.values(uniqueCards).forEach(card => {
-                const cardHTML = `
-                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block bg-white dark:bg-gray-800 rounded-lg shadow-md p-2 transition hover:shadow-xl hover:-translate-y-1">
-                        <img src="${card.imageUrl}" alt="${card.name}" class="w-full rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/223x310/cccccc/969696?text=Image+Not+Found';">
-                        <div class="p-2 text-center">
-                             <p class="font-semibold text-sm text-gray-800 dark:text-white">${card.name}</p>
-                             ${card.count > 0 ? `<p class="text-xs text-blue-600">${card.count} listing(s) available</p>` : '<p class="text-xs text-gray-500">View Listings</p>'}
-                        </div>
-                    </a>
-                `;
-                container.innerHTML += cardHTML;
-            });
-        } catch (error) {
-            console.error("Card search error: ", error);
-            if (error.code === 'failed-precondition') {
-                 const indexLink = generateIndexCreationLink('collection', [{ name: 'name_lower', order: 'asc' }]);
-                 const errorMessage = `
-                    <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
-                        <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
-                        <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p>
-                        <a href="${indexLink}" target="_blank" rel="noopener noreferrer" 
-                           class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">
-                           Click Here to Create the Index
-                        </a>
-                        <p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p>
-                    </div>
-                 `;
-                 container.innerHTML = errorMessage;
-            } else {
-                container.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred while searching cards.</p>`;
-            }
-        }
-    }
-
-    // --- Initial Run ---
-    runSearches(query);
+    initialize();
 });

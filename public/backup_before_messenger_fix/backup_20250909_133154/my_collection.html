@@ -1,862 +1,863 @@
 <!DOCTYPE html>
+
 <html lang="en">
- <head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>
    My Collection - HatakeSocial
   </title>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-  <link href="css/style.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
- </head>
- <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-  <div class="flex h-screen">
-   <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
-   </div>
-   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-     <a class="flex flex-col items-center space-y-1" href="app.html">
-      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png">
-      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+<script src="https://cdn.tailwindcss.com">
+</script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+<link href="css/style.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
+</script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+<div class="flex h-screen">
+<div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
+</div>
+<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+<div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+<a class="flex flex-col items-center space-y-1" href="app.html">
+<img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+<span class="font-bold text-lg text-blue-600 dark:text-blue-400">
        HatakeSocial
       </span>
-     </a>
-    </div>
-    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
-      <i class="fas fa-home w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+<i class="fas fa-home w-6 text-center">
+</i>
+<span class="ml-3">
        Feed
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
-      <i class="fas fa-comments w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+<i class="fas fa-comments w-6 text-center">
+</i>
+<span class="ml-3">
        Messages
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
-      <i class="fas fa-users w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+<i class="fas fa-users w-6 text-center">
+</i>
+<span class="ml-3">
        Community
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
-      <i class="fas fa-newspaper w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+<i class="fas fa-newspaper w-6 text-center">
+</i>
+<span class="ml-3">
        TCG Articles
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
-      <i class="fas fa-blog w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+<i class="fas fa-blog w-6 text-center">
+</i>
+<span class="ml-3">
        Hatake Blog
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
-      <i class="fas fa-calendar-alt w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+<i class="fas fa-calendar-alt w-6 text-center">
+</i>
+<span class="ml-3">
        Events
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
-      <i class="fas fa-layer-group w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+<i class="fas fa-layer-group w-6 text-center">
+</i>
+<span class="ml-3">
        My Collection
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
-      <i class="fas fa-book-open w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+<i class="fas fa-book-open w-6 text-center">
+</i>
+<span class="ml-3">
        Deck Builder
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
-      <i class="fas fa-shopping-cart w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+<i class="fas fa-shopping-cart w-6 text-center">
+</i>
+<span class="ml-3">
        Shop
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
-      <i class="fas fa-store w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+<i class="fas fa-store w-6 text-center">
+</i>
+<span class="ml-3">
        Marketplace
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
-      <i class="fas fa-exchange-alt w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+<i class="fas fa-exchange-alt w-6 text-center">
+</i>
+<span class="ml-3">
        Trades
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
-      <i class="fas fa-user w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+<i class="fas fa-user w-6 text-center">
+</i>
+<span class="ml-3">
        Profile
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
-      <i class="fas fa-cog w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+<i class="fas fa-cog w-6 text-center">
+</i>
+<span class="ml-3">
        Settings
       </span>
-     </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
-      <i class="fas fa-info-circle w-6 text-center">
-      </i>
-      <span class="ml-3">
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+<i class="fas fa-info-circle w-6 text-center">
+</i>
+<span class="ml-3">
        About Us
       </span>
-     </a>
-    </nav>
-    <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
-    </div>
-   </aside>
-   <main class="flex-1 flex flex-col overflow-y-auto">
-    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-     <div class="flex items-center">
-      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-       <i class="fas fa-bars text-xl">
-       </i>
-      </button>
-      <div class="relative">
-       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-       </i>
-       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text">
-       <div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
-       </div>
-      </div>
-     </div>
-     <div class="flex items-center space-x-5" id="user-actions">
-      <div class="space-x-2">
-       <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
+</a>
+</nav>
+<div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
+</div>
+</aside>
+<main class="flex-1 flex flex-col overflow-y-auto">
+<header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+<div class="flex items-center">
+<button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+<i class="fas fa-bars text-xl">
+</i>
+</button>
+<div class="relative">
+<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+</i>
+<form class="relative" id="header-search-form"><input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/></form>
+<div class="absolute mt-2 w-full md:w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-10 hidden" id="main-search-results">
+</div>
+</div>
+</div>
+<div class="flex items-center space-x-5" id="user-actions">
+<div class="space-x-2">
+<button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="header-login-btn">
         Login
        </button>
-       <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="header-register-btn">
+<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="header-register-btn">
         Register
        </button>
-      </div>
-     </div>
-    </header>
-    <main class="flex-grow container mx-auto px-4 py-8">
-     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-      <nav aria-label="Tabs" class="flex -mb-px space-x-8">
-       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600" id="tab-collection">
+</div>
+</div>
+</header>
+<main class="flex-grow container mx-auto px-4 py-8">
+<div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+<nav aria-label="Tabs" class="flex -mb-px space-x-8">
+<button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600" id="tab-collection">
         My Collection
        </button>
-       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-wishlist">
+<button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300" id="tab-wishlist">
         My Wishlist
        </button>
-      </nav>
-     </div>
-     <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center" id="collection-stats-section">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+</nav>
+</div>
+<div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center" id="collection-stats-section">
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
         Total Cards
        </h4>
-       <p class="text-2xl font-bold dark:text-white" id="stats-total-cards">
+<p class="text-2xl font-bold dark:text-white" id="stats-total-cards">
         0
        </p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
         Unique Cards
        </h4>
-       <p class="text-2xl font-bold dark:text-white" id="stats-unique-cards">
+<p class="text-2xl font-bold dark:text-white" id="stats-unique-cards">
         0
        </p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
         Total Value
        </h4>
-       <p class="text-2xl font-bold dark:text-white" id="stats-total-value">
+<p class="text-2xl font-bold dark:text-white" id="stats-total-value">
         $0.00
        </p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+<h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
         Rarity Breakdown
        </h4>
-       <div class="text-lg font-bold dark:text-white flex justify-center space-x-3 mt-2" id="stats-rarity-breakdown">
-       </div>
-      </div>
-     </div>
-     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+<div class="text-lg font-bold dark:text-white flex justify-center space-x-3 mt-2" id="stats-rarity-breakdown">
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
        Add to Your Lists
       </h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div>
+<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
          Manually Add a Card
         </h3>
-        <div class="space-y-3" id="manual-add-form">
-         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
-          <option value="magic">
+<div class="space-y-3" id="manual-add-form">
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
+<option value="magic">
            Magic: The Gathering
           </option>
-          <option value="pokemon">
-           Pok&eacute;mon
+<option value="pokemon">
+           Pokémon
           </option>
-         </select>
-         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required type="text">
-         <button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">
+</select>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required="" type="text"/>
+<button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">
           Search for Card
          </button>
-        </div>
-        <div class="mt-4 space-y-2 max-h-96 overflow-y-auto" id="manual-add-results">
-        </div>
-       </div>
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+</div>
+<div class="mt-4 space-y-2 max-h-96 overflow-y-auto" id="manual-add-results">
+</div>
+</div>
+<div>
+<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
          Import from ManaBox (.csv)
         </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
          Export your collection from ManaBox and upload it here.
         </p>
-        <input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file">
-        <button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">
+<input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file"/>
+<button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">
          Upload CSV
         </button>
-        <p class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status">
-        </p>
-       </div>
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
+<p class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status">
+</p>
+</div>
+<div>
+<h3 class="text-lg font-semibold mb-2 dark:text-gray-200">
          Bulk Add from Text
         </h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
          Paste a list of cards for a guided, step-by-step import process.
         </p>
-        <a class="w-full mt-3 bg-purple-600 text-white py-2 px-4 rounded-full hover:bg-purple-700 text-center block" href="bulk_add.html">
-         <i class="fas fa-paste mr-2">
-         </i>
+<a class="w-full mt-3 bg-purple-600 text-white py-2 px-4 rounded-full hover:bg-purple-700 text-center block" href="bulk_add.html">
+<i class="fas fa-paste mr-2">
+</i>
          Go to Bulk Add Tool
         </a>
-       </div>
-      </div>
-     </div>
-     <div class="mt-8">
-      <div class="tab-content" id="content-collection">
-       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">
+</div>
+</div>
+</div>
+<div class="mt-8">
+<div class="tab-content" id="content-collection">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-3xl font-bold text-gray-800 dark:text-white">
          My Collection
         </h2>
-        <div class="flex items-center space-x-2">
-         <div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
-          <button class="view-btn p-2 rounded-full leading-none bg-white dark:bg-gray-800 shadow text-blue-600" id="grid-view-btn" title="Grid View">
-           <i class="fas fa-th-large">
-           </i>
-          </button>
-          <button class="view-btn p-2 rounded-full leading-none text-gray-500 dark:text-gray-400" id="list-view-btn" title="List View">
-           <i class="fas fa-list">
-           </i>
-          </button>
-         </div>
-         <button class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600" id="export-collection-btn">
-          <i class="fas fa-file-export mr-2">
-          </i>
+<div class="flex items-center space-x-2">
+<div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
+<button class="view-btn p-2 rounded-full leading-none bg-white dark:bg-gray-800 shadow text-blue-600" id="grid-view-btn" title="Grid View">
+<i class="fas fa-th-large">
+</i>
+</button>
+<button class="view-btn p-2 rounded-full leading-none text-gray-500 dark:text-gray-400" id="list-view-btn" title="List View">
+<i class="fas fa-list">
+</i>
+</button>
+</div>
+<button class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600" id="export-collection-btn">
+<i class="fas fa-file-export mr-2">
+</i>
           Export as Text
          </button>
-         <button class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600" id="quick-edit-btn">
-          <i class="fas fa-edit mr-2">
-          </i>
+<button class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-full hover:bg-yellow-600" id="quick-edit-btn">
+<i class="fas fa-edit mr-2">
+</i>
           Quick Edit
          </button>
-         <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="bulk-edit-btn">
+<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="bulk-edit-btn">
           Bulk Edit
          </button>
-        </div>
-       </div>
-       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6" id="collection-filters">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-name">
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6" id="collection-filters">
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-name">
            Name
           </label>
-          <input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-name" placeholder="Search by name..." type="text">
-         </div>
-         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-set">
+<input class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-name" placeholder="Search by name..." type="text"/>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-set">
            Set
           </label>
-          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-set">
-           <option value="all">
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-set">
+<option value="all">
             All Sets
            </option>
-          </select>
-         </div>
-         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-rarity">
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-rarity">
            Rarity
           </label>
-          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-rarity">
-           <option value="all">
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-rarity">
+<option value="all">
             All Rarities
            </option>
-           <option value="common">
+<option value="common">
             Common
            </option>
-           <option value="uncommon">
+<option value="uncommon">
             Uncommon
            </option>
-           <option value="rare">
+<option value="rare">
             Rare
            </option>
-           <option value="mythic">
+<option value="mythic">
             Mythic
            </option>
-          </select>
-         </div>
-         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-color">
+</select>
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="filter-color">
            Color
           </label>
-          <select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-color">
-           <option value="all">
+<select class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-color">
+<option value="all">
             All Colors
            </option>
-           <option value="W">
+<option value="W">
             White
            </option>
-           <option value="U">
+<option value="U">
             Blue
            </option>
-           <option value="B">
+<option value="B">
             Black
            </option>
-           <option value="R">
+<option value="R">
             Red
            </option>
-           <option value="G">
+<option value="G">
             Green
            </option>
-           <option value="C">
+<option value="C">
             Colorless
            </option>
-           <option value="M">
+<option value="M">
             Multi-color
            </option>
-          </select>
-         </div>
-         <div class="flex items-end">
-          <button class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-500" id="reset-filters-btn">
+</select>
+</div>
+<div class="flex items-end">
+<button class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-500" id="reset-filters-btn">
            Reset
           </button>
-         </div>
-        </div>
-       </div>
-       <div class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40" id="bulk-action-bar">
-        <div class="flex items-center space-x-3">
-         <input class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500" id="select-all-checkbox" type="checkbox">
-         <label class="font-medium dark:text-white" for="select-all-checkbox">
+</div>
+</div>
+</div>
+<div class="hidden bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md mb-4 flex flex-wrap gap-4 items-center justify-between sticky top-20 z-40" id="bulk-action-bar">
+<div class="flex items-center space-x-3">
+<input class="h-5 w-5 rounded text-blue-600 focus:ring-blue-500" id="select-all-checkbox" type="checkbox"/>
+<label class="font-medium dark:text-white" for="select-all-checkbox">
           Select All
          </label>
-         <span class="text-gray-600 dark:text-gray-300" id="selected-count">
+<span class="text-gray-600 dark:text-gray-300" id="selected-count">
           0 cards selected
          </span>
-        </div>
-        <div class="space-x-2">
-         <button class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" id="list-selected-btn">
+</div>
+<div class="space-x-2">
+<button class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" id="list-selected-btn">
           List for Sale
          </button>
-         <button class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700" id="delete-selected-btn">
+<button class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700" id="delete-selected-btn">
           Delete
          </button>
-        </div>
-       </div>
-       <div class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40" id="quick-edit-save-bar">
-        <p class="font-semibold text-green-800 dark:text-green-200">
-         <i class="fas fa-info-circle mr-2">
-         </i>
+</div>
+</div>
+<div class="hidden bg-green-100 dark:bg-green-900/50 p-4 rounded-lg shadow-md mb-4 flex items-center justify-between sticky top-20 z-40" id="quick-edit-save-bar">
+<p class="font-semibold text-green-800 dark:text-green-200">
+<i class="fas fa-info-circle mr-2">
+</i>
          You are in Quick Edit mode. Make your changes below and save.
         </p>
-        <button class="px-6 py-2 bg-green-600 text-white font-bold rounded-full hover:bg-green-700" id="save-quick-edits-btn">
-         <i class="fas fa-save mr-2">
-         </i>
+<button class="px-6 py-2 bg-green-600 text-white font-bold rounded-full hover:bg-green-700" id="save-quick-edits-btn">
+<i class="fas fa-save mr-2">
+</i>
          Save All Changes
         </button>
-       </div>
-       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="collection-grid-view">
-       </div>
-       <div class="hidden overflow-x-auto" id="collection-table-view">
-       </div>
-      </div>
-      <div class="tab-content hidden" id="content-wishlist">
-       <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="collection-grid-view">
+</div>
+<div class="hidden overflow-x-auto" id="collection-table-view">
+</div>
+</div>
+<div class="tab-content hidden" id="content-wishlist">
+<h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">
         My Wishlist
        </h2>
-       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="wishlist-list">
-       </div>
-      </div>
-     </div>
-    </main>
-    <div class="modal-overlay" id="add-version-modal">
-     <div class="modal-content w-full max-w-md dark:bg-gray-800">
-      <button class="close-button" id="close-add-version-modal">
-       &times;
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" id="wishlist-list">
+</div>
+</div>
+</div>
+</main>
+<div class="modal-overlay" id="add-version-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-add-version-modal">
+       ×
       </button>
-      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
        Add Card
       </h2>
-      <div class="flex items-center space-x-4 mb-4" id="add-version-preview">
-       <img class="w-24 rounded-lg" id="add-version-image" src="https://placehold.co/100x140">
-       <div>
-        <h3 class="text-lg font-bold dark:text-white" id="add-version-name">
+<div class="flex items-center space-x-4 mb-4" id="add-version-preview">
+<img class="w-24 rounded-lg" id="add-version-image" src="https://placehold.co/100x140"/>
+<div>
+<h3 class="text-lg font-bold dark:text-white" id="add-version-name">
          Card Name
         </h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400" id="add-version-set">
+<p class="text-sm text-gray-500 dark:text-gray-400" id="add-version-set">
          Set Name
         </p>
-       </div>
-      </div>
-      <form class="space-y-4" id="add-version-form">
-       <input id="add-version-data" type="hidden">
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="add-to-list-select">
+</div>
+</div>
+<form class="space-y-4" id="add-version-form">
+<input id="add-version-data" type="hidden"/>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-to-list-select">
          Add to:
         </label>
-        <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-to-list-select">
-         <option value="collection">
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-to-list-select">
+<option value="collection">
           My Collection
          </option>
-         <option value="wishlist">
+<option value="wishlist">
           My Wishlist
          </option>
-        </select>
-       </div>
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="add-version-quantity">
+</select>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-quantity">
          Quantity
         </label>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-quantity" min="1" required type="number" value="1">
-       </div>
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="add-version-condition">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-quantity" min="1" required="" type="number" value="1"/>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-condition">
          Condition
         </label>
-        <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-condition">
-         <option>
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-condition">
+<option>
           Near Mint
          </option>
-         <option>
+<option>
           Lightly Played
          </option>
-         <option>
+<option>
           Moderately Played
          </option>
-         <option>
+<option>
           Heavily Played
          </option>
-         <option>
+<option>
           Damaged
          </option>
-        </select>
-       </div>
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="add-version-language">
+</select>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-language">
          Language
         </label>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-language" type="text" value="English">
-       </div>
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="add-version-purchase-price">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-language" type="text" value="English"/>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-purchase-price">
          Purchase Price (per card)
         </label>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-purchase-price" placeholder="0.00" step="0.01" type="number">
-       </div>
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="add-version-notes">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-purchase-price" placeholder="0.00" step="0.01" type="number"/>
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="add-version-notes">
          Notes
         </label>
-        <textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-notes"></textarea>
-       </div>
-       <div>
-        <input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="add-version-foil" type="checkbox">
-        <label class="dark:text-gray-300" for="add-version-foil">
+<textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="add-version-notes"></textarea>
+</div>
+<div>
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="add-version-foil" type="checkbox"/>
+<label class="dark:text-gray-300" for="add-version-foil">
          Is this card foil?
         </label>
-       </div>
-       <div class="flex items-center">
-        <input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="add-version-signed" type="checkbox">
-        <label class="dark:text-gray-300" for="add-version-signed">
+</div>
+<div class="flex items-center">
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="add-version-signed" type="checkbox"/>
+<label class="dark:text-gray-300" for="add-version-signed">
          Is this card signed?
         </label>
-       </div>
-       <div>
-        <label class="block font-bold mb-1 dark:text-gray-200" for="card-image-upload">
+</div>
+<div>
+<label class="block font-bold mb-1 dark:text-gray-200" for="card-image-upload">
          Custom Image
         </label>
-        <input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="card-image-upload" type="file">
-       </div>
-       <button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
+<input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="card-image-upload" type="file"/>
+</div>
+<button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
         Add Card
        </button>
-      </form>
-     </div>
-    </div>
-    <div class="modal-overlay" id="edit-card-modal">
-     <div class="modal-content w-full max-w-md dark:bg-gray-800">
-      <button class="close-button" id="close-edit-card-modal">
-       &times;
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="edit-card-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-edit-card-modal">
+       ×
       </button>
-      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
        Edit Card
       </h2>
-      <form id="edit-card-form">
-       <input id="edit-card-id" type="hidden">
-       <input id="edit-card-list-type" type="hidden">
-       <div class="mb-4">
-        <label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-quantity">
+<form id="edit-card-form">
+<input id="edit-card-id" type="hidden"/>
+<input id="edit-card-list-type" type="hidden"/>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-quantity">
          Quantity
         </label>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-quantity" min="1" type="number">
-       </div>
-       <div class="mb-4">
-        <label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-condition">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-quantity" min="1" type="number"/>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-condition">
          Condition
         </label>
-        <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-condition">
-         <option>
+<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-condition">
+<option>
           Near Mint
          </option>
-         <option>
+<option>
           Lightly Played
          </option>
-         <option>
+<option>
           Moderately Played
          </option>
-         <option>
+<option>
           Heavily Played
          </option>
-         <option>
+<option>
           Damaged
          </option>
-        </select>
-       </div>
-       <div class="mb-4">
-        <label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-language">
+</select>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-language">
          Language
         </label>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-language" type="text">
-       </div>
-       <div class="mb-4">
-        <label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-purchase-price">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-language" type="text"/>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-purchase-price">
          Purchase Price
         </label>
-        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-purchase-price" placeholder="0.00" step="0.01" type="number">
-       </div>
-       <div class="mb-4">
-        <label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-notes">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-purchase-price" placeholder="0.00" step="0.01" type="number"/>
+</div>
+<div class="mb-4">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-notes">
          Notes
         </label>
-        <textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-notes"></textarea>
-       </div>
-       <div class="mb-6">
-        <input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="edit-card-foil" type="checkbox">
-        <label class="dark:text-gray-300" for="edit-card-foil">
+<textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="edit-card-notes"></textarea>
+</div>
+<div class="mb-6">
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="edit-card-foil" type="checkbox"/>
+<label class="dark:text-gray-300" for="edit-card-foil">
          Foil
         </label>
-       </div>
-       <div class="mb-6">
-        <input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="edit-card-signed" type="checkbox">
-        <label class="dark:text-gray-300" for="edit-card-signed">
+</div>
+<div class="mb-6">
+<input class="mr-2 h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="edit-card-signed" type="checkbox"/>
+<label class="dark:text-gray-300" for="edit-card-signed">
          Signed
         </label>
-       </div>
-       <div class="mb-6">
-        <label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-image-upload">
+</div>
+<div class="mb-6">
+<label class="block font-bold mb-1 dark:text-gray-200" for="edit-card-image-upload">
          Custom Image
         </label>
-        <input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="edit-card-image-upload" type="file">
-       </div>
-       <button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
+<input accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="edit-card-image-upload" type="file"/>
+</div>
+<button class="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-700" type="submit">
         Save Changes
        </button>
-      </form>
-     </div>
-    </div>
-    <div class="modal-overlay" id="manage-listing-modal">
-     <div class="modal-content w-full max-w-md dark:bg-gray-800">
-      <button class="close-button" id="close-listing-modal">
-       &times;
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="manage-listing-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-listing-modal">
+       ×
       </button>
-      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
        Manage Listing
       </h2>
-      <div class="flex items-center space-x-4 mb-6" id="listing-card-preview">
-       <img class="w-24 rounded-lg" id="listing-card-image" src="https://placehold.co/100x140">
-       <div>
-        <h3 class="text-lg font-bold dark:text-white" id="listing-card-name">
+<div class="flex items-center space-x-4 mb-6" id="listing-card-preview">
+<img class="w-24 rounded-lg" id="listing-card-image" src="https://placehold.co/100x140"/>
+<div>
+<h3 class="text-lg font-bold dark:text-white" id="listing-card-name">
          Card Name
         </h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400" id="listing-card-set">
+<p class="text-sm text-gray-500 dark:text-gray-400" id="listing-card-set">
          Set Name
         </p>
-       </div>
-      </div>
-      <form id="manage-listing-form">
-       <input id="listing-card-id" type="hidden">
-       <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-        <label class="font-semibold text-gray-700 dark:text-gray-200" for="forSale">
+</div>
+</div>
+<form id="manage-listing-form">
+<input id="listing-card-id" type="hidden"/>
+<div class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+<label class="font-semibold text-gray-700 dark:text-gray-200" for="forSale">
          List this card for sale/trade?
         </label>
-        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-         <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="forSale" name="forSale" type="checkbox">
-         <label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer" for="forSale">
-         </label>
-        </div>
-       </div>
-       <div class="mt-4 hidden" id="price-input-container">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="salePrice">
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" id="forSale" name="forSale" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer" for="forSale">
+</label>
+</div>
+</div>
+<div class="mt-4 hidden" id="price-input-container">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="salePrice">
          Sale Price (SEK)
         </label>
-        <div class="relative mt-1">
-         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <span class="text-gray-500 sm:text-sm">
+<div class="relative mt-1">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="text-gray-500 sm:text-sm">
            kr
           </span>
-         </div>
-         <input class="pl-7 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="salePrice" placeholder="0.00" step="0.01" type="number">
-        </div>
-       </div>
-       <div class="mt-8 text-right">
-        <button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
+</div>
+<input class="pl-7 block w-full border border-gray-300 rounded-md shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600" id="salePrice" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<div class="mt-8 text-right">
+<button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
          Save Listing
         </button>
-       </div>
-      </form>
-     </div>
-    </div>
-    <div class="modal-overlay" id="list-for-sale-modal">
-     <div class="modal-content w-full max-w-md dark:bg-gray-800">
-      <button class="close-button" id="close-list-sale-modal">
-       &times;
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="list-for-sale-modal">
+<div class="modal-content w-full max-w-md dark:bg-gray-800">
+<button class="close-button" id="close-list-sale-modal">
+       ×
       </button>
-      <h2 class="text-2xl font-bold mb-4 dark:text-white">
+<h2 class="text-2xl font-bold mb-4 dark:text-white">
        List Selected Cards
       </h2>
-      <p class="mb-4 dark:text-gray-300">
+<p class="mb-4 dark:text-gray-300">
        You have selected
        <strong id="list-sale-count">
         0
        </strong>
        cards. How would you like to price them?
       </p>
-      <div class="space-y-4">
-       <form class="space-y-2" id="percentage-price-form">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+<div class="space-y-4">
+<form class="space-y-2" id="percentage-price-form">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
          Set price based on market value:
         </label>
-        <div class="flex items-center space-x-2">
-         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="percentage-price-input" max="500" min="1" placeholder="e.g., 90" required type="number">
-         <span class="font-bold dark:text-white">
+<div class="flex items-center space-x-2">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="percentage-price-input" max="500" min="1" placeholder="e.g., 90" required="" type="number"/>
+<span class="font-bold dark:text-white">
           %
          </span>
-         <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" type="submit">
+<button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" type="submit">
           Set
          </button>
-        </div>
-       </form>
-       <div class="relative">
-        <div aria-hidden="true" class="absolute inset-0 flex items-center">
-         <div class="w-full border-t border-gray-300 dark:border-gray-600">
-         </div>
-        </div>
-        <div class="relative flex justify-center">
-         <span class="px-2 bg-white dark:bg-gray-800 text-sm text-gray-500">
+</div>
+</form>
+<div class="relative">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-gray-300 dark:border-gray-600">
+</div>
+</div>
+<div class="relative flex justify-center">
+<span class="px-2 bg-white dark:bg-gray-800 text-sm text-gray-500">
           OR
          </span>
-        </div>
-       </div>
-       <form class="space-y-2" id="fixed-undercut-form">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+</div>
+</div>
+<form class="space-y-2" id="fixed-undercut-form">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
          Undercut lowest listing by a fixed amount:
         </label>
-        <div class="flex items-center space-x-2">
-         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="fixed-undercut-input" placeholder="e.g., 10.00" required step="0.01" type="number">
-         <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" type="submit">
+<div class="flex items-center space-x-2">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="fixed-undercut-input" placeholder="e.g., 10.00" required="" step="0.01" type="number"/>
+<button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" type="submit">
           Set
          </button>
-        </div>
-       </form>
-      </div>
-     </div>
-    </div>
-   </main>
-  </div>
-  <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
-   <div class="container mx-auto py-8 px-4">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+</div>
+</form>
+</div>
+</div>
+</div>
+</main>
+</div>
+<footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+<div class="container mx-auto py-8 px-4">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
        HatakeSocial
       </h3>
-      <p class="text-gray-600 dark:text-gray-400 text-sm">
+<p class="text-gray-600 dark:text-gray-400 text-sm">
        The all-in-one platform for TCG enthusiasts.
       </p>
-     </div>
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
        Company
       </h3>
-      <ul class="space-y-2 text-sm">
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
+<ul class="space-y-2 text-sm">
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="about.html">
          About Us
         </a>
-       </li>
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="partner.html">
          Partners
         </a>
-       </li>
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="contact.html">
          Contact
         </a>
-       </li>
-      </ul>
-     </div>
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
        Legal
       </h3>
-      <ul class="space-y-2 text-sm">
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+<ul class="space-y-2 text-sm">
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
          Privacy Policy
         </a>
-       </li>
-       <li>
-        <a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
+</li>
+<li>
+<a class="text-gray-600 dark:text-gray-400 hover:text-blue-500" href="#">
          Terms of Service
         </a>
-       </li>
-      </ul>
-     </div>
-     <div>
-      <h3 class="font-bold text-gray-900 dark:text-white mb-4">
+</li>
+</ul>
+</div>
+<div>
+<h3 class="font-bold text-gray-900 dark:text-white mb-4">
        Display Options
       </h3>
-      <div class="flex items-center space-x-4">
-       <div>
-        <label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
+<div class="flex items-center space-x-4">
+<div>
+<label class="text-sm text-gray-600 dark:text-gray-400" for="theme-toggle">
          Theme
         </label>
-        <button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
-         <i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
-         </i>
-         <i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
-         </i>
-        </button>
-       </div>
-       <div id="currency-selector-container">
-       </div>
-      </div>
-     </div>
-    </div>
-    <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-     <p>
-      &copy; 2025 Hatake. All Rights Reserved.
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5" id="theme-toggle" type="button">
+<i class="fas fa-sun hidden" id="theme-toggle-sun-icon">
+</i>
+<i class="fas fa-moon hidden" id="theme-toggle-moon-icon">
+</i>
+</button>
+</div>
+<div id="currency-selector-container">
+</div>
+</div>
+</div>
+</div>
+<div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+<p>
+      © 2025 Hatake. All Rights Reserved.
      </p>
-     <div class="flex space-x-6 mt-4 md:mt-0">
-      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
-       <i class="fab fa-twitter">
-       </i>
-      </a>
-      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
-       <i class="fab fa-facebook-f">
-       </i>
-      </a>
-      <a class="hover:text-gray-900 dark:hover:text-white" href="#">
-       <i class="fab fa-instagram">
-       </i>
-      </a>
-     </div>
-    </div>
-   </div>
-  </footer>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
-  </script>
-  <script src="js/auth.js">
-  </script>
-  <script src="js/collection.js">
-  </script>
-  <script src="js/notifications.js">
-  </script>
-  <script src="js/darkmode.js">
-  </script>
-  <img class="hidden" id="manual-add-tooltip" style="position: absolute; z-index: 100; pointer-events: none; border: 2px solid #000; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); width: 223px; height: 310px;">
-  <!-- Login Modal -->
-  <!-- Register Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
-    <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-     <h2 class="text-xl font-bold">
+<div class="flex space-x-6 mt-4 md:mt-0">
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-twitter">
+</i>
+</a>
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-facebook-f">
+</i>
+</a>
+<a class="hover:text-gray-900 dark:hover:text-white" href="#">
+<i class="fab fa-instagram">
+</i>
+</a>
+</div>
+</div>
+</div>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+</script>
+<script src="js/auth.js">
+</script>
+<script src="js/collection.js">
+</script>
+<script src="js/notifications.js">
+</script>
+<script src="js/darkmode.js">
+</script>
+<img class="hidden" id="manual-add-tooltip" style="position: absolute; z-index: 100; pointer-events: none; border: 2px solid #000; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); width: 223px; height: 310px;"/>
+<!-- Login Modal -->
+<!-- Register Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
+<div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+<h2 class="text-xl font-bold">
       Your Cart
      </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
-      &times;
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
+      ×
      </button>
-    </div>
-    <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-     <!-- Cart items will be dynamically inserted here -->
-     <p class="text-center text-gray-500 dark:text-gray-400">
+</div>
+<div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+<!-- Cart items will be dynamically inserted here -->
+<p class="text-center text-gray-500 dark:text-gray-400">
       Your cart is empty.
      </p>
-    </div>
-    <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-     <div class="flex justify-between items-center font-bold text-lg">
-      <span>
+</div>
+<div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+<div class="flex justify-between items-center font-bold text-lg">
+<span>
        Subtotal
       </span>
-      <span id="cart-subtotal">
+<span id="cart-subtotal">
        $0.00
       </span>
-     </div>
-     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-      Shipping & taxes calculated at checkout.
+</div>
+<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      Shipping &amp; taxes calculated at checkout.
      </p>
-     <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled id="checkout-btn">
+<button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
       Proceed to Checkout
      </button>
-    </div>
-   </div>
-  </div>
-  <script src="js/cart.js">
-  </script>
-  <script>
+</div>
+</div>
+</div>
+<script src="js/cart.js">
+</script>
+<script>
    const sidebar = document.getElementById('sidebar');
             const sidebarToggle = document.getElementById('sidebar-toggle');
             const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -875,73 +876,73 @@
                 });
             }
   </script>
-  <script src="js/messenger.js">
-  </script>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-    <h2 class="text-2xl font-bold mb-4">
+<script src="js/messenger.js">
+</script>
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+<h2 class="text-2xl font-bold mb-4">
      Start a new conversation
     </h2>
-    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text">
-    <div class="max-h-60 overflow-y-auto" id="user-search-results">
-    </div>
-    <button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+<div class="max-h-60 overflow-y-auto" id="user-search-results">
+</div>
+<button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
      Cancel
     </button>
-   </div>
-  </div>
-  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center">
-     <h2 class="text-xl font-bold">
+</div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
       Login
      </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
-      &times;
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      ×
      </button>
-    </div>
-    <form class="mt-4 space-y-4" id="loginForm">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required type="email">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required type="password">
-     <p class="text-red-500 text-sm hidden" id="login-error-message">
-     </p>
-     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+</div>
+<form class="mt-4 space-y-4" id="loginForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+<p class="text-red-500 text-sm hidden" id="login-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
       Login
      </button>
-     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
       Sign in with Google
      </button>
-    </form>
-   </div>
-  </div>
-  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center">
-     <h2 class="text-xl font-bold">
+</form>
+</div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+<div class="flex justify-between items-center">
+<h2 class="text-xl font-bold">
       Register
      </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
-      &times;
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      ×
      </button>
-    </div>
-    <form class="mt-4 space-y-4" id="registerForm">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required type="email">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required type="password">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text">
-     <p class="text-red-500 text-sm hidden" id="register-error-message">
-     </p>
-     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+</div>
+<form class="mt-4 space-y-4" id="registerForm">
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+<input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+<p class="text-red-500 text-sm hidden" id="register-error-message">
+</p>
+<button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
       Register
      </button>
-     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">
+<button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+<img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
       Register with Google
      </button>
-    </form>
-   </div>
-  </div>
- </body>
+</form>
+</div>
+</div>
+</body>
 </html>
