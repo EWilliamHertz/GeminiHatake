@@ -1,0 +1,8 @@
+1. The csv upload button doesn't work.
+2. The + button on card search (manual) results doesn't work, this comes up in console:
+card-search.js:67 Uncaught TypeError: Cannot read properties of undefined (reading 'openCardManagementModal')
+    at HTMLButtonElement.<anonymous> (card-search.js:67:34)
+(anonymous)    @    card-search.js:67
+3. Bulk-edit delete doesn't work, it needs to get removed from firestore database. Rules allows users to edit their own collections, so should the code.
+4. Manually deleting temporarily removes it, until the page is refreshed. Then it comes back.
+5. The total cards and unique cards shouldn't be the same in wish-list and my collection (the stats) you should be able to view the total cost of the cards you wish for.

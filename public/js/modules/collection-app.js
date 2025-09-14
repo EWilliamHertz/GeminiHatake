@@ -2,461 +2,171 @@
  * Collection App Module
  * Main application controller that manages state and coordinates between modules
  */
+window.CollectionApp = (() => {
+    let currentUser = null;
+    let db = null;
+    let fullCollection = [];
+    let fullWishlist = [];
+    let filteredCollection = [];
+    let currentTab = 'collection';
+    let currentView = 'grid';
 
-// Application state
-let currentUser = null;
-let collectionData = [];
-let wishlistData = [];
-let currentTab = 'collection';
-let currentView = 'grid';
-let currentSort = 'name';
-let currentFilter = 'all';
-let searchQuery = '';
+    function initialize(user, firestore) {
+        currentUser = user;
+        db = firestore;
+        console.log(`[CollectionApp] Initializing for user ${user.uid}`);
+        loadAllData();
+        initializeEventListeners();
+    }
 
-/**
- * Initialize the application
- */
-async function initializeApp() {
-    try {
-        // Initialize Firebase auth state listener
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                currentUser = user;
-                await loadCollectionData();
-                initializeEventListeners();
-                renderCurrentView();
-                updateStats();
+    async function loadAllData() {
+        console.log("[CollectionApp] Loading all data from Firestore...");
+        await Promise.all([loadCollectionData(), loadWishlistData()]);
+        updateStats(currentTab === 'collection' ? fullCollection : fullWishlist);
+        renderCurrentView();
+    }
+
+    async function loadCollectionData() {
+        try {
+            const snapshot = await db.collection('users').doc(currentUser.uid).collection('collection').orderBy('name').get();
+            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("[CollectionApp] Error loading collection:", error);
+            window.Utils.showNotification('Could not load your collection.', 'error');
+        }
+    }
+
+    async function loadWishlistData() {
+        try {
+            const snapshot = await db.collection('users').doc(currentUser.uid).collection('wishlist').orderBy('name').get();
+            fullWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("[CollectionApp] Error loading wishlist:", error);
+            window.Utils.showNotification('Could not load your wishlist.', 'error');
+        }
+    }
+
+    function initializeEventListeners() {
+        document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
+        document.getElementById('tab-wishlist')?.addEventListener('click', () => switchTab('wishlist'));
+        document.getElementById('grid-view-btn')?.addEventListener('click', () => switchView('grid'));
+        document.getElementById('list-view-btn')?.addEventListener('click', () => switchView('list'));
+        document.querySelector('main').addEventListener('click', handleCardActionClick);
+    }
+
+    function switchTab(tabName) {
+        currentTab = tabName;
+        // UI updates for tabs...
+        document.getElementById('content-collection').classList.toggle('hidden', tabName !== 'collection');
+        document.getElementById('content-wishlist').classList.toggle('hidden', tabName !== 'wishlist');
+        ['collection', 'wishlist'].forEach(t => {
+            const tabEl = document.getElementById(`tab-${t}`);
+            tabEl.classList.toggle('text-blue-600', tabName === t);
+            tabEl.classList.toggle('border-blue-600', tabName === t);
+            tabEl.classList.toggle('text-gray-500', tabName !== t);
+            tabEl.classList.toggle('border-transparent', tabName !== t);
+        });
+        
+        const dataForStats = tabName === 'collection' ? fullCollection : fullWishlist;
+        updateStats(dataForStats);
+
+        if (window.BulkOperations.isBulkEditMode()) {
+            window.BulkOperations.toggleBulkEditMode();
+        }
+        renderCurrentView();
+    }
+    
+    function switchView(viewName) {
+        currentView = viewName;
+        // UI updates for view buttons...
+        document.getElementById('grid-view-btn').classList.toggle('bg-blue-600', viewName === 'grid');
+        document.getElementById('grid-view-btn').classList.toggle('text-white', viewName === 'grid');
+        document.getElementById('list-view-btn').classList.toggle('bg-blue-600', viewName === 'list');
+        document.getElementById('list-view-btn').classList.toggle('text-white', viewName === 'list');
+        renderCurrentView();
+    }
+
+    function renderCurrentView() {
+        applyFiltersAndSort();
+        if (currentTab === 'collection') {
+            const gridContainer = document.getElementById('collection-grid-view');
+            const listContainer = document.getElementById('collection-table-view');
+            if (currentView === 'grid') {
+                window.CardDisplay.renderGridView(gridContainer, filteredCollection);
             } else {
-                // Redirect to login if not authenticated
-                window.location.href = '/auth.html';
+                window.CardDisplay.renderListView(listContainer, filteredCollection);
             }
-        });
-        
-    } catch (error) {
-        console.error('Error initializing app:', error);
-        window.Utils.showNotification('Error initializing application', 'error');
-    }
-}
-
-/**
- * Load collection and wishlist data
- */
-async function loadCollectionData() {
-    if (!currentUser) return;
-    
-    try {
-        // Load collection
-        const collectionSnapshot = await db.collection('users').doc(currentUser.uid).collection('collection').get();
-        collectionData = collectionSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        // Load wishlist
-        const wishlistSnapshot = await db.collection('users').doc(currentUser.uid).collection('wishlist').get();
-        wishlistData = wishlistSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        console.log(`Loaded ${collectionData.length} collection items and ${wishlistData.length} wishlist items`);
-        
-    } catch (error) {
-        console.error('Error loading collection data:', error);
-        window.Utils.showNotification('Error loading collection data', 'error');
-    }
-}
-
-/**
- * Initialize event listeners
- */
-function initializeEventListeners() {
-    // Tab switching
-    const collectionTab = document.getElementById('collection-tab');
-    const wishlistTab = document.getElementById('wishlist-tab');
-    
-    if (collectionTab) {
-        collectionTab.addEventListener('click', () => switchTab('collection'));
-    }
-    if (wishlistTab) {
-        wishlistTab.addEventListener('click', () => switchTab('wishlist'));
-    }
-    
-    // View switching
-    const gridViewBtn = document.getElementById('grid-view-btn');
-    const listViewBtn = document.getElementById('list-view-btn');
-    
-    if (gridViewBtn) {
-        gridViewBtn.addEventListener('click', () => switchView('grid'));
-    }
-    if (listViewBtn) {
-        listViewBtn.addEventListener('click', () => switchView('list'));
-    }
-    
-    // Sorting
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', (e) => {
-            currentSort = e.target.value;
-            renderCurrentView();
-        });
-    }
-    
-    // Filtering
-    const filterSelect = document.getElementById('filter-select');
-    if (filterSelect) {
-        filterSelect.addEventListener('change', (e) => {
-            currentFilter = e.target.value;
-            renderCurrentView();
-        });
-    }
-    
-    // Search
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', window.Utils.debounce((e) => {
-            searchQuery = e.target.value.toLowerCase();
-            renderCurrentView();
-        }, 300));
-    }
-    
-    // Initialize module event listeners
-    if (window.BulkOperations && typeof window.BulkOperations.initializeBulkOperations === 'function') {
-        window.BulkOperations.initializeBulkOperations();
-    }
-    if (window.CSVImport && typeof window.CSVImport.initializeCSVImport === 'function') {
-        window.CSVImport.initializeCSVImport();
-    }
-    if (window.SealedProducts && typeof window.SealedProducts.initializeSealedProducts === 'function') {
-        window.SealedProducts.initializeSealedProducts();
-    }
-    if (window.CardSearch && typeof window.CardSearch.initializeSearch === 'function') {
-        window.CardSearch.initializeSearch();
-    } else {
-        console.error('CardSearch module not ready or initializeSearch function not found.');
-    }
-}
-
-/**
- * Switch between collection and wishlist tabs
- */
-function switchTab(tab) {
-    currentTab = tab;
-    
-    // Update tab appearance
-    const collectionTab = document.getElementById('collection-tab');
-    const wishlistTab = document.getElementById('wishlist-tab');
-    
-    if (collectionTab && wishlistTab) {
-        if (tab === 'collection') {
-            collectionTab.classList.add('border-blue-500', 'text-blue-600');
-            collectionTab.classList.remove('border-transparent', 'text-gray-500');
-            wishlistTab.classList.remove('border-blue-500', 'text-blue-600');
-            wishlistTab.classList.add('border-transparent', 'text-gray-500');
         } else {
-            wishlistTab.classList.add('border-blue-500', 'text-blue-600');
-            wishlistTab.classList.remove('border-transparent', 'text-gray-500');
-            collectionTab.classList.remove('border-blue-500', 'text-blue-600');
-            collectionTab.classList.add('border-transparent', 'text-gray-500');
+            const wishlistContainer = document.getElementById('wishlist-list');
+            window.CardDisplay.renderWishlist(wishlistContainer, fullWishlist);
         }
     }
     
-    // Reset bulk operations when switching tabs
-    window.BulkOperations.resetBulkOperations();
-    
-    renderCurrentView();
-    updateStats();
-}
-
-/**
- * Switch between grid and list views
- */
-function switchView(view) {
-    currentView = view;
-    
-    // Update view button appearance
-    const gridViewBtn = document.getElementById('grid-view-btn');
-    const listViewBtn = document.getElementById('list-view-btn');
-    
-    if (gridViewBtn && listViewBtn) {
-        if (view === 'grid') {
-            gridViewBtn.classList.add('bg-blue-600', 'text-white');
-            gridViewBtn.classList.remove('bg-gray-200', 'text-gray-700');
-            listViewBtn.classList.remove('bg-blue-600', 'text-white');
-            listViewBtn.classList.add('bg-gray-200', 'text-gray-700');
-        } else {
-            listViewBtn.classList.add('bg-blue-600', 'text-white');
-            listViewBtn.classList.remove('bg-gray-200', 'text-gray-700');
-            gridViewBtn.classList.remove('bg-blue-600', 'text-white');
-            gridViewBtn.classList.add('bg-gray-200', 'text-gray-700');
-        }
+    function applyFiltersAndSort() {
+        filteredCollection = [...fullCollection];
     }
     
-    renderCurrentView();
-}
-
-/**
- * Render current view based on tab and view mode
- */
-function renderCurrentView() {
-    const data = currentTab === 'collection' ? collectionData : wishlistData;
-    const filteredData = filterAndSortData(data);
-    
-    if (currentView === 'grid') {
-        renderGridView(filteredData);
-    } else {
-        renderListView(filteredData);
-    }
-}
-
-/**
- * Filter and sort data
- */
-function filterAndSortData(data) {
-    let filtered = [...data];
-    
-    // Apply search filter
-    if (searchQuery) {
-        filtered = filtered.filter(item => 
-            item.name?.toLowerCase().includes(searchQuery) ||
-            item.set_name?.toLowerCase().includes(searchQuery) ||
-            item.setName?.toLowerCase().includes(searchQuery)
-        );
-    }
-    
-    // Apply type filter
-    if (currentFilter !== 'all') {
-        if (currentFilter === 'singles') {
-            filtered = filtered.filter(item => item.productType !== 'sealed');
-        } else if (currentFilter === 'sealed') {
-            filtered = filtered.filter(item => item.productType === 'sealed');
-        } else if (currentFilter === 'foil') {
-            filtered = filtered.filter(item => item.isFoil);
-        } else if (currentFilter === 'for-sale') {
-            filtered = filtered.filter(item => item.forSale);
-        }
-    }
-    
-    // Apply sorting
-    filtered.sort((a, b) => {
-        switch (currentSort) {
-            case 'name':
-                return (a.name || '').localeCompare(b.name || '');
-            case 'set':
-                return (a.set_name || a.setName || '').localeCompare(b.set_name || b.setName || '');
-            case 'price':
-                const priceA = a.prices?.usd || a.price || 0;
-                const priceB = b.prices?.usd || b.price || 0;
-                return priceB - priceA;
-            case 'date':
-                const dateA = a.dateAdded?.toDate?.() || new Date(0);
-                const dateB = b.dateAdded?.toDate?.() || new Date(0);
-                return dateB - dateA;
-            default:
-                return 0;
-        }
-    });
-    
-    return filtered;
-}
-
-/**
- * Render grid view
- */
-function renderGridView(data) {
-    const gridContainer = document.getElementById('collection-grid');
-    const listContainer = document.getElementById('collection-list-view');
-    
-    if (!gridContainer || !listContainer) return;
-    
-    // Show grid, hide list
-    gridContainer.style.display = 'grid';
-    listContainer.style.display = 'none';
-    
-    // Clear and populate grid
-    gridContainer.innerHTML = '';
-    
-    if (data.length === 0) {
-        gridContainer.innerHTML = '<div class="col-span-full text-center text-gray-500 py-8">No items found</div>';
-        return;
-    }
-    
-    data.forEach(item => {
-        const cardElement = window.CardDisplay.createCardElement(
-            item, 
-            window.BulkOperations.isBulkEditMode(), 
-            window.BulkOperations.getSelectedItems()
-        );
-        gridContainer.appendChild(cardElement);
-    });
-}
-
-/**
- * Render list view
- */
-function renderListView(data) {
-    const gridContainer = document.getElementById('collection-grid');
-    const listContainer = document.getElementById('collection-list-view');
-    
-    if (!gridContainer || !listContainer) return;
-    
-    // Show list, hide grid
-    gridContainer.style.display = 'none';
-    listContainer.style.display = 'block';
-    
-    // Clear and populate list
-    listContainer.innerHTML = '';
-    
-    if (data.length === 0) {
-        listContainer.innerHTML = '<div class="text-center text-gray-500 py-8">No items found</div>';
-        return;
-    }
-    
-    data.forEach(item => {
-        const listElement = window.CardDisplay.createListElement(
-            item, 
-            window.BulkOperations.isBulkEditMode(), 
-            window.BulkOperations.getSelectedItems()
-        );
-        listContainer.appendChild(listElement);
-    });
-}
-
-/**
- * Update statistics with correct element IDs
- */
-function updateStats() {
-    const data = currentTab === 'collection' ? collectionData : wishlistData;
-    
-    // Calculate stats
-    const totalItems = data.reduce((sum, item) => sum + (item.quantity || 1), 0);
-    const uniqueCards = data.length;
-    const totalValue = data.reduce((sum, item) => {
-        const price = item.prices?.usd || item.price || 0;
-        const quantity = item.quantity || 1;
-        return sum + (price * quantity);
-    }, 0);
-    
-    // Calculate rarity breakdown
-    const rarityCount = {};
-    data.forEach(item => {
-        const rarity = item.rarity || 'common';
-        rarityCount[rarity] = (rarityCount[rarity] || 0) + (item.quantity || 1);
-    });
-    
-    // Update display with correct element IDs from the HTML
-    const totalItemsElement = document.getElementById('stats-total-cards');
-    const uniqueCardsElement = document.getElementById('stats-unique-cards');
-    const totalValueElement = document.getElementById('stats-total-value');
-    const rarityBreakdownElement = document.getElementById('stats-rarity-breakdown');
-    
-    if (totalItemsElement) {
-        totalItemsElement.textContent = totalItems.toLocaleString();
-    }
-    if (uniqueCardsElement) {
-        uniqueCardsElement.textContent = uniqueCards.toLocaleString();
-    }
-    if (totalValueElement) {
-        totalValueElement.textContent = window.Utils.safeFormatPrice(totalValue);
-    }
-    if (rarityBreakdownElement) {
-        // Display top 3 rarities
-        const sortedRarities = Object.entries(rarityCount)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 3);
+    function updateStats(cardList) {
+        const totalCards = cardList.reduce((sum, card) => sum + (card.quantity || 1), 0);
+        const uniqueCards = new Set(cardList.map(c => c.name)).size;
+        const totalValue = cardList.reduce((sum, card) => {
+            const price = parseFloat(card.priceUsd) || 0;
+            return sum + (price * (card.quantity || 1));
+        }, 0);
         
-        if (sortedRarities.length > 0) {
-            rarityBreakdownElement.innerHTML = sortedRarities
-                .map(([rarity, count]) => `<span class="text-xs">${rarity}: ${count}</span>`)
-                .join('');
-        } else {
-            rarityBreakdownElement.innerHTML = '<span class="text-xs">No data</span>';
-        }
+        document.getElementById('stats-total-cards').textContent = totalCards.toLocaleString();
+        document.getElementById('stats-unique-cards').textContent = uniqueCards.toLocaleString();
+        document.getElementById('stats-total-value').textContent = window.Utils.safeFormatPrice(totalValue);
     }
-    
-    console.log('Stats updated:', { totalItems, uniqueCards, totalValue });
-}
 
-/**
- * Add item to collection or wishlist
- */
-function addItem(item, listType) {
-    if (listType === 'collection') {
-        collectionData.push(item);
-    } else {
-        wishlistData.push(item);
-    }
-    
-    renderCurrentView();
-    updateStats();
-}
+    function handleCardActionClick(e) {
+        const cardElement = e.target.closest('[data-id]');
+        if (!cardElement) return;
 
-/**
- * Remove item from collection or wishlist
- */
-function removeItem(itemId, listType) {
-    if (listType === 'collection') {
-        collectionData = collectionData.filter(item => item.id !== itemId);
-    } else {
-        wishlistData = wishlistData.filter(item => item.id !== itemId);
-    }
-    
-    renderCurrentView();
-    updateStats();
-}
-
-/**
- * Remove multiple items
- */
-function removeItems(itemIds, listType) {
-    if (listType === 'collection') {
-        collectionData = collectionData.filter(item => !itemIds.includes(item.id));
-    } else {
-        wishlistData = wishlistData.filter(item => !itemIds.includes(item.id));
-    }
-    
-    renderCurrentView();
-    updateStats();
-}
-
-/**
- * Update items for sale status
- */
-function updateItemsForSale(itemIds, salePrice) {
-    const data = currentTab === 'collection' ? collectionData : wishlistData;
-    
-    data.forEach(item => {
-        if (itemIds.includes(item.id)) {
-            item.forSale = true;
-            if (salePrice && !isNaN(parseFloat(salePrice))) {
-                item.salePrice = parseFloat(salePrice);
+        const cardId = cardElement.dataset.id;
+        
+        if (e.target.closest('.delete-card-btn')) {
+            const listType = e.target.closest('[data-list]').dataset.list;
+            const cardData = (listType === 'collection' ? fullCollection : fullWishlist).find(c => c.id === cardId);
+            if (confirm(`Are you sure you want to delete "${cardData.name}"?`)) {
+                deleteCard(cardId, listType);
             }
+        } else if (e.target.closest('.edit-card-btn')) {
+            const listType = e.target.closest('[data-list]').dataset.list;
+            const cardData = (listType === 'collection' ? fullCollection : fullWishlist).find(c => c.id === cardId);
+            window.CardModal.openCardManagementModal(cardData, cardData);
+        } else if (window.BulkOperations.isBulkEditMode()) {
+            window.BulkOperations.handleCardSelection(cardId);
         }
-    });
-}
+    }
 
-// Getter functions for other modules
-function getCurrentUser() { return currentUser; }
-function getCollectionData() { return collectionData; }
-function getWishlistData() { return wishlistData; }
-function getCurrentTab() { return currentTab; }
-function getCurrentView() { return currentView; }
+    async function deleteCard(cardId, listType) {
+        try {
+            await db.collection('users').doc(currentUser.uid).collection(listType).doc(cardId).delete();
+            
+            if (listType === 'collection') {
+                fullCollection = fullCollection.filter(c => c.id !== cardId);
+                updateStats(fullCollection);
+            } else {
+                fullWishlist = fullWishlist.filter(c => c.id !== cardId);
+                updateStats(fullWishlist);
+            }
+            renderCurrentView();
+            window.Utils.showNotification('Card deleted successfully.', 'success');
+        } catch (error) {
+            console.error("Error deleting card:", error);
+            window.Utils.showNotification('Could not delete card.', 'error');
+        }
+    }
 
-// Export functions
-window.CollectionApp = {
-    initializeApp,
-    loadCollectionData,
-    renderCurrentView,
-    switchTab,
-    switchView,
-    addItem,
-    removeItem,
-    removeItems,
-    updateItemsForSale,
-    getCurrentUser,
-    getCollectionData,
-    getWishlistData,
-    getCurrentTab,
-    getCurrentView
-};
+    return {
+        initialize,
+        renderCurrentView,
+        loadAllData,
+        getCurrentUser: () => currentUser,
+        getDb: () => db,
+        getFullCollection: () => fullCollection,
+        getFilteredCollection: () => filteredCollection,
+    };
+})();
 

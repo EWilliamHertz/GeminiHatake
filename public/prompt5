@@ -1,0 +1,12 @@
+1. This is a bad update, no cards are showing up in my collection.
+Uncaught (in promise) TypeError: window.BulkOperations.getState is not a function
+    at Object.renderGridView (card-display.js:31:71)
+    at renderCurrentView (collection-app.js:99:36)
+    at loadAllData (collection-app.js:28:9)Understand this error
+2. My wishlist no longer shares the same statistic of my_collection, good job Gemini!
+3. We cannot add cards to wishlist or collection.
+card-search.js:70 Uncaught TypeError: Cannot read properties of undefined (reading 'openCardManagementModal')
+    at HTMLButtonElement.<anonymous> (card-search.js:70:34)
+(anonymous)    @    card-search.js:70
+4. CSV import is met with hunderds of failures in the console, attaching a picture for this.
+

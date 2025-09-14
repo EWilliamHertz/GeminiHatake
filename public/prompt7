@@ -1,0 +1,5 @@
+1. The bulk edit, delete cards doesn't work.
+2. We cannot click search by enter or manually click the search button for manual add cards.
+3. We cannot manually delete things, it temporarily dissapears and when we refresh it is back. Please delete them from firestore database.
+4. We cannot bulk list for sale, it is supposed to come up with a modal where it asks us for what % of market price we want to list all cards, or advanced settings where we can write % of each individual card or a fixed price.
+5. It doesn't work to click the "upload csv" button.

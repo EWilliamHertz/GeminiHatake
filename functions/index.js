@@ -1,11 +1,10 @@
-// In functions/index.js
-
 /**
 * HatakeSocial - Firebase Cloud Functions
 *
 * This file contains the backend logic for the application.
 * - ADMIN FUNCTIONS for user management and platform control.
 * - MESSAGING FUNCTIONS for real-time user-to-user chat.
+* - CARD & MARKETPLACE FUNCTIONS for collection syncing and secure API searches.
 * - Handles user registration with a referral code.
 * - Creates Stripe checkout sessions for the shop with coupon/referral support.
 * - Validates Stripe promotion codes.
@@ -15,13 +14,15 @@
 * - Securely sets admin and content creator custom claims for user roles.
 * - Manages a secure escrow trading system with Escrow.com.
 * - Wishlist and Trade Matching functionality.
-* - NEW: Marketplace syncing function.
+* - Marketplace syncing function.
+* - SECURE POKEMON API SEARCH PROXY to protect the API key.
 */
 
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
 const axios = require("axios");
+const fetch = require("node-fetch"); // <-- ADDED for the new Pokémon function
 
 // --- CORS CONFIGURATION ---
 const allowedOrigins = [
@@ -56,6 +57,51 @@ const escrowApi = axios.create({
         'Authorization': `Basic ${Buffer.from(`${ESCROW_API_USER}:${ESCROW_API_KEY}`).toString('base64')}`
     }
 });
+
+// =================================================================================================
+// SECURE CARD SEARCH FUNCTIONS (NEW)
+// =================================================================================================
+
+/**
+ * A callable function that acts as a secure proxy to the Pokémon TCG API.
+ * This prevents the API key from being exposed on the client-side.
+ */
+exports.searchPokemon = functions.https.onCall(async (data, context) => {
+    const cardName = data.cardName;
+    if (!cardName) {
+        throw new functions.https.HttpsError(
+            "invalid-argument",
+            "The function must be called with a 'cardName' argument."
+        );
+    }
+
+    // Securely get the API key from Firebase environment configuration
+    const POKEMON_API_KEY = functions.config().pokemon.apikey;
+    if (!POKEMON_API_KEY) {
+        throw new functions.https.HttpsError('internal', 'Pokémon API key is not configured.');
+    }
+
+    const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}*"&pageSize=40&orderBy=-set.releaseDate`;
+
+    try {
+        const response = await fetch(searchUrl, {
+            headers: { "X-Api-Key": POKEMON_API_KEY },
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Pokemon API Error:", response.status, errorBody);
+            throw new functions.https.HttpsError("internal", `Failed to fetch from Pokémon TCG API. Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result.data; // Return the array of cards
+    } catch (error) {
+        console.error("Error fetching Pokémon cards in cloud function:", error);
+        throw new functions.https.HttpsError("internal", "An unexpected error occurred while fetching Pokémon cards.");
+    }
+});
+
 
 // =================================================================================================
 // ADMIN USER & PLATFORM MANAGEMENT FUNCTIONS
@@ -949,3 +995,4 @@ exports.generateImpersonationToken = functions.https.onCall(async (data, context
     );
   }
 });
+

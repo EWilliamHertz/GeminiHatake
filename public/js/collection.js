@@ -1,60 +1,26 @@
 /**
  * Main Collection Management System
- * Modular card collection management with marketplace integration
+ * Initializes all modules for the collection page.
  */
-
-// Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the main application
-    window.CollectionApp.initializeApp();
-});
-
-// Global functions for backward compatibility and HTML onclick handlers
-window.toggleItemSelection = function(itemId) {
-    window.BulkOperations.toggleItemSelection(itemId);
-};
-
-window.selectAllItems = function() {
-    window.BulkOperations.selectAllItems();
-};
-
-window.clearSelection = function() {
-    window.BulkOperations.clearSelection();
-};
-
-window.bulkDelete = function() {
-    window.BulkOperations.bulkDelete();
-};
-
-window.bulkListForSale = function() {
-    window.BulkOperations.bulkListForSale();
-};
-
-window.exportCollection = function() {
-    window.CSVImport.exportCollectionAsCSV();
-};
-
-window.handleCSVUpload = function() {
-    window.CSVImport.handleCSVUpload();
-};
-
-window.searchCardVersions = function() {
-    window.CardSearch.searchCardVersions();
-};
-
-window.addSealedProduct = function() {
-    window.SealedProducts.addSealedProduct();
-};
-
-// Make sure all modules are available globally
-console.log('Collection Management System loaded with modules:', {
-    CollectionApp: !!window.CollectionApp,
-    CardDisplay: !!window.CardDisplay,
-    CardModal: !!window.CardModal,
-    CardSearch: !!window.CardSearch,
-    BulkOperations: !!window.BulkOperations,
-    CSVImport: !!window.CSVImport,
-    SealedProducts: !!window.SealedProducts,
-    Utils: !!window.Utils
+document.addEventListener('authReady', (e) => {
+    const user = e.detail.user;
+    if (user) {
+        // Initialize all modules in a specific order to resolve dependencies
+        // This ensures that `window.ModuleName` exists before it's called by another module.
+        window.CardDisplay.initialize();
+        window.CardModal.initialize();
+        window.BulkOperations.initialize();
+        window.CardSearch.initialize();
+        window.CSVImport.initialize();
+        window.SealedProducts.initialize();
+        
+        // Initialize the main app last, as it depends on all other modules being ready.
+        window.CollectionApp.initialize(user, firebase.firestore());
+    } else {
+        const mainContent = document.querySelector('main');
+        if (mainContent) {
+            mainContent.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your collection.</p>';
+        }
+    }
 });
 

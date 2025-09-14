@@ -1,0 +1,9 @@
+We cannot manually add cards.
+It opens up a modal when we click search or enter, which is good. But it is missing collector numbers and price on the cards, we cannot hover over them to get a bigger picture.
+This is what it says in console when we try clicking the plus to add the card:
+card-modal.js:10 Uncaught TypeError: Cannot set properties of null (setting 'src')
+    at Object.openCardManagementModal (card-modal.js:10:57)
+    at HTMLButtonElement.<anonymous> (card-search.js:55:34)
+openCardManagementModal    @    card-modal.js:10
+(anonymous)    @    card-search.js:55
+
