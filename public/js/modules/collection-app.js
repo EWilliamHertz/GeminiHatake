@@ -121,10 +121,20 @@ function initializeEventListeners() {
     }
     
     // Initialize module event listeners
-    window.BulkOperations.initializeBulkOperations();
-    window.CSVImport.initializeCSVImport();
-    window.SealedProducts.initializeSealedProducts();
-    window.CardSearch.initializeSearch();
+    if (window.BulkOperations && typeof window.BulkOperations.initializeBulkOperations === 'function') {
+        window.BulkOperations.initializeBulkOperations();
+    }
+    if (window.CSVImport && typeof window.CSVImport.initializeCSVImport === 'function') {
+        window.CSVImport.initializeCSVImport();
+    }
+    if (window.SealedProducts && typeof window.SealedProducts.initializeSealedProducts === 'function') {
+        window.SealedProducts.initializeSealedProducts();
+    }
+    if (window.CardSearch && typeof window.CardSearch.initializeSearch === 'function') {
+        window.CardSearch.initializeSearch();
+    } else {
+        console.error('CardSearch module not ready or initializeSearch function not found.');
+    }
 }
 
 /**
@@ -313,7 +323,7 @@ function renderListView(data) {
 }
 
 /**
- * Update statistics
+ * Update statistics with correct element IDs
  */
 function updateStats() {
     const data = currentTab === 'collection' ? collectionData : wishlistData;
@@ -327,14 +337,44 @@ function updateStats() {
         return sum + (price * quantity);
     }, 0);
     
-    // Update display
-    const totalItemsElement = document.getElementById('total-items');
-    const uniqueCardsElement = document.getElementById('unique-cards');
-    const totalValueElement = document.getElementById('total-value');
+    // Calculate rarity breakdown
+    const rarityCount = {};
+    data.forEach(item => {
+        const rarity = item.rarity || 'common';
+        rarityCount[rarity] = (rarityCount[rarity] || 0) + (item.quantity || 1);
+    });
     
-    if (totalItemsElement) totalItemsElement.textContent = totalItems;
-    if (uniqueCardsElement) uniqueCardsElement.textContent = uniqueCards;
-    if (totalValueElement) totalValueElement.textContent = window.Utils.safeFormatPrice(totalValue);
+    // Update display with correct element IDs from the HTML
+    const totalItemsElement = document.getElementById('stats-total-cards');
+    const uniqueCardsElement = document.getElementById('stats-unique-cards');
+    const totalValueElement = document.getElementById('stats-total-value');
+    const rarityBreakdownElement = document.getElementById('stats-rarity-breakdown');
+    
+    if (totalItemsElement) {
+        totalItemsElement.textContent = totalItems.toLocaleString();
+    }
+    if (uniqueCardsElement) {
+        uniqueCardsElement.textContent = uniqueCards.toLocaleString();
+    }
+    if (totalValueElement) {
+        totalValueElement.textContent = window.Utils.safeFormatPrice(totalValue);
+    }
+    if (rarityBreakdownElement) {
+        // Display top 3 rarities
+        const sortedRarities = Object.entries(rarityCount)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3);
+        
+        if (sortedRarities.length > 0) {
+            rarityBreakdownElement.innerHTML = sortedRarities
+                .map(([rarity, count]) => `<span class="text-xs">${rarity}: ${count}</span>`)
+                .join('');
+        } else {
+            rarityBreakdownElement.innerHTML = '<span class="text-xs">No data</span>';
+        }
+    }
+    
+    console.log('Stats updated:', { totalItems, uniqueCards, totalValue });
 }
 
 /**

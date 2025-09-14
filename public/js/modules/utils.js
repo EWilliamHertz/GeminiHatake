@@ -173,6 +173,24 @@ function downloadFile(content, filename, contentType = 'text/plain') {
     URL.revokeObjectURL(url);
 }
 
+/**
+ * Open modal by removing hidden class
+ */
+function openModal(modal) {
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * Close modal by adding hidden class
+ */
+function closeModal(modal) {
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
 // Export functions
 window.Utils = {
     safeFormatPrice,
@@ -186,6 +204,8 @@ window.Utils = {
     isValidEmail,
     getProductTypeDisplayName,
     copyToClipboard,
-    downloadFile
+    downloadFile,
+    openModal,
+    closeModal
 };
 

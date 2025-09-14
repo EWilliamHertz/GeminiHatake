@@ -173,6 +173,16 @@ async function bulkDelete() {
         selectedItems.clear();
         updateSelectedCount();
         
+        // Force UI update
+        setTimeout(() => {
+            if (window.CollectionApp && window.CollectionApp.renderCurrentView) {
+                window.CollectionApp.renderCurrentView();
+            }
+            if (window.CollectionApp && window.CollectionApp.updateStats) {
+                window.CollectionApp.updateStats();
+            }
+        }, 100);
+        
         window.Utils.showNotification('Selected items deleted successfully', 'success');
         
     } catch (error) {
