@@ -9,19 +9,20 @@ let state = {
     fullCollection: [],
     wishlist: [],
     filteredCollection: [],
-    activeTab: 'collection', // 'collection' or 'wishlist'
-    activeView: 'grid', // 'grid' or 'list'
+    activeTab: 'collection',
+    activeView: 'grid',
     filters: {
         name: '',
         set: '',
         rarity: '',
-        colors: [], // For MTG: ['W', 'U', 'B', 'R', 'G', 'C']
+        colors: [],
+        game: 'all', // *** NEW: Added for TCG filtering ***
     },
     bulkEdit: {
         isActive: false,
         selected: new Set(),
     },
-    currentEditingCard: null, // Holds the original API data for the card being added/edited
+    currentEditingCard: null,
 };
 
 export const getState = () => state;
@@ -79,38 +80,26 @@ export function toggleColorFilter(color) {
 // --- CARD OPERATIONS ---
 export async function addCard(cardData, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
-    
     let finalCardData = { ...cardData };
-
-    // Add to Firestore first to get an ID
     const cardId = await API.addCardToCollection(state.currentUser.uid, finalCardData);
     finalCardData.id = cardId;
-
-    // If there's a custom image, upload it and update the Firestore entry
     if (customImageFile) {
         const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
         finalCardData.customImageUrl = imageUrl;
         await API.updateCardInCollection(state.currentUser.uid, cardId, { customImageUrl: imageUrl });
     }
-
-    // Update local state
     state.fullCollection.unshift(finalCardData);
     applyFilters();
 }
 
 export async function updateCard(cardId, updates, customImageFile) {
      if (!state.currentUser) throw new Error("User not logged in.");
-
     let finalUpdates = { ...updates };
-    
     if (customImageFile) {
         const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
         finalUpdates.customImageUrl = imageUrl;
     }
-
     await API.updateCardInCollection(state.currentUser.uid, cardId, finalUpdates);
-
-    // Update local state
     const index = state.fullCollection.findIndex(c => c.id === cardId);
     if (index !== -1) {
         state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates };
@@ -121,8 +110,6 @@ export async function updateCard(cardId, updates, customImageFile) {
 export async function deleteCard(cardId) {
     if (!state.currentUser) throw new Error("User not logged in.");
     await API.deleteCardFromCollection(state.currentUser.uid, cardId);
-    
-    // Update local state
     state.fullCollection = state.fullCollection.filter(c => c.id !== cardId);
     applyFilters();
 }
@@ -132,16 +119,19 @@ export const getCardById = (cardId) => state.fullCollection.find(c => c.id === c
 
 // --- FILTERING & DATA DERIVATION ---
 export function applyFilters() {
-    const { name, set, rarity, colors } = state.filters;
+    // *** UPDATED: Destructure 'game' from filters ***
+    const { name, set, rarity, colors, game } = state.filters;
     state.filteredCollection = state.fullCollection.filter(card => {
         const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
         const setMatch = !set || card.set_name === set;
         const rarityMatch = !rarity || card.rarity === rarity;
-        
         const colorMatch = colors.length === 0 || 
             (card.color_identity && colors.every(c => card.color_identity.includes(c)));
+        
+        // *** NEW: Apply the game filter ***
+        const gameMatch = game === 'all' || card.game === game;
 
-        return nameMatch && setMatch && rarityMatch && colorMatch;
+        return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
     });
 }
 

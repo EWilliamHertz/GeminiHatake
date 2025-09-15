@@ -8,6 +8,7 @@ import * as API from './api.js';
 import * as CSV from './csv.js';
 import * as Bulk from './bulk-operations.js';
 import { debounce } from './utils.js';
+import { showToast } from './ui.js'; // *** FIXED: Import showToast from UI module ***
 
 // --- STATE & INITIALIZATION ---
 
@@ -88,6 +89,11 @@ function setupEventListeners() {
         tab.addEventListener('click', () => handleTabChange(tab.dataset.tab));
     });
 
+    // *** NEW: TCG Filter Event Listener ***
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => {
+        btn.addEventListener('click', () => handleTcgFilterChange(btn.dataset.game));
+    });
+
     // Filters
     document.getElementById('filter-name').addEventListener('input', debounce(handleFilterChange, 300));
     document.getElementById('filter-set').addEventListener('change', handleFilterChange);
@@ -126,7 +132,6 @@ function setupEventListeners() {
     document.getElementById('bulk-cancel-btn').addEventListener('click', Bulk.exitBulkEditMode);
     document.getElementById('bulk-delete-btn').addEventListener('click', Bulk.deleteSelected);
     document.getElementById('bulk-list-sale-btn').addEventListener('click', Bulk.listSelectedForSale);
-
 }
 
 
@@ -146,12 +151,21 @@ async function handleTabChange(tab) {
     await renderFilteredCollection();
 }
 
+// *** NEW: TCG Filter Handler ***
+async function handleTcgFilterChange(game) {
+    if (Collection.getState().filters.game === game) return;
+    Collection.setFilters({ game: game }); // Update the state
+    UI.updateTcgFilter(game); // Update the button visuals
+    await renderFilteredCollection(); // Re-render the view
+}
+
 async function handleFilterChange() {
     const filters = {
         name: document.getElementById('filter-name').value,
         set: document.getElementById('filter-set').value,
         rarity: document.getElementById('filter-rarity').value,
-        colors: Collection.getState().filters.colors // Keep colors from their own handler
+        colors: Collection.getState().filters.colors, // Keep colors from their own handler
+        game: Collection.getState().filters.game // Keep the game filter
     };
     Collection.setFilters(filters);
     await renderFilteredCollection();
@@ -190,11 +204,9 @@ async function handleSaveCard(e) {
     
     try {
         if (formData.id) {
-            // Editing existing card
             await Collection.updateCard(formData.id, formData.data, formData.customImageFile);
             showToast("Card updated successfully!", "success");
         } else {
-            // Adding new card
             await Collection.addCard(formData.data, formData.customImageFile);
             showToast("Card added to collection!", "success");
         }
@@ -211,10 +223,8 @@ function handleAddAnotherVersion() {
     const currentCardData = Collection.getCurrentEditingCard();
     if (currentCardData) {
         UI.closeCardModal();
-        // Slight delay to ensure modal is closed before search modal is opened
         setTimeout(() => {
             UI.openSearchModal(currentCardData.name);
-            // Trigger search after populating
             handleCardSearch();
         }, 100);
     }
@@ -234,9 +244,6 @@ async function handleBulkListForSale(e) {
     await renderFilteredCollection();
 }
 
-/**
- * Handles clicks within the main collection display area using event delegation.
- */
 async function handleCollectionDisplayClick(e) {
     const cardElement = e.target.closest('.card-container');
     if (!cardElement) return;
@@ -244,12 +251,11 @@ async function handleCollectionDisplayClick(e) {
     const cardId = cardElement.dataset.id;
     const actionButton = e.target.closest('[data-action]');
     
-    // Handle Bulk Mode Selection
     if (Bulk.isBulkEditMode()) {
-        if (!actionButton) { // Clicks on the card itself, not a button
+        if (!actionButton) {
              Bulk.toggleCardSelection(cardId);
         }
-        return; // Prevent other actions in bulk mode
+        return;
     }
 
     if (actionButton) {
@@ -273,7 +279,6 @@ async function handleCollectionDisplayClick(e) {
                 }
                 break;
             case 'list':
-                // For a single card, just open the edit modal and check the box
                 const cardToList = Collection.getCardById(cardId);
                 if (cardToList) UI.populateCardModalForEdit(cardToList, true);
                 break;

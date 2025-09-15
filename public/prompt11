@@ -1,0 +1,8 @@
+1. It says [object PointerEvent] in the search card form when you open it up. I am attaching a photo to demonstrate this.
+2. You cannot click outside of the pop-up modal on search card to close it.
+3. On MTG it doesn't say the collector card ID/number, it should do that next to the edition.
+4. When you have clicked bulk-edit, there isn't a button for "select all", there should be one.
+5. When you are in "add a card" pop-up modal and click "add another version" you should simply get a replica of the current modal underneath it so it is twice.
+6. In the "add a card" pop-up modal you should be able to hover over cards to enlargen them.
+7. The filter for "Pokemon" and "Magic" doens't work, I can see all of them on the initial tab, it should however be underlined on the "all" that it is the selected tab, and it should be functional to click Pokemon or Magic to seperate the cards and the statistics should be changed as well.
+The login and register pop-up modals doesn't appear, and the messenger widget doesn't appear either, you should probably add the messenger widget script from app.html

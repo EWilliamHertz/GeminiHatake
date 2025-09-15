@@ -1,0 +1,1137 @@
+This is my_collection.html:
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>My Collection - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <link href="/manifest.json" rel="manifest"/>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+<div class="flex h-screen">
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+        <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+            <a class="flex flex-col items-center space-y-1" href="app.html">
+                <img alt="HatakeSocial Logo" class="h-16" src="https://i.imgur.com/B06rBhI.png"/>
+                <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+            </a>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+             <a href="app.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
+            <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
+            <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
+            <a href="articles.html?type=tcg" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a>
+            <a href="my_collection.html" class="flex items-center px-4 py-2 bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-white rounded-md font-semibold"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
+            <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
+            <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
+            <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
+            <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
+            <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
+            <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
+        </nav>
+        <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div id="auth-container-sidebar"></div>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center">
+                <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-2xl font-bold">My Collection</h1>
+            </div>
+            <div class="flex items-center space-x-5" id="user-actions">
+                </div>
+        </header>
+
+        <main class="flex-1 overflow-hidden flex">
+            <div class="w-full md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-6 flex-shrink-0 flex flex-col overflow-y-auto">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Statistics</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span>Total Cards:</span> <span id="stats-total-cards" class="font-mono">0</span></div>
+                        <div class="flex justify-between"><span>Unique Cards:</span> <span id="stats-unique-cards" class="font-mono">0</span></div>
+                        <div class="flex justify-between"><span>Total Value:</span> <span id="stats-total-value" class="font-mono">$0.00</span></div>
+                    </div>
+                </div>
+
+                <div class="mb-6 flex-1">
+                    <h3 class="text-lg font-semibold mb-3">Filters</h3>
+                    <div class="space-y-4">
+                        <input type="text" id="filter-name" placeholder="Filter by name..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="filter-set" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">All Sets</option>
+                        </select>
+                        <select id="filter-rarity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">All Rarities</option>
+                        </select>
+                        <div>
+                            <label class="text-sm">Colors (Magic)</label>
+                            <div id="filter-colors" class="flex justify-around mt-2 text-2xl">
+                                <i class="fas fa-circle text-gray-400 cursor-pointer" data-color="W" title="White"></i>
+                                <i class="fas fa-tint text-gray-400 cursor-pointer" data-color="U" title="Blue"></i>
+                                <i class="fas fa-skull text-gray-400 cursor-pointer" data-color="B" title="Black"></i>
+                                <i class="fas fa-fire text-gray-400 cursor-pointer" data-color="R" title="Red"></i>
+                                <i class="fas fa-leaf text-gray-400 cursor-pointer" data-color="G" title="Green"></i>
+                                <i class="fas fa-gem text-gray-400 cursor-pointer" data-color="C" title="Colorless"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Actions</h3>
+                    <div class="space-y-2">
+                        <button id="add-card-btn" class="w-full text-left flex items-center p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><i class="fas fa-plus w-6"></i> Add Card</button>
+                        <button id="quick-edit-btn" class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"><i class="fas fa-bolt w-6"></i> Quick Edit</button>
+                        <button id="bulk-edit-btn" class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"><i class="fas fa-edit w-6"></i> Bulk Edit</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col overflow-hidden p-6">
+                <div class="flex-shrink-0 mb-4">
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold">
+                            <button data-tab="collection" class="tab-button flex-1 px-4 py-2 rounded-full active">Collection</button>
+                            <button data-tab="wishlist" class="tab-button flex-1 px-4 py-2 rounded-full">Wishlist</button>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+                                <button id="view-toggle-grid" class="p-2 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow"><i class="fas fa-th-large"></i></button>
+                                <button id="view-toggle-list" class="p-2 rounded-full text-gray-500 dark:text-gray-400"><i class="fas fa-list"></i></button>
+                            </div>
+                             <div class="flex items-center space-x-2">
+                                <button id="import-csv-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-full" title="Import CSV"><i class="fas fa-file-upload"></i></button>
+                                <button id="export-csv-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-full" title="Export CSV"><i class="fas fa-file-download"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="bulk-actions-toolbar" class="hidden flex-shrink-0 mb-4 bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg flex justify-between items-center">
+                    <div>
+                        <span id="bulk-selection-count">0 cards selected</span>
+                    </div>
+                    <div class="space-x-2">
+                        <button id="bulk-list-sale-btn" class="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600">List for Sale</button>
+                        <button id="bulk-delete-btn" class="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600">Delete</button>
+                        <button id="bulk-cancel-btn" class="px-3 py-1 text-sm bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
+                    </div>
+                </div>
+
+                <div id="collection-display" class="flex-1 overflow-y-auto">
+                    <div class="flex items-center justify-center h-full text-gray-500">
+                        <p>Loading your collection...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[1003]"></div>
+
+<div id="search-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-start justify-center z-[1001] pt-16">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 80vh;">
+        <div class="p-4 border-b dark:border-gray-700 flex items-center">
+            <div class="relative flex-grow mr-4">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="card-search-input" placeholder="Search for a card..." class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <select id="game-selector" class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <option value="mtg">Magic: The Gathering</option>
+                <option value="pokemon">Pokémon</option>
+            </select>
+            <button id="close-search-modal" class="ml-4 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <div id="search-results-container" class="p-6 flex-grow overflow-y-auto">
+            <p class="text-center text-gray-500">Search results will appear here.</p>
+        </div>
+    </div>
+</div>
+
+<div id="card-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;">
+        <div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center">
+            <img id="card-modal-image" src="https://placehold.co/300x420?text=Card+Image" class="max-w-full max-h-full rounded-lg object-contain">
+        </div>
+        <div class="w-2/3 p-6 flex flex-col overflow-y-auto">
+            <form id="card-form">
+                <input type="hidden" id="card-modal-id">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 id="card-modal-title" class="text-2xl font-bold">Add New Card</h2>
+                        <p id="card-modal-subtitle" class="text-sm text-gray-500">Details for this version</p>
+                    </div>
+                    <button type="button" id="close-card-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+                </div>
+                
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="card-quantity" class="block text-sm font-medium">Quantity</label>
+                        <input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="card-condition" class="block text-sm font-medium">Condition</label>
+                        <select id="card-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="card-language" class="block text-sm font-medium">Language</label>
+                        <select id="card-language" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option>English</option><option>Japanese</option><option>German</option><option>French</option><option>Spanish</option><option>Italian</option><option>Korean</option><option>Russian</option><option>Chinese</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="card-purchase-price" class="block text-sm font-medium">Purchase Price (optional)</label>
+                        <input type="number" step="0.01" id="card-purchase-price" placeholder="0.00" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center space-x-6">
+                    <label class="flex items-center"><input type="checkbox" id="card-is-foil" class="h-4 w-4"><span class="ml-2">Foil</span></label>
+                    <label class="flex items-center"><input type="checkbox" id="card-is-signed" class="h-4 w-4"><span class="ml-2">Signed</span></label>
+                    <label class="flex items-center"><input type="checkbox" id="card-is-altered" class="h-4 w-4"><span class="ml-2">Altered</span></label>
+                </div>
+
+                <div class="mt-4">
+                    <label for="custom-image-upload" class="block text-sm font-medium">Custom Image (optional)</label>
+                    <input type="file" id="custom-image-upload" accept="image/*" class="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+
+                <div class="mt-6 border-t pt-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="list-for-sale-toggle" class="h-4 w-4">
+                        <span class="ml-2 font-semibold">List for Sale</span>
+                    </label>
+                    <div id="list-for-sale-section" class="hidden mt-2">
+                         <label for="card-sale-price" class="block text-sm font-medium">Sale Price</label>
+                         <input type="number" step="0.01" id="card-sale-price" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t flex justify-end items-center space-x-3">
+                    <button type="button" id="add-another-version-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Add Another Version</button>
+                    <button type="submit" id="save-card-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Save Card</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="csv-import-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">Import from CSV</h2>
+            <button id="close-csv-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload a CSV file. We'll try to detect columns like 'Name', 'Quantity', 'Set', 'Foil', and 'Condition'.</p>
+            <input type="file" id="csv-file-input" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <div id="csv-import-status" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-md h-40 overflow-y-auto text-sm">
+                Awaiting file...
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="bulk-list-sale-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+         <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">List Selected Cards for Sale</h2>
+            <button id="close-bulk-list-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <form id="bulk-list-form" class="mt-4 space-y-4">
+            <p>Set a price for the <span id="bulk-list-count">0</span> selected cards.</p>
+             <div>
+                <label class="flex items-center">
+                    <input type="radio" name="price-option" value="percentage" class="h-4 w-4" checked>
+                    <span class="ml-2">Percentage of Market Value</span>
+                </label>
+                <div class="flex items-center mt-1">
+                    <input type="number" id="bulk-price-percentage" value="100" class="w-24 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2">%</span>
+                </div>
+            </div>
+             <div>
+                <label class="flex items-center">
+                    <input type="radio" name="price-option" value="fixed" class="h-4 w-4">
+                    <span class="ml-2">Fixed Price</span>
+                </label>
+                 <input type="number" step="0.01" id="bulk-price-fixed" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" disabled>
+            </div>
+            <div class="text-right pt-4">
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">List Items</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+
+<script src="js/auth.js"></script>
+<script src="js/darkmode.js"></script>
+
+<script type="module" src="public/js/modules/collection-app.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            });
+        }
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+        }
+    });
+</script>
+</body>
+</html>
+This is public/js/modules/collection.js 
+/**
+ * collection.js
+ * Manages the application's state for the TCG collection.
+ */
+import * as API from './api.js';
+
+let state = {
+    currentUser: null,
+    fullCollection: [],
+    wishlist: [],
+    filteredCollection: [],
+    activeTab: 'collection', // 'collection' or 'wishlist'
+    activeView: 'grid', // 'grid' or 'list'
+    filters: {
+        name: '',
+        set: '',
+        rarity: '',
+        colors: [], // For MTG: ['W', 'U', 'B', 'R', 'G', 'C']
+    },
+    bulkEdit: {
+        isActive: false,
+        selected: new Set(),
+    },
+    currentEditingCard: null, // Holds the original API data for the card being added/edited
+};
+
+export const getState = () => state;
+
+export function setCurrentEditingCard(cardData) {
+    state.currentEditingCard = cardData;
+}
+export function getCurrentEditingCard() {
+    return state.currentEditingCard;
+}
+
+// --- DATA LOADING ---
+export async function loadCollection(userId) {
+    state.currentUser = { uid: userId };
+    try {
+        state.fullCollection = await API.getCollection(userId);
+        applyFilters();
+    } catch (error) {
+        console.error("Failed to load collection:", error);
+        state.fullCollection = [];
+        state.filteredCollection = [];
+    }
+}
+
+export async function loadWishlist(userId) {
+    try {
+        state.wishlist = await API.getWishlist(userId);
+    } catch (error) {
+        console.error("Failed to load wishlist:", error);
+        state.wishlist = [];
+    }
+}
+
+// --- STATE MODIFICATION ---
+export function setView(view) {
+    state.activeView = view;
+}
+export function setTab(tab) {
+    state.activeTab = tab;
+}
+export function setFilters(newFilters) {
+    state.filters = { ...state.filters, ...newFilters };
+    applyFilters();
+}
+export function toggleColorFilter(color) {
+    const index = state.filters.colors.indexOf(color);
+    if (index > -1) {
+        state.filters.colors.splice(index, 1);
+    } else {
+        state.filters.colors.push(color);
+    }
+    return state.filters.colors;
+}
+
+// --- CARD OPERATIONS ---
+export async function addCard(cardData, customImageFile) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    let finalCardData = { ...cardData };
+
+    // Add to Firestore first to get an ID
+    const cardId = await API.addCardToCollection(state.currentUser.uid, finalCardData);
+    finalCardData.id = cardId;
+
+    // If there's a custom image, upload it and update the Firestore entry
+    if (customImageFile) {
+        const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
+        finalCardData.customImageUrl = imageUrl;
+        await API.updateCardInCollection(state.currentUser.uid, cardId, { customImageUrl: imageUrl });
+    }
+
+    // Update local state
+    state.fullCollection.unshift(finalCardData);
+    applyFilters();
+}
+
+export async function updateCard(cardId, updates, customImageFile) {
+     if (!state.currentUser) throw new Error("User not logged in.");
+
+    let finalUpdates = { ...updates };
+    
+    if (customImageFile) {
+        const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
+        finalUpdates.customImageUrl = imageUrl;
+    }
+
+    await API.updateCardInCollection(state.currentUser.uid, cardId, finalUpdates);
+
+    // Update local state
+    const index = state.fullCollection.findIndex(c => c.id === cardId);
+    if (index !== -1) {
+        state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates };
+    }
+    applyFilters();
+}
+
+export async function deleteCard(cardId) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.deleteCardFromCollection(state.currentUser.uid, cardId);
+    
+    // Update local state
+    state.fullCollection = state.fullCollection.filter(c => c.id !== cardId);
+    applyFilters();
+}
+
+export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId);
+
+
+// --- FILTERING & DATA DERIVATION ---
+export function applyFilters() {
+    const { name, set, rarity, colors } = state.filters;
+    state.filteredCollection = state.fullCollection.filter(card => {
+        const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
+        const setMatch = !set || card.set_name === set;
+        const rarityMatch = !rarity || card.rarity === rarity;
+        
+        const colorMatch = colors.length === 0 || 
+            (card.color_identity && colors.every(c => card.color_identity.includes(c)));
+
+        return nameMatch && setMatch && rarityMatch && colorMatch;
+    });
+}
+
+export function calculateStats() {
+    const totalCards = state.fullCollection.reduce((sum, card) => sum + (card.quantity || 0), 0);
+    const uniqueCards = new Set(state.fullCollection.map(card => card.name)).size;
+    const totalValue = state.fullCollection.reduce((sum, card) => {
+        const price = card.prices?.usd || 0;
+        return sum + (price * (card.quantity || 0));
+    }, 0);
+    return { totalCards, uniqueCards, totalValue };
+}
+
+export function getAvailableFilterOptions() {
+    const sets = [...new Set(state.fullCollection.map(c => c.set_name))].sort();
+    const rarities = [...new Set(state.fullCollection.map(c => c.rarity))].sort();
+    return { sets, rarities };
+}
+
+This is public/js/modules/ui.js
+/**
+ * ui.js
+ * Handles all DOM manipulation, rendering, and UI updates for the collection page.
+ */
+import { getCardImageUrl, formatPrice } from './utils.js';
+import * as Collection from './collection.js';
+import * as API from './api.js';
+
+// --- ELEMENT SELECTORS ---
+const getElement = (id) => document.getElementById(id);
+const display = getElement('collection-display');
+const searchModal = getElement('search-modal');
+const cardModal = getElement('card-modal');
+const csvModal = getElement('csv-import-modal');
+const bulkListModal = getElement('bulk-list-sale-modal');
+
+// --- RENDER FUNCTIONS ---
+
+/**
+ * Renders the collection in a grid format.
+ * @param {Array} cards - Array of card objects to render.
+ * @param {string} activeTab - 'collection' or 'wishlist'.
+ */
+export function renderGridView(cards, activeTab) {
+    if (!cards || cards.length === 0) {
+        showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
+        return;
+    }
+    const isBulkMode = Collection.getState().bulkEdit.isActive;
+
+    const gridHTML = cards.map(card => {
+        const imageUrl = getCardImageUrl(card);
+        const price = formatPrice(card?.prices?.usd, 'USD'); // Assuming USD price from Scryfall
+        const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+
+        return `
+            <div class="card-container relative group" data-id="${card.id}">
+                <img src="${imageUrl}" alt="${card.name}" class="rounded-lg shadow-md w-full transition-transform transform group-hover:scale-105">
+                <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                    <div class="text-white text-center p-2">
+                        <p class="font-bold">${card.name}</p>
+                        <p class="text-sm">${card.set_name}</p>
+                    </div>
+                </div>
+                 ${isBulkMode ? `
+                    <div class="absolute top-2 right-2">
+                        <input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}>
+                    </div>` : `
+                    <div class="absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button data-action="edit" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"><i class="fas fa-pencil-alt"></i></button>
+                        <button data-action="delete" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"><i class="fas fa-trash"></i></button>
+                    </div>`
+                }
+                <div class="absolute bottom-0 left-0 bg-gray-800 bg-opacity-75 text-white text-xs w-full p-1 rounded-b-lg flex justify-between">
+                    <span>Qty: ${card.quantity || 1}</span>
+                    <span>${price}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    display.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${gridHTML}</div>`;
+}
+
+/**
+ * Renders the collection in a list (table) format.
+ * @param {Array} cards - Array of card objects to render.
+ * @param {string} activeTab - 'collection' or 'wishlist'.
+ */
+export function renderListView(cards, activeTab) {
+    if (!cards || cards.length === 0) {
+        showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
+        return;
+    }
+    const isBulkMode = Collection.getState().bulkEdit.isActive;
+
+    const tableHeader = `
+        <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+                ${isBulkMode ? '<th class="p-3 text-left text-xs font-medium uppercase tracking-wider"><input type="checkbox" id="bulk-select-all"></th>' : ''}
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Condition</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Price</th>
+                ${!isBulkMode ? '<th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>' : ''}
+            </tr>
+        </thead>
+    `;
+
+    const tableBody = cards.map(card => {
+         const price = formatPrice(card?.prices?.usd, 'USD');
+         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+        return `
+            <tr class="card-container border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600/50" data-id="${card.id}">
+                ${isBulkMode ? `<td class="p-3"><input type="checkbox" class="bulk-select-checkbox h-4 w-4" data-id="${card.id}" ${isSelected ? 'checked' : ''}></td>` : ''}
+                <td class="p-3 font-medium">${card.name} ${card.is_foil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
+                <td class="p-3 text-sm text-gray-500 dark:text-gray-400">${card.set_name}</td>
+                <td class="p-3">${card.quantity || 1}</td>
+                <td class="p-3">${card.condition || 'N/A'}</td>
+                <td class="p-3">${price}</td>
+                ${!isBulkMode ? `
+                    <td class="p-3">
+                        <div class="flex space-x-2">
+                            <button data-action="edit" class="text-blue-500 hover:text-blue-700"><i class="fas fa-pencil-alt"></i></button>
+                            <button data-action="delete" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>` : ''
+                }
+            </tr>
+        `;
+    }).join('');
+
+    display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
+}
+
+/**
+ * Renders search results in the search modal.
+ * @param {Array|null} results - Array of card data from API.
+ * @param {string} context - The game ('mtg', 'pokemon') or a message string.
+ */
+export function renderSearchResults(results, context) {
+    const container = getElement('search-results-container');
+    if (results === null) {
+        container.innerHTML = `<p class="text-center text-gray-500">${context}</p>`;
+        return;
+    }
+    if (results.length === 0) {
+        container.innerHTML = `<p class="text-center text-gray-500">No cards found.</p>`;
+        return;
+    }
+
+    const resultsHTML = results.map(card => {
+        const imageUrl = getCardImageUrl(card);
+        const price = formatPrice(card?.prices?.usd, 'USD');
+        const cardDataString = encodeURIComponent(JSON.stringify(card));
+
+        return `
+            <div class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer search-result-item" data-card='${cardDataString}'>
+                <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md">
+                <div class="flex-grow">
+                    <p class="font-semibold">${card.name}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${card.set_name} (${card.set.toUpperCase()})</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-mono">${price}</p>
+                    <p class="text-sm capitalize text-gray-500">${card.rarity}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+    container.innerHTML = resultsHTML;
+
+    // Add event listeners to new results
+    document.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
+            closeSearchModal();
+            populateCardModalForAdd(cardData);
+        });
+    });
+}
+
+
+// --- UI STATE UPDATES ---
+
+export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
+export const showLoggedOutState = () => display.innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
+export const showEmptyState = (message) => display.innerHTML = `<p class="text-center text-gray-500">${message}</p>`;
+
+export function updateStats(stats) {
+    getElement('stats-total-cards').textContent = stats.totalCards;
+    getElement('stats-unique-cards').textContent = stats.uniqueCards;
+    getElement('stats-total-value').textContent = formatPrice(stats.totalValue, 'USD');
+}
+
+export function populateFilters(sets, rarities) {
+    const setFilter = getElement('filter-set');
+    const rarityFilter = getElement('filter-rarity');
+
+    // Preserve current selection
+    const currentSet = setFilter.value;
+    const currentRarity = rarityFilter.value;
+
+    setFilter.innerHTML = '<option value="">All Sets</option>' + sets.map(s => `<option value="${s}">${s}</option>`).join('');
+    rarityFilter.innerHTML = '<option value="">All Rarities</option>' + rarities.map(r => `<option value="${r}">${r}</option>`).join('');
+    
+    setFilter.value = currentSet;
+    rarityFilter.value = currentRarity;
+}
+
+export function updateViewToggle(view) {
+    const gridBtn = getElement('view-toggle-grid');
+    const listBtn = getElement('view-toggle-list');
+    if (view === 'grid') {
+        gridBtn.classList.add('bg-white', 'dark:bg-gray-900', 'shadow');
+        gridBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+        listBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'shadow');
+        listBtn.classList.add('text-gray-500', 'dark:text-gray-400');
+    } else {
+        listBtn.classList.add('bg-white', 'dark:bg-gray-900', 'shadow');
+        listBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+        gridBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'shadow');
+        gridBtn.classList.add('text-gray-500', 'dark:text-gray-400');
+    }
+}
+
+export function updateActiveTab(tab) {
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+}
+
+export function updateColorFilterSelection(selectedColors) {
+    const colorIcons = document.querySelectorAll('#filter-colors i');
+    colorIcons.forEach(icon => {
+        const color = icon.dataset.color;
+        if (selectedColors.includes(color)) {
+            icon.classList.remove('text-gray-400');
+            switch(color) {
+                case 'W': icon.classList.add('text-yellow-200'); break;
+                case 'U': icon.classList.add('text-blue-500'); break;
+                case 'B': icon.classList.add('text-black'); break;
+                case 'R': icon.classList.add('text-red-500'); break;
+                case 'G': icon.classList.add('text-green-500'); break;
+                case 'C': icon.classList.add('text-gray-500'); break;
+            }
+        } else {
+            icon.className = 'fas cursor-pointer text-gray-400'; // Reset classes
+            // Re-add specific icon class
+            switch(color) {
+                case 'W': icon.classList.add('fa-circle'); break;
+                case 'U': icon.classList.add('fa-tint'); break;
+                case 'B': icon.classList.add('fa-skull'); break;
+                case 'R': icon.classList.add('fa-fire'); break;
+                case 'G': icon.classList.add('fa-leaf'); break;
+                case 'C': icon.classList.add('fa-gem'); break;
+            }
+        }
+    });
+}
+
+
+// --- MODAL MANAGEMENT ---
+
+const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+const closeModal = (modal) => { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+
+// Search Modal
+export function openSearchModal(query = '') {
+    getElement('card-search-input').value = query;
+    getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
+    openModal(searchModal);
+    getElement('card-search-input').focus();
+}
+export const closeSearchModal = () => closeModal(searchModal);
+
+// Add/Edit Card Modal
+export const openCardModal = () => openModal(cardModal);
+export const closeCardModal = () => {
+    getElement('card-form').reset();
+    getElement('list-for-sale-section').classList.add('hidden');
+    closeModal(cardModal);
+};
+
+export function populateCardModalForAdd(cardData) {
+    Collection.setCurrentEditingCard(cardData); // Store original API data
+    getElement('card-modal-id').value = ''; // Ensure no ID for new cards
+    getElement('card-modal-title').textContent = cardData.name;
+    getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
+    getElement('card-modal-image').src = getCardImageUrl(cardData);
+    getElement('save-card-btn').textContent = "Add to Collection";
+    openCardModal();
+}
+
+export function populateCardModalForEdit(cardData, listForSale = false) {
+    Collection.setCurrentEditingCard(cardData); // Store full card data for reference
+    getElement('card-modal-id').value = cardData.id;
+    getElement('card-modal-title').textContent = `Editing: ${cardData.name}`;
+    getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
+    getElement('card-modal-image').src = getCardImageUrl(cardData);
+    
+    // Populate form fields
+    getElement('card-quantity').value = cardData.quantity || 1;
+    getElement('card-condition').value = cardData.condition || 'Near Mint';
+    getElement('card-language').value = cardData.language || 'English';
+    getElement('card-purchase-price').value = cardData.purchasePrice || '';
+    getElement('card-is-foil').checked = cardData.is_foil || false;
+    getElement('card-is-signed').checked = cardData.is_signed || false;
+    getElement('card-is-altered').checked = cardData.is_altered || false;
+
+    // Handle 'for sale' section
+    const forSaleToggle = getElement('list-for-sale-toggle');
+    const forSaleSection = getElement('list-for-sale-section');
+    const salePriceInput = getElement('card-sale-price');
+
+    if (cardData.forSale || listForSale) {
+        forSaleToggle.checked = true;
+        forSaleSection.classList.remove('hidden');
+        salePriceInput.value = cardData.salePrice || '';
+    } else {
+        forSaleToggle.checked = false;
+        forSaleSection.classList.add('hidden');
+        salePriceInput.value = '';
+    }
+    
+    getElement('save-card-btn').textContent = "Save Changes";
+    openCardModal();
+}
+
+export function getCardFormData() {
+    const id = getElement('card-modal-id').value;
+    const forSale = getElement('list-for-sale-toggle').checked;
+    
+    // Get original API data stored when modal was opened
+    const originalApiData = Collection.getCurrentEditingCard();
+    if (!originalApiData) throw new Error("Could not find original card data.");
+    
+    const data = {
+        ...originalApiData, // Base data from Scryfall/Pokemon API
+        quantity: parseInt(getElement('card-quantity').value, 10),
+        condition: getElement('card-condition').value,
+        language: getElement('card-language').value,
+        purchasePrice: parseFloat(getElement('card-purchase-price').value) || null,
+        is_foil: getElement('card-is-foil').checked,
+        is_signed: getElement('card-is-signed').checked,
+        is_altered: getElement('card-is-altered').checked,
+        forSale: forSale,
+        salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || null) : null,
+        addedAt: id ? originalApiData.addedAt : new Date().toISOString() // Preserve original add date
+    };
+
+    const customImageFile = getElement('custom-image-upload').files[0] || null;
+
+    return { id, data, customImageFile };
+}
+
+export const toggleListForSaleSection = () => getElement('list-for-sale-section').classList.toggle('hidden');
+
+// CSV Modal
+export const openCsvImportModal = () => openModal(csvModal);
+export const closeCsvImportModal = () => {
+    getElement('csv-file-input').value = '';
+    getElement('csv-import-status').textContent = 'Awaiting file...';
+    closeModal(csvModal);
+};
+export const updateCsvImportStatus = (message) => {
+    const statusEl = getElement('csv-import-status');
+    statusEl.innerHTML += message + '<br>';
+    statusEl.scrollTop = statusEl.scrollHeight; // Auto-scroll
+};
+
+// Bulk List Sale Modal
+export function openBulkListSaleModal(count) {
+    getElement('bulk-list-count').textContent = count;
+    openModal(bulkListModal);
+}
+export const closeBulkListSaleModal = () => {
+    getElement('bulk-list-form').reset();
+    toggleBulkPriceInputs(); // Reset to default state
+    closeModal(bulkListModal);
+};
+
+export function toggleBulkPriceInputs() {
+    const isPercentage = getElement('bulk-list-form').elements['price-option'].value === 'percentage';
+    getElement('bulk-price-percentage').disabled = !isPercentage;
+    getElement('bulk-price-fixed').disabled = isPercentage;
+}
+
+This is public/js/modules/collection-app.js
+/**
+ * collection-app.js
+ * Main entry point and orchestrator for the TCG Collection page.
+ */
+import * as Collection from './collection.js';
+import * as UI from './ui.js';
+import * as API from './api.js';
+import * as CSV from './csv.js';
+import * as Bulk from './bulk-operations.js';
+import { debounce } from './utils.js';
+
+// --- STATE & INITIALIZATION ---
+
+let currentUser;
+
+/**
+ * Main initialization function for the collection application.
+ * Waits for Firebase auth to be ready.
+ */
+function init() {
+    document.addEventListener('authReady', async (e) => {
+        if (e.detail.user) {
+            currentUser = e.detail.user;
+            UI.showLoadingState();
+            await Collection.loadCollection(currentUser.uid);
+            await Collection.loadWishlist(currentUser.uid);
+            
+            setupEventListeners();
+            
+            // Initial render
+            await renderFilteredCollection();
+            updateAllUI();
+        } else {
+            // User is not logged in, show a message or redirect
+            UI.showLoggedOutState();
+        }
+    });
+}
+
+/**
+ * Fetches the filtered collection from the state and tells the UI to render it.
+ */
+async function renderFilteredCollection() {
+    const state = Collection.getState();
+    const cardsToRender = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+    
+    if (state.activeView === 'grid') {
+        UI.renderGridView(cardsToRender, state.activeTab);
+    } else {
+        UI.renderListView(cardsToRender, state.activeTab);
+    }
+
+    if (cardsToRender.length === 0) {
+        const message = state.activeTab === 'collection' 
+            ? "Your collection is empty. Add cards to get started!"
+            : "Your wishlist is empty. Search for cards to add them.";
+        UI.showEmptyState(message);
+    }
+}
+
+/**
+ * Updates dynamic UI components like stats and filters.
+ */
+function updateAllUI() {
+    const stats = Collection.calculateStats();
+    UI.updateStats(stats);
+    
+    const { sets, rarities } = Collection.getAvailableFilterOptions();
+    UI.populateFilters(sets, rarities);
+}
+
+
+// --- EVENT LISTENERS ---
+
+function setupEventListeners() {
+    // Header & Main Actions
+    document.getElementById('add-card-btn').addEventListener('click', UI.openSearchModal);
+    document.getElementById('import-csv-btn').addEventListener('click', UI.openCsvImportModal);
+    document.getElementById('export-csv-btn').addEventListener('click', CSV.exportCollectionToCSV);
+    document.getElementById('bulk-edit-btn').addEventListener('click', handleEnterBulkEditMode);
+
+    // View Toggles
+    document.getElementById('view-toggle-grid').addEventListener('click', () => handleViewChange('grid'));
+    document.getElementById('view-toggle-list').addEventListener('click', () => handleViewChange('list'));
+
+    // Tabs
+    document.querySelectorAll('.tab-button').forEach(tab => {
+        tab.addEventListener('click', () => handleTabChange(tab.dataset.tab));
+    });
+
+    // Filters
+    document.getElementById('filter-name').addEventListener('input', debounce(handleFilterChange, 300));
+    document.getElementById('filter-set').addEventListener('change', handleFilterChange);
+    document.getElementById('filter-rarity').addEventListener('change', handleFilterChange);
+    document.getElementById('filter-colors').addEventListener('click', handleColorFilterClick);
+
+    // Modals - Search
+    document.getElementById('close-search-modal').addEventListener('click', UI.closeSearchModal);
+    document.getElementById('card-search-input').addEventListener('input', debounce(handleCardSearch, 300));
+    document.getElementById('game-selector').addEventListener('change', handleCardSearch);
+
+    // Modals - Add/Edit Card
+    document.getElementById('close-card-modal').addEventListener('click', () => UI.closeCardModal());
+    document.getElementById('card-form').addEventListener('submit', handleSaveCard);
+    document.getElementById('list-for-sale-toggle').addEventListener('change', UI.toggleListForSaleSection);
+    document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
+
+    // Modals - CSV Import
+    document.getElementById('close-csv-modal').addEventListener('click', UI.closeCsvImportModal);
+    document.getElementById('csv-file-input').addEventListener('change', (e) => {
+        CSV.handleCSVImport(e.target.files[0]);
+    });
+
+    // Modals - Bulk List
+    document.getElementById('close-bulk-list-modal').addEventListener('click', UI.closeBulkListSaleModal);
+    document.getElementById('bulk-list-form').addEventListener('submit', handleBulkListForSale);
+    document.querySelector('input[name="price-option"][value="percentage"]').addEventListener('change', UI.toggleBulkPriceInputs);
+    document.querySelector('input[name="price-option"][value="fixed"]').addEventListener('change', UI.toggleBulkPriceInputs);
+
+
+    // Dynamic Event Listeners on Collection Display
+    const display = document.getElementById('collection-display');
+    display.addEventListener('click', handleCollectionDisplayClick);
+    
+    // Bulk Actions Toolbar
+    document.getElementById('bulk-cancel-btn').addEventListener('click', Bulk.exitBulkEditMode);
+    document.getElementById('bulk-delete-btn').addEventListener('click', Bulk.deleteSelected);
+    document.getElementById('bulk-list-sale-btn').addEventListener('click', Bulk.listSelectedForSale);
+
+}
+
+
+// --- EVENT HANDLERS ---
+
+async function handleViewChange(view) {
+    if (Collection.getState().activeView === view) return;
+    Collection.setView(view);
+    UI.updateViewToggle(view);
+    await renderFilteredCollection();
+}
+
+async function handleTabChange(tab) {
+    if (Collection.getState().activeTab === tab) return;
+    Collection.setTab(tab);
+    UI.updateActiveTab(tab);
+    await renderFilteredCollection();
+}
+
+async function handleFilterChange() {
+    const filters = {
+        name: document.getElementById('filter-name').value,
+        set: document.getElementById('filter-set').value,
+        rarity: document.getElementById('filter-rarity').value,
+        colors: Collection.getState().filters.colors // Keep colors from their own handler
+    };
+    Collection.setFilters(filters);
+    await renderFilteredCollection();
+}
+
+async function handleColorFilterClick(e) {
+    if (e.target.tagName === 'I') {
+        const color = e.target.dataset.color;
+        const newColors = Collection.toggleColorFilter(color);
+        UI.updateColorFilterSelection(newColors);
+        await handleFilterChange();
+    }
+}
+
+async function handleCardSearch() {
+    const query = document.getElementById('card-search-input').value;
+    const game = document.getElementById('game-selector').value;
+    if (query.length < 3) {
+        UI.renderSearchResults(null, "Enter at least 3 characters to search.");
+        return;
+    }
+
+    UI.renderSearchResults(null, "Searching...");
+    try {
+        const results = await API.searchCards(query, game);
+        UI.renderSearchResults(results, game);
+    } catch (error) {
+        console.error("Search failed:", error);
+        UI.renderSearchResults(null, `Error: ${error.message}`);
+    }
+}
+
+async function handleSaveCard(e) {
+    e.preventDefault();
+    const formData = UI.getCardFormData();
+    
+    try {
+        if (formData.id) {
+            // Editing existing card
+            await Collection.updateCard(formData.id, formData.data, formData.customImageFile);
+            showToast("Card updated successfully!", "success");
+        } else {
+            // Adding new card
+            await Collection.addCard(formData.data, formData.customImageFile);
+            showToast("Card added to collection!", "success");
+        }
+        UI.closeCardModal();
+        await renderFilteredCollection();
+        updateAllUI();
+    } catch (error) {
+        console.error("Failed to save card:", error);
+        showToast(`Error: ${error.message}`, "error");
+    }
+}
+
+function handleAddAnotherVersion() {
+    const currentCardData = Collection.getCurrentEditingCard();
+    if (currentCardData) {
+        UI.closeCardModal();
+        // Slight delay to ensure modal is closed before search modal is opened
+        setTimeout(() => {
+            UI.openSearchModal(currentCardData.name);
+            // Trigger search after populating
+            handleCardSearch();
+        }, 100);
+    }
+}
+
+function handleEnterBulkEditMode() {
+    const isBulkMode = Bulk.enterBulkEditMode();
+    if (isBulkMode) {
+        renderFilteredCollection(); // Re-render to show checkboxes
+    }
+}
+
+async function handleBulkListForSale(e) {
+    e.preventDefault();
+    await Bulk.applyBulkListForSale();
+    UI.closeBulkListSaleModal();
+    await renderFilteredCollection();
+}
+
+/**
+ * Handles clicks within the main collection display area using event delegation.
+ */
+async function handleCollectionDisplayClick(e) {
+    const cardElement = e.target.closest('.card-container');
+    if (!cardElement) return;
+
+    const cardId = cardElement.dataset.id;
+    const actionButton = e.target.closest('[data-action]');
+    
+    // Handle Bulk Mode Selection
+    if (Bulk.isBulkEditMode()) {
+        if (!actionButton) { // Clicks on the card itself, not a button
+             Bulk.toggleCardSelection(cardId);
+        }
+        return; // Prevent other actions in bulk mode
+    }
+
+    if (actionButton) {
+        const action = actionButton.dataset.action;
+        switch (action) {
+            case 'edit':
+                const cardData = Collection.getCardById(cardId);
+                if (cardData) UI.populateCardModalForEdit(cardData);
+                break;
+            case 'delete':
+                if (confirm('Are you sure you want to delete this card entry?')) {
+                    try {
+                        await Collection.deleteCard(cardId);
+                        showToast('Card deleted.', 'success');
+                        await renderFilteredCollection();
+                        updateAllUI();
+                    } catch (error) {
+                        console.error('Deletion failed:', error);
+                        showToast(`Error: ${error.message}`, 'error');
+                    }
+                }
+                break;
+            case 'list':
+                // For a single card, just open the edit modal and check the box
+                const cardToList = Collection.getCardById(cardId);
+                if (cardToList) UI.populateCardModalForEdit(cardToList, true);
+                break;
+        }
+    }
+}
+
+
+// --- STARTUP ---
+
+init();

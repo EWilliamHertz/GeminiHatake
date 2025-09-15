@@ -4,7 +4,6 @@
  */
 import { getCardImageUrl, formatPrice } from './utils.js';
 import * as Collection from './collection.js';
-import * as API from './api.js';
 
 // --- ELEMENT SELECTORS ---
 const getElement = (id) => document.getElementById(id);
@@ -14,13 +13,33 @@ const cardModal = getElement('card-modal');
 const csvModal = getElement('csv-import-modal');
 const bulkListModal = getElement('bulk-list-sale-modal');
 
-// --- RENDER FUNCTIONS ---
 
-/**
- * Renders the collection in a grid format.
- * @param {Array} cards - Array of card objects to render.
- * @param {string} activeTab - 'collection' or 'wishlist'.
- */
+// *** NEW: Global Toast Notification Function (Moved from auth.js) ***
+export const showToast = (message, type = 'info') => {
+    const container = getElement('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 5000);
+};
+
+
+// --- RENDER FUNCTIONS ---
 export function renderGridView(cards, activeTab) {
     if (!cards || cards.length === 0) {
         showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
@@ -30,7 +49,7 @@ export function renderGridView(cards, activeTab) {
 
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = formatPrice(card?.prices?.usd, 'USD'); // Assuming USD price from Scryfall
+        const price = formatPrice(card?.prices?.usd, 'USD');
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
 
         return `
@@ -62,11 +81,6 @@ export function renderGridView(cards, activeTab) {
     display.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${gridHTML}</div>`;
 }
 
-/**
- * Renders the collection in a list (table) format.
- * @param {Array} cards - Array of card objects to render.
- * @param {string} activeTab - 'collection' or 'wishlist'.
- */
 export function renderListView(cards, activeTab) {
     if (!cards || cards.length === 0) {
         showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
@@ -114,11 +128,6 @@ export function renderListView(cards, activeTab) {
     display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
 }
 
-/**
- * Renders search results in the search modal.
- * @param {Array|null} results - Array of card data from API.
- * @param {string} context - The game ('mtg', 'pokemon') or a message string.
- */
 export function renderSearchResults(results, context) {
     const container = getElement('search-results-container');
     if (results === null) {
@@ -151,7 +160,6 @@ export function renderSearchResults(results, context) {
     }).join('');
     container.innerHTML = resultsHTML;
 
-    // Add event listeners to new results
     document.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', () => {
             const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
@@ -177,14 +185,10 @@ export function updateStats(stats) {
 export function populateFilters(sets, rarities) {
     const setFilter = getElement('filter-set');
     const rarityFilter = getElement('filter-rarity');
-
-    // Preserve current selection
     const currentSet = setFilter.value;
     const currentRarity = rarityFilter.value;
-
     setFilter.innerHTML = '<option value="">All Sets</option>' + sets.map(s => `<option value="${s}">${s}</option>`).join('');
     rarityFilter.innerHTML = '<option value="">All Rarities</option>' + rarities.map(r => `<option value="${r}">${r}</option>`).join('');
-    
     setFilter.value = currentSet;
     rarityFilter.value = currentRarity;
 }
@@ -211,6 +215,13 @@ export function updateActiveTab(tab) {
     });
 }
 
+// *** NEW: Update active state for TCG filter buttons ***
+export function updateTcgFilter(game) {
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.game === game);
+    });
+}
+
 export function updateColorFilterSelection(selectedColors) {
     const colorIcons = document.querySelectorAll('#filter-colors i');
     colorIcons.forEach(icon => {
@@ -226,8 +237,7 @@ export function updateColorFilterSelection(selectedColors) {
                 case 'C': icon.classList.add('text-gray-500'); break;
             }
         } else {
-            icon.className = 'fas cursor-pointer text-gray-400'; // Reset classes
-            // Re-add specific icon class
+            icon.className = 'fas cursor-pointer text-gray-400';
             switch(color) {
                 case 'W': icon.classList.add('fa-circle'); break;
                 case 'U': icon.classList.add('fa-tint'); break;
@@ -246,123 +256,17 @@ export function updateColorFilterSelection(selectedColors) {
 const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 const closeModal = (modal) => { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 
-// Search Modal
-export function openSearchModal(query = '') {
-    getElement('card-search-input').value = query;
-    getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
-    openModal(searchModal);
-    getElement('card-search-input').focus();
-}
+export function openSearchModal(query = '') { getElement('card-search-input').value = query; getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>'; openModal(searchModal); getElement('card-search-input').focus(); }
 export const closeSearchModal = () => closeModal(searchModal);
-
-// Add/Edit Card Modal
 export const openCardModal = () => openModal(cardModal);
-export const closeCardModal = () => {
-    getElement('card-form').reset();
-    getElement('list-for-sale-section').classList.add('hidden');
-    closeModal(cardModal);
-};
-
-export function populateCardModalForAdd(cardData) {
-    Collection.setCurrentEditingCard(cardData); // Store original API data
-    getElement('card-modal-id').value = ''; // Ensure no ID for new cards
-    getElement('card-modal-title').textContent = cardData.name;
-    getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
-    getElement('card-modal-image').src = getCardImageUrl(cardData);
-    getElement('save-card-btn').textContent = "Add to Collection";
-    openCardModal();
-}
-
-export function populateCardModalForEdit(cardData, listForSale = false) {
-    Collection.setCurrentEditingCard(cardData); // Store full card data for reference
-    getElement('card-modal-id').value = cardData.id;
-    getElement('card-modal-title').textContent = `Editing: ${cardData.name}`;
-    getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
-    getElement('card-modal-image').src = getCardImageUrl(cardData);
-    
-    // Populate form fields
-    getElement('card-quantity').value = cardData.quantity || 1;
-    getElement('card-condition').value = cardData.condition || 'Near Mint';
-    getElement('card-language').value = cardData.language || 'English';
-    getElement('card-purchase-price').value = cardData.purchasePrice || '';
-    getElement('card-is-foil').checked = cardData.is_foil || false;
-    getElement('card-is-signed').checked = cardData.is_signed || false;
-    getElement('card-is-altered').checked = cardData.is_altered || false;
-
-    // Handle 'for sale' section
-    const forSaleToggle = getElement('list-for-sale-toggle');
-    const forSaleSection = getElement('list-for-sale-section');
-    const salePriceInput = getElement('card-sale-price');
-
-    if (cardData.forSale || listForSale) {
-        forSaleToggle.checked = true;
-        forSaleSection.classList.remove('hidden');
-        salePriceInput.value = cardData.salePrice || '';
-    } else {
-        forSaleToggle.checked = false;
-        forSaleSection.classList.add('hidden');
-        salePriceInput.value = '';
-    }
-    
-    getElement('save-card-btn').textContent = "Save Changes";
-    openCardModal();
-}
-
-export function getCardFormData() {
-    const id = getElement('card-modal-id').value;
-    const forSale = getElement('list-for-sale-toggle').checked;
-    
-    // Get original API data stored when modal was opened
-    const originalApiData = Collection.getCurrentEditingCard();
-    if (!originalApiData) throw new Error("Could not find original card data.");
-    
-    const data = {
-        ...originalApiData, // Base data from Scryfall/Pokemon API
-        quantity: parseInt(getElement('card-quantity').value, 10),
-        condition: getElement('card-condition').value,
-        language: getElement('card-language').value,
-        purchasePrice: parseFloat(getElement('card-purchase-price').value) || null,
-        is_foil: getElement('card-is-foil').checked,
-        is_signed: getElement('card-is-signed').checked,
-        is_altered: getElement('card-is-altered').checked,
-        forSale: forSale,
-        salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || null) : null,
-        addedAt: id ? originalApiData.addedAt : new Date().toISOString() // Preserve original add date
-    };
-
-    const customImageFile = getElement('custom-image-upload').files[0] || null;
-
-    return { id, data, customImageFile };
-}
-
+export const closeCardModal = () => { getElement('card-form').reset(); getElement('list-for-sale-section').classList.add('hidden'); closeModal(cardModal); };
+export function populateCardModalForAdd(cardData) { Collection.setCurrentEditingCard(cardData); getElement('card-modal-id').value = ''; getElement('card-modal-title').textContent = cardData.name; getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`; getElement('card-modal-image').src = getCardImageUrl(cardData); getElement('save-card-btn').textContent = "Add to Collection"; openCardModal(); }
+export function populateCardModalForEdit(cardData, listForSale = false) { Collection.setCurrentEditingCard(cardData); getElement('card-modal-id').value = cardData.id; getElement('card-modal-title').textContent = `Editing: ${cardData.name}`; getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`; getElement('card-modal-image').src = getCardImageUrl(cardData); getElement('card-quantity').value = cardData.quantity || 1; getElement('card-condition').value = cardData.condition || 'Near Mint'; getElement('card-language').value = cardData.language || 'English'; getElement('card-purchase-price').value = cardData.purchasePrice || ''; getElement('card-is-foil').checked = cardData.is_foil || false; getElement('card-is-signed').checked = cardData.is_signed || false; getElement('card-is-altered').checked = cardData.is_altered || false; const forSaleToggle = getElement('list-for-sale-toggle'); const forSaleSection = getElement('list-for-sale-section'); const salePriceInput = getElement('card-sale-price'); if (cardData.forSale || listForSale) { forSaleToggle.checked = true; forSaleSection.classList.remove('hidden'); salePriceInput.value = cardData.salePrice || ''; } else { forSaleToggle.checked = false; forSaleSection.classList.add('hidden'); salePriceInput.value = ''; } getElement('save-card-btn').textContent = "Save Changes"; openCardModal(); }
+export function getCardFormData() { const id = getElement('card-modal-id').value; const forSale = getElement('list-for-sale-toggle').checked; const originalApiData = Collection.getCurrentEditingCard(); if (!originalApiData) throw new Error("Could not find original card data."); const data = { ...originalApiData, quantity: parseInt(getElement('card-quantity').value, 10), condition: getElement('card-condition').value, language: getElement('card-language').value, purchasePrice: parseFloat(getElement('card-purchase-price').value) || null, is_foil: getElement('card-is-foil').checked, is_signed: getElement('card-is-signed').checked, is_altered: getElement('card-is-altered').checked, forSale: forSale, salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || null) : null, addedAt: id ? originalApiData.addedAt : new Date().toISOString() }; const customImageFile = getElement('custom-image-upload').files[0] || null; return { id, data, customImageFile }; }
 export const toggleListForSaleSection = () => getElement('list-for-sale-section').classList.toggle('hidden');
-
-// CSV Modal
 export const openCsvImportModal = () => openModal(csvModal);
-export const closeCsvImportModal = () => {
-    getElement('csv-file-input').value = '';
-    getElement('csv-import-status').textContent = 'Awaiting file...';
-    closeModal(csvModal);
-};
-export const updateCsvImportStatus = (message) => {
-    const statusEl = getElement('csv-import-status');
-    statusEl.innerHTML += message + '<br>';
-    statusEl.scrollTop = statusEl.scrollHeight; // Auto-scroll
-};
-
-// Bulk List Sale Modal
-export function openBulkListSaleModal(count) {
-    getElement('bulk-list-count').textContent = count;
-    openModal(bulkListModal);
-}
-export const closeBulkListSaleModal = () => {
-    getElement('bulk-list-form').reset();
-    toggleBulkPriceInputs(); // Reset to default state
-    closeModal(bulkListModal);
-};
-
-export function toggleBulkPriceInputs() {
-    const isPercentage = getElement('bulk-list-form').elements['price-option'].value === 'percentage';
-    getElement('bulk-price-percentage').disabled = !isPercentage;
-    getElement('bulk-price-fixed').disabled = isPercentage;
-}
+export const closeCsvImportModal = () => { getElement('csv-file-input').value = ''; getElement('csv-import-status').textContent = 'Awaiting file...'; closeModal(csvModal); };
+export const updateCsvImportStatus = (message) => { const statusEl = getElement('csv-import-status'); statusEl.innerHTML += message + '<br>'; statusEl.scrollTop = statusEl.scrollHeight; };
+export function openBulkListSaleModal(count) { getElement('bulk-list-count').textContent = count; openModal(bulkListModal); }
+export const closeBulkListSaleModal = () => { getElement('bulk-list-form').reset(); toggleBulkPriceInputs(); closeModal(bulkListModal); };
+export function toggleBulkPriceInputs() { const isPercentage = getElement('bulk-list-form').elements['price-option'].value === 'percentage'; getElement('bulk-price-percentage').disabled = !isPercentage; getElement('bulk-price-fixed').disabled = isPercentage; }
