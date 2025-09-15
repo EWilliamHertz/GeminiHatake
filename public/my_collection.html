@@ -54,23 +54,19 @@
         <main class="flex-1 overflow-hidden flex">
             <div class="w-full md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-6 flex-shrink-0 flex flex-col overflow-y-auto">
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold mb-3">Statistics</h3>
+                    <h3 id="stats-title" class="text-lg font-semibold mb-3">Statistics</h3>
                     <div class="space-y-2 text-sm">
-                        <div class="flex justify-between"><span>Total Cards:</span> <span id="stats-total-cards" class="font-mono">0</span></div>
-                        <div class="flex justify-between"><span>Unique Cards:</span> <span id="stats-unique-cards" class="font-mono">0</span></div>
-                        <div class="flex justify-between"><span>Total Value:</span> <span id="stats-total-value" class="font-mono">$0.00</span></div>
+                        <div class="flex justify-between"><span id="stats-total-label">Total Cards:</span> <span id="stats-total-cards" class="font-mono">0</span></div>
+                        <div class="flex justify-between"><span id="stats-unique-label">Unique Cards:</span> <span id="stats-unique-cards" class="font-mono">0</span></div>
+                        <div class="flex justify-between"><span id="stats-value-label">Total Value:</span> <span id="stats-total-value" class="font-mono">$0.00</span></div>
                     </div>
                 </div>
                 <div class="mb-6 flex-1">
                     <h3 class="text-lg font-semibold mb-3">Filters</h3>
                     <div class="space-y-4">
                         <input type="text" id="filter-name" placeholder="Filter by name..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <select id="filter-set" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                            <option value="">All Sets</option>
-                        </select>
-                        <select id="filter-rarity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                            <option value="">All Rarities</option>
-                        </select>
+                        <select id="filter-set" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="">All Sets</option></select>
+                        <select id="filter-rarity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="">All Rarities</option></select>
                         <div>
                             <label class="text-sm">Colors (Magic)</label>
                             <div id="filter-colors" class="flex justify-around mt-2 text-2xl">
@@ -101,13 +97,11 @@
                             <button data-tab="collection" class="tab-button flex-1 px-4 py-2 rounded-full active">Collection</button>
                             <button data-tab="wishlist" class="tab-button flex-1 px-4 py-2 rounded-full">Wishlist</button>
                         </div>
-                        
                         <div id="tcg-filter-buttons" class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold">
                             <button data-game="all" class="tcg-filter-button flex-1 px-4 py-2 rounded-full active">All</button>
                             <button data-game="mtg" class="tcg-filter-button flex-1 px-4 py-2 rounded-full">Magic</button>
                             <button data-game="pokemon" class="tcg-filter-button flex-1 px-4 py-2 rounded-full">Pokémon</button>
                         </div>
-
                         <div class="flex items-center space-x-4">
                             <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
                                 <button id="view-toggle-grid" class="p-2 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow"><i class="fas fa-th-large"></i></button>
@@ -120,7 +114,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <div id="bulk-actions-toolbar" class="hidden flex-shrink-0 mb-4 bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg flex justify-between items-center">
                     <div><span id="bulk-selection-count">0 cards selected</span></div>
                     <div class="space-x-2">
@@ -129,11 +122,8 @@
                         <button id="bulk-cancel-btn" class="px-3 py-1 text-sm bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
                     </div>
                 </div>
-
                 <div id="collection-display" class="flex-1 overflow-y-auto">
-                    <div class="flex items-center justify-center h-full text-gray-500">
-                        <p>Loading your collection...</p>
-                    </div>
+                    <div class="flex items-center justify-center h-full text-gray-500"><p>Loading your collection...</p></div>
                 </div>
             </div>
         </main>
@@ -141,6 +131,9 @@
 </div>
 
 <div id="toast-container" class="fixed bottom-5 right-5 z-[1003]"></div>
+<div id="card-preview-tooltip" class="fixed z-[1005] pointer-events-none hidden rounded-xl shadow-lg border-4 border-gray-400" style="width: 260px;">
+    <img src="" alt="Card Preview" class="w-full rounded-lg">
+</div>
 <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-start justify-center z-[1001] pt-16">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 80vh;">
         <div class="p-4 border-b dark:border-gray-700 flex items-center"><div class="relative flex-grow mr-4"><i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="text" id="card-search-input" placeholder="Search for a card..." class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"></div><select id="game-selector" class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option value="mtg">Magic: The Gathering</option><option value="pokemon">Pokémon</option></select><button id="close-search-modal" class="ml-4 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button></div>
@@ -148,13 +141,21 @@
     </div>
 </div>
 <div id="card-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;"><div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center"><img id="card-modal-image" src="https://placehold.co/300x420?text=Card+Image" class="max-w-full max-h-full rounded-lg object-contain"></div><div class="w-2/3 p-6 flex flex-col overflow-y-auto"><form id="card-form"><input type="hidden" id="card-modal-id"><div class="flex justify-between items-start"><div><h2 id="card-modal-title" class="text-2xl font-bold">Add New Card</h2><p id="card-modal-subtitle" class="text-sm text-gray-500">Details for this version</p></div><button type="button" id="close-card-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button></div><div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="card-quantity" class="block text-sm font-medium">Quantity</label><input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div><label for="card-condition" class="block text-sm font-medium">Condition</label><select id="card-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div><div><label for="card-language" class="block text-sm font-medium">Language</label><select id="card-language" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>English</option><option>Japanese</option><option>German</option><option>French</option><option>Spanish</option><option>Italian</option><option>Korean</option><option>Russian</option><option>Chinese</option></select></div><div><label for="card-purchase-price" class="block text-sm font-medium">Purchase Price (optional)</label><input type="number" step="0.01" id="card-purchase-price" placeholder="0.00" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div></div><div class="mt-4 flex items-center space-x-6"><label class="flex items-center"><input type="checkbox" id="card-is-foil" class="h-4 w-4"><span class="ml-2">Foil</span></label><label class="flex items-center"><input type="checkbox" id="card-is-signed" class="h-4 w-4"><span class="ml-2">Signed</span></label><label class="flex items-center"><input type="checkbox" id="card-is-altered" class="h-4 w-4"><span class="ml-2">Altered</span></label></div><div class="mt-4"><label for="custom-image-upload" class="block text-sm font-medium">Custom Image (optional)</label><input type="file" id="custom-image-upload" accept="image/*" class="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"></div><div class="mt-6 border-t pt-4"><label class="flex items-center"><input type="checkbox" id="list-for-sale-toggle" class="h-4 w-4"><span class="ml-2 font-semibold">List for Sale</span></label><div id="list-for-sale-section" class="hidden mt-2"><label for="card-sale-price" class="block text-sm font-medium">Sale Price</label><input type="number" step="0.01" id="card-sale-price" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div></div><div class="mt-6 pt-4 border-t flex justify-end items-center space-x-3"><button type="button" id="add-another-version-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Add Another Version</button><button type="submit" id="save-card-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Save Card</button></div></form></div></div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;">
+        <div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center"><img id="card-modal-image" src="https://placehold.co/300x420?text=Card+Image" class="max-w-full max-h-full rounded-lg object-contain"></div>
+        <div class="w-2/3 p-6 flex flex-col"><form id="card-form" class="flex flex-col h-full"><input type="hidden" id="card-modal-id"><div class="flex justify-between items-start"><div><h2 id="card-modal-title" class="text-2xl font-bold">Add New Card</h2><p id="card-modal-subtitle" class="text-sm text-gray-500">Details for this version</p></div><button type="button" id="close-card-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button></div><div class="flex-grow overflow-y-auto pr-2"><div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="card-quantity" class="block text-sm font-medium">Quantity</label><input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div><div><label for="card-condition" class="block text-sm font-medium">Condition</label><select id="card-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div><div><label for="card-language" class="block text-sm font-medium">Language</label><select id="card-language" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>English</option><option>Japanese</option><option>German</option><option>French</option><option>Spanish</option><option>Italian</option><option>Korean</option><option>Russian</option><option>Chinese</option></select></div><div><label for="card-purchase-price" class="block text-sm font-medium">Purchase Price (optional)</label><input type="number" step="0.01" id="card-purchase-price" placeholder="0.00" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div></div><div class="mt-4 flex items-center space-x-6"><label class="flex items-center"><input type="checkbox" id="card-is-foil" class="h-4 w-4"><span class="ml-2">Foil</span></label><label class="flex items-center"><input type="checkbox" id="card-is-signed" class="h-4 w-4"><span class="ml-2">Signed</span></label><label class="flex items-center"><input type="checkbox" id="card-is-altered" class="h-4 w-4"><span class="ml-2">Altered</span></label></div><div class="mt-4"><label for="custom-image-upload" class="block text-sm font-medium">Custom Image (optional)</label><input type="file" id="custom-image-upload" accept="image/*" class="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"></div><div class="mt-6 border-t pt-4"><label class="flex items-center"><input type="checkbox" id="list-for-sale-toggle" class="h-4 w-4"><span class="ml-2 font-semibold">List for Sale</span></label><div id="list-for-sale-section" class="hidden mt-2"><label for="card-sale-price" class="block text-sm font-medium">Sale Price</label><input type="number" step="0.01" id="card-sale-price" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div></div><div id="pending-cards-container" class="mt-4 border-t pt-2"></div></div><div class="mt-auto pt-4 flex justify-end items-center space-x-3 flex-shrink-0"><button type="button" id="add-another-version-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Add This Version</button><button type="submit" id="save-card-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Add to Collection</button></div></form></div></div>
 </div>
 <div id="csv-import-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">Import from CSV</h2><button id="close-csv-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button></div><div class="mt-4"><p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload a CSV file. We'll try to detect columns like 'Name', 'Quantity', 'Set', 'Foil', and 'Condition'.</p><input type="file" id="csv-file-input" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"><div id="csv-import-status" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-md h-40 overflow-y-auto text-sm">Awaiting file...</div></div></div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">Import from CSV</h2><button id="close-csv-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button></div><div class="mt-4"><p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload a CSV file...</p><input type="file" id="csv-file-input" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"><div id="csv-import-status" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-md h-40 overflow-y-auto text-sm">Awaiting file...</div></div></div>
 </div>
 <div id="bulk-list-sale-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">List Selected Cards for Sale</h2><button id="close-bulk-list-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button></div><form id="bulk-list-form" class="mt-4 space-y-4"><p>Set a price for the <span id="bulk-list-count">0</span> selected cards.</p><div><label class="flex items-center"><input type="radio" name="price-option" value="percentage" class="h-4 w-4" checked><span class="ml-2">Percentage of Market Value</span></label><div class="flex items-center mt-1"><input type="number" id="bulk-price-percentage" value="100" class="w-24 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><span class="ml-2">%</span></div></div><div><label class="flex items-center"><input type="radio" name="price-option" value="fixed" class="h-4 w-4"><span class="ml-2">Fixed Price</span></label><input type="number" step="0.01" id="bulk-price-fixed" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" disabled></div><div class="text-right pt-4"><button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">List Items</button></div></form></div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">Login</h2><button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">&times;</button></div><form class="mt-4 space-y-4" id="loginForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required type="email"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required type="password"><p class="text-red-500 text-sm hidden" id="login-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">Sign in with Google</button></form></div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">Register</h2><button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">&times;</button></div><form class="mt-4 space-y-4" id="registerForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required type="email"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required type="password"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"><p class="text-red-500 text-sm hidden" id="register-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">Register with Google</button></form></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
@@ -162,31 +163,17 @@
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-
 <script src="js/auth.js"></script>
 <script src="js/darkmode.js"></script>
-
+<script src="js/messenger.js"></script>
 <script type="module" src="js/modules/collection-app.js"></script>
-
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
-        
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-                sidebarOverlay.classList.toggle('hidden');
-            });
-        }
-        
-        if (sidebarOverlay) {
-            sidebarOverlay.addEventListener('click', () => {
-                sidebar.classList.add('-translate-x-full');
-                sidebarOverlay.classList.add('hidden');
-            });
-        }
+        if (sidebarToggle) { sidebarToggle.addEventListener('click', () => { sidebar.classList.toggle('-translate-x-full'); sidebarOverlay.classList.toggle('hidden'); }); }
+        if (sidebarOverlay) { sidebarOverlay.addEventListener('click', () => { sidebar.classList.add('-translate-x-full'); sidebarOverlay.classList.add('hidden'); }); }
     });
 </script>
 </body>

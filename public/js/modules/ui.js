@@ -12,34 +12,15 @@ const searchModal = getElement('search-modal');
 const cardModal = getElement('card-modal');
 const csvModal = getElement('csv-import-modal');
 const bulkListModal = getElement('bulk-list-sale-modal');
-
-
-// *** NEW: Global Toast Notification Function (Moved from auth.js) ***
-export const showToast = (message, type = 'info') => {
-    const container = getElement('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    let iconClass = 'fa-info-circle';
-    if (type === 'success') iconClass = 'fa-check-circle';
-    if (type === 'error') iconClass = 'fa-exclamation-circle';
-
-    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 100);
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, 5000);
-};
-
+const cardPreviewTooltip = getElement('card-preview-tooltip');
 
 // --- RENDER FUNCTIONS ---
+
+/**
+ * Renders the collection in a grid format.
+ * @param {Array} cards - Array of card objects to render.
+ * @param {string} activeTab - 'collection' or 'wishlist'.
+ */
 export function renderGridView(cards, activeTab) {
     if (!cards || cards.length === 0) {
         showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
@@ -49,7 +30,7 @@ export function renderGridView(cards, activeTab) {
 
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = formatPrice(card?.prices?.usd, 'USD');
+        const price = formatPrice(card?.prices?.usd, 'USD'); // Assuming USD price from Scryfall
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
 
         return `
@@ -81,17 +62,23 @@ export function renderGridView(cards, activeTab) {
     display.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${gridHTML}</div>`;
 }
 
+/**
+ * Renders the collection in a list (table) format.
+ * @param {Array} cards - Array of card objects to render.
+ * @param {string} activeTab - 'collection' or 'wishlist'.
+ */
 export function renderListView(cards, activeTab) {
     if (!cards || cards.length === 0) {
         showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
         return;
     }
     const isBulkMode = Collection.getState().bulkEdit.isActive;
+    const allSelectedOnPage = isBulkMode && cards.length > 0 && cards.every(c => Collection.getState().bulkEdit.selected.has(c.id));
 
     const tableHeader = `
         <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-                ${isBulkMode ? '<th class="p-3 text-left text-xs font-medium uppercase tracking-wider"><input type="checkbox" id="bulk-select-all"></th>' : ''}
+                ${isBulkMode ? `<th class="p-3 text-left text-xs font-medium uppercase tracking-wider"><input type="checkbox" id="bulk-select-all" ${allSelectedOnPage ? 'checked' : ''}></th>` : ''}
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
@@ -128,6 +115,11 @@ export function renderListView(cards, activeTab) {
     display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
 }
 
+/**
+ * Renders search results in the search modal.
+ * @param {Array|null} results - Array of card data from API.
+ * @param {string} context - The game ('mtg', 'pokemon') or a message string.
+ */
 export function renderSearchResults(results, context) {
     const container = getElement('search-results-container');
     if (results === null) {
@@ -142,16 +134,17 @@ export function renderSearchResults(results, context) {
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
         const price = formatPrice(card?.prices?.usd, 'USD');
+        const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
         const cardDataString = encodeURIComponent(JSON.stringify(card));
 
         return `
             <div class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer search-result-item" data-card='${cardDataString}'>
-                <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md">
-                <div class="flex-grow">
+                <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md pointer-events-none">
+                <div class="flex-grow pointer-events-none">
                     <p class="font-semibold">${card.name}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">${card.set_name} (${card.set.toUpperCase()})</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${card.set_name} (${card.set.toUpperCase()}${collectorInfo})</p>
                 </div>
-                <div class="text-right">
+                <div class="text-right pointer-events-none">
                     <p class="font-mono">${price}</p>
                     <p class="text-sm capitalize text-gray-500">${card.rarity}</p>
                 </div>
@@ -169,26 +162,57 @@ export function renderSearchResults(results, context) {
     });
 }
 
+export function renderPendingCards(pendingCards) {
+    const container = getElement('pending-cards-container');
+    if (pendingCards.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Versions to Add:</h4>` +
+        pendingCards.map(card => {
+            const details = [
+                `${card.quantity}x`,
+                card.condition,
+                card.language,
+                card.is_foil ? 'Foil' : '',
+            ].filter(Boolean).join(', ');
+            return `<div class="bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm mb-1">${details}</div>`;
+        }).join('');
+}
+
 
 // --- UI STATE UPDATES ---
 
 export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
-export const showLoggedOutState = () => display.innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
-export const showEmptyState = (message) => display.innerHTML = `<p class="text-center text-gray-500">${message}</p>`;
+export const showLoggedOutState = () => {
+    getElement('collection-display').innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
+}
+export const showEmptyState = (message) => display.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500"><p>${message}</p></div>`;
 
-export function updateStats(stats) {
+export function updateStats(stats, activeTab) {
+    const isCollection = activeTab === 'collection';
+    
+    getElement('stats-title').textContent = isCollection ? 'Collection Statistics' : 'Wishlist Statistics';
+    getElement('stats-total-label').textContent = isCollection ? 'Total Cards:' : 'Total Items:';
+    getElement('stats-unique-label').textContent = isCollection ? 'Unique Cards:' : 'Unique Items:';
+    getElement('stats-value-label').textContent = isCollection ? 'Total Value:' : 'Wishlist Value:';
+
     getElement('stats-total-cards').textContent = stats.totalCards;
     getElement('stats-unique-cards').textContent = stats.uniqueCards;
     getElement('stats-total-value').textContent = formatPrice(stats.totalValue, 'USD');
 }
 
+
 export function populateFilters(sets, rarities) {
     const setFilter = getElement('filter-set');
     const rarityFilter = getElement('filter-rarity');
+
     const currentSet = setFilter.value;
     const currentRarity = rarityFilter.value;
+
     setFilter.innerHTML = '<option value="">All Sets</option>' + sets.map(s => `<option value="${s}">${s}</option>`).join('');
     rarityFilter.innerHTML = '<option value="">All Rarities</option>' + rarities.map(r => `<option value="${r}">${r}</option>`).join('');
+    
     setFilter.value = currentSet;
     rarityFilter.value = currentRarity;
 }
@@ -196,17 +220,18 @@ export function populateFilters(sets, rarities) {
 export function updateViewToggle(view) {
     const gridBtn = getElement('view-toggle-grid');
     const listBtn = getElement('view-toggle-list');
-    if (view === 'grid') {
-        gridBtn.classList.add('bg-white', 'dark:bg-gray-900', 'shadow');
-        gridBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
-        listBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'shadow');
-        listBtn.classList.add('text-gray-500', 'dark:text-gray-400');
-    } else {
-        listBtn.classList.add('bg-white', 'dark:bg-gray-900', 'shadow');
-        listBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
-        gridBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'shadow');
-        gridBtn.classList.add('text-gray-500', 'dark:text-gray-400');
-    }
+    
+    gridBtn.classList.toggle('bg-white', view === 'grid');
+    gridBtn.classList.toggle('dark:bg-gray-900', view === 'grid');
+    gridBtn.classList.toggle('shadow', view === 'grid');
+    gridBtn.classList.toggle('text-gray-500', view !== 'grid');
+    gridBtn.classList.toggle('dark:text-gray-400', view !== 'grid');
+    
+    listBtn.classList.toggle('bg-white', view === 'list');
+    listBtn.classList.toggle('dark:bg-gray-900', view === 'list');
+    listBtn.classList.toggle('shadow', view === 'list');
+    listBtn.classList.toggle('text-gray-500', view !== 'list');
+    listBtn.classList.toggle('dark:text-gray-400', view !== 'list');
 }
 
 export function updateActiveTab(tab) {
@@ -215,7 +240,6 @@ export function updateActiveTab(tab) {
     });
 }
 
-// *** NEW: Update active state for TCG filter buttons ***
 export function updateTcgFilter(game) {
     document.querySelectorAll('.tcg-filter-button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.game === game);
@@ -251,22 +275,143 @@ export function updateColorFilterSelection(selectedColors) {
 }
 
 
-// --- MODAL MANAGEMENT ---
+// --- CARD PREVIEW TOOLTIP ---
+export function showCardPreview(cardDataString) {
+    const card = JSON.parse(decodeURIComponent(cardDataString));
+    cardPreviewTooltip.querySelector('img').src = getCardImageUrl(card);
+    cardPreviewTooltip.classList.remove('hidden');
+}
 
+export function hideCardPreview() {
+    cardPreviewTooltip.classList.add('hidden');
+}
+
+export function moveCardPreview(e) {
+    let x = e.clientX + 15;
+    let y = e.clientY + 15;
+
+    if (x + cardPreviewTooltip.offsetWidth > window.innerWidth) {
+        x = e.clientX - cardPreviewTooltip.offsetWidth - 15;
+    }
+    if (y + cardPreviewTooltip.offsetHeight > window.innerHeight) {
+        y = e.clientY - cardPreviewTooltip.offsetHeight - 15;
+    }
+    cardPreviewTooltip.style.left = `${x}px`;
+    cardPreviewTooltip.style.top = `${y}px`;
+}
+
+
+// --- MODAL MANAGEMENT ---
 const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 const closeModal = (modal) => { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 
-export function openSearchModal(query = '') { getElement('card-search-input').value = query; getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>'; openModal(searchModal); getElement('card-search-input').focus(); }
+export function openSearchModal(query = '') {
+    if (typeof query !== 'string') {
+        query = '';
+    }
+    getElement('card-search-input').value = query;
+    getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
+    openModal(searchModal);
+    getElement('card-search-input').focus();
+}
 export const closeSearchModal = () => closeModal(searchModal);
-export const openCardModal = () => openModal(cardModal);
-export const closeCardModal = () => { getElement('card-form').reset(); getElement('list-for-sale-section').classList.add('hidden'); closeModal(cardModal); };
-export function populateCardModalForAdd(cardData) { Collection.setCurrentEditingCard(cardData); getElement('card-modal-id').value = ''; getElement('card-modal-title').textContent = cardData.name; getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`; getElement('card-modal-image').src = getCardImageUrl(cardData); getElement('save-card-btn').textContent = "Add to Collection"; openCardModal(); }
-export function populateCardModalForEdit(cardData, listForSale = false) { Collection.setCurrentEditingCard(cardData); getElement('card-modal-id').value = cardData.id; getElement('card-modal-title').textContent = `Editing: ${cardData.name}`; getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`; getElement('card-modal-image').src = getCardImageUrl(cardData); getElement('card-quantity').value = cardData.quantity || 1; getElement('card-condition').value = cardData.condition || 'Near Mint'; getElement('card-language').value = cardData.language || 'English'; getElement('card-purchase-price').value = cardData.purchasePrice || ''; getElement('card-is-foil').checked = cardData.is_foil || false; getElement('card-is-signed').checked = cardData.is_signed || false; getElement('card-is-altered').checked = cardData.is_altered || false; const forSaleToggle = getElement('list-for-sale-toggle'); const forSaleSection = getElement('list-for-sale-section'); const salePriceInput = getElement('card-sale-price'); if (cardData.forSale || listForSale) { forSaleToggle.checked = true; forSaleSection.classList.remove('hidden'); salePriceInput.value = cardData.salePrice || ''; } else { forSaleToggle.checked = false; forSaleSection.classList.add('hidden'); salePriceInput.value = ''; } getElement('save-card-btn').textContent = "Save Changes"; openCardModal(); }
-export function getCardFormData() { const id = getElement('card-modal-id').value; const forSale = getElement('list-for-sale-toggle').checked; const originalApiData = Collection.getCurrentEditingCard(); if (!originalApiData) throw new Error("Could not find original card data."); const data = { ...originalApiData, quantity: parseInt(getElement('card-quantity').value, 10), condition: getElement('card-condition').value, language: getElement('card-language').value, purchasePrice: parseFloat(getElement('card-purchase-price').value) || null, is_foil: getElement('card-is-foil').checked, is_signed: getElement('card-is-signed').checked, is_altered: getElement('card-is-altered').checked, forSale: forSale, salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || null) : null, addedAt: id ? originalApiData.addedAt : new Date().toISOString() }; const customImageFile = getElement('custom-image-upload').files[0] || null; return { id, data, customImageFile }; }
+
+export const openCardModal = () => {
+    Collection.clearPendingCards();
+    renderPendingCards([]);
+    openModal(cardModal);
+}
+
+export const closeCardModal = () => {
+    getElement('card-form').reset();
+    getElement('list-for-sale-section').classList.add('hidden');
+    getElement('add-another-version-btn').classList.remove('hidden');
+    closeModal(cardModal);
+};
+
+export function populateCardModalForAdd(cardData) {
+    Collection.setCurrentEditingCard(cardData);
+    getElement('card-modal-id').value = '';
+    getElement('card-modal-title').textContent = cardData.name;
+    getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
+    getElement('card-modal-image').src = getCardImageUrl(cardData);
+    getElement('save-card-btn').textContent = "Add to Collection";
+    getElement('add-another-version-btn').classList.remove('hidden');
+    openCardModal();
+}
+
+export function populateCardModalForEdit(cardData, listForSale = false) {
+    populateCardModalForAdd(cardData); // Reuse for setup
+    getElement('card-modal-id').value = cardData.id;
+    getElement('card-modal-title').textContent = `Editing: ${cardData.name}`;
+    getElement('card-quantity').value = cardData.quantity || 1;
+    getElement('card-condition').value = cardData.condition || 'Near Mint';
+    getElement('card-language').value = cardData.language || 'English';
+    getElement('card-purchase-price').value = cardData.purchasePrice || '';
+    getElement('card-is-foil').checked = cardData.is_foil || false;
+    getElement('card-is-signed').checked = cardData.is_signed || false;
+    getElement('card-is-altered').checked = cardData.is_altered || false;
+    
+    const forSaleToggle = getElement('list-for-sale-toggle');
+    const forSaleSection = getElement('list-for-sale-section');
+    const salePriceInput = getElement('card-sale-price');
+
+    if (cardData.forSale || listForSale) {
+        forSaleToggle.checked = true;
+        forSaleSection.classList.remove('hidden');
+        salePriceInput.value = cardData.salePrice || '';
+    }
+    
+    getElement('save-card-btn').textContent = "Save Changes";
+    getElement('add-another-version-btn').classList.add('hidden');
+}
+
+export function getCardFormData(includeBaseData = true) {
+    const id = getElement('card-modal-id').value;
+    const forSale = getElement('list-for-sale-toggle').checked;
+    const originalApiData = Collection.getCurrentEditingCard();
+    if (!originalApiData) throw new Error("Could not find original card data.");
+    
+    const data = {
+        ...(includeBaseData && { ...originalApiData }),
+        quantity: parseInt(getElement('card-quantity').value, 10) || 1,
+        condition: getElement('card-condition').value,
+        language: getElement('card-language').value,
+        purchasePrice: parseFloat(getElement('card-purchase-price').value) || null,
+        is_foil: getElement('card-is-foil').checked,
+        is_signed: getElement('card-is-signed').checked,
+        is_altered: getElement('card-is-altered').checked,
+        forSale: forSale,
+        salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || null) : null,
+        addedAt: id ? originalApiData.addedAt : new Date().toISOString()
+    };
+    if (!includeBaseData) {
+        data.name = originalApiData.name;
+        data.set_name = originalApiData.set_name;
+    }
+    const customImageFile = getElement('custom-image-upload').files[0] || null;
+    return { id, data, customImageFile };
+}
+
+export function resetCardFormForNewVersion() {
+    getElement('card-quantity').value = 1;
+    getElement('card-condition').value = 'Near Mint';
+    getElement('card-language').value = 'English';
+    getElement('card-purchase-price').value = '';
+    getElement('card-is-foil').checked = false;
+    getElement('card-is-signed').checked = false;
+    getElement('card-is-altered').checked = false;
+    getElement('list-for-sale-toggle').checked = false;
+    getElement('list-for-sale-section').classList.add('hidden');
+    getElement('card-sale-price').value = '';
+    getElement('card-quantity').focus();
+    getElement('save-card-btn').textContent = `Add ${Collection.getPendingCards().length + 1} Version(s)`;
+}
+
 export const toggleListForSaleSection = () => getElement('list-for-sale-section').classList.toggle('hidden');
 export const openCsvImportModal = () => openModal(csvModal);
 export const closeCsvImportModal = () => { getElement('csv-file-input').value = ''; getElement('csv-import-status').textContent = 'Awaiting file...'; closeModal(csvModal); };
-export const updateCsvImportStatus = (message) => { const statusEl = getElement('csv-import-status'); statusEl.innerHTML += message + '<br>'; statusEl.scrollTop = statusEl.scrollHeight; };
+export const updateCsvImportStatus = (message) => { const el = getElement('csv-import-status'); el.innerHTML += message + '<br>'; el.scrollTop = el.scrollHeight; };
 export function openBulkListSaleModal(count) { getElement('bulk-list-count').textContent = count; openModal(bulkListModal); }
 export const closeBulkListSaleModal = () => { getElement('bulk-list-form').reset(); toggleBulkPriceInputs(); closeModal(bulkListModal); };
 export function toggleBulkPriceInputs() { const isPercentage = getElement('bulk-list-form').elements['price-option'].value === 'percentage'; getElement('bulk-price-percentage').disabled = !isPercentage; getElement('bulk-price-fixed').disabled = isPercentage; }

@@ -5,15 +5,12 @@
 import * as Collection from './collection.js';
 import * as UI from './ui.js';
 import * as API from './api.js';
+import { showToast } from './ui.js';
 
 const state = Collection.getState();
 
 export const isBulkEditMode = () => state.bulkEdit.isActive;
 
-/**
- * Toggles bulk edit mode on or off.
- * @returns {boolean} The new state of bulk edit mode.
- */
 export function enterBulkEditMode() {
     state.bulkEdit.isActive = true;
     state.bulkEdit.selected.clear();
@@ -26,37 +23,34 @@ export function exitBulkEditMode() {
     state.bulkEdit.isActive = false;
     state.bulkEdit.selected.clear();
     document.getElementById('bulk-actions-toolbar').classList.add('hidden');
-    // Re-render to hide checkboxes
     document.querySelector('.tab-button.active').click(); 
 }
 
-/**
- * Toggles the selection status of a single card.
- * @param {string} cardId The Firestore ID of the card.
- */
 export function toggleCardSelection(cardId) {
-    const checkbox = document.querySelector(`.bulk-select-checkbox[data-id="${cardId}"]`);
     if (state.bulkEdit.selected.has(cardId)) {
         state.bulkEdit.selected.delete(cardId);
-        if(checkbox) checkbox.checked = false;
     } else {
         state.bulkEdit.selected.add(cardId);
-        if(checkbox) checkbox.checked = true;
     }
     updateSelectionCount();
 }
 
-/**
- * Updates the count display in the bulk actions toolbar.
- */
+export function toggleSelectAll(isChecked) {
+    const filteredIds = state.filteredCollection.map(c => c.id);
+    if (isChecked) {
+        filteredIds.forEach(id => state.bulkEdit.selected.add(id));
+    } else {
+        state.bulkEdit.selected.clear();
+    }
+    updateSelectionCount();
+}
+
+
 function updateSelectionCount() {
     const count = state.bulkEdit.selected.size;
     document.getElementById('bulk-selection-count').textContent = `${count} card${count === 1 ? '' : 's'} selected`;
 }
 
-/**
- * Deletes all currently selected cards after confirmation.
- */
 export async function deleteSelected() {
     const selectedIds = Array.from(state.bulkEdit.selected);
     if (selectedIds.length === 0) {
@@ -68,7 +62,6 @@ export async function deleteSelected() {
         try {
             await API.batchDeleteCards(state.currentUser.uid, selectedIds);
             
-            // Update local state
             state.fullCollection = state.fullCollection.filter(c => !selectedIds.includes(c.id));
             Collection.applyFilters();
             
@@ -81,9 +74,6 @@ export async function deleteSelected() {
     }
 }
 
-/**
- * Opens the "List for Sale" modal for the selected cards.
- */
 export function listSelectedForSale() {
     const count = state.bulkEdit.selected.size;
     if (count === 0) {
@@ -93,9 +83,6 @@ export function listSelectedForSale() {
     UI.openBulkListSaleModal(count);
 }
 
-/**
- * Applies the pricing logic from the modal to the selected cards.
- */
 export async function applyBulkListForSale() {
     const selectedIds = Array.from(state.bulkEdit.selected);
     const form = document.getElementById('bulk-list-form');
@@ -130,8 +117,6 @@ export async function applyBulkListForSale() {
     if (updates.length > 0) {
          try {
             await API.batchUpdateCards(state.currentUser.uid, updates);
-            
-            // Update local state
              updates.forEach(update => {
                 const cardIndex = state.fullCollection.findIndex(c => c.id === update.id);
                 if (cardIndex > -1) {
@@ -139,7 +124,6 @@ export async function applyBulkListForSale() {
                 }
             });
             Collection.applyFilters();
-
             showToast(`${updates.length} cards listed for sale.`, "success");
             exitBulkEditMode();
         } catch (error) {

@@ -11,30 +11,19 @@ let state = {
     filteredCollection: [],
     activeTab: 'collection',
     activeView: 'grid',
-    filters: {
-        name: '',
-        set: '',
-        rarity: '',
-        colors: [],
-        game: 'all', // *** NEW: Added for TCG filtering ***
-    },
-    bulkEdit: {
-        isActive: false,
-        selected: new Set(),
-    },
+    filters: { name: '', set: '', rarity: '', colors: [], game: 'all' },
+    bulkEdit: { isActive: false, selected: new Set() },
     currentEditingCard: null,
+    pendingCards: [],
 };
 
 export const getState = () => state;
+export function setCurrentEditingCard(cardData) { state.currentEditingCard = cardData; }
+export function getCurrentEditingCard() { return state.currentEditingCard; }
+export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
+export function getPendingCards() { return state.pendingCards; }
+export function clearPendingCards() { state.pendingCards = []; }
 
-export function setCurrentEditingCard(cardData) {
-    state.currentEditingCard = cardData;
-}
-export function getCurrentEditingCard() {
-    return state.currentEditingCard;
-}
-
-// --- DATA LOADING ---
 export async function loadCollection(userId) {
     state.currentUser = { uid: userId };
     try {
@@ -44,6 +33,7 @@ export async function loadCollection(userId) {
         console.error("Failed to load collection:", error);
         state.fullCollection = [];
         state.filteredCollection = [];
+        throw error;
     }
 }
 
@@ -56,39 +46,18 @@ export async function loadWishlist(userId) {
     }
 }
 
-// --- STATE MODIFICATION ---
-export function setView(view) {
-    state.activeView = view;
-}
-export function setTab(tab) {
-    state.activeTab = tab;
-}
-export function setFilters(newFilters) {
-    state.filters = { ...state.filters, ...newFilters };
-    applyFilters();
-}
-export function toggleColorFilter(color) {
-    const index = state.filters.colors.indexOf(color);
-    if (index > -1) {
-        state.filters.colors.splice(index, 1);
-    } else {
-        state.filters.colors.push(color);
-    }
-    return state.filters.colors;
-}
+export function setView(view) { state.activeView = view; }
+export function setTab(tab) { state.activeTab = tab; }
+export function setFilters(newFilters) { state.filters = { ...state.filters, ...newFilters }; applyFilters(); }
+export function toggleColorFilter(color) { const index = state.filters.colors.indexOf(color); if (index > -1) { state.filters.colors.splice(index, 1); } else { state.filters.colors.push(color); } return state.filters.colors; }
 
-// --- CARD OPERATIONS ---
-export async function addCard(cardData, customImageFile) {
+export async function addMultipleCards(cardVersions) {
     if (!state.currentUser) throw new Error("User not logged in.");
-    let finalCardData = { ...cardData };
-    const cardId = await API.addCardToCollection(state.currentUser.uid, finalCardData);
-    finalCardData.id = cardId;
-    if (customImageFile) {
-        const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
-        finalCardData.customImageUrl = imageUrl;
-        await API.updateCardInCollection(state.currentUser.uid, cardId, { customImageUrl: imageUrl });
+    for (const cardData of cardVersions) {
+        const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
+        const finalCardData = { ...cardData, id: cardId };
+        state.fullCollection.unshift(finalCardData);
     }
-    state.fullCollection.unshift(finalCardData);
     applyFilters();
 }
 
@@ -96,14 +65,11 @@ export async function updateCard(cardId, updates, customImageFile) {
      if (!state.currentUser) throw new Error("User not logged in.");
     let finalUpdates = { ...updates };
     if (customImageFile) {
-        const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
-        finalUpdates.customImageUrl = imageUrl;
+        finalUpdates.customImageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
     }
     await API.updateCardInCollection(state.currentUser.uid, cardId, finalUpdates);
     const index = state.fullCollection.findIndex(c => c.id === cardId);
-    if (index !== -1) {
-        state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates };
-    }
+    if (index !== -1) { state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates }; }
     applyFilters();
 }
 
@@ -114,39 +80,59 @@ export async function deleteCard(cardId) {
     applyFilters();
 }
 
-export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId);
+export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId) || state.wishlist.find(c => c.id === cardId);
 
-
-// --- FILTERING & DATA DERIVATION ---
 export function applyFilters() {
-    // *** UPDATED: Destructure 'game' from filters ***
     const { name, set, rarity, colors, game } = state.filters;
-    state.filteredCollection = state.fullCollection.filter(card => {
+    const sourceList = state.activeTab === 'collection' ? state.fullCollection : state.wishlist;
+    const filteredList = sourceList.filter(card => {
         const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
         const setMatch = !set || card.set_name === set;
         const rarityMatch = !rarity || card.rarity === rarity;
-        const colorMatch = colors.length === 0 || 
-            (card.color_identity && colors.every(c => card.color_identity.includes(c)));
-        
-        // *** NEW: Apply the game filter ***
+        const colorMatch = colors.length === 0 || (card.color_identity && colors.every(c => card.color_identity.includes(c)));
         const gameMatch = game === 'all' || card.game === game;
-
         return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
     });
+
+    if (state.activeTab === 'collection') {
+        state.filteredCollection = filteredList;
+    } else {
+        // Since wishlist doesn't have its own filter state, we directly manipulate it
+        state.wishlist = state.fullWishlist.filter(card => { // Assuming you load the full wishlist into a separate array
+            const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
+            const setMatch = !set || card.set_name === set;
+            const rarityMatch = !rarity || card.rarity === rarity;
+            const gameMatch = game === 'all' || card.game === game;
+            return nameMatch && setMatch && rarityMatch && gameMatch;
+        });
+    }
 }
 
-export function calculateStats() {
-    const totalCards = state.fullCollection.reduce((sum, card) => sum + (card.quantity || 0), 0);
-    const uniqueCards = new Set(state.fullCollection.map(card => card.name)).size;
-    const totalValue = state.fullCollection.reduce((sum, card) => {
+
+export function calculateCollectionStats() {
+    const collectionToCount = state.filteredCollection;
+    const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);
+    const uniqueCards = new Set(collectionToCount.map(card => card.name)).size;
+    const totalValue = collectionToCount.reduce((sum, card) => {
         const price = card.prices?.usd || 0;
-        return sum + (price * (card.quantity || 0));
+        return sum + (price * (card.quantity || 1));
+    }, 0);
+    return { totalCards, uniqueCards, totalValue };
+}
+
+export function calculateWishlistStats() {
+    const totalCards = state.wishlist.length; // Each wishlist item is unique
+    const uniqueCards = state.wishlist.length;
+    const totalValue = state.wishlist.reduce((sum, card) => {
+        const price = card.prices?.usd || 0;
+        return sum + price;
     }, 0);
     return { totalCards, uniqueCards, totalValue };
 }
 
 export function getAvailableFilterOptions() {
-    const sets = [...new Set(state.fullCollection.map(c => c.set_name))].sort();
-    const rarities = [...new Set(state.fullCollection.map(c => c.rarity))].sort();
+    const sourceList = state.activeTab === 'collection' ? state.fullCollection : state.wishlist;
+    const sets = [...new Set(sourceList.map(c => c.set_name))].sort();
+    const rarities = [...new Set(sourceList.map(c => c.rarity))].sort();
     return { sets, rarities };
 }
