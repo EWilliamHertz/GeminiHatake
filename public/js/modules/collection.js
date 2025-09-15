@@ -7,7 +7,7 @@ import * as API from './api.js';
 let state = {
     currentUser: null,
     fullCollection: [],
-    fullWishlist: [], // Store the original unfiltered wishlist
+    fullWishlist: [],
     wishlist: [],
     filteredCollection: [],
     activeTab: 'collection',
@@ -25,6 +25,35 @@ export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
 export function getPendingCards() { return state.pendingCards; }
 export function clearPendingCards() { state.pendingCards = []; }
 
+export function toggleBulkEditMode() {
+    state.bulkEdit.isActive = !state.bulkEdit.isActive;
+    if (!state.bulkEdit.isActive) {
+        state.bulkEdit.selected.clear();
+    }
+    return state.bulkEdit.isActive;
+}
+
+export function toggleCardSelection(cardId) {
+    if (state.bulkEdit.selected.has(cardId)) {
+        state.bulkEdit.selected.delete(cardId);
+    } else {
+        state.bulkEdit.selected.add(cardId);
+    }
+    return state.bulkEdit.selected.has(cardId);
+}
+
+export function selectAllFiltered(cardIds) {
+    cardIds.forEach(id => state.bulkEdit.selected.add(id));
+}
+
+export function deselectAllFiltered() {
+    state.bulkEdit.selected.clear();
+}
+
+export function getSelectedCardIds() {
+    return Array.from(state.bulkEdit.selected);
+}
+
 export async function loadCollection(userId) {
     state.currentUser = { uid: userId };
     try {
@@ -41,7 +70,7 @@ export async function loadCollection(userId) {
 export async function loadWishlist(userId) {
     try {
         state.fullWishlist = await API.getWishlist(userId);
-        state.wishlist = [...state.fullWishlist]; // Initialize wishlist with all items
+        state.wishlist = [...state.fullWishlist];
     } catch (error) {
         console.error("Failed to load wishlist:", error);
         state.wishlist = [];
@@ -77,10 +106,24 @@ export async function updateCard(cardId, updates, customImageFile) {
     
     const index = state.fullCollection.findIndex(c => c.id === cardId);
     if (index !== -1) { 
-        // CRITICAL FIX: Ensure local state is updated correctly
         state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates }; 
     }
     applyFilters();
+}
+
+export async function batchUpdateSaleStatus(updates) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.batchUpdateCards(state.currentUser.uid, updates);
+
+    updates.forEach(update => {
+        const index = state.fullCollection.findIndex(c => c.id === update.id);
+        if (index !== -1) {
+            state.fullCollection[index] = { ...state.fullCollection[index], ...update.data };
+        }
+    });
+
+    applyFilters();
+    toggleBulkEditMode();
 }
 
 export async function deleteCard(cardId) {
@@ -88,6 +131,17 @@ export async function deleteCard(cardId) {
     await API.deleteCardFromCollection(state.currentUser.uid, cardId);
     state.fullCollection = state.fullCollection.filter(c => c.id !== cardId);
     applyFilters();
+}
+
+// ** NEW: Batch Delete Function **
+export async function batchDelete(cardIds) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.batchDeleteCards(state.currentUser.uid, cardIds);
+
+    state.fullCollection = state.fullCollection.filter(c => !cardIds.includes(c.id));
+    
+    applyFilters();
+    toggleBulkEditMode();
 }
 
 export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId) || state.wishlist.find(c => c.id === cardId);
@@ -105,18 +159,15 @@ export function applyFilters() {
             return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
         });
     } else {
-        // Correctly filter the wishlist from its full, original source
         state.wishlist = state.fullWishlist.filter(card => {
             const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
             const setMatch = !set || card.set_name === set;
             const rarityMatch = !rarity || card.rarity === rarity;
             const gameMatch = game === 'all' || (card.game || 'mtg') === game;
-             // Wishlists might not have color identity, so we skip that filter for now
             return nameMatch && setMatch && rarityMatch && gameMatch;
         });
     }
 }
-
 
 export function calculateCollectionStats() {
     const collectionToCount = state.filteredCollection;
@@ -130,7 +181,7 @@ export function calculateCollectionStats() {
 }
 
 export function calculateWishlistStats() {
-    const totalCards = state.wishlist.length; // Each wishlist item is unique
+    const totalCards = state.wishlist.length;
     const uniqueCards = state.wishlist.length;
     const totalValue = state.wishlist.reduce((sum, card) => {
         const price = card.prices?.usd || 0;

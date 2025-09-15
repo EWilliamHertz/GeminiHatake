@@ -62,17 +62,31 @@ const escrowApi = axios.create({
 // SECURE CARD SEARCH FUNCTIONS
 // =================================================================================================
 
+// Create a simple in-memory cache for Pokémon searches
+const pokemonCache = new Map();
+const CACHE_DURATION_MS = 1000 * 60 * 60; // Cache results for 1 hour
+
 /**
  * A callable function that acts as a secure proxy to the Pokémon TCG API.
  * This prevents the API key from being exposed on the client-side.
+ * It's configured to have a minimum of 1 instance running to prevent "cold starts".
  */
-exports.searchPokemon = functions.https.onCall(async (data, context) => {
+exports.searchPokemon = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
     const cardName = data.cardName;
     if (!cardName) {
         throw new functions.https.HttpsError(
             "invalid-argument",
             "The function must be called with a 'cardName' argument."
         );
+    }
+
+    // Check cache first
+    if (pokemonCache.has(cardName)) {
+        const cachedItem = pokemonCache.get(cardName);
+        if (Date.now() - cachedItem.timestamp < CACHE_DURATION_MS) {
+            console.log(`Serving '${cardName}' from cache.`);
+            return cachedItem.data;
+        }
     }
 
     // Securely get the API key from Firebase environment configuration
@@ -84,6 +98,7 @@ exports.searchPokemon = functions.https.onCall(async (data, context) => {
     const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}*"&pageSize=40&orderBy=-set.releaseDate`;
 
     try {
+        console.log(`Searching for '${cardName}' via API.`);
         const response = await fetch(searchUrl, {
             headers: { "X-Api-Key": POKEMON_API_KEY },
         });
@@ -95,7 +110,15 @@ exports.searchPokemon = functions.https.onCall(async (data, context) => {
         }
 
         const result = await response.json();
-        return result.data; // Return the array of cards
+        const responseData = result.data;
+
+        // Store successful result in cache
+        pokemonCache.set(cardName, {
+            timestamp: Date.now(),
+            data: responseData,
+        });
+
+        return responseData; // Return the array of cards
     } catch (error) {
         console.error("Error fetching Pokémon cards in cloud function:", error);
         throw new functions.https.HttpsError("internal", "An unexpected error occurred while fetching Pokémon cards.");

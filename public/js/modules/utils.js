@@ -1,74 +1,114 @@
 /**
  * utils.js
- * Contains reusable utility and helper functions.
+ * Contains helper and utility functions for data transformation and formatting.
  */
 
 /**
- * A robust function to get the correct image URL for a card object from any API.
- * Handles different data structures from Scryfall, Pokémon TCG API, and custom uploads.
- * @param {object} cardData The card object.
- * @returns {string} The URL of the card image.
+ * Transforms a Scryfall card object into the app's standard format.
+ * @param {object} scryfallCard - The raw card object from the Scryfall API.
+ * @returns {object} A standardized card object.
  */
-export function getCardImageUrl(cardData) {
-    if (!cardData) return 'https://placehold.co/300x420?text=No+Image';
-
-    // 1. Prioritize custom uploaded image
-    if (cardData.customImageUrl) {
-        return cardData.customImageUrl;
-    }
-
-    // 2. Scryfall (Magic: The Gathering)
-    if (cardData.image_uris && cardData.image_uris.normal) {
-        return cardData.image_uris.normal;
-    }
-    // Handle multi-faced cards from Scryfall
-    if (cardData.card_faces && cardData.card_faces[0].image_uris && cardData.card_faces[0].image_uris.normal) {
-        return cardData.card_faces[0].image_uris.normal;
-    }
-
-    // 3. Pokémon TCG API
-    if (cardData.images && cardData.images.large) {
-        return cardData.images.large;
-    }
-
-    // 4. Fallback placeholder
-    return 'https://placehold.co/300x420?text=Image+Not+Found';
-}
-
-/**
- * Creates a debounced function that delays invoking `func` until after `delay` milliseconds
- * have elapsed since the last time the debounced function was invoked.
- * @param {Function} func The function to debounce.
- * @param {number} delay The number of milliseconds to delay.
- * @returns {Function} Returns the new debounced function.
- */
-export function debounce(func, delay) {
-    let timeout;
-    return function(...args) {
-        const context = this;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), delay);
+export function transformScryfallCard(scryfallCard) {
+    return {
+        api_id: scryfallCard.id,
+        name: scryfallCard.name,
+        set: scryfallCard.set,
+        set_name: scryfallCard.set_name,
+        rarity: scryfallCard.rarity,
+        image_uris: scryfallCard.image_uris,
+        prices: {
+            usd: scryfallCard.prices?.usd || null,
+            usd_foil: scryfallCard.prices?.usd_foil || null,
+        },
+        purchasePrice: 0,
+        collector_number: scryfallCard.collector_number,
+        color_identity: scryfallCard.color_identity,
+        type_line: scryfallCard.type_line,
+        game: 'mtg',
     };
 }
 
+
 /**
- * Formats a price value with a currency symbol.
- * This is a simplified version; it can be expanded to use the global HatakeSocial object.
- * @param {number|null|undefined} price The numerical price value.
- * @param {string} currency The currency code (e.g., 'USD').
- * @returns {string} The formatted price string (e.g., "$12.34").
+ * Transforms a Pokémon TCG API card object into the app's standard format.
+ * This function is now robust and safely handles missing data.
+ * @param {object} pokemonCard - The raw card object from the Pokémon TCG API.
+ * @returns {object} A standardized card object.
+ */
+export function transformPokemonCard(pokemonCard) {
+    const prices = pokemonCard.tcgplayer?.prices || {};
+    const normalPrice = prices?.normal?.market 
+                      || prices?.unlimited?.market 
+                      || prices?.holofoil?.market 
+                      || null;
+    const foilPrice = prices?.holofoil?.market 
+                    || prices?.reverseHolofoil?.market 
+                    || prices?.["1stEditionHolofoil"]?.market
+                    || null;
+
+    const image_uris = {
+        small: pokemonCard.images?.small || '',
+        normal: pokemonCard.images?.large || '',
+        large: pokemonCard.images?.large || '',
+        art_crop: pokemonCard.images?.large || '',
+    };
+
+    return {
+        api_id: pokemonCard.id,
+        name: pokemonCard.name,
+        set: pokemonCard.set.id,
+        set_name: pokemonCard.set.name,
+        rarity: pokemonCard.rarity || 'Common',
+        image_uris: image_uris,
+        // Keep the original images object for backward compatibility with saved cards
+        images: pokemonCard.images, 
+        prices: {
+            usd: normalPrice,
+            usd_foil: foilPrice,
+        },
+        purchasePrice: 0,
+        collector_number: pokemonCard.number,
+        type_line: pokemonCard.supertype + (pokemonCard.subtypes ? ` - ${pokemonCard.subtypes.join(' ')}` : ''),
+        game: 'pokemon',
+    };
+}
+
+// --- START: CORRECTED IMAGE URL LOGIC ---
+/**
+ * Gets a reliable image URL from a card object, supporting both old and new data structures.
+ * @param {object} card - The card object.
+ * @returns {string} The URL for the card image.
+ */
+export function getCardImageUrl(card) {
+    if (card.customImageUrl) {
+        return card.customImageUrl;
+    }
+    // Check for the standardized `image_uris` object first (works for MTG and new Pokémon searches)
+    if (card.image_uris) {
+        return card.image_uris.normal || card.image_uris.large || card.image_uris.small;
+    }
+    // Fallback for older Pokémon cards already saved in the database
+    if (card.images) {
+        return card.images.large || card.images.small;
+    }
+    return 'https://placehold.co/223x310?text=No+Image';
+}
+// --- END: CORRECTED IMAGE URL LOGIC ---
+
+
+/**
+ * Formats a price string.
+ * @param {number|string|null} price - The price to format.
+ * @param {string} currency - The currency code (e.g., 'USD').
+ * @returns {string} The formatted price string (e.g., '$1.23').
  */
 export function formatPrice(price, currency = 'USD') {
-    if (price === null || typeof price === 'undefined') {
-        return '-';
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice)) {
+        return 'N/A';
     }
-    try {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency,
-        }).format(price);
-    } catch (e) {
-        // Fallback for invalid currency codes
-        return `${price.toFixed(2)} ${currency}`;
-    }
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+    }).format(numericPrice);
 }

@@ -45,18 +45,20 @@ export function renderGridView(cards, activeTab) {
             ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">$${formatPrice(card.salePrice)}</div>`
             : '';
 
+        const bulkCheckbox = isBulkMode
+            ? `<div class="absolute top-2 right-2"><input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}></div>`
+            : `<div class="absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button data-action="edit" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"><i class="fas fa-pencil-alt"></i></button>
+                        <button data-action="delete" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"><i class="fas fa-trash"></i></button>
+                    </div>`;
+
         return `
-            <div class="card-container relative group" data-id="${card.id}">
+            <div class="card-container relative group ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
                 <img src="${imageUrl}" alt="${card.name}" class="rounded-lg shadow-md w-full transition-transform transform group-hover:scale-105">
                 <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                     <div class="text-white text-center p-2"><p class="font-bold">${card.name}</p><p class="text-sm">${card.set_name}</p></div>
                 </div>
-                 ${isBulkMode ? `<div class="absolute top-2 right-2"><input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}></div>` : `
-                    <div class="absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button data-action="edit" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"><i class="fas fa-pencil-alt"></i></button>
-                        <button data-action="delete" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"><i class="fas fa-trash"></i></button>
-                    </div>`
-                }
+                 ${bulkCheckbox}
                 ${salePriceDisplay}
                 <div class="absolute bottom-0 left-0 bg-gray-800 bg-opacity-75 text-white text-xs w-full p-1 rounded-b-lg flex justify-between">
                     <span>Qty: ${card.quantity || 1}</span>
@@ -78,7 +80,7 @@ export function renderListView(cards, activeTab) {
     const tableHeader = `
         <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
-                ${isBulkMode ? `<th class="p-3 text-left text-xs font-medium uppercase tracking-wider"><input type="checkbox" id="bulk-select-all" ${allSelectedOnPage ? 'checked' : ''}></th>` : ''}
+                ${isBulkMode ? `<th class="p-3 text-left text-xs font-medium uppercase tracking-wider"><input type="checkbox" id="bulk-select-all-page" ${allSelectedOnPage ? 'checked' : ''}></th>` : ''}
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
@@ -96,10 +98,8 @@ export function renderListView(cards, activeTab) {
             ? `<span class="text-green-500 font-semibold">For Sale ($${formatPrice(card.salePrice)})</span>`
             : 'In Collection';
         
-        // *** CRITICAL BUG FIX HERE ***
-        // Reverted card.isFoil to card.is_foil to match the data structure from Firestore
         return `
-            <tr class="card-container border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600/50" data-id="${card.id}">
+            <tr class="card-container border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600/50 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/50' : ''}" data-id="${card.id}">
                 ${isBulkMode ? `<td class="p-3"><input type="checkbox" class="bulk-select-checkbox h-4 w-4" data-id="${card.id}" ${isSelected ? 'checked' : ''}></td>` : ''}
                 <td class="p-3 font-medium">${card.name} ${card.is_foil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
                 <td class="p-3 text-sm text-gray-500 dark:text-gray-400">${card.set_name}</td>
@@ -151,13 +151,6 @@ export function renderSearchResults(results) {
             </div>`;
     }).join('');
     container.innerHTML = resultsHTML;
-    document.querySelectorAll('.search-result-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
-            closeSearchModal();
-            populateCardModalForAdd(cardData);
-        });
-    });
 }
 
 export function renderPendingCards(pendingCards) {
@@ -257,26 +250,28 @@ export function updateColorFilterSelection(selectedColors) {
     });
 }
 
+export function updateBulkEditUI(isActive) {
+    const bulkEditBtn = getElement('bulk-edit-btn');
+    const bulkToolbar = getElement('bulk-edit-toolbar');
+    
+    bulkEditBtn.innerHTML = isActive ? '<i class="fas fa-times w-6"></i> Cancel' : '<i class="fas fa-edit w-6"></i> Bulk Edit';
+    bulkEditBtn.classList.toggle('bg-red-600', isActive);
+    bulkEditBtn.classList.toggle('hover:bg-red-700', isActive);
+    bulkEditBtn.classList.toggle('bg-gray-200', !isActive);
+    bulkEditBtn.classList.toggle('dark:bg-gray-700', !isActive);
+    bulkEditBtn.classList.toggle('hover:bg-gray-300', !isActive);
+    bulkEditBtn.classList.toggle('dark:hover:bg-gray-600', !isActive);
 
-// --- CARD PREVIEW TOOLTIP ---
-export function showCardPreview(cardDataString) {
-    const card = JSON.parse(decodeURIComponent(cardDataString));
-    cardPreviewTooltip.querySelector('img').src = getCardImageUrl(card);
-    cardPreviewTooltip.classList.remove('hidden');
+
+    bulkToolbar.classList.toggle('hidden', !isActive);
+    updateSelectedCount();
 }
 
-export function hideCardPreview() {
-    cardPreviewTooltip.classList.add('hidden');
+export function updateSelectedCount() {
+    const count = Collection.getState().bulkEdit.selected.size;
+    getElement('bulk-selected-count').textContent = count;
 }
 
-export function moveCardPreview(e) {
-    let x = e.clientX + 15;
-    let y = e.clientY + 15;
-    if (x + cardPreviewTooltip.offsetWidth > window.innerWidth) { x = e.clientX - cardPreviewTooltip.offsetWidth - 15; }
-    if (y + cardPreviewTooltip.offsetHeight > window.innerHeight) { y = e.clientY - cardPreviewTooltip.offsetHeight - 15; }
-    cardPreviewTooltip.style.left = `${x}px`;
-    cardPreviewTooltip.style.top = `${y}px`;
-}
 
 // --- MODAL MANAGEMENT ---
 const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); }
@@ -312,7 +307,6 @@ function setupSaleSectionLogic(cardData) {
     const marketPrice = parseFloat(cardData.prices?.usd || 0);
     marketPriceDisplay.textContent = marketPrice > 0 ? `$${marketPrice.toFixed(2)}` : 'N/A';
     
-    // Clone and replace to remove old listeners
     const newPercentageInput = salePercentageInput.cloneNode(true);
     salePercentageInput.parentNode.replaceChild(newPercentageInput, salePercentageInput);
     
@@ -366,7 +360,7 @@ export function populateCardModalForAdd(cardData) {
 }
 
 export function populateCardModalForEdit(cardData, listForSale = false) {
-    populateCardModalForAdd(cardData); // Reuse for basic setup and to attach listeners
+    populateCardModalForAdd(cardData);
     
     getElement('card-modal-id').value = cardData.id;
     getElement('card-modal-title').textContent = `Editing: ${cardData.name}`;
@@ -414,7 +408,6 @@ export function getCardFormData(includeBaseData = true) {
         condition: getElement('card-condition').value,
         language: getElement('card-language').value,
         purchasePrice: parseFloat(getElement('card-purchase-price').value) || null,
-        // **BUG FIX AREA**: Reverted to original property names
         is_foil: getElement('card-is-foil').checked,
         is_signed: getElement('card-is-signed').checked,
         is_altered: getElement('card-is-altered').checked,
@@ -453,5 +446,11 @@ export const openCsvImportModal = () => openModal(csvModal);
 export const closeCsvImportModal = () => { getElement('csv-file-input').value = ''; getElement('csv-import-status').textContent = 'Awaiting file...'; closeModal(csvModal); };
 export const updateCsvImportStatus = (message) => { const el = getElement('csv-import-status'); el.innerHTML += message + '<br>'; el.scrollTop = el.scrollHeight; };
 export function openBulkListSaleModal(count) { getElement('bulk-list-count').textContent = count; openModal(bulkListModal); }
-export const closeBulkListSaleModal = () => { getElement('bulk-list-form').reset(); toggleBulkPriceInputs(); closeModal(bulkListModal); };
-export function toggleBulkPriceInputs() { const isPercentage = getElement('bulk-list-form').elements['price-option'].value === 'percentage'; getElement('bulk-price-percentage').disabled = !isPercentage; getElement('bulk-price-fixed').disabled = isPercentage; }
+export const closeBulkListSaleModal = () => { getElement('bulk-list-form').reset(); closeModal(bulkListModal); };
+
+// ** FIX: Corrected and simplified logic **
+export function toggleBulkPriceInputs() {
+    const priceOption = getElement('bulk-list-form').elements['price-option'].value;
+    getElement('bulk-price-percentage-group').classList.toggle('hidden', priceOption !== 'percentage');
+    getElement('bulk-price-fixed-group').classList.toggle('hidden', priceOption !== 'fixed');
+}

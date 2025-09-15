@@ -10,13 +10,14 @@ const searchPokemonCloudFunction = functions.httpsCallable('searchPokemon');
 
 // --- CARD SEARCH APIS ---
 export async function searchCards(cardName, game) {
-    if (game === 'mtg') { return searchScryfall(cardName); } 
+    if (game === 'mtg') { return searchScryfall(cardName); }
     else if (game === 'pokemon') { return searchPokemon(cardName); }
     return [];
 }
 
 async function searchScryfall(cardName) {
     try {
+        // FIX: Re-added '&unique=prints' to ensure all printings of a card are fetched.
         const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints`);
         if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.details || 'Card not found.'); }
         const data = await response.json();
@@ -47,7 +48,7 @@ function cleanScryfallData(card) {
         cmc: card.cmc,
         type_line: card.type_line,
         color_identity: card.color_identity,
-        collector_number: card.collector_number, // *** NEW: Added collector number ***
+        collector_number: card.collector_number,
         game: 'mtg'
     };
 }
@@ -59,7 +60,8 @@ function cleanPokemonData(card) {
         set: card.set.id,
         set_name: card.set.name,
         rarity: card.rarity || 'Common',
-        images: card.images,
+        // FIX: Changed 'images' property to 'image_uris' to match the Firestore data structure
+        image_uris: card.images,
         prices: {
             usd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
             usd_foil: card.tcgplayer?.prices?.holofoil?.market || null,
