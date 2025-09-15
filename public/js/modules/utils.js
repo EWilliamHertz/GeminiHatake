@@ -1,111 +1,74 @@
-window.Utils = (() => {
+/**
+ * utils.js
+ * Contains reusable utility and helper functions.
+ */
 
-    function safeFormatPrice(value) {
-        if (window.HatakeSocial && typeof window.HatakeSocial.convertAndFormatPrice === 'function') {
-            return window.HatakeSocial.convertAndFormatPrice(value, 'USD');
-        }
-        return `$${Number(value || 0).toFixed(2)} USD`;
-    }
+/**
+ * A robust function to get the correct image URL for a card object from any API.
+ * Handles different data structures from Scryfall, Pokémon TCG API, and custom uploads.
+ * @param {object} cardData The card object.
+ * @returns {string} The URL of the card image.
+ */
+export function getCardImageUrl(cardData) {
+    if (!cardData) return 'https://placehold.co/300x420?text=No+Image';
 
-    function showNotification(message, type = 'info') {
-        let backgroundColor = '#3B82F6'; // Default blue for info
-        if (type === 'success') {
-            backgroundColor = '#22C55E'; // Green
-        } else if (type === 'error') {
-            backgroundColor = '#EF4444'; // Red
-        } else if (type === 'warning') {
-            backgroundColor = '#F59E0B'; // Amber
-        }
-        
-        Toastify({
-            text: message,
-            duration: 3000,
-            close: true,
-            gravity: "top",
-            position: "right",
-            stopOnFocus: true,
-            style: {
-                background: backgroundColor,
-                borderRadius: "8px",
-            },
-        }).showToast();
+    // 1. Prioritize custom uploaded image
+    if (cardData.customImageUrl) {
+        return cardData.customImageUrl;
     }
 
-    async function makeApiCall(url, options = {}) {
-        try {
-            const response = await fetch(url, {
-                ...options,
-                headers: { 'Content-Type': 'application/json', ...options.headers }
-            });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error('API call failed:', error);
-            throw error;
-        }
+    // 2. Scryfall (Magic: The Gathering)
+    if (cardData.image_uris && cardData.image_uris.normal) {
+        return cardData.image_uris.normal;
+    }
+    // Handle multi-faced cards from Scryfall
+    if (cardData.card_faces && cardData.card_faces[0].image_uris && cardData.card_faces[0].image_uris.normal) {
+        return cardData.card_faces[0].image_uris.normal;
     }
 
-    function readFileAsText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(file);
-        });
+    // 3. Pokémon TCG API
+    if (cardData.images && cardData.images.large) {
+        return cardData.images.large;
     }
 
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
+    // 4. Fallback placeholder
+    return 'https://placehold.co/300x420?text=Image+Not+Found';
+}
 
-    function getProductTypeDisplayName(type) {
-        const names = {
-            'booster_box': 'Booster Box',
-            'booster_pack': 'Booster Pack',
-            'bundle': 'Bundle',
-            'prerelease_kit': 'Prerelease Kit',
-            'commander_deck': 'Commander Deck',
-            'starter_deck': 'Starter Deck',
-        };
-        return names[type] || type;
-    }
-    
-    function downloadFile(content, filename, contentType = 'text/plain') {
-        const blob = new Blob([content], { type: contentType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-    
-    function formatDate(timestamp) {
-        if (!timestamp) return '';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleDateString('en-US');
-    }
-
-    return {
-        safeFormatPrice,
-        showNotification,
-        makeApiCall,
-        readFileAsText,
-        debounce,
-        getProductTypeDisplayName,
-        downloadFile,
-        formatDate
+/**
+ * Creates a debounced function that delays invoking `func` until after `delay` milliseconds
+ * have elapsed since the last time the debounced function was invoked.
+ * @param {Function} func The function to debounce.
+ * @param {number} delay The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
+ */
+export function debounce(func, delay) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), delay);
     };
+}
 
-})();
-
+/**
+ * Formats a price value with a currency symbol.
+ * This is a simplified version; it can be expanded to use the global HatakeSocial object.
+ * @param {number|null|undefined} price The numerical price value.
+ * @param {string} currency The currency code (e.g., 'USD').
+ * @returns {string} The formatted price string (e.g., "$12.34").
+ */
+export function formatPrice(price, currency = 'USD') {
+    if (price === null || typeof price === 'undefined') {
+        return '-';
+    }
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency,
+        }).format(price);
+    } catch (e) {
+        // Fallback for invalid currency codes
+        return `${price.toFixed(2)} ${currency}`;
+    }
+}

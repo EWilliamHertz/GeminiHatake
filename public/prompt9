@@ -1,0 +1,2209 @@
+Please generate the code for a complete TCG collection management page for a social media platform. The project should be structured with a main HTML file and several JavaScript modules. The design should be modern, clean, and responsive, using Tailwind CSS for styling.
+
+File Structure:
+
+my_collection.html
+
+public/js/modules/collection-app.js (Main application logic)
+
+public/js/modules/ui.js (DOM manipulation and UI updates)
+
+public/js/modules/api.js (Handles all API calls)
+
+public/js/modules/collection.js (State management for the collection)
+
+public/js/modules/csv.js (CSV import/export functionality)
+
+public/js/modules/bulk-operations.js (Bulk editing features)
+
+public/js/modules/utils.js (Utility and helper functions)
+
+Detailed Requirements:
+
+1. my_collection.html
+
+Layout: A two-column layout. The left column will be a sidebar for user stats, filters, and actions. The right column will display the card collection.
+
+Header: A header with the page title "My Collection", a search button that opens the search modal, and buttons for CSV import/export.
+
+Sidebar:
+
+Stats: Display "Total Cards", "Unique Cards", and "Total Value".
+
+Filters: Include filters for card name, set, rarity, and colors.
+
+Actions: Buttons for "Bulk Edit", "Quick Edit", and "Add Card".
+
+Main Content Area:
+
+Tabs: Tabs to switch between "Collection" and "Wishlist".
+
+View Toggle: Buttons to switch between a grid view and a list view for the collection.
+
+Collection Display: An area to display the cards in either a grid or list format.
+
+Modals (all hidden by default):
+
+Search Modal: A modal with a search input, a game selector (Magic: The Gathering, Pokémon), and a results area.
+
+Add/Edit Card Modal: A modal to add a new card or edit an existing one. It should have fields for quantity, condition, language, purchase price, and checkboxes for foil, signed, and altered. It should also have a file input for uploading a custom image and a "List for Sale" section with a sale price input. Include a button to "Add Another Version".
+
+List for Sale Modal (for bulk operations): A modal for listing multiple cards for sale with options for setting a price as a percentage of market value or a fixed price.
+
+CSV Import Modal: A modal with a file input for CSV files and a status display area.
+
+2. JavaScript Modules
+
+public/js/modules/collection-app.js
+
+This will be the main entry point.
+
+It should initialize the application after the DOM is loaded and the user is authenticated.
+
+It will orchestrate the other modules, for example, calling functions from ui.js to render the collection and from collection.js to manage the data.
+
+It will handle all main event listeners (e.g., clicks on tabs, view toggles, filter changes).
+
+public/js/modules/ui.js
+
+Rendering:
+
+renderGridView(cards): Renders the cards in a grid format. Each card should display its image, quantity, and price. On hover, it should show action buttons (edit, delete, list for sale).
+
+renderListView(cards): Renders the cards in a table format with columns for Name, Set, Quantity, Price, and Actions.
+
+Modals:
+
+Functions to open and close all the modals (openSearchModal, closeSearchModal, openCardModal, etc.).
+
+Functions to populate the modals with data (e.g., populating the edit card modal with the card's current details).
+
+UI Updates:
+
+Functions to update the stats in the sidebar.
+
+Functions to update the filter dropdowns with available sets and rarities.
+
+A function to show toast-style notifications for actions like "Card Added" or "Error".
+
+public/js/modules/api.js
+
+Scryfall API:
+
+searchScryfall(cardName): A function to search for Magic: The Gathering cards using the Scryfall API. It should handle both exact and fuzzy searches and return a cleaned-up card data object.
+
+Pokémon TCG API:
+
+searchPokemon(cardName): A function to search for Pokémon cards. This function should make a call to a Firebase Cloud Function (searchPokemonCards) which then queries the Pokémon TCG API. This is to protect the API key.
+
+Firebase/Firestore:
+
+Functions to interact with Firestore to get the user's collection and wishlist, add/update/delete cards, and manage marketplace listings.
+
+public/js/modules/collection.js
+
+This module will manage the application's state.
+
+It will hold the arrays for the full collection, the filtered collection, and the wishlist.
+
+It will contain functions to:
+
+Load the collection and wishlist from Firestore.
+
+Add, update, and delete cards from the local state and sync with Firestore.
+
+Apply filters to the collection and update the filteredCollection array.
+
+public/js/modules/csv.js
+
+Import:
+
+handleCSVImport(file): A function that takes a CSV file, parses it, and adds the cards to the collection.
+
+It should be able to intelligently detect columns for card name, quantity, set, condition, and foil status from various CSV formats.
+
+For each card in the CSV, it should call the searchScryfall function from api.js to get the latest card data and pricing.
+
+Export:
+
+exportCollectionToCSV(): A function to export the user's collection to a CSV file.
+
+public/js/modules/bulk-operations.js
+
+This module will handle all bulk actions.
+
+Selection:
+
+Functions to enter/exit bulk edit mode and manage the set of selected cards.
+
+Actions:
+
+listSelectedForSale(): Opens the "List for Sale" modal and applies the pricing logic to the selected cards.
+
+deleteSelected(): Deletes all selected cards from the collection.
+
+public/js/modules/utils.js
+
+This module will contain reusable helper functions.
+
+getCardImageUrl(cardData): A robust function to get the correct image URL for any card, handling different data structures from Scryfall, the Pokémon TCG API, and custom uploaded images.
+
+debounce(func, delay): A standard debounce function to prevent excessive API calls during search.
+
+formatPrice(price, currency): A function to format prices according to the user's selected currency and region (e.g., using TCGPlayer for USD and Cardmarket for EUR).
+
+Important Considerations:
+
+Authentication: The entire functionality should only be available to authenticated users. The collection-app.js should wait for an authReady event before initializing.
+
+Error Handling: All API calls and data operations should have robust error handling and provide feedback to the user through notifications.
+
+Code Quality: The generated code should be well-commented, follow modern JavaScript best practices (ES6+), and be organized into the specified modular structure.
+
+Dependencies: The HTML file should include the necessary Firebase SDK scripts and a link to the Tailwind CSS CDN for styling. All JavaScript modules should be imported into the main collection-app.js file using ES6 modules
+
+Please provide the complete, fully merged code for each of the files listed in the file structure. I will be merging these files into my existing project structure.
+This is how functions/index.js looks, it already calls a PokemonTCG Api that is stored in my backend.
+/**
+* HatakeSocial - Firebase Cloud Functions
+*
+* This file contains the backend logic for the application.
+* - ADMIN FUNCTIONS for user management and platform control.
+* - MESSAGING FUNCTIONS for real-time user-to-user chat.
+* - CARD & MARKETPLACE FUNCTIONS for collection syncing and secure API searches.
+* - Handles user registration with a referral code.
+* - Creates Stripe checkout sessions for the shop with coupon/referral support.
+* - Validates Stripe promotion codes.
+* - Automatically counts user posts.
+* - Handles following users and creating notifications.
+* - Automatically deletes product images from Storage when a product is deleted.
+* - Securely sets admin and content creator custom claims for user roles.
+* - Manages a secure escrow trading system with Escrow.com.
+* - Wishlist and Trade Matching functionality.
+* - Marketplace syncing function.
+* - SECURE POKEMON API SEARCH PROXY to protect the API key.
+*/
+
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const stripe = require("stripe")(functions.config().stripe.secret);
+const axios = require("axios");
+const fetch = require("node-fetch"); // <-- ADDED for the new Pokémon function
+
+// --- CORS CONFIGURATION ---
+const allowedOrigins = [
+    'https://hatake.eu',
+    'https://hatakesocial-88b5e.web.app',
+    'http://localhost:5000'
+];
+
+const cors = require('cors')({
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+});
+
+admin.initializeApp();
+const db = admin.firestore();
+const storage = admin.storage();
+
+// --- Escrow.com API Configuration ---
+const ESCROW_API_KEY = functions.config().escrow.key;
+const ESCROW_API_USER = functions.config().escrow.user;
+const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/"; // Use the production URL
+
+const escrowApi = axios.create({
+    baseURL: ESCROW_API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${ESCROW_API_USER}:${ESCROW_API_KEY}`).toString('base64')}`
+    }
+});
+
+// =================================================================================================
+// SECURE CARD SEARCH FUNCTIONS (NEW)
+// =================================================================================================
+
+/**
+ * A callable function that acts as a secure proxy to the Pokémon TCG API.
+ * This prevents the API key from being exposed on the client-side.
+ */
+exports.searchPokemon = functions.https.onCall(async (data, context) => {
+    const cardName = data.cardName;
+    if (!cardName) {
+        throw new functions.https.HttpsError(
+            "invalid-argument",
+            "The function must be called with a 'cardName' argument."
+        );
+    }
+
+    // Securely get the API key from Firebase environment configuration
+    const POKEMON_API_KEY = functions.config().pokemon.apikey;
+    if (!POKEMON_API_KEY) {
+        throw new functions.https.HttpsError('internal', 'Pokémon API key is not configured.');
+    }
+
+    const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}*"&pageSize=40&orderBy=-set.releaseDate`;
+
+    try {
+        const response = await fetch(searchUrl, {
+            headers: { "X-Api-Key": POKEMON_API_KEY },
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error("Pokemon API Error:", response.status, errorBody);
+            throw new functions.https.HttpsError("internal", `Failed to fetch from Pokémon TCG API. Status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result.data; // Return the array of cards
+    } catch (error) {
+        console.error("Error fetching Pokémon cards in cloud function:", error);
+        throw new functions.https.HttpsError("internal", "An unexpected error occurred while fetching Pokémon cards.");
+    }
+});
+
+
+// =================================================================================================
+// ADMIN USER & PLATFORM MANAGEMENT FUNCTIONS
+// =================================================================================================
+
+/**
+ * Helper function to verify that the caller is an administrator.
+ * @param {object} context - The context object from the callable function.
+ */
+const ensureIsAdmin = (context) => {
+    if (!context.auth || context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'You must be an admin to perform this action.');
+    }
+};
+
+/**
+ * Bans a user. Disables them in Firebase Auth and sets a flag in Firestore.
+ */
+exports.banUser = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { uid } = data;
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID is required.');
+    }
+    try {
+        await admin.auth().updateUser(uid, { disabled: true });
+        await db.collection('users').doc(uid).update({ isBanned: true, suspendedUntil: null });
+        return { success: true, message: `User ${uid} has been banned.` };
+    } catch (error) {
+        console.error(`Failed to ban user ${uid}`, error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while banning the user.');
+    }
+});
+
+/**
+ * Un-bans a user. Enables them in Firebase Auth and removes the flag in Firestore.
+ */
+exports.unBanUser = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { uid } = data;
+    if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID is required.');
+    }
+    try {
+        await admin.auth().updateUser(uid, { disabled: false });
+        await db.collection('users').doc(uid).update({ isBanned: false });
+        return { success: true, message: `User ${uid} has been unbanned.` };
+    } catch (error) {
+        console.error(`Failed to unban user ${uid}`, error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while unbanning the user.');
+    }
+});
+
+/**
+ * Suspends a user for a specific duration by setting a timestamp in Firestore.
+ */
+exports.suspendUser = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { uid, suspendedUntil } = data; // suspendedUntil should be an ISO string
+    if (!uid || !suspendedUntil) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID and suspension date are required.');
+    }
+    try {
+        const suspensionDate = new Date(suspendedUntil);
+        await db.collection('users').doc(uid).update({
+            suspendedUntil: admin.firestore.Timestamp.fromDate(suspensionDate)
+        });
+        return { success: true, message: `User ${uid} suspended until ${suspensionDate.toLocaleString()}.` };
+    } catch (error) {
+        console.error(`Failed to suspend user ${uid}`, error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while suspending the user.');
+    }
+});
+
+/**
+ * Sends a notification message to all users on the platform.
+ */
+exports.broadcastMessage = functions.https.onCall(async (data, context) => {
+    ensureIsAdmin(context);
+    const { message } = data;
+    if (!message) {
+        throw new functions.https.HttpsError('invalid-argument', 'A message is required for the broadcast.');
+    }
+
+    try {
+        const usersSnapshot = await db.collection('users').get();
+        if (usersSnapshot.empty) {
+            return { success: true, message: "No users to notify." };
+        }
+
+        const batch = db.batch();
+        usersSnapshot.forEach(userDoc => {
+            const notificationRef = userDoc.ref.collection('notifications').doc();
+            batch.set(notificationRef, {
+                type: 'broadcast',
+                fromId: 'system',
+                fromName: 'HatakeSocial Admin',
+                message: message,
+                link: '#',
+                isRead: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        return { success: true, message: `Broadcast sent to ${usersSnapshot.size} users.` };
+
+    } catch (error) {
+        console.error('Broadcast failed:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to send broadcast.');
+    }
+});
+
+// =================================================================================================
+// MESSAGING FUNCTIONS
+// =================================================================================================
+
+/**
+ * Sends a message from one user to another. (MERGED FUNCTION)
+ * This is the single, definitive function for sending messages.
+ * It is kept "warm" with minInstances to prevent cold start delays.
+ */
+exports.sendMessage = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to send messages.');
+    }
+    const { recipientId, messageText } = data;
+    const senderId = context.auth.uid;
+
+    if (!recipientId || !messageText) throw new functions.https.HttpsError('invalid-argument', 'Missing recipientId or messageText.');
+    if (senderId === recipientId) throw new functions.https.HttpsError('invalid-argument', 'You cannot send a message to yourself.');
+
+    try {
+        const conversationId = [senderId, recipientId].sort().join('_');
+        const conversationRef = db.collection('conversations').doc(conversationId);
+        const message = {
+            senderId: senderId,
+            text: messageText,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        };
+        const conversationUpdateData = {
+            lastMessage: messageText,
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        };
+        const batch = db.batch();
+        const newMessageRef = conversationRef.collection('messages').doc();
+        batch.set(newMessageRef, message);
+        batch.set(conversationRef, conversationUpdateData, { merge: true });
+        await batch.commit();
+        return { success: true, conversationId: conversationId };
+    } catch (error) {
+        console.error("Error sending message:", error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while sending the message.');
+    }
+});
+
+/**
+ * Ensures a conversation document exists between two users. Creates one if it doesn't.
+ */
+exports.ensureConversationExists = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    const { otherUserId } = data;
+    const currentUserId = context.auth.uid;
+    if (!otherUserId) throw new functions.https.HttpsError('invalid-argument', 'Missing the other user\'s ID.');
+    if (otherUserId === currentUserId) throw new functions.https.HttpsError('invalid-argument', 'You cannot create a conversation with yourself.');
+    const conversationId = [currentUserId, otherUserId].sort().join('_');
+    const convoRef = db.collection('conversations').doc(conversationId);
+    const doc = await convoRef.get();
+    if (doc.exists) {
+        return { success: true, conversationId: conversationId };
+    }
+    try {
+        const [currentUserDoc, otherUserDoc] = await Promise.all([
+            db.collection('users').doc(currentUserId).get(),
+            db.collection('users').doc(otherUserId).get()
+        ]);
+        if (!currentUserDoc.exists || !otherUserDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'One of the users could not be found.');
+        }
+        const currentUserData = currentUserDoc.data();
+        const otherUserData = otherUserDoc.data();
+        const convoData = {
+            participants: [currentUserId, otherUserId],
+            participantInfo: {
+                [currentUserId]: {
+                    displayName: currentUserData.displayName || "User",
+                    photoURL: currentUserData.photoURL || "",
+                    handle: currentUserData.handle || ""
+                },
+                [otherUserId]: {
+                    displayName: otherUserData.displayName || "User",
+                    photoURL: otherUserData.photoURL || "",
+                    handle: otherUserData.handle || ""
+                }
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessage: ''
+        };
+        await convoRef.set(convoData);
+        return { success: true, conversationId: conversationId };
+    } catch (error) {
+        console.error("Error in ensureConversationExists:", error);
+        throw new functions.https.HttpsError('internal', 'An unexpected error occurred.');
+    }
+});
+
+/**
+ * Firestore trigger that creates a notification when a new message is created.
+ */
+exports.onNewMessage = functions.firestore
+    .document('conversations/{conversationId}/messages/{messageId}')
+    .onCreate(async (snap, context) => {
+        const messageData = snap.data();
+        const { conversationId } = context.params;
+        const { senderId, text } = messageData;
+        const conversationDoc = await db.collection('conversations').doc(conversationId).get();
+        if (!conversationDoc.exists) return null;
+        const conversationData = conversationDoc.data();
+        const recipientId = conversationData.participants.find(uid => uid !== senderId);
+        if (!recipientId) return null;
+        const senderName = conversationData.participantInfo[senderId]?.displayName || 'Someone';
+        const notification = {
+            type: 'message',
+            fromId: senderId,
+            fromName: senderName,
+            message: `Sent you a message: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`,
+            link: `messages.html`,
+            isRead: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection('users').doc(recipientId).collection('notifications').add(notification);
+        return null;
+    });
+
+// =================================================================================================
+// --- NEW MARKETPLACE FUNCTION ---
+// =================================================================================================
+/**
+ * This function triggers whenever a card in a user's collection is created, updated, or deleted.
+ * It keeps a public `marketplaceListings` collection in sync.
+ */
+exports.syncCardToMarketplace = functions.firestore
+    .document('users/{userId}/collection/{cardId}')
+    .onWrite(async (change, context) => {
+        const { userId, cardId } = context.params;
+        const listingRef = db.collection('marketplaceListings').doc(cardId);
+
+        // Card was deleted or is no longer for sale
+        if (!change.after.exists || !change.after.data().forSale) {
+            try {
+                await listingRef.delete();
+                console.log(`Removed listing ${cardId} from the marketplace.`);
+            } catch (error) {
+                console.error(`Failed to remove listing ${cardId} from marketplace:`, error);
+            }
+            return null;
+        }
+
+        // Card was added or updated to be for sale
+        const cardData = change.after.data();
+        
+        // Ensure we only proceed if forSale is explicitly true
+        if (cardData.forSale !== true) {
+            return null;
+        }
+
+        try {
+            const userDoc = await db.collection('users').doc(userId).get();
+            if (!userDoc.exists) {
+                console.error(`User document for seller ${userId} not found.`);
+                return null;
+            }
+            
+            const sellerData = userDoc.data();
+
+            // Create a clean seller object to avoid storing sensitive info
+            const sellerInfo = {
+                uid: userId,
+                displayName: sellerData.displayName || "Unknown Seller",
+                photoURL: sellerData.photoURL || null,
+                city: sellerData.city || null,
+                country: sellerData.country || null,
+                primaryCurrency: sellerData.primaryCurrency || 'SEK',
+                rating: sellerData.rating || 0,
+                ratingCount: sellerData.ratingCount || 0
+            };
+
+            const listingData = {
+                ...cardData,
+                sellerData: sellerInfo,
+                originalCardId: cardId, // Keep track of original ID
+                sellerId: userId,
+                lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            await listingRef.set(listingData, { merge: true });
+            console.log(`Synced card ${cardId} to marketplace for user ${userId}.`);
+            return null;
+        } catch (error) {
+            console.error(`Error syncing card ${cardId} to marketplace:`, error);
+            return null;
+        }
+    });
+
+// =================================================================================================
+// ORIGINAL APPLICATION FUNCTIONS
+// =================================================================================================
+
+/**
+ * Handles the creation of a new user account.
+ * This function triggers when a new user is created in Firebase Authentication.
+ * It automatically creates a corresponding user document in Firestore.
+ */
+exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
+  const { uid, email, displayName, photoURL } = user;
+  
+  const defaultDisplayName = displayName || email.split('@')[0];
+  const handle = defaultDisplayName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const defaultPhotoURL = photoURL || `https://ui-avatars.com/api/?name=${defaultDisplayName.charAt(0)}&background=random&color=fff`;
+
+  const newUser = {
+    displayName: defaultDisplayName,
+    displayName_lower: defaultDisplayName.toLowerCase(),
+    email: email,
+    photoURL: defaultPhotoURL,
+    handle: handle,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    bio: "New HatakeSocial user!",
+    favoriteTcg: "Not set",
+    city: "",
+    country: "",
+    referrer: "",
+    isAdmin: false,
+    primaryCurrency: 'SEK'
+  };
+
+  try {
+    await db.collection('users').doc(uid).set(newUser);
+    console.log(`Successfully created profile for user: ${uid}`);
+    return null;
+  } catch (error) {
+    console.error(`Error creating profile for user: ${uid}`, error);
+    return null;
+  }
+});
+
+
+/**
+* A callable Cloud Function to handle new user registration with a referral code.
+*/
+exports.registerUserWithReferral = functions.https.onCall(async (data, context) => {
+    const { email, password, city, country, favoriteTcg, referrerId } = data;
+
+    if (!email || !password || !referrerId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required data for registration.');
+    }
+
+    const auth = admin.auth();
+    let newUserRecord = null;
+
+    try {
+        newUserRecord = await auth.createUser({
+            email: email,
+            password: password,
+            displayName: email.split('@')[0],
+        });
+
+        const newUserId = newUserRecord.uid;
+        const referrerRef = db.collection('users').doc(referrerId);
+        const newUserRef = db.collection('users').doc(newUserId);
+        const newReferralLogRef = referrerRef.collection('referrals').doc(newUserId);
+
+        await db.runTransaction(async (transaction) => {
+            const referrerDoc = await transaction.get(referrerRef);
+            if (!referrerDoc.exists) {
+                throw new Error("Referrer not found.");
+            }
+
+            const newUserDisplayName = email.split('@')[0];
+            const newUserHandle = newUserDisplayName.toLowerCase() + Math.floor(Math.random() * 1000);
+
+            transaction.set(newUserRef, {
+                email: email,
+                displayName: newUserDisplayName,
+                handle: newUserHandle,
+                city: city || null,
+                country: country || null,
+                favoriteTcg: favoriteTcg || null,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                friends: [],
+                followers: [],
+                friendRequests: [],
+                referredBy: referrerId,
+                shopDiscountPercent: 0,
+                referralCount: 0,
+                postCount: 0,
+                isVerified: false,
+                dateFormat: 'dmy'
+            });
+
+            transaction.update(referrerRef, {
+                referralCount: admin.firestore.FieldValue.increment(1),
+                shopDiscountPercent: admin.firestore.FieldValue.increment(1)
+            });
+
+            transaction.set(newReferralLogRef, {
+                userId: newUserId,
+                displayName: newUserDisplayName,
+                handle: newUserHandle,
+                referredAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'pending_verification'
+            });
+        });
+
+        console.log(`Successfully registered user ${newUserId} referred by ${referrerId}`);
+        return { success: true, uid: newUserId };
+
+    } catch (error) {
+        console.error("Referral registration failed:", error);
+        if (newUserRecord) {
+            await auth.deleteUser(newUserRecord.uid).catch(err => console.error("Cleanup failed: Could not delete auth user.", err));
+        }
+        throw new functions.https.HttpsError('internal', error.message || 'An unknown error occurred.');
+    }
+});
+
+
+/**
+* A callable Cloud Function to validate a Stripe promotion code.
+*/
+exports.validateCoupon = functions.https.onCall(async (data, context) => {
+    const { code } = data;
+    if (!code) {
+        return { success: false, message: 'No coupon code provided.' };
+    }
+
+    try {
+        const promotionCodes = await stripe.promotionCodes.list({
+            code: code.toUpperCase(),
+            active: true,
+            limit: 1,
+        });
+
+        if (promotionCodes.data.length > 0) {
+            const promoCode = promotionCodes.data[0];
+            const coupon = promoCode.coupon;
+            if (coupon.valid) {
+                return { success: true, coupon: { id: coupon.id, percent_off: coupon.percent_off } };
+            } else {
+                return { success: false, message: 'This coupon has expired.' };
+            }
+        } else {
+            return { success: false, message: 'Invalid coupon code.' };
+        }
+    } catch (error) {
+        console.error("Error validating coupon:", error);
+        return { success: false, message: 'Could not validate coupon.' };
+    }
+});
+
+
+/**
+* A callable Cloud Function to create a Stripe Checkout session.
+*/
+exports.createCheckoutSession = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to make a purchase.');
+    }
+
+    const { cartItems, couponId, referralDiscountPercent } = data;
+
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a valid "cartItems" array.');
+    }
+
+    const line_items = cartItems.map(item => ({
+        price: item.priceId,
+        quantity: item.quantity,
+    }));
+
+    const sessionData = {
+        payment_method_types: ['card'],
+        line_items: line_items,
+        mode: 'payment',
+        success_url: `https://hatakesocial-88b5e.web.app/shop.html?success=true`,
+        cancel_url: `https://hatakesocial-88b5e.web.app/shop.html?canceled=true`,
+        allow_promotion_codes: true,
+        customer_email: context.auth.token.email,
+        client_reference_id: context.auth.uid
+    };
+
+    if (couponId) {
+        sessionData.discounts = [{ coupon: couponId }];
+    } else if (referralDiscountPercent > 0) {
+        const userRef = db.collection('users').doc(context.auth.uid);
+        const userSnap = await userRef.get();
+        const userData = userSnap.data();
+
+        if (userData && referralDiscountPercent <= userData.shopDiscountPercent) {
+            const coupon = await stripe.coupons.create({
+                percent_off: referralDiscountPercent,
+                duration: 'once',
+                name: `Referral discount for ${context.auth.token.email}`
+            });
+            sessionData.discounts = [{ coupon: coupon.id }];
+        } else {
+            console.warn(`User ${context.auth.uid} tried to use referral discount of ${referralDiscountPercent}% but is only allowed ${userData.shopDiscountPercent}%.`);
+        }
+    }
+
+    try {
+        const session = await stripe.checkout.sessions.create(sessionData);
+        return { id: session.id };
+    } catch (error) {
+        console.error("Stripe session creation failed:", error);
+        throw new functions.https.HttpsError('internal', 'Unable to create Stripe checkout session.');
+    }
+});
+
+
+/**
+* A Firestore trigger to update a user's post count when they create a new post.
+*/
+exports.onPostCreate = functions.firestore
+    .document('posts/{postId}')
+    .onCreate(async (snap, context) => {
+        const postData = snap.data();
+        const authorId = postData.authorId;
+        if (!authorId) return null;
+        const userRef = db.collection('users').doc(authorId);
+        try {
+            await userRef.update({ postCount: admin.firestore.FieldValue.increment(1) });
+        } catch (error) {
+            console.error(`Failed to increment post count for user ${authorId}`, error);
+        }
+        return null;
+    });
+
+/**
+* A callable function to follow or unfollow a user.
+*/
+exports.toggleFollowUser = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to follow users.');
+    }
+    const { uid: targetUid } = data;
+    const { uid: currentUid } = context.auth;
+    if (!targetUid || targetUid === currentUid) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid target user UID.');
+    }
+
+    const currentUserRef = db.collection('users').doc(currentUid);
+    const targetUserRef = db.collection('users').doc(targetUid);
+
+    try {
+        const currentUserDoc = await currentUserRef.get();
+        const isFollowing = (currentUserDoc.data().friends || []).includes(targetUid);
+        const batch = db.batch();
+
+        if (isFollowing) {
+            batch.update(currentUserRef, { friends: admin.firestore.FieldValue.arrayRemove(targetUid) });
+            batch.update(targetUserRef, { followers: admin.firestore.FieldValue.arrayRemove(currentUid) });
+        } else {
+            batch.update(currentUserRef, { friends: admin.firestore.FieldValue.arrayUnion(targetUid) });
+            batch.update(targetUserRef, { followers: admin.firestore.FieldValue.arrayUnion(currentUid) });
+        }
+        await batch.commit();
+        return { success: true, nowFollowing: !isFollowing };
+    } catch (error) {
+        console.error("Error toggling follow:", error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while trying to follow the user.');
+    }
+});
+
+/**
+* A Firestore trigger that creates a notification when a user is followed.
+*/
+exports.onFollow = functions.firestore
+    .document('users/{userId}')
+    .onUpdate(async (change, context) => {
+        const beforeFollowers = change.before.data().followers || [];
+        const afterFollowers = change.after.data().followers || [];
+
+        if (afterFollowers.length > beforeFollowers.length) {
+            const newFollowerId = afterFollowers.find(uid => !beforeFollowers.includes(uid));
+            if (newFollowerId) {
+                const followedUserId = context.params.userId;
+                const followerDoc = await db.collection('users').doc(newFollowerId).get();
+                const followerName = followerDoc.data()?.displayName || 'Someone';
+
+                const notification = {
+                    type: 'follow',
+                    fromId: newFollowerId,
+                    fromName: followerName,
+                    fromAvatar: followerDoc.data()?.photoURL || null,
+                    message: `${followerName} started following you.`,
+                    link: `profile.html?uid=${newFollowerId}`,
+                    isRead: false,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                };
+                await db.collection('users').doc(followedUserId).collection('notifications').add(notification);
+            }
+        }
+        return null;
+    });
+
+/**
+* A Firestore trigger that cleans up a product's images from Cloud Storage when it's deleted.
+*/
+exports.onProductDelete = functions.firestore
+    .document('products/{productId}')
+    .onDelete(async (snap, context) => {
+        const { productId } = context.params;
+        const bucket = storage.bucket();
+        const directory = `products/${productId}/`;
+        try {
+            await bucket.deleteFiles({ prefix: directory });
+            console.log(`Successfully deleted all images for product ${productId}.`);
+        } catch (error) {
+            console.error(`Failed to delete images for product ${productId}.`, error);
+        }
+        return null;
+    });
+
+/**
+* A callable Cloud Function to set the admin custom claim on a user.
+*/
+exports.setUserAdminClaim = functions.https.onCall(async (data, context) => {
+    if (context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'Only admins can set user roles.');
+    }
+    const { targetUid, isAdmin } = data;
+    if (typeof targetUid !== 'string' || typeof isAdmin !== 'boolean') {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid arguments provided.');
+    }
+    try {
+        await admin.auth().setCustomUserClaims(targetUid, { admin: isAdmin });
+        await db.collection('users').doc(targetUid).update({ isAdmin: isAdmin });
+        return { success: true, message: `User role for ${targetUid} updated.` };
+    } catch (error) {
+        console.error("Error setting custom claim:", error);
+        throw new functions.https.HttpsError('internal', 'An internal error occurred.');
+    }
+});
+
+/**
+* A callable Cloud Function to set the content creator custom claim on a user.
+*/
+exports.setContentCreatorClaim = functions.https.onCall(async (data, context) => {
+    if (context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'Only admins can set user roles.');
+    }
+    const { targetUid, isContentCreator } = data;
+    if (typeof targetUid !== 'string' || typeof isContentCreator !== 'boolean') {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid arguments provided.');
+    }
+    try {
+        await admin.auth().setCustomUserClaims(targetUid, { contentCreator: isContentCreator });
+        await db.collection('users').doc(targetUid).update({ isContentCreator: isContentCreator });
+        return { success: true, message: `User role for ${targetUid} updated.` };
+    } catch (error) {
+        console.error("Error setting custom claim:", error);
+        throw new functions.https.HttpsError('internal', 'An internal error occurred.');
+    }
+});
+
+// =================================================================================================
+// ESCROW.COM TRADING SYSTEM FUNCTIONS
+// =================================================================================================
+
+exports.createEscrowTransaction = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to create a trade.');
+    }
+
+    const { tradeId, buyerUid, sellerUid, amount, description } = data;
+    if (!tradeId || !buyerUid || !sellerUid || !amount || !description) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required trade data.');
+    }
+
+    const buyerDoc = await db.collection('users').doc(buyerUid).get();
+    const sellerDoc = await db.collection('users').doc(sellerUid).get();
+    if (!buyerDoc.exists || !sellerDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Buyer or Seller not found.');
+    }
+    const buyerEmail = buyerDoc.data().email;
+    const sellerEmail = sellerDoc.data().email;
+
+    const transactionData = {
+        parties: [
+            { role: 'buyer', customer: buyerEmail },
+            { role: 'seller', customer: sellerEmail }
+        ],
+        items: [{
+            title: 'HatakeSocial Trade',
+            description: description,
+            quantity: 1,
+            price: amount.toFixed(2), // amount should be in SEK
+            type: 'general_merchandise'
+        }],
+        currency: 'sek',
+        description: `Trade ID: ${tradeId} on HatakeSocial.`,
+        inspection_period: 3,
+    };
+
+    try {
+        const response = await escrowApi.post('transaction', transactionData);
+        const escrowTransactionId = response.data.id;
+
+        await db.collection('trades').doc(tradeId).update({
+            escrowTransactionId: escrowTransactionId,
+            status: 'awaiting_payment'
+        });
+
+        const paymentUrl = `https://www.escrow.com/checkout?transactionId=${escrowTransactionId}`;
+
+        return { success: true, paymentUrl: paymentUrl };
+
+    } catch (error) {
+        console.error("Escrow.com transaction creation failed:", error.response ? error.response.data : error.message);
+        throw new functions.https.HttpsError('internal', 'Could not create the Escrow.com transaction.');
+    }
+});
+
+
+exports.releaseEscrowFunds = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    }
+    const { tradeId } = data;
+    if (!tradeId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing trade ID.');
+    }
+    const tradeRef = db.collection('trades').doc(tradeId);
+    const tradeDoc = await tradeRef.get();
+    if (!tradeDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Trade not found.');
+    }
+
+    const tradeData = tradeDoc.data();
+    const escrowTransactionId = tradeData.escrowTransactionId;
+
+    if (!escrowTransactionId) {
+       throw new functions.https.HttpsError('failed-precondition', 'This trade does not have an active escrow transaction.');
+    }
+    if (tradeData.buyerUid !== context.auth.uid) {
+        throw new functions.https.HttpsError('permission-denied', 'Only the buyer can release the funds.');
+    }
+    if (tradeData.status !== 'shipped') {
+       throw new functions.https.HttpsError('failed-precondition', `Trade must be marked as shipped before funds can be released. Current status: ${tradeData.status}`);
+    }
+
+    try {
+        await escrowApi.post(`transaction/${escrowTransactionId}/accept`);
+
+        const batch = db.batch();
+        tradeData.receiverCards.forEach(card => {
+            const newCardRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
+            const newCardData = { ...card, forSale: false, addedAt: admin.firestore.FieldValue.serverTimestamp() };
+            delete newCardData.id;
+            batch.set(newCardRef, newCardData);
+        });
+        tradeData.proposerCards.forEach(card => {
+            const newCardRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc();
+            const newCardData = { ...card, forSale: false, addedAt: admin.firestore.FieldValue.serverTimestamp() };
+            delete newCardData.id;
+            batch.set(newCardRef, newCardData);
+        });
+
+        batch.update(tradeRef, { status: 'completed', completedAt: admin.firestore.FieldValue.serverTimestamp() });
+        await batch.commit();
+
+        return { success: true, message: 'Funds have been released to the seller via Escrow.com.' };
+
+    } catch (error) {
+        console.error("Failed to release funds via Escrow.com:", error.response ? error.response.data : error.message);
+        await tradeRef.update({ status: 'release_failed' });
+        throw new functions.https.HttpsError('internal', 'An error occurred while releasing the funds.');
+    }
+});
+
+
+// =================================================================================================
+// WISHLIST AND TRADE MATCHING FUNCTIONS
+// =================================================================================================
+
+/**
+ * Manages a user's wishlist. Adds or removes a card.
+ */
+exports.manageWishlist = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to manage your wishlist.');
+    }
+
+    const { cardId, action } = data; // action can be 'add' or 'remove'
+    if (!cardId || !action) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing cardId or action.');
+    }
+
+    const wishlistRef = db.collection('users').doc(context.auth.uid).collection('wishlist').doc(cardId);
+
+    if (action === 'add') {
+        await wishlistRef.set({
+            ...data.cardData,
+            addedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { success: true, message: 'Card added to wishlist.' };
+    } else if (action === 'remove') {
+        await wishlistRef.delete();
+        return { success: true, message: 'Card removed from wishlist.' };
+    } else {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid action specified.');
+    }
+});
+
+/**
+ * Firestore trigger to check for wishlist matches when a new card is added to a user's collection for trade.
+ */
+exports.onCardForTradeCreate = functions.firestore
+    .document('users/{userId}/collection/{cardId}')
+    .onCreate(async (snap, context) => {
+        const cardData = snap.data();
+        const { userId, cardId } = context.params;
+
+        if (!cardData.forSale) {
+            return null;
+        }
+
+        const querySnapshot = await db.collectionGroup('wishlist').where('name', '==', cardData.name).get();
+
+        if (querySnapshot.empty) {
+            return null;
+        }
+
+        const sellerDoc = await db.collection('users').doc(userId).get();
+        const sellerName = sellerDoc.data()?.displayName || 'A user';
+
+        const notifications = [];
+        querySnapshot.forEach(doc => {
+            const wishingUser = doc.ref.parent.parent.id;
+            if (wishingUser === userId) {
+                return;
+            }
+
+            const notification = {
+                type: 'wishlist_match',
+                fromId: userId,
+                fromName: sellerName,
+                fromAvatar: sellerDoc.data()?.photoURL || null,
+                message: `${sellerName} has listed a card from your wishlist: ${cardData.name}.`,
+                link: `card-view.html?id=${cardId}`,
+                isRead: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            };
+            notifications.push(db.collection('users').doc(wishingUser).collection('notifications').add(notification));
+        });
+
+        await Promise.all(notifications);
+        return null;
+    });
+
+// =================================================================================================
+// IMPERSONATION FUNCTION
+// =================================================================================================
+
+exports.generateImpersonationToken = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !context.auth.token.admin) {
+    throw new functions.https.HttpsError(
+      "permission-denied",
+      "You must be an admin to perform this action."
+    );
+  }
+
+  const { uid } = data;
+  if (!uid) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "The function must be called with a 'uid'."
+    );
+  }
+
+  try {
+    const customToken = await admin.auth().createCustomToken(uid);
+    return { token: customToken };
+  } catch (error) {
+    console.error("Failed to create impersonation token:", error);
+    throw new functions.https.HttpsError(
+      "internal",
+      "Could not create an impersonation token."
+    );
+  }
+});
+
+Please ignore the current my_collection.html page, collection.js and the modules.
+Only look at the code from i.e app.html, auth.js to see the header, the navbar etc.
+
+app.html:
+<!DOCTYPE html>
+<html class="dark" lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Feed - HatakeSocial
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <script>
+   tailwind.config = { darkMode: 'class' };
+  </script>
+  <link href="/manifest.json" rel="manifest"/>
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+  <div class="flex h-screen">
+   <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
+   </div>
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+     <a class="flex flex-col items-center space-y-1" href="app.html">
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       TCG Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+      <i class="fas fa-blog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Hatake Blog
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
+    </nav>
+    <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+     <div id="auth-container-sidebar">
+     </div>
+    </div>
+   </aside>
+   <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+      </div>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+      <!-- This container is dynamically filled by auth.js -->
+     </div>
+    </header>
+    <main class="flex-1 overflow-y-auto p-6">
+     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hidden" id="create-post-section">
+        <textarea class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="postContent" placeholder="What's on your mind? Use @ to mention, # for tags, and [Card Name] for cards."></textarea>
+        <div class="relative" id="autocomplete-suggestions">
+        </div>
+        <div class="flex justify-between items-center mt-2">
+         <div class="space-x-2">
+          <button class="text-blue-500 hover:text-blue-600" id="uploadMediaBtn">
+           <i class="fas fa-image">
+           </i>
+          </button>
+          <button class="text-blue-500 hover:text-blue-600" id="createPollBtn">
+           <i class="fas fa-poll">
+           </i>
+          </button>
+          <input accept="image/*,video/*" class="hidden" id="postMediaUpload" type="file"/>
+         </div>
+         <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="submitPostBtn">
+          Post
+         </button>
+        </div>
+        <p class="text-sm mt-2" id="postStatusMessage">
+        </p>
+       </div>
+       <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full" id="feed-tabs">
+        <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold active" data-feed-type="for-you">
+         For You
+        </button>
+        <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold" data-feed-type="friends">
+         Friends
+        </button>
+        <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold" data-feed-type="groups">
+         Groups
+        </button>
+       </div>
+       <div class="space-y-6" id="feed-container">
+       </div>
+      </div>
+      <div class="hidden lg:block space-y-6">
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h3 class="font-bold text-lg mb-4">
+         Who to Follow
+        </h3>
+        <div class="space-y-4" id="who-to-follow-container">
+        </div>
+       </div>
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h3 class="font-bold text-lg mb-4">
+         Trending
+        </h3>
+        <div class="space-y-2" id="trending-hashtags-container">
+        </div>
+       </div>
+      </div>
+     </div>
+    </main>
+   </div>
+  </div>
+  <div class="fixed bottom-5 right-5 z-50" id="toast-container">
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="pollModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Create Poll
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closePollModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="pollForm">
+     <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="pollQuestion">
+       Question
+      </label>
+      <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="pollQuestion" required="" type="text"/>
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+       Attach Image/Video (Optional)
+      </label>
+      <div class="mt-1 flex items-center space-x-2">
+       <button class="text-blue-500 hover:text-blue-600 p-2 rounded-full bg-gray-100 dark:bg-gray-700" id="attachPollMediaBtn" type="button">
+        <i class="fas fa-image">
+        </i>
+       </button>
+       <span class="text-sm text-gray-500 dark:text-gray-400" id="pollMediaFileName">
+       </span>
+      </div>
+      <input accept="image/*,video/*" class="hidden" id="pollMediaUpload" type="file"/>
+     </div>
+     <div id="pollOptionsContainer">
+      <div>
+       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Option 1
+       </label>
+       <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
+      </div>
+      <div>
+       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Option 2
+       </label>
+       <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
+      </div>
+     </div>
+     <button class="text-sm text-blue-500 hover:text-blue-600" id="addPollOptionBtn" type="button">
+      + Add Option
+     </button>
+     <div class="text-right pt-4">
+      <button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
+       Create Poll Post
+      </button>
+     </div>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002] p-4" id="postDetailModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col h-[95vh]">
+    <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
+     <h2 class="text-xl font-bold" id="modal-post-header">
+      Post Details
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closePostDetailModal">
+      ×
+     </button>
+    </div>
+    <div class="flex-grow overflow-y-auto grid grid-cols-1 md:grid-cols-2" id="modal-grid-container">
+     <div class="bg-black flex items-center justify-center md:h-full" id="modal-post-media-container">
+     </div>
+     <div class="flex flex-col h-full">
+      <div class="p-4 space-y-3 flex-shrink-0">
+       <div class="flex items-center" id="modal-post-author">
+       </div>
+       <div class="whitespace-pre-wrap text-gray-800 dark:text-gray-200 text-sm max-h-48 overflow-y-auto" id="modal-post-content">
+       </div>
+       <div class="flex justify-start items-center text-gray-600 dark:text-gray-400 border-t dark:border-gray-700 pt-3" id="modal-post-actions">
+       </div>
+      </div>
+      <div class="flex-grow overflow-y-auto border-t dark:border-gray-700 p-4 space-y-4" id="modal-post-comments-list">
+      </div>
+      <div class="p-4 border-t dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900/50">
+       <form class="modal-comment-form flex">
+        <input class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a comment..." required="" type="text"/>
+        <button class="bg-blue-500 text-white px-4 rounded-r-lg font-semibold hover:bg-blue-600" type="submit">
+         Post
+        </button>
+       </form>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+  </script>
+  <script src="js/auth.js">
+  </script>
+  <script src="js/app.js">
+  </script>
+  <script src="js/darkmode.js">
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
+    <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+     <h2 class="text-xl font-bold">
+      Your Cart
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
+      ×
+     </button>
+    </div>
+    <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+     <p class="text-center text-gray-500 dark:text-gray-400">
+      Your cart is empty.
+     </p>
+    </div>
+    <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+     <div class="flex justify-between items-center font-bold text-lg">
+      <span>
+       Subtotal
+      </span>
+      <span id="cart-subtotal">
+       $0.00
+      </span>
+     </div>
+     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      Shipping &amp; taxes calculated at checkout.
+     </p>
+     <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
+      Proceed to Checkout
+     </button>
+    </div>
+   </div>
+  </div>
+  <script src="js/cart.js">
+  </script>
+  <script>
+   const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+if (sidebarToggle) {
+sidebarToggle.addEventListener('click', () => {
+sidebar.classList.toggle('-translate-x-full');
+sidebarOverlay.classList.toggle('hidden');
+});
+}
+
+if (sidebarOverlay) {
+sidebarOverlay.addEventListener('click', () => {
+sidebar.classList.add('-translate-x-full');
+sidebarOverlay.classList.add('hidden');
+});
+}
+  </script>
+  <script src="js/messenger.js">
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-4">
+     Start a new conversation
+    </h2>
+    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+    <div class="max-h-60 overflow-y-auto" id="user-search-results">
+    </div>
+    <button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+     Cancel
+    </button>
+   </div>
+  </div>
+  <script>
+   // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Login
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="loginForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+     <p class="text-red-500 text-sm hidden" id="login-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Login
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Sign in with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Register
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="registerForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+     <p class="text-red-500 text-sm hidden" id="register-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Register
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Register with Google
+     </button>
+    </form>
+   </div>
+  </div>
+ </body>
+</html>
+auth.js:
+/**
+* HatakeSocial - Merged Authentication & Global UI Script (v22 - UI Elements Restored)
+* - This is the complete, unabridged version of the global script.
+* - Contains all helper functions for toasts, modals, and user interactions.
+* - Manages user authentication state and dynamically updates all UI components.
+* - Fixes issue where user action icons (Cart, Notifications, Avatar) were not appearing.
+* - Adds the Shopping Cart icon to the header for logged-in users.
+* - Ensures header search bar functionality is initialized.
+*/
+
+// --- Firebase Initialization (Stable) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+  authDomain: "hatakesocial-88b5e.firebaseapp.com",
+  projectId: "hatakesocial-88b5e",
+  storageBucket: "hatakesocial-88b5e.appspot.com",
+  messagingSenderId: "1091697032506",
+  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+  measurementId: "G-EH0PS2Z84J"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+window.auth = firebase.auth();
+window.db = firebase.firestore();
+window.storage = firebase.storage();
+window.functions = firebase.functions();
+
+// --- Global Toast Notification Function ---
+const showToast = (message, type = 'info') => {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-5 right-5 z-[1003]';
+        document.body.appendChild(toastContainer);
+        container = toastContainer;
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 5000);
+};
+
+// --- Global Modal Helper Functions ---
+window.openModal = (modal) => {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const errorMsg = modal.querySelector('[id$="-error-message"]');
+        if (errorMsg) {
+            errorMsg.classList.add('hidden');
+            errorMsg.textContent = '';
+        }
+    }
+};
+window.closeModal = (modal) => {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+// --- New Conversation Modal ---
+window.openNewConversationModal = (isWidget = false, callback) => {
+    const existingModal = document.getElementById('new-conversation-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'new-conversation-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1002]';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col" style="height: 70vh; max-height: 500px;">
+            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold">New Message</h2>
+                <button id="close-new-convo-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-4">
+                <input type="text" id="user-search-input" placeholder="Search for a user..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="user-search-results" class="flex-grow overflow-y-auto p-4 space-y-2">
+                <p class="text-center text-gray-500">Start typing to find users.</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const searchInput = modal.querySelector('#user-search-input');
+    const searchResultsContainer = modal.querySelector('#user-search-results');
+    const closeModalBtn = modal.querySelector('#close-new-convo-modal');
+
+    closeModalBtn.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target.id === 'new-conversation-modal') modal.remove();
+    });
+
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length < 2) {
+            searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 2 characters.</p>';
+            return;
+        }
+
+        searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+        searchTimeout = setTimeout(async () => {
+            try {
+                const currentUser = firebase.auth().currentUser;
+                if (!currentUser) return;
+                const usersRef = firebase.firestore().collection('users');
+                const snapshot = await usersRef.where('displayName_lower', '>=', query).where('displayName_lower', '<=', query + '\uf8ff').limit(10).get();
+
+                searchResultsContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        if (doc.id === currentUser.uid) return;
+
+                        const userElement = document.createElement('div');
+                        userElement.className = 'flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                        userElement.innerHTML = `
+                            <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            <div>
+                                <p class="font-semibold">${userData.displayName}</p>
+                                <p class="text-sm text-gray-500">@${userData.handle || 'N/A'}</p>
+                            </div>`;
+                        userElement.addEventListener('click', () => {
+                            if (callback) callback(doc.id, userData);
+                            modal.remove();
+                        });
+                        searchResultsContainer.appendChild(userElement);
+                    });
+                }
+            } catch (error) {
+                console.error("Error searching for users:", error);
+                searchResultsContainer.innerHTML = '<p class="text-center text-red-500">Error searching for users.</p>';
+            }
+        }, 500);
+    });
+};
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.style.opacity = '0';
+
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+
+    window.HatakeSocial = {
+        conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
+        currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
+        currentUserData: null,
+        convertAndFormatPrice(amount, fromCurrency = 'SEK') {
+            const toCurrency = this.currentCurrency;
+            if (amount === undefined || amount === null || isNaN(amount)) {
+                return `0.00 ${toCurrency}`;
+            }
+            const fromRate = this.conversionRates[fromCurrency];
+            if (fromRate === undefined) return `N/A`;
+            const amountInSEK = amount / fromRate;
+            const toRate = this.conversionRates[toCurrency];
+            if (toRate === undefined) return `N/A`;
+            const convertedAmount = amountInSEK * toRate;
+            return `${convertedAmount.toFixed(2)} ${toCurrency}`;
+        }
+    };
+
+    const setupCurrencySelector = () => {
+        const container = document.getElementById('currency-selector-container');
+        if (!container) return;
+
+        container.innerHTML = `
+        <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
+        <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
+            <option value="SEK">SEK</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+        </select>
+        `;
+        const selector = document.getElementById('currency-selector');
+        if (selector) {
+            selector.value = window.HatakeSocial.currentCurrency;
+            selector.addEventListener('change', (e) => {
+                window.HatakeSocial.currentCurrency = e.target.value;
+                localStorage.setItem('hatakeCurrency', e.target.value);
+                window.location.reload();
+            });
+        }
+    };
+
+    const setupHeaderSearch = () => {
+        const searchBar = document.getElementById('main-search-bar');
+        if (searchBar) {
+            searchBar.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = searchBar.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?query=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+    };
+
+    const setupGlobalListeners = () => {
+        const googleLoginButton = document.getElementById('googleLoginButton');
+        const googleRegisterButton = document.getElementById('googleRegisterButton');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const registerForm = document.getElementById('registerForm');
+
+        document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
+
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorMessageEl = document.getElementById('login-error-message');
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    window.location.href = 'app.html';
+                })
+                .catch(err => {
+                    if (errorMessageEl) {
+                        errorMessageEl.textContent = err.message;
+                        errorMessageEl.classList.remove('hidden');
+                    }
+                });
+        });
+
+        if(registerForm) {
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                showTermsModal();
+            });
+        }
+
+        const handleGoogleAuth = () => {
+            auth.signInWithPopup(googleProvider)
+                .then(() => {
+                    window.location.href = 'app.html';
+                })
+                .catch(err => showToast(err.message, "error"));
+        };
+
+        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
+        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
+
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    };
+
+    let friendRequestHandshakeListener = null;
+    function listenForAcceptedRequests(user) {
+        if (friendRequestHandshakeListener) {
+            friendRequestHandshakeListener();
+        }
+        const sentRequestsRef = db.collection('friendRequests')
+            .where('senderId', '==', user.uid)
+            .where('status', '==', 'accepted');
+
+        friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
+            if (snapshot.empty) return;
+            const batch = db.batch();
+            const currentUserRef = db.collection('users').doc(user.uid);
+            for (const doc of snapshot.docs) {
+                const request = doc.data();
+                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(request.receiverId) });
+                batch.delete(doc.ref);
+            }
+            await batch.commit().catch(err => console.error("Error in friend handshake:", err));
+        });
+    }
+
+    function sanitizeHTML(str) {
+        const temp = document.createElement('div');
+        temp.textContent = str;
+        return temp.innerHTML;
+    }
+
+    let unsubscribeNotifications = null;
+    let verificationTimer = null;
+
+    auth.onAuthStateChanged(async (user) => {
+        if (verificationTimer) {
+            clearInterval(verificationTimer);
+            verificationTimer = null;
+        }
+
+        const mainSidebarNav = document.querySelector('#sidebar nav');
+        const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
+        if (existingAdminSidebarLink) {
+            existingAdminSidebarLink.remove();
+        }
+
+        if (user && !user.emailVerified) {
+            document.body.innerHTML = `
+            <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+                <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox and spam folder.</p>
+                    <div class="space-x-4">
+                        <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
+                        <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
+                    </div>
+                </div>
+            </div>`;
+            document.getElementById('resend-verification-btn').addEventListener('click', () => {
+                user.sendEmailVerification()
+                    .then(() => showToast('A new verification email has been sent.', 'success'))
+                    .catch(err => showToast('Error sending email: ' + err.message, 'error'));
+            });
+            verificationTimer = setInterval(async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                    clearInterval(verificationTimer);
+                    window.location.reload();
+                }
+            }, 5000);
+            document.body.style.opacity = '1';
+            return;
+        }
+
+        const userActions = document.getElementById('user-actions');
+        const authContainerSidebar = document.getElementById('auth-container-sidebar');
+        const mobileUserActions = document.getElementById('mobile-user-actions');
+
+        if (user) {
+            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
+            if (isIndexPage) {
+                window.location.href = 'app.html';
+                return;
+            }
+
+            closeModal(loginModal);
+            closeModal(registerModal);
+
+            const userDocRef = db.collection('users').doc(user.uid);
+            let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
+                if (doc.exists) {
+                    if (unsubscribeUserDoc) unsubscribeUserDoc();
+
+                    window.HatakeSocial.currentUserData = doc.data();
+                    const userData = doc.data();
+                    const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+                    const idTokenResult = await user.getIdTokenResult(true);
+                    const isAdmin = idTokenResult.claims.admin === true;
+
+                    handleAdminAccess(isAdmin);
+
+                    if (isAdmin && mainSidebarNav && !document.getElementById('admin-sidebar-link')) {
+                        const adminLink = document.createElement('a');
+                        adminLink.id = 'admin-sidebar-link';
+                        adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
+                        adminLink.href = 'admin.html';
+                        adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
+                        mainSidebarNav.appendChild(adminLink);
+                    }
+
+                    if (userActions) {
+                        userActions.innerHTML = `
+                            <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                            </button>
+
+                            <div class="relative">
+                                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
+                                    <i class="fas fa-bell"></i>
+                                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                                </button>
+                                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                                    <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
+                                    <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
+                                    <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
+                                </div>
+                            </div>
+
+                            <div class="relative">
+                                <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
+                                <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
+                                    <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
+                                    <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                                    ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
+                                    <hr class="border-gray-200 dark:border-gray-600">
+                                    <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                                </div>
+                            </div>`;
+                        
+                        // Add event listeners for the new elements
+                        const cartBtn = document.getElementById('cart-btn');
+                        const cartModal = document.getElementById('cartModal');
+                        if(cartBtn && cartModal) {
+                           cartBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                openModal(cartModal);
+                           });
+                        }
+                        
+                        document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
+                        document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
+                        document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
+                    }
+
+                    if (unsubscribeNotifications) unsubscribeNotifications();
+                    unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                        const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
+                        const countEl = document.getElementById('notification-count');
+                        const listEl = document.getElementById('notification-list');
+                        if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
+                        if (listEl) {
+                            if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
+                            else {
+                                listEl.innerHTML = '';
+                                snapshot.docs.slice(0, 5).forEach(doc => {
+                                    const notif = doc.data();
+                                    const el = document.createElement('a');
+                                    el.href = notif.link || '#';
+                                    el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
+                                    el.innerHTML = `<div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
+                                    el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
+                                    listEl.appendChild(el);
+                                });
+                            }
+                        }
+                    });
+
+                    if (authContainerSidebar) {
+                        authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
+                        document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
+                    }
+
+                    if (mobileUserActions) {
+                        mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
+                        document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
+                    }
+                    listenForAcceptedRequests(user);
+                } else {
+                    console.log("User document not found for uid:", user.uid);
+                }
+            }, (error) => {
+                console.error("Error listening to user document:", error);
+                showToast("Could not load your profile data.", "error");
+            });
+
+        } else { // User is logged out
+            window.HatakeSocial.currentUserData = null;
+            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
+            if (unsubscribeNotifications) unsubscribeNotifications();
+
+            handleAdminAccess(false);
+
+            const loginButtonsHTML = `
+                <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
+                <button id="header-register-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button>`;
+            if (userActions) {
+                userActions.innerHTML = loginButtonsHTML;
+                document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
+                document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
+            }
+            if (authContainerSidebar) {
+                authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button></div>`;
+                document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(loginModal));
+                document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(registerModal));
+            }
+            if (mobileUserActions) {
+                mobileUserActions.innerHTML = `<div class="space-y-2"><button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button><button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button></div>`;
+                document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(loginModal));
+                document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(registerModal));
+            }
+        }
+        document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
+        document.body.style.transition = 'opacity 0.3s ease-in-out';
+        document.body.style.opacity = '1';
+    });
+
+    setupGlobalListeners();
+    setupHeaderSearch();
+    setupCurrencySelector();
+
+    window.addEventListener('click', () => {
+        document.getElementById('profile-dropdown')?.classList.add('hidden');
+        document.getElementById('notification-dropdown')?.classList.add('hidden');
+    });
+});
+
+function handleAdminAccess(isAdmin) {
+    const currentPage = window.location.pathname.split('/').pop();
+    const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
+
+    if (adminPages.includes(currentPage) && !isAdmin) {
+        window.location.href = 'index.html';
+    }
+}
+
+async function showTermsModal() {
+    const termsModal = document.createElement('div');
+    termsModal.id = 'terms-modal';
+    termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
+    let termsContent = '<p>Loading...</p>', privacyContent = '<p>Loading...</p>';
+
+    try {
+        const [termsResponse, privacyResponse] = await Promise.all([fetch('terms.html'), fetch('privacy.html')]);
+        termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
+        privacyContent = privacyResponse.ok ? await privacyResponse.text() : '<p>Could not load Privacy Policy.</p>';
+    } catch (error) {
+        console.error('Error fetching legal documents:', error);
+        termsContent = '<p>Error loading content.</p>';
+    }
+
+    termsModal.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 90vh; max-height: 800px;">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h2 class="text-xl font-bold">Terms & Privacy</h2>
+            <button id="close-terms-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        </div>
+        <div id="terms-content" class="p-6 flex-grow overflow-y-auto">${termsContent}<hr class="my-8">${privacyContent}</div>
+        <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-4 w-4"><span class="ml-2">I have read and agree.</span></label>
+            <button id="final-register-btn" disabled class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg disabled:bg-gray-400">Register</button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(termsModal);
+
+    const termsCheckbox = termsModal.querySelector('#terms-checkbox');
+    const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
+
+    termsCheckbox.addEventListener('change', () => {
+        finalRegisterBtn.disabled = !termsCheckbox.checked;
+    });
+
+    termsModal.querySelector('#close-terms-modal').addEventListener('click', () => termsModal.remove());
+
+    finalRegisterBtn.addEventListener('click', async () => {
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const errorMessageEl = document.getElementById('register-error-message');
+
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await userCredential.user.sendEmailVerification();
+            window.location.href = 'app.html';
+        } catch (err) {
+            if (errorMessageEl) {
+                errorMessageEl.textContent = err.message;
+                errorMessageEl.classList.remove('hidden');
+            } else {
+                showToast(err.message, "error");
+            }
+            termsModal.remove();
+        }
+    });
+}

@@ -1,249 +1,314 @@
 <!DOCTYPE html>
-<html lang="en">
- <head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>
-   My Collection - HatakeSocial
-  </title>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-  <!-- Toastify CSS -->
-  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-  <link href="css/style.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
-  <link href="/manifest.json" rel="manifest">
-  <style>
-    /* Style for the hover-to-enlarge image preview */
-    #card-hover-preview {
-        position: fixed;
-        border: 3px solid #fff;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        pointer-events: none; /* Allows mouse events to pass through */
-        transform: scale(0.95);
-        opacity: 0;
-        transition: transform 0.1s ease-out, opacity 0.1s ease-out;
-        z-index: 1003; /* Ensures it's on top of modals */
-    }
-  </style>
- </head>
- <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-  <div class="flex h-screen">
-   <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
-   </div>
-   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-     <a class="flex flex-col items-center space-y-1" href="app.html">
-      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png">
-      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
-       HatakeSocial
-      </span>
-     </a>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>My Collection - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <link href="/manifest.json" rel="manifest"/>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+<div class="flex h-screen">
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+        <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+            <a class="flex flex-col items-center space-y-1" href="app.html">
+                <img alt="HatakeSocial Logo" class="h-16" src="https://i.imgur.com/B06rBhI.png"/>
+                <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+            </a>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+             <a href="app.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
+            <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
+            <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
+            <a href="articles.html?type=tcg" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a>
+            <a href="my_collection.html" class="flex items-center px-4 py-2 bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-white rounded-md font-semibold"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
+            <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
+            <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
+            <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
+            <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
+            <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
+            <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
+        </nav>
+        <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div id="auth-container-sidebar"></div>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center">
+                <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-2xl font-bold">My Collection</h1>
+            </div>
+            <div class="flex items-center space-x-5" id="user-actions">
+                </div>
+        </header>
+
+        <main class="flex-1 overflow-hidden flex">
+            <div class="w-full md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-6 flex-shrink-0 flex flex-col overflow-y-auto">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3">Statistics</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span>Total Cards:</span> <span id="stats-total-cards" class="font-mono">0</span></div>
+                        <div class="flex justify-between"><span>Unique Cards:</span> <span id="stats-unique-cards" class="font-mono">0</span></div>
+                        <div class="flex justify-between"><span>Total Value:</span> <span id="stats-total-value" class="font-mono">$0.00</span></div>
+                    </div>
+                </div>
+
+                <div class="mb-6 flex-1">
+                    <h3 class="text-lg font-semibold mb-3">Filters</h3>
+                    <div class="space-y-4">
+                        <input type="text" id="filter-name" placeholder="Filter by name..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="filter-set" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">All Sets</option>
+                        </select>
+                        <select id="filter-rarity" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">All Rarities</option>
+                        </select>
+                        <div>
+                            <label class="text-sm">Colors (Magic)</label>
+                            <div id="filter-colors" class="flex justify-around mt-2 text-2xl">
+                                <i class="fas fa-circle text-gray-400 cursor-pointer" data-color="W" title="White"></i>
+                                <i class="fas fa-tint text-gray-400 cursor-pointer" data-color="U" title="Blue"></i>
+                                <i class="fas fa-skull text-gray-400 cursor-pointer" data-color="B" title="Black"></i>
+                                <i class="fas fa-fire text-gray-400 cursor-pointer" data-color="R" title="Red"></i>
+                                <i class="fas fa-leaf text-gray-400 cursor-pointer" data-color="G" title="Green"></i>
+                                <i class="fas fa-gem text-gray-400 cursor-pointer" data-color="C" title="Colorless"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Actions</h3>
+                    <div class="space-y-2">
+                        <button id="add-card-btn" class="w-full text-left flex items-center p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"><i class="fas fa-plus w-6"></i> Add Card</button>
+                        <button id="quick-edit-btn" class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"><i class="fas fa-bolt w-6"></i> Quick Edit</button>
+                        <button id="bulk-edit-btn" class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600"><i class="fas fa-edit w-6"></i> Bulk Edit</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col overflow-hidden p-6">
+                <div class="flex-shrink-0 mb-4">
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold">
+                            <button data-tab="collection" class="tab-button flex-1 px-4 py-2 rounded-full active">Collection</button>
+                            <button data-tab="wishlist" class="tab-button flex-1 px-4 py-2 rounded-full">Wishlist</button>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+                                <button id="view-toggle-grid" class="p-2 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow"><i class="fas fa-th-large"></i></button>
+                                <button id="view-toggle-list" class="p-2 rounded-full text-gray-500 dark:text-gray-400"><i class="fas fa-list"></i></button>
+                            </div>
+                             <div class="flex items-center space-x-2">
+                                <button id="import-csv-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-full" title="Import CSV"><i class="fas fa-file-upload"></i></button>
+                                <button id="export-csv-btn" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-full" title="Export CSV"><i class="fas fa-file-download"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="bulk-actions-toolbar" class="hidden flex-shrink-0 mb-4 bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg flex justify-between items-center">
+                    <div>
+                        <span id="bulk-selection-count">0 cards selected</span>
+                    </div>
+                    <div class="space-x-2">
+                        <button id="bulk-list-sale-btn" class="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600">List for Sale</button>
+                        <button id="bulk-delete-btn" class="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600">Delete</button>
+                        <button id="bulk-cancel-btn" class="px-3 py-1 text-sm bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
+                    </div>
+                </div>
+
+                <div id="collection-display" class="flex-1 overflow-y-auto">
+                    <div class="flex items-center justify-center h-full text-gray-500">
+                        <p>Loading your collection...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html"><i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html"><i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html"><i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg"><i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog"><i class="fas fa-blog w-6 text-center"></i><span class="ml-3">Hatake Blog</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html"><i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md bg-blue-100 dark:bg-blue-900/50" href="my_collection.html"><i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html"><i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html"><i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html"><i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html"><i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html"><i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html"><i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span></a>
-        <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html"><i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span></a>
-    </nav>
-    <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
+</div>
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[1003]"></div>
+
+<div id="search-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-start justify-center z-[1001] pt-16">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 80vh;">
+        <div class="p-4 border-b dark:border-gray-700 flex items-center">
+            <div class="relative flex-grow mr-4">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="card-search-input" placeholder="Search for a card..." class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <select id="game-selector" class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <option value="mtg">Magic: The Gathering</option>
+                <option value="pokemon">Pokémon</option>
+            </select>
+            <button id="close-search-modal" class="ml-4 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <div id="search-results-container" class="p-6 flex-grow overflow-y-auto">
+            <p class="text-center text-gray-500">Search results will appear here.</p>
+        </div>
     </div>
-   </aside>
-   <div class="flex-1 flex flex-col overflow-y-auto">
-    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-     <div class="flex items-center">
-      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-       <i class="fas fa-bars text-xl">
-       </i>
-      </button>
-      <div class="relative">
-       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-       </i>
-       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search..." type="text">
-      </div>
-     </div>
-     <div class="flex items-center space-x-5" id="user-actions">
-      <!-- Dynamically filled by auth.js -->
-     </div>
-    </header>
-    <main class="flex-grow container mx-auto px-4 py-8">
-     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
-      <nav aria-label="Tabs" class="flex -mb-px space-x-8">
-       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600" id="tab-collection">
-        My Collection
-       </button>
-       <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300" id="tab-wishlist">
-        My Wishlist
-       </button>
-      </nav>
-     </div>
-     <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center" id="collection-stats-section">
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Items</h4>
-       <p class="text-2xl font-bold dark:text-white" id="stats-total-cards">0</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Unique Items</h4>
-       <p class="text-2xl font-bold dark:text-white" id="stats-unique-cards">0</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Value</h4>
-       <p class="text-2xl font-bold dark:text-white" id="stats-total-value">$0.00</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-       <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">Rarity Breakdown</h4>
-       <div class="text-lg font-bold dark:text-white flex justify-center space-x-3 mt-2" id="stats-rarity-breakdown"></div>
-      </div>
-     </div>
-     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-      <h2 class="text-2xl font-bold mb-4 dark:text-white">Add to Your Lists</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">Manually Add a Card</h3>
-        <div class="space-y-3" id="manual-add-form">
-         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-game-select">
-          <option value="magic">Magic: The Gathering</option>
-          <option value="pokemon">Pokémon</option>
-         </select>
-         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="manual-card-name" placeholder="Card Name (e.g., Sol Ring)" required type="text">
-         <button class="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700" id="search-card-versions-btn" type="button">Search for Card</button>
+</div>
+
+<div id="card-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;">
+        <div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center">
+            <img id="card-modal-image" src="https://placehold.co/300x420?text=Card+Image" class="max-w-full max-h-full rounded-lg object-contain">
         </div>
-       </div>
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200"><i class="fas fa-box mr-2 text-purple-600"></i>Add Sealed Product</h3>
-        <div class="space-y-3" id="sealed-add-form">
-         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-game-select">
-          <option value="magic">Magic: The Gathering</option>
-          <option value="pokemon">Pokémon</option>
-         </select>
-         <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-product-type">
-          <option value="booster_box">Booster Box</option>
-          <option value="booster_pack">Booster Pack</option>
-          <option value="bundle">Bundle</option>
-          <option value="prerelease_kit">Prerelease Kit</option>
-          <option value="commander_deck">Commander Deck</option>
-          <option value="starter_deck">Starter Deck</option>
-         </select>
-         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sealed-set-name" placeholder="Set/Expansion" required type="text">
-         <button class="w-full bg-purple-600 text-white py-2 rounded-full hover:bg-purple-700" id="add-sealed-product-btn" type="button"><i class="fas fa-plus mr-2"></i>Add Sealed</button>
+        <div class="w-2/3 p-6 flex flex-col overflow-y-auto">
+            <form id="card-form">
+                <input type="hidden" id="card-modal-id">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 id="card-modal-title" class="text-2xl font-bold">Add New Card</h2>
+                        <p id="card-modal-subtitle" class="text-sm text-gray-500">Details for this version</p>
+                    </div>
+                    <button type="button" id="close-card-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+                </div>
+                
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="card-quantity" class="block text-sm font-medium">Quantity</label>
+                        <input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label for="card-condition" class="block text-sm font-medium">Condition</label>
+                        <select id="card-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="card-language" class="block text-sm font-medium">Language</label>
+                        <select id="card-language" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                            <option>English</option><option>Japanese</option><option>German</option><option>French</option><option>Spanish</option><option>Italian</option><option>Korean</option><option>Russian</option><option>Chinese</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="card-purchase-price" class="block text-sm font-medium">Purchase Price (optional)</label>
+                        <input type="number" step="0.01" id="card-purchase-price" placeholder="0.00" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center space-x-6">
+                    <label class="flex items-center"><input type="checkbox" id="card-is-foil" class="h-4 w-4"><span class="ml-2">Foil</span></label>
+                    <label class="flex items-center"><input type="checkbox" id="card-is-signed" class="h-4 w-4"><span class="ml-2">Signed</span></label>
+                    <label class="flex items-center"><input type="checkbox" id="card-is-altered" class="h-4 w-4"><span class="ml-2">Altered</span></label>
+                </div>
+
+                <div class="mt-4">
+                    <label for="custom-image-upload" class="block text-sm font-medium">Custom Image (optional)</label>
+                    <input type="file" id="custom-image-upload" accept="image/*" class="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+
+                <div class="mt-6 border-t pt-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="list-for-sale-toggle" class="h-4 w-4">
+                        <span class="ml-2 font-semibold">List for Sale</span>
+                    </label>
+                    <div id="list-for-sale-section" class="hidden mt-2">
+                         <label for="card-sale-price" class="block text-sm font-medium">Sale Price</label>
+                         <input type="number" step="0.01" id="card-sale-price" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t flex justify-end items-center space-x-3">
+                    <button type="button" id="add-another-version-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Add Another Version</button>
+                    <button type="submit" id="save-card-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Save Card</button>
+                </div>
+            </form>
         </div>
-       </div>
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">Import from ManaBox (.csv)</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Export your collection from ManaBox and upload it here.</p>
-        <input accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/50 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100" id="csv-upload-input" type="file">
-        <button class="w-full mt-3 bg-green-600 text-white py-2 rounded-full hover:bg-green-700" id="csv-upload-btn">Upload CSV</button>
-        <div class="text-center text-sm mt-2 dark:text-gray-400" id="csv-status"></div>
-       </div>
-       <div>
-        <h3 class="text-lg font-semibold mb-2 dark:text-gray-200">Bulk Add from Text</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Paste a list of cards for a guided import process.</p>
-        <a class="w-full mt-3 bg-indigo-600 text-white py-2 px-4 rounded-full hover:bg-indigo-700 text-center block" href="bulk_add.html"><i class="fas fa-paste mr-2"></i>Bulk Add Tool</a>
-       </div>
-      </div>
-     </div>
-     <div class="mt-8">
-      <div class="tab-content" id="content-collection">
-       <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">My Collection</h2>
-        <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
-         <div class="p-1 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center">
-          <button class="view-btn p-2 rounded-full leading-none bg-blue-600 text-white" id="grid-view-btn" title="Grid View"><i class="fas fa-th-large"></i></button>
-          <button class="view-btn p-2 rounded-full leading-none text-gray-500 dark:text-gray-400" id="list-view-btn" title="List View"><i class="fas fa-list"></i></button>
-         </div>
-         <button class="px-4 py-2 bg-indigo-500 text-white font-semibold rounded-full hover:bg-indigo-600" id="export-collection-btn"><i class="fas fa-file-export mr-2"></i>Export as CSV</button>
-         <button class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700" id="bulk-edit-btn">Bulk Edit</button>
-        </div>
-       </div>
-       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6 hidden" id="bulk-action-bar">
-        <div class="flex items-center space-x-4">
-            <span id="selected-count" class="text-sm font-medium text-gray-700 dark:text-gray-300">0 cards selected</span>
-            <label class="flex items-center text-sm"><input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="ml-2">Select All</span></label>
-            <button id="list-selected-btn" class="px-3 py-1.5 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-green-700">List for Sale</button>
-            <button id="delete-selected-btn" class="px-3 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700">Delete</button>
-        </div>
-       </div>
-       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="collection-grid-view"></div>
-       <div class="space-y-3 hidden" id="collection-table-view"></div>
-      </div>
-      <div class="tab-content hidden" id="content-wishlist">
-       <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-white">My Wishlist</h2>
-       </div>
-       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="wishlist-list"></div>
-      </div>
-     </div>
-    </main>
-   </div>
-  </div>
-  
-  <!-- Modals -->
-  <div id="search-results-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1001] hidden p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700"><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Search Results</h3><button id="close-search-results-modal" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
-        <div id="manual-add-results" class="p-4 overflow-y-auto"></div>
     </div>
-  </div>
+</div>
 
-  <div id="add-version-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002] hidden p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"><div class="flex justify-between items-center mb-4"><h3 id="modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">Add Card</h3><button id="close-add-version-modal" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div><div class="space-y-4"><div class="flex items-center space-x-4"><img id="modal-card-image" src="" alt="Card Image" class="w-24 object-cover rounded"><div class="flex-1"><h4 id="modal-card-name" class="font-semibold text-gray-900 dark:text-white"></h4><p id="modal-card-set" class="text-sm text-gray-600 dark:text-gray-400"></p><p id="modal-card-price" class="text-sm text-green-600 font-medium"></p></div></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label><input type="number" id="modal-quantity" min="1" value="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"></div><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Condition</label><select id="modal-condition" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div></div><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">List Type</label><select id="modal-list-type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"><option value="collection">Collection</option><option value="wishlist">Wishlist</option></select></div><div class="flex items-center"><input type="checkbox" id="modal-foil" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"><label for="modal-foil" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Foil</label></div><div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label><textarea id="modal-notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"></textarea></div></div><div class="flex justify-end space-x-3 mt-6"><button id="cancel-add-version-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button><button id="save-card-btn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save Card</button></div></div>
-  </div>
+<div id="csv-import-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">Import from CSV</h2>
+            <button id="close-csv-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload a CSV file. We'll try to detect columns like 'Name', 'Quantity', 'Set', 'Foil', and 'Condition'.</p>
+            <input type="file" id="csv-file-input" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <div id="csv-import-status" class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-md h-40 overflow-y-auto text-sm">
+                Awaiting file...
+            </div>
+        </div>
+    </div>
+</div>
 
-  <!-- Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+<div id="bulk-list-sale-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+         <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">List Selected Cards for Sale</h2>
+            <button id="close-bulk-list-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <form id="bulk-list-form" class="mt-4 space-y-4">
+            <p>Set a price for the <span id="bulk-list-count">0</span> selected cards.</p>
+             <div>
+                <label class="flex items-center">
+                    <input type="radio" name="price-option" value="percentage" class="h-4 w-4" checked>
+                    <span class="ml-2">Percentage of Market Value</span>
+                </label>
+                <div class="flex items-center mt-1">
+                    <input type="number" id="bulk-price-percentage" value="100" class="w-24 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2">%</span>
+                </div>
+            </div>
+             <div>
+                <label class="flex items-center">
+                    <input type="radio" name="price-option" value="fixed" class="h-4 w-4">
+                    <span class="ml-2">Fixed Price</span>
+                </label>
+                 <input type="number" step="0.01" id="bulk-price-fixed" placeholder="0.00" class="mt-1 w-1/2 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" disabled>
+            </div>
+            <div class="text-right pt-4">
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">List Items</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-  <script src="js/auth.js"></script>
-  
-  <script src="js/modules/utils.js"></script>
-  <script src="js/modules/api.js"></script>
-  <script src="js/modules/card-display.js"></script>
-  <script src="js/modules/card-modal.js"></script>
-  <script src="js/modules/bulk-operations.js"></script>
-  <script src="js/modules/card-search.js"></script>
-  <script src="js/modules/csv-import.js"></script>
-  <script src="js/modules/sealed-products.js"></script>
-  <script src="js/modules/collection-app.js"></script>
-  <script src="js/collection.js"></script>
-  <script src="js/darkmode.js"></script>
 
-  <script>
-   const sidebar = document.getElementById('sidebar');
-   const sidebarToggle = document.getElementById('sidebar-toggle');
-   const sidebarOverlay = document.getElementById('sidebar-overlay');
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
 
-   if (sidebarToggle) {
-       sidebarToggle.addEventListener('click', () => {
-           sidebar.classList.toggle('-translate-x-full');
-           sidebarOverlay.classList.toggle('hidden');
-       });
-   }
+<script src="js/auth.js"></script>
+<script src="js/darkmode.js"></script>
 
-   if (sidebarOverlay) {
-       sidebarOverlay.addEventListener('click', () => {
-           sidebar.classList.add('-translate-x-full');
-           sidebarOverlay.classList.add('hidden');
-       });
-   }
-  </script>
- </body>
+<script type="module" src="public/js/modules/collection-app.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            });
+        }
+        
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+        }
+    });
+</script>
+</body>
 </html>
-

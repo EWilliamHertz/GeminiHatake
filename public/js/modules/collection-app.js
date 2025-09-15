@@ -1,172 +1,287 @@
 /**
- * Collection App Module
- * Main application controller that manages state and coordinates between modules
+ * collection-app.js
+ * Main entry point and orchestrator for the TCG Collection page.
  */
-window.CollectionApp = (() => {
-    let currentUser = null;
-    let db = null;
-    let fullCollection = [];
-    let fullWishlist = [];
-    let filteredCollection = [];
-    let currentTab = 'collection';
-    let currentView = 'grid';
+import * as Collection from './collection.js';
+import * as UI from './ui.js';
+import * as API from './api.js';
+import * as CSV from './csv.js';
+import * as Bulk from './bulk-operations.js';
+import { debounce } from './utils.js';
 
-    function initialize(user, firestore) {
-        currentUser = user;
-        db = firestore;
-        console.log(`[CollectionApp] Initializing for user ${user.uid}`);
-        loadAllData();
-        initializeEventListeners();
-    }
+// --- STATE & INITIALIZATION ---
 
-    async function loadAllData() {
-        console.log("[CollectionApp] Loading all data from Firestore...");
-        await Promise.all([loadCollectionData(), loadWishlistData()]);
-        updateStats(currentTab === 'collection' ? fullCollection : fullWishlist);
-        renderCurrentView();
-    }
+let currentUser;
 
-    async function loadCollectionData() {
-        try {
-            const snapshot = await db.collection('users').doc(currentUser.uid).collection('collection').orderBy('name').get();
-            fullCollection = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (error) {
-            console.error("[CollectionApp] Error loading collection:", error);
-            window.Utils.showNotification('Could not load your collection.', 'error');
-        }
-    }
-
-    async function loadWishlistData() {
-        try {
-            const snapshot = await db.collection('users').doc(currentUser.uid).collection('wishlist').orderBy('name').get();
-            fullWishlist = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (error) {
-            console.error("[CollectionApp] Error loading wishlist:", error);
-            window.Utils.showNotification('Could not load your wishlist.', 'error');
-        }
-    }
-
-    function initializeEventListeners() {
-        document.getElementById('tab-collection')?.addEventListener('click', () => switchTab('collection'));
-        document.getElementById('tab-wishlist')?.addEventListener('click', () => switchTab('wishlist'));
-        document.getElementById('grid-view-btn')?.addEventListener('click', () => switchView('grid'));
-        document.getElementById('list-view-btn')?.addEventListener('click', () => switchView('list'));
-        document.querySelector('main').addEventListener('click', handleCardActionClick);
-    }
-
-    function switchTab(tabName) {
-        currentTab = tabName;
-        // UI updates for tabs...
-        document.getElementById('content-collection').classList.toggle('hidden', tabName !== 'collection');
-        document.getElementById('content-wishlist').classList.toggle('hidden', tabName !== 'wishlist');
-        ['collection', 'wishlist'].forEach(t => {
-            const tabEl = document.getElementById(`tab-${t}`);
-            tabEl.classList.toggle('text-blue-600', tabName === t);
-            tabEl.classList.toggle('border-blue-600', tabName === t);
-            tabEl.classList.toggle('text-gray-500', tabName !== t);
-            tabEl.classList.toggle('border-transparent', tabName !== t);
-        });
-        
-        const dataForStats = tabName === 'collection' ? fullCollection : fullWishlist;
-        updateStats(dataForStats);
-
-        if (window.BulkOperations.isBulkEditMode()) {
-            window.BulkOperations.toggleBulkEditMode();
-        }
-        renderCurrentView();
-    }
-    
-    function switchView(viewName) {
-        currentView = viewName;
-        // UI updates for view buttons...
-        document.getElementById('grid-view-btn').classList.toggle('bg-blue-600', viewName === 'grid');
-        document.getElementById('grid-view-btn').classList.toggle('text-white', viewName === 'grid');
-        document.getElementById('list-view-btn').classList.toggle('bg-blue-600', viewName === 'list');
-        document.getElementById('list-view-btn').classList.toggle('text-white', viewName === 'list');
-        renderCurrentView();
-    }
-
-    function renderCurrentView() {
-        applyFiltersAndSort();
-        if (currentTab === 'collection') {
-            const gridContainer = document.getElementById('collection-grid-view');
-            const listContainer = document.getElementById('collection-table-view');
-            if (currentView === 'grid') {
-                window.CardDisplay.renderGridView(gridContainer, filteredCollection);
-            } else {
-                window.CardDisplay.renderListView(listContainer, filteredCollection);
-            }
-        } else {
-            const wishlistContainer = document.getElementById('wishlist-list');
-            window.CardDisplay.renderWishlist(wishlistContainer, fullWishlist);
-        }
-    }
-    
-    function applyFiltersAndSort() {
-        filteredCollection = [...fullCollection];
-    }
-    
-    function updateStats(cardList) {
-        const totalCards = cardList.reduce((sum, card) => sum + (card.quantity || 1), 0);
-        const uniqueCards = new Set(cardList.map(c => c.name)).size;
-        const totalValue = cardList.reduce((sum, card) => {
-            const price = parseFloat(card.priceUsd) || 0;
-            return sum + (price * (card.quantity || 1));
-        }, 0);
-        
-        document.getElementById('stats-total-cards').textContent = totalCards.toLocaleString();
-        document.getElementById('stats-unique-cards').textContent = uniqueCards.toLocaleString();
-        document.getElementById('stats-total-value').textContent = window.Utils.safeFormatPrice(totalValue);
-    }
-
-    function handleCardActionClick(e) {
-        const cardElement = e.target.closest('[data-id]');
-        if (!cardElement) return;
-
-        const cardId = cardElement.dataset.id;
-        
-        if (e.target.closest('.delete-card-btn')) {
-            const listType = e.target.closest('[data-list]').dataset.list;
-            const cardData = (listType === 'collection' ? fullCollection : fullWishlist).find(c => c.id === cardId);
-            if (confirm(`Are you sure you want to delete "${cardData.name}"?`)) {
-                deleteCard(cardId, listType);
-            }
-        } else if (e.target.closest('.edit-card-btn')) {
-            const listType = e.target.closest('[data-list]').dataset.list;
-            const cardData = (listType === 'collection' ? fullCollection : fullWishlist).find(c => c.id === cardId);
-            window.CardModal.openCardManagementModal(cardData, cardData);
-        } else if (window.BulkOperations.isBulkEditMode()) {
-            window.BulkOperations.handleCardSelection(cardId);
-        }
-    }
-
-    async function deleteCard(cardId, listType) {
-        try {
-            await db.collection('users').doc(currentUser.uid).collection(listType).doc(cardId).delete();
+/**
+ * Main initialization function for the collection application.
+ * Waits for Firebase auth to be ready.
+ */
+function init() {
+    document.addEventListener('authReady', async (e) => {
+        if (e.detail.user) {
+            currentUser = e.detail.user;
+            UI.showLoadingState();
+            await Collection.loadCollection(currentUser.uid);
+            await Collection.loadWishlist(currentUser.uid);
             
-            if (listType === 'collection') {
-                fullCollection = fullCollection.filter(c => c.id !== cardId);
-                updateStats(fullCollection);
-            } else {
-                fullWishlist = fullWishlist.filter(c => c.id !== cardId);
-                updateStats(fullWishlist);
-            }
-            renderCurrentView();
-            window.Utils.showNotification('Card deleted successfully.', 'success');
-        } catch (error) {
-            console.error("Error deleting card:", error);
-            window.Utils.showNotification('Could not delete card.', 'error');
+            setupEventListeners();
+            
+            // Initial render
+            await renderFilteredCollection();
+            updateAllUI();
+        } else {
+            // User is not logged in, show a message or redirect
+            UI.showLoggedOutState();
         }
+    });
+}
+
+/**
+ * Fetches the filtered collection from the state and tells the UI to render it.
+ */
+async function renderFilteredCollection() {
+    const state = Collection.getState();
+    const cardsToRender = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+    
+    if (state.activeView === 'grid') {
+        UI.renderGridView(cardsToRender, state.activeTab);
+    } else {
+        UI.renderListView(cardsToRender, state.activeTab);
     }
 
-    return {
-        initialize,
-        renderCurrentView,
-        loadAllData,
-        getCurrentUser: () => currentUser,
-        getDb: () => db,
-        getFullCollection: () => fullCollection,
-        getFilteredCollection: () => filteredCollection,
-    };
-})();
+    if (cardsToRender.length === 0) {
+        const message = state.activeTab === 'collection' 
+            ? "Your collection is empty. Add cards to get started!"
+            : "Your wishlist is empty. Search for cards to add them.";
+        UI.showEmptyState(message);
+    }
+}
 
+/**
+ * Updates dynamic UI components like stats and filters.
+ */
+function updateAllUI() {
+    const stats = Collection.calculateStats();
+    UI.updateStats(stats);
+    
+    const { sets, rarities } = Collection.getAvailableFilterOptions();
+    UI.populateFilters(sets, rarities);
+}
+
+
+// --- EVENT LISTENERS ---
+
+function setupEventListeners() {
+    // Header & Main Actions
+    document.getElementById('add-card-btn').addEventListener('click', UI.openSearchModal);
+    document.getElementById('import-csv-btn').addEventListener('click', UI.openCsvImportModal);
+    document.getElementById('export-csv-btn').addEventListener('click', CSV.exportCollectionToCSV);
+    document.getElementById('bulk-edit-btn').addEventListener('click', handleEnterBulkEditMode);
+
+    // View Toggles
+    document.getElementById('view-toggle-grid').addEventListener('click', () => handleViewChange('grid'));
+    document.getElementById('view-toggle-list').addEventListener('click', () => handleViewChange('list'));
+
+    // Tabs
+    document.querySelectorAll('.tab-button').forEach(tab => {
+        tab.addEventListener('click', () => handleTabChange(tab.dataset.tab));
+    });
+
+    // Filters
+    document.getElementById('filter-name').addEventListener('input', debounce(handleFilterChange, 300));
+    document.getElementById('filter-set').addEventListener('change', handleFilterChange);
+    document.getElementById('filter-rarity').addEventListener('change', handleFilterChange);
+    document.getElementById('filter-colors').addEventListener('click', handleColorFilterClick);
+
+    // Modals - Search
+    document.getElementById('close-search-modal').addEventListener('click', UI.closeSearchModal);
+    document.getElementById('card-search-input').addEventListener('input', debounce(handleCardSearch, 300));
+    document.getElementById('game-selector').addEventListener('change', handleCardSearch);
+
+    // Modals - Add/Edit Card
+    document.getElementById('close-card-modal').addEventListener('click', () => UI.closeCardModal());
+    document.getElementById('card-form').addEventListener('submit', handleSaveCard);
+    document.getElementById('list-for-sale-toggle').addEventListener('change', UI.toggleListForSaleSection);
+    document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
+
+    // Modals - CSV Import
+    document.getElementById('close-csv-modal').addEventListener('click', UI.closeCsvImportModal);
+    document.getElementById('csv-file-input').addEventListener('change', (e) => {
+        CSV.handleCSVImport(e.target.files[0]);
+    });
+
+    // Modals - Bulk List
+    document.getElementById('close-bulk-list-modal').addEventListener('click', UI.closeBulkListSaleModal);
+    document.getElementById('bulk-list-form').addEventListener('submit', handleBulkListForSale);
+    document.querySelector('input[name="price-option"][value="percentage"]').addEventListener('change', UI.toggleBulkPriceInputs);
+    document.querySelector('input[name="price-option"][value="fixed"]').addEventListener('change', UI.toggleBulkPriceInputs);
+
+
+    // Dynamic Event Listeners on Collection Display
+    const display = document.getElementById('collection-display');
+    display.addEventListener('click', handleCollectionDisplayClick);
+    
+    // Bulk Actions Toolbar
+    document.getElementById('bulk-cancel-btn').addEventListener('click', Bulk.exitBulkEditMode);
+    document.getElementById('bulk-delete-btn').addEventListener('click', Bulk.deleteSelected);
+    document.getElementById('bulk-list-sale-btn').addEventListener('click', Bulk.listSelectedForSale);
+
+}
+
+
+// --- EVENT HANDLERS ---
+
+async function handleViewChange(view) {
+    if (Collection.getState().activeView === view) return;
+    Collection.setView(view);
+    UI.updateViewToggle(view);
+    await renderFilteredCollection();
+}
+
+async function handleTabChange(tab) {
+    if (Collection.getState().activeTab === tab) return;
+    Collection.setTab(tab);
+    UI.updateActiveTab(tab);
+    await renderFilteredCollection();
+}
+
+async function handleFilterChange() {
+    const filters = {
+        name: document.getElementById('filter-name').value,
+        set: document.getElementById('filter-set').value,
+        rarity: document.getElementById('filter-rarity').value,
+        colors: Collection.getState().filters.colors // Keep colors from their own handler
+    };
+    Collection.setFilters(filters);
+    await renderFilteredCollection();
+}
+
+async function handleColorFilterClick(e) {
+    if (e.target.tagName === 'I') {
+        const color = e.target.dataset.color;
+        const newColors = Collection.toggleColorFilter(color);
+        UI.updateColorFilterSelection(newColors);
+        await handleFilterChange();
+    }
+}
+
+async function handleCardSearch() {
+    const query = document.getElementById('card-search-input').value;
+    const game = document.getElementById('game-selector').value;
+    if (query.length < 3) {
+        UI.renderSearchResults(null, "Enter at least 3 characters to search.");
+        return;
+    }
+
+    UI.renderSearchResults(null, "Searching...");
+    try {
+        const results = await API.searchCards(query, game);
+        UI.renderSearchResults(results, game);
+    } catch (error) {
+        console.error("Search failed:", error);
+        UI.renderSearchResults(null, `Error: ${error.message}`);
+    }
+}
+
+async function handleSaveCard(e) {
+    e.preventDefault();
+    const formData = UI.getCardFormData();
+    
+    try {
+        if (formData.id) {
+            // Editing existing card
+            await Collection.updateCard(formData.id, formData.data, formData.customImageFile);
+            showToast("Card updated successfully!", "success");
+        } else {
+            // Adding new card
+            await Collection.addCard(formData.data, formData.customImageFile);
+            showToast("Card added to collection!", "success");
+        }
+        UI.closeCardModal();
+        await renderFilteredCollection();
+        updateAllUI();
+    } catch (error) {
+        console.error("Failed to save card:", error);
+        showToast(`Error: ${error.message}`, "error");
+    }
+}
+
+function handleAddAnotherVersion() {
+    const currentCardData = Collection.getCurrentEditingCard();
+    if (currentCardData) {
+        UI.closeCardModal();
+        // Slight delay to ensure modal is closed before search modal is opened
+        setTimeout(() => {
+            UI.openSearchModal(currentCardData.name);
+            // Trigger search after populating
+            handleCardSearch();
+        }, 100);
+    }
+}
+
+function handleEnterBulkEditMode() {
+    const isBulkMode = Bulk.enterBulkEditMode();
+    if (isBulkMode) {
+        renderFilteredCollection(); // Re-render to show checkboxes
+    }
+}
+
+async function handleBulkListForSale(e) {
+    e.preventDefault();
+    await Bulk.applyBulkListForSale();
+    UI.closeBulkListSaleModal();
+    await renderFilteredCollection();
+}
+
+/**
+ * Handles clicks within the main collection display area using event delegation.
+ */
+async function handleCollectionDisplayClick(e) {
+    const cardElement = e.target.closest('.card-container');
+    if (!cardElement) return;
+
+    const cardId = cardElement.dataset.id;
+    const actionButton = e.target.closest('[data-action]');
+    
+    // Handle Bulk Mode Selection
+    if (Bulk.isBulkEditMode()) {
+        if (!actionButton) { // Clicks on the card itself, not a button
+             Bulk.toggleCardSelection(cardId);
+        }
+        return; // Prevent other actions in bulk mode
+    }
+
+    if (actionButton) {
+        const action = actionButton.dataset.action;
+        switch (action) {
+            case 'edit':
+                const cardData = Collection.getCardById(cardId);
+                if (cardData) UI.populateCardModalForEdit(cardData);
+                break;
+            case 'delete':
+                if (confirm('Are you sure you want to delete this card entry?')) {
+                    try {
+                        await Collection.deleteCard(cardId);
+                        showToast('Card deleted.', 'success');
+                        await renderFilteredCollection();
+                        updateAllUI();
+                    } catch (error) {
+                        console.error('Deletion failed:', error);
+                        showToast(`Error: ${error.message}`, 'error');
+                    }
+                }
+                break;
+            case 'list':
+                // For a single card, just open the edit modal and check the box
+                const cardToList = Collection.getCardById(cardId);
+                if (cardToList) UI.populateCardModalForEdit(cardToList, true);
+                break;
+        }
+    }
+}
+
+
+// --- STARTUP ---
+
+init();
