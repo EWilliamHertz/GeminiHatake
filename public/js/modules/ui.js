@@ -14,59 +14,59 @@ const csvModal = getElement('csv-import-modal');
 const bulkListModal = getElement('bulk-list-sale-modal');
 const cardPreviewTooltip = getElement('card-preview-tooltip');
 
+// --- NOTIFICATIONS ---
+export const showToast = (message, type = 'info') => {
+    const container = getElement('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.classList.add('show'); }, 100);
+    setTimeout(() => { toast.classList.remove('show'); toast.addEventListener('transitionend', () => toast.remove()); }, 5000);
+};
+
 // --- RENDER FUNCTIONS ---
 
-/**
- * Renders the collection in a grid format.
- * @param {Array} cards - Array of card objects to render.
- * @param {string} activeTab - 'collection' or 'wishlist'.
- */
 export function renderGridView(cards, activeTab) {
     if (!cards || cards.length === 0) {
         showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
         return;
     }
     const isBulkMode = Collection.getState().bulkEdit.isActive;
-
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = formatPrice(card?.prices?.usd, 'USD'); // Assuming USD price from Scryfall
+        const price = formatPrice(card?.prices?.usd, 'USD');
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+        const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
+            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">$${formatPrice(card.salePrice)}</div>`
+            : '';
 
         return `
             <div class="card-container relative group" data-id="${card.id}">
                 <img src="${imageUrl}" alt="${card.name}" class="rounded-lg shadow-md w-full transition-transform transform group-hover:scale-105">
                 <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                    <div class="text-white text-center p-2">
-                        <p class="font-bold">${card.name}</p>
-                        <p class="text-sm">${card.set_name}</p>
-                    </div>
+                    <div class="text-white text-center p-2"><p class="font-bold">${card.name}</p><p class="text-sm">${card.set_name}</p></div>
                 </div>
-                 ${isBulkMode ? `
-                    <div class="absolute top-2 right-2">
-                        <input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}>
-                    </div>` : `
+                 ${isBulkMode ? `<div class="absolute top-2 right-2"><input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}></div>` : `
                     <div class="absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button data-action="edit" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"><i class="fas fa-pencil-alt"></i></button>
                         <button data-action="delete" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"><i class="fas fa-trash"></i></button>
                     </div>`
                 }
+                ${salePriceDisplay}
                 <div class="absolute bottom-0 left-0 bg-gray-800 bg-opacity-75 text-white text-xs w-full p-1 rounded-b-lg flex justify-between">
                     <span>Qty: ${card.quantity || 1}</span>
                     <span>${price}</span>
                 </div>
-            </div>
-        `;
+            </div>`;
     }).join('');
-
     display.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${gridHTML}</div>`;
 }
 
-/**
- * Renders the collection in a list (table) format.
- * @param {Array} cards - Array of card objects to render.
- * @param {string} activeTab - 'collection' or 'wishlist'.
- */
 export function renderListView(cards, activeTab) {
     if (!cards || cards.length === 0) {
         showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
@@ -83,15 +83,21 @@ export function renderListView(cards, activeTab) {
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
                 <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Condition</th>
-                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Price</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Market Price</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
                 ${!isBulkMode ? '<th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>' : ''}
             </tr>
-        </thead>
-    `;
+        </thead>`;
 
     const tableBody = cards.map(card => {
-         const price = formatPrice(card?.prices?.usd, 'USD');
-         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+        const price = formatPrice(card?.prices?.usd, 'USD');
+        const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+        const saleStatus = (card.forSale && typeof card.salePrice === 'number')
+            ? `<span class="text-green-500 font-semibold">For Sale ($${formatPrice(card.salePrice)})</span>`
+            : 'In Collection';
+        
+        // *** CRITICAL BUG FIX HERE ***
+        // Reverted card.isFoil to card.is_foil to match the data structure from Firestore
         return `
             <tr class="card-container border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600/50" data-id="${card.id}">
                 ${isBulkMode ? `<td class="p-3"><input type="checkbox" class="bulk-select-checkbox h-4 w-4" data-id="${card.id}" ${isSelected ? 'checked' : ''}></td>` : ''}
@@ -100,6 +106,7 @@ export function renderListView(cards, activeTab) {
                 <td class="p-3">${card.quantity || 1}</td>
                 <td class="p-3">${card.condition || 'N/A'}</td>
                 <td class="p-3">${price}</td>
+                <td class="p-3 text-sm">${saleStatus}</td>
                 ${!isBulkMode ? `
                     <td class="p-3">
                         <div class="flex space-x-2">
@@ -115,28 +122,21 @@ export function renderListView(cards, activeTab) {
     display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
 }
 
-/**
- * Renders search results in the search modal.
- * @param {Array|null} results - Array of card data from API.
- * @param {string} context - The game ('mtg', 'pokemon') or a message string.
- */
-export function renderSearchResults(results, context) {
+export function renderSearchResults(results) {
     const container = getElement('search-results-container');
-    if (results === null) {
-        container.innerHTML = `<p class="text-center text-gray-500">${context}</p>`;
+    if (typeof results === 'string') {
+        container.innerHTML = `<p class="text-center text-gray-500">${results}</p>`;
         return;
     }
-    if (results.length === 0) {
+    if (!results || results.length === 0) {
         container.innerHTML = `<p class="text-center text-gray-500">No cards found.</p>`;
         return;
     }
-
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
         const price = formatPrice(card?.prices?.usd, 'USD');
         const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
         const cardDataString = encodeURIComponent(JSON.stringify(card));
-
         return `
             <div class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer search-result-item" data-card='${cardDataString}'>
                 <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md pointer-events-none">
@@ -148,11 +148,9 @@ export function renderSearchResults(results, context) {
                     <p class="font-mono">${price}</p>
                     <p class="text-sm capitalize text-gray-500">${card.rarity}</p>
                 </div>
-            </div>
-        `;
+            </div>`;
     }).join('');
     container.innerHTML = resultsHTML;
-
     document.querySelectorAll('.search-result-item').forEach(item => {
         item.addEventListener('click', () => {
             const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
@@ -182,37 +180,28 @@ export function renderPendingCards(pendingCards) {
 
 
 // --- UI STATE UPDATES ---
-
 export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
-export const showLoggedOutState = () => {
-    getElement('collection-display').innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
-}
+export const showLoggedOutState = () => getElement('collection-display').innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
 export const showEmptyState = (message) => display.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500"><p>${message}</p></div>`;
 
 export function updateStats(stats, activeTab) {
     const isCollection = activeTab === 'collection';
-    
     getElement('stats-title').textContent = isCollection ? 'Collection Statistics' : 'Wishlist Statistics';
     getElement('stats-total-label').textContent = isCollection ? 'Total Cards:' : 'Total Items:';
     getElement('stats-unique-label').textContent = isCollection ? 'Unique Cards:' : 'Unique Items:';
     getElement('stats-value-label').textContent = isCollection ? 'Total Value:' : 'Wishlist Value:';
-
     getElement('stats-total-cards').textContent = stats.totalCards;
     getElement('stats-unique-cards').textContent = stats.uniqueCards;
     getElement('stats-total-value').textContent = formatPrice(stats.totalValue, 'USD');
 }
 
-
 export function populateFilters(sets, rarities) {
     const setFilter = getElement('filter-set');
     const rarityFilter = getElement('filter-rarity');
-
     const currentSet = setFilter.value;
     const currentRarity = rarityFilter.value;
-
     setFilter.innerHTML = '<option value="">All Sets</option>' + sets.map(s => `<option value="${s}">${s}</option>`).join('');
     rarityFilter.innerHTML = '<option value="">All Rarities</option>' + rarities.map(r => `<option value="${r}">${r}</option>`).join('');
-    
     setFilter.value = currentSet;
     rarityFilter.value = currentRarity;
 }
@@ -220,13 +209,11 @@ export function populateFilters(sets, rarities) {
 export function updateViewToggle(view) {
     const gridBtn = getElement('view-toggle-grid');
     const listBtn = getElement('view-toggle-list');
-    
     gridBtn.classList.toggle('bg-white', view === 'grid');
     gridBtn.classList.toggle('dark:bg-gray-900', view === 'grid');
     gridBtn.classList.toggle('shadow', view === 'grid');
     gridBtn.classList.toggle('text-gray-500', view !== 'grid');
     gridBtn.classList.toggle('dark:text-gray-400', view !== 'grid');
-    
     listBtn.classList.toggle('bg-white', view === 'list');
     listBtn.classList.toggle('dark:bg-gray-900', view === 'list');
     listBtn.classList.toggle('shadow', view === 'list');
@@ -235,15 +222,11 @@ export function updateViewToggle(view) {
 }
 
 export function updateActiveTab(tab) {
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tab);
-    });
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
 }
 
 export function updateTcgFilter(game) {
-    document.querySelectorAll('.tcg-filter-button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.game === game);
-    });
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => btn.classList.toggle('active', btn.dataset.game === game));
 }
 
 export function updateColorFilterSelection(selectedColors) {
@@ -289,39 +272,29 @@ export function hideCardPreview() {
 export function moveCardPreview(e) {
     let x = e.clientX + 15;
     let y = e.clientY + 15;
-
-    if (x + cardPreviewTooltip.offsetWidth > window.innerWidth) {
-        x = e.clientX - cardPreviewTooltip.offsetWidth - 15;
-    }
-    if (y + cardPreviewTooltip.offsetHeight > window.innerHeight) {
-        y = e.clientY - cardPreviewTooltip.offsetHeight - 15;
-    }
+    if (x + cardPreviewTooltip.offsetWidth > window.innerWidth) { x = e.clientX - cardPreviewTooltip.offsetWidth - 15; }
+    if (y + cardPreviewTooltip.offsetHeight > window.innerHeight) { y = e.clientY - cardPreviewTooltip.offsetHeight - 15; }
     cardPreviewTooltip.style.left = `${x}px`;
     cardPreviewTooltip.style.top = `${y}px`;
 }
-
 
 // --- MODAL MANAGEMENT ---
 const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 const closeModal = (modal) => { modal.classList.add('hidden'); modal.classList.remove('flex'); }
 
 export function openSearchModal(query = '') {
-    if (typeof query !== 'string') {
-        query = '';
-    }
+    if (typeof query !== 'string') query = '';
     getElement('card-search-input').value = query;
     getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
     openModal(searchModal);
     getElement('card-search-input').focus();
 }
 export const closeSearchModal = () => closeModal(searchModal);
-
 export const openCardModal = () => {
     Collection.clearPendingCards();
     renderPendingCards([]);
     openModal(cardModal);
 }
-
 export const closeCardModal = () => {
     getElement('card-form').reset();
     getElement('list-for-sale-section').classList.add('hidden');
@@ -329,19 +302,72 @@ export const closeCardModal = () => {
     closeModal(cardModal);
 };
 
+function setupSaleSectionLogic(cardData) {
+    const forSaleToggle = getElement('list-for-sale-toggle');
+    const forSaleSection = getElement('list-for-sale-section');
+    const marketPriceDisplay = getElement('market-price-display');
+    const salePercentageInput = getElement('card-sale-percentage');
+    const salePriceInput = getElement('card-sale-price');
+
+    const marketPrice = parseFloat(cardData.prices?.usd || 0);
+    marketPriceDisplay.textContent = marketPrice > 0 ? `$${marketPrice.toFixed(2)}` : 'N/A';
+    
+    // Clone and replace to remove old listeners
+    const newPercentageInput = salePercentageInput.cloneNode(true);
+    salePercentageInput.parentNode.replaceChild(newPercentageInput, salePercentageInput);
+    
+    const newSalePriceInput = salePriceInput.cloneNode(true);
+    salePriceInput.parentNode.replaceChild(newSalePriceInput, salePriceInput);
+    
+    const newForSaleToggle = forSaleToggle.cloneNode(true);
+    forSaleToggle.parentNode.replaceChild(newForSaleToggle, forSaleToggle);
+    
+    const updatePriceFromPercentage = () => {
+        if (marketPrice > 0) {
+            const percentage = parseFloat(newPercentageInput.value) || 100;
+            newSalePriceInput.value = (marketPrice * (percentage / 100)).toFixed(2);
+        }
+    };
+    
+    const updatePercentageFromPrice = () => {
+        if (marketPrice > 0) {
+            const price = parseFloat(newSalePriceInput.value) || 0;
+            newPercentageInput.value = Math.round((price / marketPrice) * 100);
+        }
+    };
+
+    newPercentageInput.addEventListener('input', updatePriceFromPercentage);
+    newSalePriceInput.addEventListener('input', updatePercentageFromPrice);
+
+    newForSaleToggle.addEventListener('change', () => {
+        forSaleSection.classList.toggle('hidden', !newForSaleToggle.checked);
+        if (newForSaleToggle.checked && !newSalePriceInput.value) {
+            updatePriceFromPercentage();
+        }
+    });
+}
+
+
 export function populateCardModalForAdd(cardData) {
     Collection.setCurrentEditingCard(cardData);
+    const form = getElement('card-form');
+    form.reset();
     getElement('card-modal-id').value = '';
     getElement('card-modal-title').textContent = cardData.name;
     getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
     getElement('card-modal-image').src = getCardImageUrl(cardData);
     getElement('save-card-btn').textContent = "Add to Collection";
     getElement('add-another-version-btn').classList.remove('hidden');
+    getElement('list-for-sale-section').classList.add('hidden');
+    
+    setupSaleSectionLogic(cardData);
+    
     openCardModal();
 }
 
 export function populateCardModalForEdit(cardData, listForSale = false) {
-    populateCardModalForAdd(cardData); // Reuse for setup
+    populateCardModalForAdd(cardData); // Reuse for basic setup and to attach listeners
+    
     getElement('card-modal-id').value = cardData.id;
     getElement('card-modal-title').textContent = `Editing: ${cardData.name}`;
     getElement('card-quantity').value = cardData.quantity || 1;
@@ -355,11 +381,21 @@ export function populateCardModalForEdit(cardData, listForSale = false) {
     const forSaleToggle = getElement('list-for-sale-toggle');
     const forSaleSection = getElement('list-for-sale-section');
     const salePriceInput = getElement('card-sale-price');
+    const salePercentageInput = getElement('card-sale-percentage');
 
     if (cardData.forSale || listForSale) {
         forSaleToggle.checked = true;
         forSaleSection.classList.remove('hidden');
         salePriceInput.value = cardData.salePrice || '';
+        
+        const marketPrice = parseFloat(cardData.prices?.usd || 0);
+        if(marketPrice > 0) {
+            const price = parseFloat(cardData.salePrice) || 0;
+            salePercentageInput.value = Math.round((price / marketPrice) * 100);
+        }
+    } else {
+        forSaleToggle.checked = false;
+        forSaleSection.classList.add('hidden');
     }
     
     getElement('save-card-btn').textContent = "Save Changes";
@@ -378,20 +414,24 @@ export function getCardFormData(includeBaseData = true) {
         condition: getElement('card-condition').value,
         language: getElement('card-language').value,
         purchasePrice: parseFloat(getElement('card-purchase-price').value) || null,
+        // **BUG FIX AREA**: Reverted to original property names
         is_foil: getElement('card-is-foil').checked,
         is_signed: getElement('card-is-signed').checked,
         is_altered: getElement('card-is-altered').checked,
         forSale: forSale,
-        salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || null) : null,
+        salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || 0) : null,
         addedAt: id ? originalApiData.addedAt : new Date().toISOString()
     };
+    
     if (!includeBaseData) {
         data.name = originalApiData.name;
         data.set_name = originalApiData.set_name;
     }
+    
     const customImageFile = getElement('custom-image-upload').files[0] || null;
     return { id, data, customImageFile };
 }
+
 
 export function resetCardFormForNewVersion() {
     getElement('card-quantity').value = 1;

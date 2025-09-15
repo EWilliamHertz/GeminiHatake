@@ -22,7 +22,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
 const axios = require("axios");
-const fetch = require("node-fetch"); // <-- ADDED for the new Pokémon function
+const fetch = require("node-fetch");
 
 // --- CORS CONFIGURATION ---
 const allowedOrigins = [
@@ -59,7 +59,7 @@ const escrowApi = axios.create({
 });
 
 // =================================================================================================
-// SECURE CARD SEARCH FUNCTIONS (NEW)
+// SECURE CARD SEARCH FUNCTIONS
 // =================================================================================================
 
 /**
@@ -220,9 +220,7 @@ exports.broadcastMessage = functions.https.onCall(async (data, context) => {
 // =================================================================================================
 
 /**
- * Sends a message from one user to another. (MERGED FUNCTION)
- * This is the single, definitive function for sending messages.
- * It is kept "warm" with minInstances to prevent cold start delays.
+ * Sends a message from one user to another.
  */
 exports.sendMessage = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
     if (!context.auth) {
@@ -259,7 +257,7 @@ exports.sendMessage = functions.runWith({ minInstances: 1 }).https.onCall(async 
 });
 
 /**
- * Ensures a conversation document exists between two users. Creates one if it doesn't.
+ * Ensures a conversation document exists between two users.
  */
 exports.ensureConversationExists = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
@@ -338,10 +336,10 @@ exports.onNewMessage = functions.firestore
     });
 
 // =================================================================================================
-// --- NEW MARKETPLACE FUNCTION ---
+// --- MARKETPLACE SYNC FUNCTION (CORRECTED) ---
 // =================================================================================================
 /**
- * This function triggers whenever a card in a user's collection is created, updated, or deleted.
+ * This function triggers whenever a card in a user's collection is created or updated.
  * It keeps a public `marketplaceListings` collection in sync.
  */
 exports.syncCardToMarketplace = functions.firestore
@@ -350,62 +348,75 @@ exports.syncCardToMarketplace = functions.firestore
         const { userId, cardId } = context.params;
         const listingRef = db.collection('marketplaceListings').doc(cardId);
 
-        // Card was deleted or is no longer for sale
-        if (!change.after.exists || !change.after.data().forSale) {
+        const cardDataAfter = change.after.data();
+
+        // Condition 1: Card was deleted OR is no longer for sale.
+        if (!change.after.exists || cardDataAfter.forSale !== true) {
             try {
-                await listingRef.delete();
-                console.log(`Removed listing ${cardId} from the marketplace.`);
+                // Check if a listing exists before trying to delete
+                const listingDoc = await listingRef.get();
+                if (listingDoc.exists) {
+                    await listingRef.delete();
+                    console.log(`Removed listing ${cardId} from the marketplace because it's no longer for sale or was deleted.`);
+                }
             } catch (error) {
                 console.error(`Failed to remove listing ${cardId} from marketplace:`, error);
             }
             return null;
         }
 
-        // Card was added or updated to be for sale
-        const cardData = change.after.data();
-        
-        // Ensure we only proceed if forSale is explicitly true
-        if (cardData.forSale !== true) {
-            return null;
-        }
-
+        // Condition 2: Card is marked for sale.
         try {
+            const salePrice = parseFloat(cardDataAfter.salePrice);
+            if (isNaN(salePrice) || salePrice <= 0) {
+                console.log(`Card ${cardId} is for sale but has invalid salePrice. Skipping sync.`);
+                await listingRef.delete().catch(() => {});
+                return null;
+            }
+
             const userDoc = await db.collection('users').doc(userId).get();
             if (!userDoc.exists) {
-                console.error(`User document for seller ${userId} not found.`);
+                console.error(`Seller user document ${userId} not found.`);
                 return null;
             }
             
             const sellerData = userDoc.data();
-
-            // Create a clean seller object to avoid storing sensitive info
             const sellerInfo = {
                 uid: userId,
                 displayName: sellerData.displayName || "Unknown Seller",
                 photoURL: sellerData.photoURL || null,
                 city: sellerData.city || null,
                 country: sellerData.country || null,
-                primaryCurrency: sellerData.primaryCurrency || 'SEK',
                 rating: sellerData.rating || 0,
                 ratingCount: sellerData.ratingCount || 0
             };
-
+            
             const listingData = {
-                ...cardData,
+                cardData: { 
+                    ...cardDataAfter
+                },
+                price: salePrice,
+                condition: cardDataAfter.condition || 'Not Specified',
+                isFoil: cardDataAfter.isFoil || false,
                 sellerData: sellerInfo,
-                originalCardId: cardId, // Keep track of original ID
                 sellerId: userId,
-                lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
             };
+
+            delete listingData.cardData.forSale;
+            delete listingData.cardData.salePrice;
+            delete listingData.cardData.purchasePrice;
 
             await listingRef.set(listingData, { merge: true });
             console.log(`Synced card ${cardId} to marketplace for user ${userId}.`);
             return null;
+
         } catch (error) {
             console.error(`Error syncing card ${cardId} to marketplace:`, error);
             return null;
         }
     });
+
 
 // =================================================================================================
 // ORIGINAL APPLICATION FUNCTIONS
@@ -413,8 +424,6 @@ exports.syncCardToMarketplace = functions.firestore
 
 /**
  * Handles the creation of a new user account.
- * This function triggers when a new user is created in Firebase Authentication.
- * It automatically creates a corresponding user document in Firestore.
  */
 exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
   const { uid, email, displayName, photoURL } = user;
@@ -995,4 +1004,3 @@ exports.generateImpersonationToken = functions.https.onCall(async (data, context
     );
   }
 });
-

@@ -7,6 +7,7 @@ import * as API from './api.js';
 let state = {
     currentUser: null,
     fullCollection: [],
+    fullWishlist: [], // Store the original unfiltered wishlist
     wishlist: [],
     filteredCollection: [],
     activeTab: 'collection',
@@ -39,10 +40,12 @@ export async function loadCollection(userId) {
 
 export async function loadWishlist(userId) {
     try {
-        state.wishlist = await API.getWishlist(userId);
+        state.fullWishlist = await API.getWishlist(userId);
+        state.wishlist = [...state.fullWishlist]; // Initialize wishlist with all items
     } catch (error) {
         console.error("Failed to load wishlist:", error);
         state.wishlist = [];
+        state.fullWishlist = [];
     }
 }
 
@@ -63,13 +66,20 @@ export async function addMultipleCards(cardVersions) {
 
 export async function updateCard(cardId, updates, customImageFile) {
      if (!state.currentUser) throw new Error("User not logged in.");
+    
     let finalUpdates = { ...updates };
+
     if (customImageFile) {
         finalUpdates.customImageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
     }
+
     await API.updateCardInCollection(state.currentUser.uid, cardId, finalUpdates);
+    
     const index = state.fullCollection.findIndex(c => c.id === cardId);
-    if (index !== -1) { state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates }; }
+    if (index !== -1) { 
+        // CRITICAL FIX: Ensure local state is updated correctly
+        state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates }; 
+    }
     applyFilters();
 }
 
@@ -84,25 +94,24 @@ export const getCardById = (cardId) => state.fullCollection.find(c => c.id === c
 
 export function applyFilters() {
     const { name, set, rarity, colors, game } = state.filters;
-    const sourceList = state.activeTab === 'collection' ? state.fullCollection : state.wishlist;
-    const filteredList = sourceList.filter(card => {
-        const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
-        const setMatch = !set || card.set_name === set;
-        const rarityMatch = !rarity || card.rarity === rarity;
-        const colorMatch = colors.length === 0 || (card.color_identity && colors.every(c => card.color_identity.includes(c)));
-        const gameMatch = game === 'all' || card.game === game;
-        return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
-    });
-
+    
     if (state.activeTab === 'collection') {
-        state.filteredCollection = filteredList;
-    } else {
-        // Since wishlist doesn't have its own filter state, we directly manipulate it
-        state.wishlist = state.fullWishlist.filter(card => { // Assuming you load the full wishlist into a separate array
+        state.filteredCollection = state.fullCollection.filter(card => {
             const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
             const setMatch = !set || card.set_name === set;
             const rarityMatch = !rarity || card.rarity === rarity;
-            const gameMatch = game === 'all' || card.game === game;
+            const colorMatch = colors.length === 0 || (card.color_identity && colors.every(c => card.color_identity.includes(c)));
+            const gameMatch = game === 'all' || (card.game || 'mtg') === game;
+            return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
+        });
+    } else {
+        // Correctly filter the wishlist from its full, original source
+        state.wishlist = state.fullWishlist.filter(card => {
+            const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
+            const setMatch = !set || card.set_name === set;
+            const rarityMatch = !rarity || card.rarity === rarity;
+            const gameMatch = game === 'all' || (card.game || 'mtg') === game;
+             // Wishlists might not have color identity, so we skip that filter for now
             return nameMatch && setMatch && rarityMatch && gameMatch;
         });
     }
