@@ -1,0 +1,5 @@
+1. The prices for my_collection.html on the Magic cards say N/A or 0 instead of the actual price from scryfall.
+2. We cannot hover over the cards to have an enlarged picture over or cursor.
+3. The collection statistics is incorrect, it says 1500 total value when the total value of the cards doesn't exceed 100.
+4. We cannot add or edit cards.
+Can you pull github and host it to localhost and try the website out and fix my_collection.html?

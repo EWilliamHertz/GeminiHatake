@@ -98,6 +98,31 @@ function setupEventListeners() {
             reader.readAsDataURL(file);
         }
     });
+
+    // Tooltip listener
+    const tooltip = document.getElementById('card-preview-tooltip');
+    document.getElementById('collection-display').addEventListener('mousemove', (e) => {
+        const card = e.target.closest('.card-container .card img');
+        if (card) {
+            tooltip.style.left = `${e.pageX + 15}px`;
+            tooltip.style.top = `${e.pageY + 15}px`;
+        }
+    });
+
+    document.getElementById('collection-display').addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.card-container .card img');
+        if (card) {
+            tooltip.querySelector('img').src = card.src;
+            tooltip.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('collection-display').addEventListener('mouseout', (e) => {
+        const card = e.target.closest('.card-container .card img');
+        if (card) {
+            tooltip.classList.add('hidden');
+        }
+    });
 }
 
 function applyAndRender(filterUpdate) {
@@ -143,7 +168,6 @@ async function handleCardFormSubmit(e) {
         UI.showToast(error.message, "error");
     }
 }
-
 
 function handleAddAnotherVersion() {
     try {

@@ -1,1 +1,11 @@
-[{"origin": ["https://hatakesocial-88b5e.firebaseapp.com"],"method": ["GET"],"maxAgeSeconds": 3600}]
+[
+  {
+    "origin": ["https://hatakesocial-88b5e.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

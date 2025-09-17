@@ -217,7 +217,7 @@ export function applyFilters() {
 export function calculateCollectionStats() {
     const collectionToCount = state.filteredCollection;
     const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);
-    const uniqueCards = new Set(collectionToCount.map(card => card.name)).size;
+    const uniqueCards = new Set(collectionToCount.map(card => card.api_id)).size;
     const totalValue = collectionToCount.reduce((sum, card) => {
         const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
         return sum + (price * (card.quantity || 1));
