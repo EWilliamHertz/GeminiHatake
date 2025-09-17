@@ -54,6 +54,22 @@ function setupEventListeners() {
     document.querySelectorAll('input[name="price-option"]').forEach(radio => {
         radio.addEventListener('change', UI.toggleBulkPriceInputs);
     });
+
+    // ** NEW: Listener for the new bulk review modal **
+    document.getElementById('close-bulk-review-modal').addEventListener('click', () => UI.closeModal(document.getElementById('bulk-review-modal')));
+    document.getElementById('finalize-bulk-list-btn').addEventListener('click', handleFinalizeBulkList);
+    document.getElementById('bulk-apply-percentage-btn').addEventListener('click', handleBulkApplyPercentage);
+
+    // ** NEW: Listener for swapping pending cards **
+    document.getElementById('card-modal').addEventListener('click', (e) => {
+        if (e.target.classList.contains('pending-card-item')) {
+            const index = parseInt(e.target.dataset.index, 10);
+            Collection.swapPendingCard(index);
+            // Re-render the modal with swapped data
+            UI.populateCardModalForEdit(Collection.getCurrentEditingCard());
+            UI.renderPendingCards(Collection.getPendingCards());
+        }
+    });
 }
 
 function applyAndRender(filterUpdate) {
@@ -91,10 +107,13 @@ async function handleCardFormSubmit(e) {
     }
 }
 
+// ** REWRITTEN: `addAnotherVersion` now creates a full clone **
 function handleAddAnotherVersion() {
     try {
-        const { data } = UI.getCardFormData(false);
-        Collection.addPendingCard(data);
+        // Get data from the currently displayed form
+        const { data: currentVersionData } = UI.getCardFormData();
+        // Add a complete copy to the pending list
+        Collection.addPendingCard({ ...currentVersionData });
         UI.renderPendingCards(Collection.getPendingCards());
         UI.resetCardFormForNewVersion();
     } catch (error) {
@@ -205,13 +224,14 @@ function handleBulkEditToggle() {
     applyAndRender();
 }
 
+// ** OVERHAULED: Now opens the new review modal **
 function handleBulkListClick() {
     const selectedIds = Collection.getSelectedCardIds();
     if (selectedIds.length === 0) {
-        UI.showToast("Select cards to list.", "error");
+        UI.showToast("Please select at least one card to list for sale.", "error");
         return;
     }
-    UI.openBulkListSaleModal(selectedIds.length);
+    UI.renderBulkReviewModal(selectedIds);
 }
 
 function handleBulkSelectAll() {
@@ -282,3 +302,43 @@ async function handleBulkListFormSubmit(e) {
         }
     }
 }
+
+// ** NEW: Logic for the bulk review modal **
+function handleBulkApplyPercentage() {
+    const percentage = document.getElementById('bulk-apply-percentage-input').value;
+    if (!percentage) return;
+    
+    document.querySelectorAll('.bulk-review-percent-input').forEach(input => {
+        input.value = percentage;
+        // Trigger change event to update fixed price
+        input.dispatchEvent(new Event('input'));
+    });
+}
+
+async function handleFinalizeBulkList() {
+    const updates = [];
+    document.querySelectorAll('#bulk-review-list > div').forEach(item => {
+        const cardId = item.dataset.id;
+        const fixedPriceInput = item.querySelector('.bulk-review-fixed-input');
+        const salePrice = parseFloat(fixedPriceInput.value);
+
+        if (cardId && !isNaN(salePrice)) {
+            updates.push({
+                id: cardId,
+                data: { forSale: true, salePrice: salePrice }
+            });
+        }
+    });
+
+    if (updates.length > 0) {
+        try {
+            await Collection.batchUpdateSaleStatus(updates);
+            UI.showToast(`${updates.length} cards listed for sale successfully!`, "success");
+            UI.closeModal(document.getElementById('bulk-review-modal'));
+        } catch (error) {
+            console.error("Bulk update failed:", error);
+            UI.showToast("An error occurred during the bulk update.", "error");
+        }
+    }
+}
+

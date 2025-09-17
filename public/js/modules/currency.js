@@ -3,7 +3,7 @@
  * Handles all client-side currency conversion and formatting.
  */
 let state = {
-    rates: null, // Stores rates relative to USD
+    rates: null,
     userCurrency: 'USD',
     symbols: {
         USD: '$', SEK: 'kr', EUR: '€', GBP: '£', NOK: 'kr', DKK: 'kr'
@@ -26,23 +26,12 @@ export async function initCurrency(preferredCurrency = 'USD') {
     }
 }
 
-export async function updateUserCurrency(newCurrency) {
-    if (newCurrency in state.symbols) {
-        state.userCurrency = newCurrency;
-        // Re-initialize with the new currency
-        await initCurrency(newCurrency);
-    }
-}
-
 export function convertAndFormat(priceInUsd) {
     if (typeof priceInUsd !== 'number' || !state.rates) {
         return formatPrice(priceInUsd, 'USD');
     }
     const rate = state.rates[state.userCurrency];
-    if (!rate) {
-        return formatPrice(priceInUsd, 'USD');
-    }
-    const convertedPrice = priceInUsd * rate;
+    const convertedPrice = priceInUsd * (rate || 1);
     return formatPrice(convertedPrice, state.userCurrency);
 }
 
@@ -54,14 +43,10 @@ export function convertFromSekAndFormat(priceInSek) {
     return convertAndFormat(priceInUsd);
 }
 
-export function formatPrice(amount, currencyCode) {
+function formatPrice(amount, currencyCode) {
     if (typeof amount !== 'number') return 'N/A';
     const symbol = state.symbols[currencyCode] || '$';
     const formattedAmount = amount.toFixed(2).replace('.', ',');
     const nordics = ['SEK', 'NOK', 'DKK'];
     return nordics.includes(currencyCode) ? `${formattedAmount} ${symbol}` : `${symbol}${formattedAmount}`;
 }
-
-export const getUserCurrency = () => state.userCurrency;
-export const getRates = () => state.rates;
-

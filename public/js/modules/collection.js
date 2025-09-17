@@ -25,6 +25,28 @@ export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
 export function getPendingCards() { return state.pendingCards; }
 export function clearPendingCards() { state.pendingCards = []; }
 
+// ** NEW: Logic to find a matching card for stacking **
+function findMatchingCard(cardData) {
+    return state.fullCollection.find(card =>
+        card.api_id === cardData.api_id &&
+        card.condition === cardData.condition &&
+        card.language === cardData.language &&
+        card.is_foil === cardData.is_foil &&
+        card.is_signed === cardData.is_signed &&
+        card.is_altered === cardData.is_altered
+    );
+}
+
+// ** NEW: Logic to swap a pending card with the main editing card **
+export function swapPendingCard(index) {
+    if (!state.pendingCards[index]) return;
+    const mainCardData = { ...state.currentEditingCard };
+    const pendingCardData = { ...state.pendingCards[index] };
+    
+    state.currentEditingCard = pendingCardData;
+    state.pendingCards[index] = mainCardData;
+}
+
 export function toggleBulkEditMode() {
     state.bulkEdit.isActive = !state.bulkEdit.isActive;
     if (!state.bulkEdit.isActive) {
@@ -83,12 +105,23 @@ export function setTab(tab) { state.activeTab = tab; }
 export function setFilters(newFilters) { state.filters = { ...state.filters, ...newFilters }; applyFilters(); }
 export function toggleColorFilter(color) { const index = state.filters.colors.indexOf(color); if (index > -1) { state.filters.colors.splice(index, 1); } else { state.filters.colors.push(color); } return state.filters.colors; }
 
+// ** UPDATED: Now includes logic to prevent duplicate stacking **
 export async function addMultipleCards(cardVersions) {
     if (!state.currentUser) throw new Error("User not logged in.");
+    
     for (const cardData of cardVersions) {
-        const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
-        const finalCardData = { ...cardData, id: cardId };
-        state.fullCollection.unshift(finalCardData);
+        const matchingCard = findMatchingCard(cardData);
+        if (matchingCard) {
+            // Stack instead of adding new
+            const newQuantity = (matchingCard.quantity || 1) + (cardData.quantity || 1);
+            await API.updateCardInCollection(state.currentUser.uid, matchingCard.id, { quantity: newQuantity });
+            matchingCard.quantity = newQuantity;
+        } else {
+            // Add as a new card
+            const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
+            const finalCardData = { ...cardData, id: cardId };
+            state.fullCollection.unshift(finalCardData);
+        }
     }
     applyFilters();
 }
@@ -196,3 +229,4 @@ export function getAvailableFilterOptions() {
     const rarities = [...new Set(sourceList.map(c => c.rarity))].sort();
     return { sets, rarities };
 }
+

@@ -4,6 +4,7 @@
  */
 import { getCardImageUrl, formatPrice } from './utils.js';
 import * as Collection from './collection.js';
+import * as Currency from './currency.js';
 
 // --- ELEMENT SELECTORS ---
 const getElement = (id) => document.getElementById(id);
@@ -29,6 +30,134 @@ export const showToast = (message, type = 'info') => {
     setTimeout(() => { toast.classList.remove('show'); toast.addEventListener('transitionend', () => toast.remove()); }, 5000);
 };
 
+// --- CURRENCY INTEGRATION FUNCTIONS ---
+
+/**
+ * Format and display prices with currency conversion
+ * @param {number} price - The price to format
+ * @param {boolean} isFromApi - Whether the price comes from external API (USD) or marketplace (SEK)
+ * @returns {string} Formatted price string
+ */
+export function displayPrice(price, isFromApi = false) {
+    if (isFromApi) {
+        // Price from external APIs like Scryfall/Pokemon TCG API (USD)
+        return Currency.convertAndFormat(price);
+    } else {
+        // Price from marketplace listings (SEK)
+        return Currency.convertFromSekAndFormat(price);
+    }
+}
+
+/**
+ * Create a price display element
+ * @param {number} price - The price to display
+ * @param {boolean} isFromApi - Whether the price comes from external API
+ * @param {string} className - CSS classes to apply
+ * @returns {HTMLElement} Price display element
+ */
+export function createPriceElement(price, isFromApi = false, className = 'text-blue-600 font-semibold') {
+    const priceEl = document.createElement('span');
+    priceEl.className = className;
+    priceEl.textContent = displayPrice(price, isFromApi);
+    return priceEl;
+}
+
+/**
+ * Update all price elements on the page with current currency
+ */
+export function refreshPriceDisplays() {
+    // Update elements with data-price-usd attribute (from APIs)
+    document.querySelectorAll('[data-price-usd]').forEach(el => {
+        const priceUsd = parseFloat(el.dataset.priceUsd);
+        if (!isNaN(priceUsd)) {
+            el.textContent = Currency.convertAndFormat(priceUsd);
+        }
+    });
+
+    // Update elements with data-price-sek attribute (from marketplace)
+    document.querySelectorAll('[data-price-sek]').forEach(el => {
+        const priceSek = parseFloat(el.dataset.priceSek);
+        if (!isNaN(priceSek)) {
+            el.textContent = Currency.convertFromSekAndFormat(priceSek);
+        }
+    });
+}
+
+/**
+ * Create a currency selector dropdown
+ * @param {string} containerId - ID of container to append selector to
+ */
+export function createCurrencySelector(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const selector = document.createElement('select');
+    selector.id = 'currency-selector';
+    selector.className = 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm';
+    
+    const currencies = [
+        { code: 'SEK', name: 'Swedish Krona (kr)' },
+        { code: 'USD', name: 'US Dollar ($)' },
+        { code: 'EUR', name: 'Euro (€)' },
+        { code: 'GBP', name: 'British Pound (£)' },
+        { code: 'NOK', name: 'Norwegian Krone (kr)' },
+        { code: 'DKK', name: 'Danish Krone (kr)' }
+    ];
+
+    currencies.forEach(currency => {
+        const option = document.createElement('option');
+        option.value = currency.code;
+        option.textContent = currency.name;
+        if (currency.code === Currency.getUserCurrency()) {
+            option.selected = true;
+        }
+        selector.appendChild(option);
+    });
+
+    selector.addEventListener('change', (e) => {
+        Currency.updateUserCurrency(e.target.value);
+        refreshPriceDisplays();
+        
+        // Trigger custom event for other components to listen to
+        document.dispatchEvent(new CustomEvent('currencyChanged', {
+            detail: { newCurrency: e.target.value }
+        }));
+    });
+
+    const label = document.createElement('label');
+    label.textContent = 'Currency: ';
+    label.className = 'text-sm text-gray-700 dark:text-gray-300 mr-2';
+    label.htmlFor = 'currency-selector';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex items-center space-x-2';
+    wrapper.appendChild(label);
+    wrapper.appendChild(selector);
+
+    container.appendChild(wrapper);
+}
+
+/**
+ * Show loading state for price elements
+ * @param {string} selector - CSS selector for price elements
+ */
+export function showPriceLoading(selector = '[data-price-usd], [data-price-sek]') {
+    document.querySelectorAll(selector).forEach(el => {
+        el.textContent = 'Loading...';
+        el.classList.add('animate-pulse');
+    });
+}
+
+/**
+ * Hide loading state for price elements
+ * @param {string} selector - CSS selector for price elements
+ */
+export function hidePriceLoading(selector = '[data-price-usd], [data-price-sek]') {
+    document.querySelectorAll(selector).forEach(el => {
+        el.classList.remove('animate-pulse');
+    });
+}
+
 // --- RENDER FUNCTIONS ---
 
 export function renderGridView(cards, activeTab) {
@@ -39,10 +168,11 @@ export function renderGridView(cards, activeTab) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = formatPrice(card?.prices?.usd, 'USD');
+        // Use currency conversion for USD prices from APIs
+        const price = Currency.convertAndFormat(card?.prices?.usd || 0);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
-            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">$${formatPrice(card.salePrice)}</div>`
+            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertFromSekAndFormat(card.salePrice)}</div>`
             : '';
 
         const bulkCheckbox = isBulkMode
@@ -92,10 +222,11 @@ export function renderListView(cards, activeTab) {
         </thead>`;
 
     const tableBody = cards.map(card => {
-        const price = formatPrice(card?.prices?.usd, 'USD');
+        // Use currency conversion for USD prices from APIs
+        const price = Currency.convertAndFormat(card?.prices?.usd || 0);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const saleStatus = (card.forSale && typeof card.salePrice === 'number')
-            ? `<span class="text-green-500 font-semibold">For Sale ($${formatPrice(card.salePrice)})</span>`
+            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertFromSekAndFormat(card.salePrice)})</span>`
             : 'In Collection';
         
         return `
@@ -134,7 +265,8 @@ export function renderSearchResults(results) {
     }
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = formatPrice(card?.prices?.usd, 'USD');
+        // Use currency conversion for USD prices from APIs
+        const price = Currency.convertAndFormat(card?.prices?.usd || 0);
         const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
         const cardDataString = encodeURIComponent(JSON.stringify(card));
         return `
@@ -153,24 +285,63 @@ export function renderSearchResults(results) {
     container.innerHTML = resultsHTML;
 }
 
+// ** OVERHAULED: Handles cloning and swapping **
 export function renderPendingCards(pendingCards) {
     const container = getElement('pending-cards-container');
     if (pendingCards.length === 0) {
         container.innerHTML = '';
         return;
     }
-    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Versions to Add:</h4>` +
-        pendingCards.map(card => {
+    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Copies to Add:</h4>` +
+        pendingCards.map((card, index) => {
             const details = [
-                `${card.quantity}x`,
-                card.condition,
-                card.language,
-                card.is_foil ? 'Foil' : '',
+                `${card.quantity || 1}x`, card.condition, card.language,
+                card.is_foil ? 'Foil' : ''
             ].filter(Boolean).join(', ');
-            return `<div class="bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm mb-1">${details}</div>`;
+            // Added data-index for swapping
+            return `<div class="pending-card-item bg-gray-100 p-2 rounded-md text-sm mb-1 cursor-pointer" data-index="${index}">${details}</div>`;
         }).join('');
 }
 
+// ** NEW: Renders the advanced bulk review modal **
+export function renderBulkReviewModal(cardIds) {
+    const listContainer = getElement('bulk-review-list');
+    listContainer.innerHTML = ''; // Clear previous items
+
+    cardIds.forEach(cardId => {
+        const card = Collection.getCardById(cardId);
+        if (!card) return;
+
+        const marketPrice = card.prices?.usd || 0;
+        const displayMarketPrice = Currency.convertAndFormat(marketPrice);
+
+        const reviewItem = document.createElement('div');
+        reviewItem.className = 'grid grid-cols-5 gap-4 items-center p-2 border-b dark:border-gray-700';
+        reviewItem.dataset.id = card.id;
+        reviewItem.dataset.marketPrice = marketPrice;
+
+        reviewItem.innerHTML = `
+            <div class="col-span-2">
+                <p class="font-semibold">${card.name}</p>
+                <p class="text-xs text-gray-500">${card.set_name} - ${card.condition}</p>
+            </div>
+            <div>
+                <label class="text-xs">Market</label>
+                <p>${displayMarketPrice}</p>
+            </div>
+            <div>
+                <label for="review-percent-${card.id}" class="text-xs">% of Market</label>
+                <input type="number" id="review-percent-${card.id}" class="bulk-review-percent-input w-full p-1 border rounded-md" value="100">
+            </div>
+            <div>
+                <label for="review-fixed-${card.id}" class="text-xs">Fixed Price</label>
+                <input type="number" step="0.01" id="review-fixed-${card.id}" class="bulk-review-fixed-input w-full p-1 border rounded-md">
+            </div>
+        `;
+        listContainer.appendChild(reviewItem);
+    });
+    openModal(getElement('bulk-review-modal'));
+}
 
 // --- UI STATE UPDATES ---
 export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
@@ -185,7 +356,8 @@ export function updateStats(stats, activeTab) {
     getElement('stats-value-label').textContent = isCollection ? 'Total Value:' : 'Wishlist Value:';
     getElement('stats-total-cards').textContent = stats.totalCards;
     getElement('stats-unique-cards').textContent = stats.uniqueCards;
-    getElement('stats-total-value').textContent = formatPrice(stats.totalValue, 'USD');
+    // Use currency conversion for USD total value
+    getElement('stats-total-value').textContent = Currency.convertAndFormat(stats.totalValue || 0);
 }
 
 export function populateFilters(sets, rarities) {
@@ -222,7 +394,6 @@ export function updateTcgFilter(game) {
         btn.classList.toggle('active', btn.dataset.game === game);
     });
 }
-
 
 export function updateColorFilterSelection(selectedColors) {
     const colorIcons = document.querySelectorAll('#filter-colors i');
@@ -264,194 +435,175 @@ export function updateBulkEditUI(isActive) {
     bulkEditBtn.classList.toggle('dark:bg-gray-700', !isActive);
     bulkEditBtn.classList.toggle('hover:bg-gray-300', !isActive);
     bulkEditBtn.classList.toggle('dark:hover:bg-gray-600', !isActive);
-
+    
     bulkToolbar.classList.toggle('hidden', !isActive);
-    updateSelectedCount();
 }
 
-export function updateSelectedCount() {
-    const count = Collection.getState().bulkEdit.selected.size;
-    getElement('bulk-selected-count').textContent = count;
+export function updateBulkEditSelection(selectedCount) {
+    const selectedCountEl = getElement('bulk-selected-count');
+    if (selectedCountEl) {
+        selectedCountEl.textContent = selectedCount;
+    }
 }
 
+// --- MODAL FUNCTIONS ---
+export function openModal(modal) {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+}
 
-// --- MODAL MANAGEMENT ---
-const openModal = (modal) => { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-const closeModal = (modal) => { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+export function closeModal(modal) {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = 'auto';
+    }
+}
 
-export function openSearchModal(query = '') {
-    if (typeof query !== 'string') query = '';
-    getElement('card-search-input').value = query;
-    getElement('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
+export function openSearchModal() {
     openModal(searchModal);
-    getElement('card-search-input').focus();
+    const searchInput = getElement('search-input');
+    if (searchInput) searchInput.focus();
 }
-export const closeSearchModal = () => closeModal(searchModal);
-export const openCardModal = () => {
-    Collection.clearPendingCards();
-    renderPendingCards([]);
-    openModal(cardModal);
+
+export function closeSearchModal() {
+    closeModal(searchModal);
+    getElement('search-input').value = '';
+    getElement('search-results-container').innerHTML = '';
 }
-export const closeCardModal = () => {
-    getElement('card-form').reset();
-    getElement('list-for-sale-section').classList.add('hidden');
-    getElement('add-another-version-btn').classList.remove('hidden');
+
+export function openCardModal(card) {
+    const modal = getElement('card-modal');
+    const imageEl = getElement('modal-card-image');
+    const nameEl = getElement('modal-card-name');
+    const setEl = getElement('modal-card-set');
+    const priceEl = getElement('modal-card-price');
+    const rarityEl = getElement('modal-card-rarity');
+    const quantityInput = getElement('modal-quantity');
+    const conditionSelect = getElement('modal-condition');
+    const languageSelect = getElement('modal-language');
+    const foilCheckbox = getElement('modal-foil');
+
+    if (imageEl) imageEl.src = getCardImageUrl(card);
+    if (nameEl) nameEl.textContent = card.name;
+    if (setEl) setEl.textContent = card.set_name;
+    // Use currency conversion for USD prices from APIs
+    if (priceEl) priceEl.textContent = Currency.convertAndFormat(card?.prices?.usd || 0);
+    if (rarityEl) rarityEl.textContent = card.rarity;
+    if (quantityInput) quantityInput.value = 1;
+    if (conditionSelect) conditionSelect.value = 'Near Mint';
+    if (languageSelect) languageSelect.value = 'English';
+    if (foilCheckbox) foilCheckbox.checked = false;
+
+    modal.dataset.cardData = JSON.stringify(card);
+    openModal(modal);
+}
+
+export function closeCardModal() {
     closeModal(cardModal);
-};
+}
 
-function setupSaleSectionLogic(cardData) {
-    const forSaleToggle = getElement('list-for-sale-toggle');
-    const forSaleSection = getElement('list-for-sale-section');
-    const marketPriceDisplay = getElement('market-price-display');
-    const salePercentageInput = getElement('card-sale-percentage');
-    const salePriceInput = getElement('card-sale-price');
+export function openCsvModal() {
+    openModal(csvModal);
+}
 
-    const marketPrice = parseFloat(cardData.prices?.usd || 0);
-    marketPriceDisplay.textContent = marketPrice > 0 ? `$${marketPrice.toFixed(2)}` : 'N/A';
-    
-    const newPercentageInput = salePercentageInput.cloneNode(true);
-    salePercentageInput.parentNode.replaceChild(newPercentageInput, salePercentageInput);
-    
-    const newSalePriceInput = salePriceInput.cloneNode(true);
-    salePriceInput.parentNode.replaceChild(newSalePriceInput, salePriceInput);
-    
-    const newForSaleToggle = forSaleToggle.cloneNode(true);
-    forSaleToggle.parentNode.replaceChild(newForSaleToggle, forSaleToggle);
-    
-    const updatePriceFromPercentage = () => {
-        if (marketPrice > 0) {
-            const percentage = parseFloat(newPercentageInput.value) || 100;
-            newSalePriceInput.value = (marketPrice * (percentage / 100)).toFixed(2);
-        }
-    };
-    
-    const updatePercentageFromPrice = () => {
-        if (marketPrice > 0) {
-            const price = parseFloat(newSalePriceInput.value) || 0;
-            newPercentageInput.value = Math.round((price / marketPrice) * 100);
-        }
-    };
+export function closeCsvModal() {
+    closeModal(csvModal);
+    getElement('csv-file-input').value = '';
+    getElement('csv-preview').innerHTML = '';
+}
 
-    newPercentageInput.addEventListener('input', updatePriceFromPercentage);
-    newSalePriceInput.addEventListener('input', updatePercentageFromPrice);
+export function openBulkListModal() {
+    openModal(bulkListModal);
+}
 
-    newForSaleToggle.addEventListener('change', () => {
-        forSaleSection.classList.toggle('hidden', !newForSaleToggle.checked);
-        if (newForSaleToggle.checked && !newSalePriceInput.value) {
-            updatePriceFromPercentage();
-        }
+export function closeBulkListModal() {
+    closeModal(bulkListModal);
+}
+
+// --- TOOLTIP FUNCTIONS ---
+export function showCardPreview(card, event) {
+    if (!cardPreviewTooltip) return;
+    
+    const imageUrl = getCardImageUrl(card);
+    // Use currency conversion for USD prices from APIs
+    const price = Currency.convertAndFormat(card?.prices?.usd || 0);
+    
+    cardPreviewTooltip.innerHTML = `
+        <img src="${imageUrl}" alt="${card.name}" class="w-48 h-auto rounded-lg shadow-lg">
+        <div class="mt-2 text-center">
+            <p class="font-semibold">${card.name}</p>
+            <p class="text-sm text-gray-600">${card.set_name}</p>
+            <p class="text-sm font-mono">${price}</p>
+        </div>
+    `;
+    
+    cardPreviewTooltip.style.left = `${event.pageX + 10}px`;
+    cardPreviewTooltip.style.top = `${event.pageY + 10}px`;
+    cardPreviewTooltip.classList.remove('hidden');
+}
+
+export function hideCardPreview() {
+    if (cardPreviewTooltip) {
+        cardPreviewTooltip.classList.add('hidden');
+    }
+}
+
+// --- CSV FUNCTIONS ---
+export function displayCsvPreview(data) {
+    const container = getElement('csv-preview');
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">No valid data found in CSV file.</p>';
+        return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const tableHTML = `
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header}</th>`).join('')}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                ${data.slice(0, 10).map(row => `
+                    <tr>
+                        ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row[header] || ''}</td>`).join('')}
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        ${data.length > 10 ? `<p class="mt-2 text-sm text-gray-500">Showing first 10 of ${data.length} rows</p>` : ''}
+    `;
+    
+    container.innerHTML = tableHTML;
+}
+
+// --- INITIALIZATION ---
+
+/**
+ * Initialize currency-related UI components
+ */
+export function initCurrencyUI() {
+    // Initialize currency system with SEK as default (Hatake website preference)
+    Currency.initCurrency('SEK');
+    
+    // Refresh price displays after currency is initialized
+    setTimeout(() => {
+        refreshPriceDisplays();
+    }, 1000);
+    
+    // Listen for currency changes and refresh displays
+    document.addEventListener('currencyChanged', () => {
+        refreshPriceDisplays();
     });
 }
 
+// Auto-initialize currency when module is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    initCurrencyUI();
+});
 
-export function populateCardModalForAdd(cardData) {
-    Collection.setCurrentEditingCard(cardData);
-    const form = getElement('card-form');
-    form.reset();
-    getElement('card-modal-id').value = '';
-    getElement('card-modal-title').textContent = cardData.name;
-    getElement('card-modal-subtitle').textContent = `${cardData.set_name} (${cardData.set.toUpperCase()})`;
-    getElement('card-modal-image').src = getCardImageUrl(cardData);
-    getElement('save-card-btn').textContent = "Add to Collection";
-    getElement('add-another-version-btn').classList.remove('hidden');
-    getElement('list-for-sale-section').classList.add('hidden');
-    
-    setupSaleSectionLogic(cardData);
-    
-    openCardModal();
-}
-
-export function populateCardModalForEdit(cardData, listForSale = false) {
-    populateCardModalForAdd(cardData);
-    
-    getElement('card-modal-id').value = cardData.id;
-    getElement('card-modal-title').textContent = `Editing: ${cardData.name}`;
-    getElement('card-quantity').value = cardData.quantity || 1;
-    getElement('card-condition').value = cardData.condition || 'Near Mint';
-    getElement('card-language').value = cardData.language || 'English';
-    getElement('card-purchase-price').value = cardData.purchasePrice || '';
-    getElement('card-is-foil').checked = cardData.is_foil || false;
-    getElement('card-is-signed').checked = cardData.is_signed || false;
-    getElement('card-is-altered').checked = cardData.is_altered || false;
-    
-    const forSaleToggle = getElement('list-for-sale-toggle');
-    const forSaleSection = getElement('list-for-sale-section');
-    const salePriceInput = getElement('card-sale-price');
-    const salePercentageInput = getElement('card-sale-percentage');
-
-    if (cardData.forSale || listForSale) {
-        forSaleToggle.checked = true;
-        forSaleSection.classList.remove('hidden');
-        salePriceInput.value = cardData.salePrice || '';
-        
-        const marketPrice = parseFloat(cardData.prices?.usd || 0);
-        if(marketPrice > 0) {
-            const price = parseFloat(cardData.salePrice) || 0;
-            salePercentageInput.value = Math.round((price / marketPrice) * 100);
-        }
-    } else {
-        forSaleToggle.checked = false;
-        forSaleSection.classList.add('hidden');
-    }
-    
-    getElement('save-card-btn').textContent = "Save Changes";
-    getElement('add-another-version-btn').classList.add('hidden');
-}
-
-export function getCardFormData(includeBaseData = true) {
-    const id = getElement('card-modal-id').value;
-    const forSale = getElement('list-for-sale-toggle').checked;
-    const originalApiData = Collection.getCurrentEditingCard();
-    if (!originalApiData) throw new Error("Could not find original card data.");
-    
-    const data = {
-        ...(includeBaseData && { ...originalApiData }),
-        quantity: parseInt(getElement('card-quantity').value, 10) || 1,
-        condition: getElement('card-condition').value,
-        language: getElement('card-language').value,
-        purchasePrice: parseFloat(getElement('card-purchase-price').value) || null,
-        is_foil: getElement('card-is-foil').checked,
-        is_signed: getElement('card-is-signed').checked,
-        is_altered: getElement('card-is-altered').checked,
-        forSale: forSale,
-        salePrice: forSale ? (parseFloat(getElement('card-sale-price').value) || 0) : null,
-        addedAt: id ? originalApiData.addedAt : new Date().toISOString()
-    };
-    
-    if (!includeBaseData) {
-        data.name = originalApiData.name;
-        data.set_name = originalApiData.set_name;
-    }
-    
-    const customImageFile = getElement('custom-image-upload').files[0] || null;
-    return { id, data, customImageFile };
-}
-
-
-export function resetCardFormForNewVersion() {
-    getElement('card-quantity').value = 1;
-    getElement('card-condition').value = 'Near Mint';
-    getElement('card-language').value = 'English';
-    getElement('card-purchase-price').value = '';
-    getElement('card-is-foil').checked = false;
-    getElement('card-is-signed').checked = false;
-    getElement('card-is-altered').checked = false;
-    getElement('list-for-sale-toggle').checked = false;
-    getElement('list-for-sale-section').classList.add('hidden');
-    getElement('card-sale-price').value = '';
-    getElement('card-quantity').focus();
-    getElement('save-card-btn').textContent = `Add ${Collection.getPendingCards().length + 1} Version(s)`;
-}
-
-export const toggleListForSaleSection = () => getElement('list-for-sale-section').classList.toggle('hidden');
-export const openCsvImportModal = () => openModal(csvModal);
-export const closeCsvImportModal = () => { getElement('csv-file-input').value = ''; getElement('csv-import-status').textContent = 'Awaiting file...'; closeModal(csvModal); };
-export const updateCsvImportStatus = (message) => { const el = getElement('csv-import-status'); el.innerHTML += message + '<br>'; el.scrollTop = el.scrollHeight; };
-export function openBulkListSaleModal(count) { getElement('bulk-list-count').textContent = count; openModal(bulkListModal); }
-export const closeBulkListSaleModal = () => { getElement('bulk-list-form').reset(); closeModal(bulkListModal); };
-
-export function toggleBulkPriceInputs() {
-    const priceOption = getElement('bulk-list-form').elements['price-option'].value;
-    getElement('bulk-price-percentage-group').classList.toggle('hidden', priceOption !== 'percentage');
-    getElement('bulk-price-fixed-group').classList.toggle('hidden', priceOption !== 'fixed');
-}

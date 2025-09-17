@@ -272,32 +272,34 @@
                     <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label for="card-quantity" class="block text-sm font-medium">Quantity</label><input type="number" id="card-quantity" value="1" min="1" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div>
                         <div><label for="card-condition" class="block text-sm font-medium">Condition</label><select id="card-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div>
-                        <div><label for="card-language" class="block text-sm font-medium">Language</label><select id="card-language" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>English</option><option>Japanese</option><option>German</option><option>French</option><option>Spanish</option><option>Italian</option><option>Korean</option><option>Russian</option><option>Chinese</option></select></div>
-                        <div><label for="card-purchase-price" class="block text-sm font-medium">Purchase Price (optional)</label><input type="number" step="0.01" id="card-purchase-price" placeholder="0.00" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div>
+                        <div><label for="card-language" class="block text-sm font-medium">Language</label><select id="card-language" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"><option>English</option><option>Japanese</option><option>French</option><option>German</option><option>Spanish</option><option>Italian</option><option>Portuguese</option><option>Russian</option><option>Korean</option><option>Chinese (Simplified)</option><option>Chinese (Traditional)</option></select></div>
+                        <div><label for="card-purchase-price" class="block text-sm font-medium">Purchase Price ($)</label><input type="number" step="0.01" id="card-purchase-price" placeholder="0.00" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"></div>
                     </div>
-                    <div class="mt-4 flex items-center space-x-6">
-                        <label class="flex items-center"><input type="checkbox" id="card-is-foil" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="ml-2">Foil</span></label>
-                        <label class="flex items-center"><input type="checkbox" id="card-is-signed" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="ml-2">Signed</span></label>
-                        <label class="flex items-center"><input type="checkbox" id="card-is-altered" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="ml-2">Altered</span></label>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="flex items-center"><input type="checkbox" id="card-is-foil" class="mr-2"> Foil</label>
+                        <label class="flex items-center"><input type="checkbox" id="card-is-signed" class="mr-2"> Signed</label>
+                        <label class="flex items-center"><input type="checkbox" id="card-is-altered" class="mr-2"> Altered</label>
                     </div>
-                    <div class="mt-4"><label for="custom-image-upload" class="block text-sm font-medium">Custom Image (optional)</label><input type="file" id="custom-image-upload" accept="image/*" class="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-gray-700 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-gray-600"></div>
-                    
-                    <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="list-for-sale-toggle" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 font-semibold">List for Sale</span>
+                    <div class="mt-4">
+                        <label for="custom-image-upload" class="block text-sm font-medium">Custom Image (optional)</label>
+                        <input type="file" id="custom-image-upload" accept="image/*" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="list-for-sale-toggle" class="mr-2">
+                            List for Sale
                         </label>
-                        <div id="list-for-sale-section" class="hidden mt-3 space-y-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-md">
-                            <div class="text-sm">
-                                <span>Market Price: </span>
-                                <span id="market-price-display" class="font-semibold text-blue-600 dark:text-blue-400">Loading...</span>
+                        <div id="list-for-sale-section" class="hidden mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                            <div class="mb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Market Price: </span>
+                                <span id="market-price-display" class="font-semibold">$0.00</span>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <div class="flex-1">
-                                    <label for="card-sale-percentage" class="block text-sm font-medium">Set price by % of market</label>
-                                    <div class="relative mt-1">
-                                        <input type="number" id="card-sale-percentage" value="100" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 pr-8">
-                                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">%</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label for="card-sale-percentage" class="block text-sm font-medium">% of Market</label>
+                                    <div class="flex items-center">
+                                        <input type="number" id="card-sale-percentage" value="100" min="1" max="500" class="flex-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                                        <span class="ml-1 text-sm">%</span>
                                     </div>
                                 </div>
                                 <div class="flex-1">
@@ -362,6 +364,31 @@
     </div>
 </div>
 
+<!-- ** NEW: Bulk Review Modal ** -->
+<div id="bulk-review-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1003]">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col" style="height: 90vh;">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h2 class="text-xl font-bold">Review and Price Items for Sale</h2>
+            <button id="close-bulk-review-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="bulk-apply-percentage" class="block text-sm font-medium">Apply % to All</label>
+                    <div class="flex items-center">
+                        <input type="number" id="bulk-apply-percentage-input" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="e.g., 75">
+                        <button id="bulk-apply-percentage-btn" class="ml-2 btn btn-primary">%</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="bulk-review-list" class="flex-grow overflow-y-auto p-4 space-y-2">
+        </div>
+        <div class="p-4 border-t dark:border-gray-700">
+            <button id="finalize-bulk-list-btn" class="btn btn-success w-full">Finalize and List Selected Cards</button>
+        </div>
+    </div>
+</div>
 
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">Login</h2><button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">&times;</button></div><form class="mt-4 space-y-4" id="loginForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required type="email"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required type="password"><p class="text-red-500 text-sm hidden" id="login-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">Sign in with Google</button></form></div>
@@ -369,7 +396,6 @@
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6"><div class="flex justify-between items-center"><h2 class="text-xl font-bold">Register</h2><button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">&times;</button></div><form class="mt-4 space-y-4" id="registerForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required type="email"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required type="password"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"><p class="text-red-500 text-sm hidden" id="register-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg">Register with Google</button></form></div>
 </div>
-
 
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
@@ -403,3 +429,4 @@
 </script>
 </body>
 </html>
+
