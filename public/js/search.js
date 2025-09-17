@@ -1,7 +1,6 @@
 /**
  * HatakeSocial - Enhanced Search Page Script (Integrated with existing APIs)
- * 
- * Features:
+ * * Features:
  * - Uses existing API modules from js/modules/api.js
  * - Debounced search with 300ms delay
  * - Real-time autocomplete suggestions
@@ -327,7 +326,8 @@ document.addEventListener('authReady', () => {
         
         const cardElements = cards.map(card => {
             const forSaleCount = forSaleMap.get(card.id) || 0;
-            const priceDisplay = card.priceUsd ? `$${parseFloat(card.priceUsd).toFixed(2)}` : 'Price N/A';
+            const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
+            const priceDisplay = price > 0 ? `$${price.toFixed(2)}` : 'N/A';
             
             if (currentView === 'list') {
                 return `
@@ -591,4 +591,3 @@ document.addEventListener('authReady', () => {
 
     initialize();
 });
-

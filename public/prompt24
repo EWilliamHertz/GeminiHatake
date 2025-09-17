@@ -1,0 +1,20 @@
+1. We still cannot upload pictures and save the card. This is what it says in the database:
+Access to XMLHttpRequest at 'https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FArGPKFA1R8gVHXDi65ZV%2FIMG_5405.webp' from origin 'https://hatakesocial-88b5e.firebaseapp.com/' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FArGPKFA1R8gVHXDi65ZV%2FIMG_5405.webp:1  Failed to load resource: net::ERR_FAILED
+2. We cannot add cards to the collection, it says invalid data, this is what it says in console: collection-app.js:142 Error saving card: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field api_id in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/h36olDo0kJyPWUDEMILr)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+handleCardFormSubmit    @    collection-app.js:142
+3. We cannot edit cards:
+'https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FArGPKFA1R8gVHXDi65ZV%2FIMG_5405.webp' from origin 'https://hatakesocial-88b5e.firebaseapp.com/' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+connection.ts:81  POST https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FArGPKFA1R8gVHXDi65ZV%2FIMG_5405.webp net::ERR_FAILED
+4. The hover is supposed to create a small rectangle card from your cursor that is an enlargened version of the card. That still doesn't happen in search or in my_collection.
+5. All the Magic cards still say N/A or 0. It hasn't worked since we implemented currency change, but the Pokemon cards have prices.

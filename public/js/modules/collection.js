@@ -25,7 +25,6 @@ export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
 export function getPendingCards() { return state.pendingCards; }
 export function clearPendingCards() { state.pendingCards = []; }
 
-// **FIX**: Added function to remove a specific pending card by its index
 export function removePendingCard(index) {
     if (index > -1 && index < state.pendingCards.length) {
         state.pendingCards.splice(index, 1);
@@ -110,7 +109,7 @@ export function setTab(tab) { state.activeTab = tab; }
 export function setFilters(newFilters) { state.filters = { ...state.filters, ...newFilters }; applyFilters(); }
 export function toggleColorFilter(color) { const index = state.filters.colors.indexOf(color); if (index > -1) { state.filters.colors.splice(index, 1); } else { state.filters.colors.push(color); } return state.filters.colors; }
 
-export async function addMultipleCards(cardVersions) {
+export async function addMultipleCards(cardVersions, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
     
     for (const cardData of cardVersions) {
@@ -121,7 +120,12 @@ export async function addMultipleCards(cardVersions) {
             matchingCard.quantity = newQuantity;
         } else {
             const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
-            const finalCardData = { ...cardData, id: cardId };
+            let finalCardData = { ...cardData, id: cardId };
+            if (customImageFile) {
+                const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
+                finalCardData.customImageUrl = imageUrl;
+                await API.updateCardInCollection(state.currentUser.uid, cardId, { customImageUrl: imageUrl });
+            }
             state.fullCollection.unshift(finalCardData);
         }
     }
@@ -129,22 +133,29 @@ export async function addMultipleCards(cardVersions) {
 }
 
 export async function updateCard(cardId, updates, customImageFile) {
-     if (!state.currentUser) throw new Error("User not logged in.");
-    
+    if (!state.currentUser) throw new Error("User not logged in.");
+
     let finalUpdates = { ...updates };
 
     if (customImageFile) {
         finalUpdates.customImageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
     }
 
+    // Ensure api_id is included in the update
+    const originalCard = getCardById(cardId);
+    if (originalCard && originalCard.api_id) {
+        finalUpdates.api_id = originalCard.api_id;
+    }
+
     await API.updateCardInCollection(state.currentUser.uid, cardId, finalUpdates);
-    
+
     const index = state.fullCollection.findIndex(c => c.id === cardId);
-    if (index !== -1) { 
-        state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates }; 
+    if (index !== -1) {
+        state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates };
     }
     applyFilters();
 }
+
 
 export async function batchUpdateSaleStatus(updates) {
     if (!state.currentUser) throw new Error("User not logged in.");
@@ -208,7 +219,7 @@ export function calculateCollectionStats() {
     const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);
     const uniqueCards = new Set(collectionToCount.map(card => card.name)).size;
     const totalValue = collectionToCount.reduce((sum, card) => {
-        const price = card.prices?.usd || 0;
+        const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
         return sum + (price * (card.quantity || 1));
     }, 0);
     return { totalCards, uniqueCards, totalValue };
@@ -218,7 +229,7 @@ export function calculateWishlistStats() {
     const totalCards = state.wishlist.length;
     const uniqueCards = state.wishlist.length;
     const totalValue = state.wishlist.reduce((sum, card) => {
-        const price = card.prices?.usd || 0;
+        const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
         return sum + price;
     }, 0);
     return { totalCards, uniqueCards, totalValue };

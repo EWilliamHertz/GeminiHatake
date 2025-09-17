@@ -16,3 +16,7 @@ handleCardFormSubmit    @    collection-app.js:127
 4. The picture doesn't get changed when we upload a photo to the card.
 5. We cannot hover over a card to enlargen it in the card-search or in my collection, it should be possible to both.
 6. We cannot click on the card to edit it, we need to click the edit button.
+
+I meant card-search in my_collection.html.
+Please send fully coded merged files without any placeholders for the my_collection page and its associated javascript files.
+Only edit the files which functions is related to the prompt.

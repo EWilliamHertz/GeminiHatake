@@ -66,9 +66,7 @@ function setupEventListeners() {
     document.getElementById('finalize-bulk-list-btn').addEventListener('click', handleFinalizeBulkList);
     document.getElementById('bulk-apply-percentage-btn').addEventListener('click', handleBulkApplyPercentage);
 
-    // **FIX**: Combined event listeners for the card modal to handle swaps and deletes.
     document.getElementById('card-modal').addEventListener('click', (e) => {
-        // Handle swapping
         if (e.target.classList.contains('pending-card-item') || e.target.parentElement.classList.contains('pending-card-item')) {
             const item = e.target.closest('.pending-card-item');
             const index = parseInt(item.dataset.index, 10);
@@ -76,7 +74,6 @@ function setupEventListeners() {
             UI.populateCardModalForEdit(Collection.getCurrentEditingCard());
             UI.renderPendingCards(Collection.getPendingCards());
         }
-        // Handle deleting
         if (e.target.classList.contains('delete-pending-btn')) {
             const index = parseInt(e.target.dataset.index, 10);
             Collection.removePendingCard(index);
@@ -86,6 +83,20 @@ function setupEventListeners() {
 
     document.addEventListener('currencyChanged', () => {
         applyAndRender({});
+    });
+
+    // Image upload listener
+    const imageUploadInput = document.getElementById('custom-image-upload');
+    const imagePreview = document.getElementById('card-modal-image');
+    imageUploadInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     });
 }
 
@@ -111,15 +122,19 @@ async function handleCardFormSubmit(e) {
     e.preventDefault();
     try {
         const { id, data, customImageFile } = UI.getCardFormData();
+        
         if (id) {
+            // Editing an existing card
             await Collection.updateCard(id, data, customImageFile);
             UI.showToast("Card updated!", "success");
         } else {
+            // Adding a new card
             const pendingCards = Collection.getPendingCards();
             const allVersions = [data, ...pendingCards];
-            await Collection.addMultipleCards(allVersions);
+            await Collection.addMultipleCards(allVersions, customImageFile);
             UI.showToast(`${allVersions.length} card(s) added!`, "success");
         }
+        
         UI.closeModal(document.getElementById('card-modal'));
         applyAndRender({});
         UI.populateFilters(Collection.getAvailableFilterOptions().sets, Collection.getAvailableFilterOptions().rarities);
@@ -128,6 +143,7 @@ async function handleCardFormSubmit(e) {
         UI.showToast(error.message, "error");
     }
 }
+
 
 function handleAddAnotherVersion() {
     try {
@@ -189,6 +205,10 @@ function setTcgFilter(game) {
 
 function handleCollectionDisplayClick(e) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
+    const cardContainer = e.target.closest('.card-container[data-id]');
+    if (!cardContainer) return;
+
+    const cardId = cardContainer.dataset.id;
 
     if (isBulkMode) {
         const checkbox = e.target.closest('.bulk-select-checkbox');
@@ -197,22 +217,23 @@ function handleCollectionDisplayClick(e) {
             UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
             checkbox.closest('.card-container').classList.toggle('ring-4', checkbox.checked);
             checkbox.closest('.card-container').classList.toggle('ring-blue-500', checkbox.checked);
-
         }
     } else {
         const button = e.target.closest('button[data-action]');
-        if (!button) return;
-        const cardContainer = button.closest('.card-container[data-id]');
-        if (!cardContainer) return;
-        const cardId = cardContainer.dataset.id;
-        const card = Collection.getCardById(cardId);
-
-        if (button.dataset.action === 'edit') {
-            UI.populateCardModalForEdit(card);
-        } else if (button.dataset.action === 'delete') {
-            if (confirm(`Delete "${card.name}"?`)) {
-                deleteCardAction(cardId);
+        if (button) {
+            e.stopPropagation(); // Prevent card click when clicking a button
+            const card = Collection.getCardById(cardId);
+            if (button.dataset.action === 'edit') {
+                UI.populateCardModalForEdit(card);
+            } else if (button.dataset.action === 'delete') {
+                if (confirm(`Delete "${card.name}"?`)) {
+                    deleteCardAction(cardId);
+                }
             }
+        } else {
+            // If no button was clicked, treat it as a click on the card to edit
+            const card = Collection.getCardById(cardId);
+            UI.populateCardModalForEdit(card);
         }
     }
 }
@@ -282,12 +303,12 @@ async function handleBulkListFormSubmit(e) {
 
         let salePrice = 0;
         if (priceOption === 'percentage') {
-            const marketPrice = card.prices?.usd || 0;
+            const marketPrice = (card.prices && card.prices.usd) ? card.prices.usd : 0;
             salePrice = marketPrice * (percentage / 100);
         } else if (priceOption === 'fixed') {
             salePrice = fixedPrice;
         } else { // individual
-            salePrice = card.salePrice || card.prices?.usd || 0;
+            salePrice = card.salePrice || (card.prices && card.prices.usd) ? card.prices.usd : 0;
         }
 
         return {
