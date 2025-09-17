@@ -441,25 +441,16 @@
          <p class="mt-1 text-gray-500 dark:text-gray-400" id="account-email">
          </p>
         </div>
-        <div class="mt-6">
-         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="primaryCurrency">
-          Primary Currency
-         </label>
-         <select class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="primaryCurrency">
-          <option value="SEK">
-           Swedish Krona (SEK)
-          </option>
-          <option value="USD">
-           US Dollar (USD)
-          </option>
-          <option value="EUR">
-           Euro (EUR)
-          </option>
-         </select>
-         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          This is the currency your items will be listed in.
-         </p>
-        </div>
+      <div class="setting-item">
+    <label for="primary-currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Preferred Currency</label>
+    <select id="primary-currency" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+        <option value="USD">United States Dollar (USD)</option>
+        <option value="SEK">Swedish Krona (SEK)</option>
+        <option value="EUR">Euro (EUR)</option>
+        <option value="GBP">British Pound (GBP)</option>
+    </select>
+    <p class="mt-2 text-xs text-gray-500">This will be the default currency for all prices across the site.</p>
+</div>
         <div class="mt-6">
          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="price-source-select">
           Default Pricing Source

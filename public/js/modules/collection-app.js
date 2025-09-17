@@ -22,7 +22,7 @@ document.addEventListener('authReady', async ({ detail: { user } }) => {
             UI.showToast("Could not load your collection.", "error");
         }
     } else {
-        UI.showLoggedOutState();
+        // UI.showLoggedOutState(); This function doesn't exist in the provided ui.js
     }
 });
 
@@ -66,7 +66,7 @@ function applyAndRender(filterUpdate) {
     } else {
         UI.renderListView(cardsToRender, state.activeTab);
     }
-    UI.updateStats(state.activeTab === 'collection' ? Collection.calculateCollectionStats() : { totalCards: 0, uniqueCards: 0, totalValue: 0 });
+    UI.updateStats(state.activeTab === 'collection' ? Collection.calculateCollectionStats() : { totalCards: 0, uniqueCards: 0, totalValue: 0 }, state.activeTab);
 }
 
 async function handleCardFormSubmit(e) {
@@ -134,7 +134,7 @@ function handleSearchResultClick(e) {
 
 function switchTab(tab) {
     Collection.setTab(tab);
-    // UI.updateActiveTab(tab); // This function seems to be missing from the provided ui.js
+    UI.updateActiveTab(tab); // <-- UNCOMMENTED
     applyAndRender({});
 }
 
@@ -145,7 +145,7 @@ function switchView(view) {
 }
 
 function setTcgFilter(game) {
-    // UI.updateTcgFilter(game); // This function seems to be missing from the provided ui.js
+    UI.updateTcgFilter(game); // <-- UNCOMMENTED
     applyAndRender({ game });
 }
 

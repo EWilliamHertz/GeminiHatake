@@ -205,22 +205,24 @@ export function updateViewToggle(view) {
     gridBtn.classList.toggle('bg-white', view === 'grid');
     gridBtn.classList.toggle('dark:bg-gray-900', view === 'grid');
     gridBtn.classList.toggle('shadow', view === 'grid');
-    gridBtn.classList.toggle('text-gray-500', view !== 'grid');
-    gridBtn.classList.toggle('dark:text-gray-400', view !== 'grid');
     listBtn.classList.toggle('bg-white', view === 'list');
     listBtn.classList.toggle('dark:bg-gray-900', view === 'list');
     listBtn.classList.toggle('shadow', view === 'list');
-    listBtn.classList.toggle('text-gray-500', view !== 'list');
-    listBtn.classList.toggle('dark:text-gray-400', view !== 'list');
 }
 
+// ** NEW: Implemented Missing Functions **
 export function updateActiveTab(tab) {
-    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
 }
 
 export function updateTcgFilter(game) {
-    document.querySelectorAll('.tcg-filter-button').forEach(btn => btn.classList.toggle('active', btn.dataset.game === game));
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.game === game);
+    });
 }
+
 
 export function updateColorFilterSelection(selectedColors) {
     const colorIcons = document.querySelectorAll('#filter-colors i');
@@ -256,12 +258,12 @@ export function updateBulkEditUI(isActive) {
     
     bulkEditBtn.innerHTML = isActive ? '<i class="fas fa-times w-6"></i> Cancel' : '<i class="fas fa-edit w-6"></i> Bulk Edit';
     bulkEditBtn.classList.toggle('bg-red-600', isActive);
+    bulkEditBtn.classList.toggle('text-white', isActive);
     bulkEditBtn.classList.toggle('hover:bg-red-700', isActive);
     bulkEditBtn.classList.toggle('bg-gray-200', !isActive);
     bulkEditBtn.classList.toggle('dark:bg-gray-700', !isActive);
     bulkEditBtn.classList.toggle('hover:bg-gray-300', !isActive);
     bulkEditBtn.classList.toggle('dark:hover:bg-gray-600', !isActive);
-
 
     bulkToolbar.classList.toggle('hidden', !isActive);
     updateSelectedCount();
@@ -448,7 +450,6 @@ export const updateCsvImportStatus = (message) => { const el = getElement('csv-i
 export function openBulkListSaleModal(count) { getElement('bulk-list-count').textContent = count; openModal(bulkListModal); }
 export const closeBulkListSaleModal = () => { getElement('bulk-list-form').reset(); closeModal(bulkListModal); };
 
-// ** FIX: Corrected and simplified logic **
 export function toggleBulkPriceInputs() {
     const priceOption = getElement('bulk-list-form').elements['price-option'].value;
     getElement('bulk-price-percentage-group').classList.toggle('hidden', priceOption !== 'percentage');

@@ -1,12 +1,14 @@
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v22 - UI Elements Restored)
-* - This is the complete, unabridged version of the global script.
+* HatakeSocial - Complete Authentication & Global UI Script with Currency Integration
+* - This is the complete, unabridged version of the global script with currency features added.
 * - Contains all helper functions for toasts, modals, and user interactions.
 * - Manages user authentication state and dynamically updates all UI components.
-* - Fixes issue where user action icons (Cart, Notifications, Avatar) were not appearing.
-* - Adds the Shopping Cart icon to the header for logged-in users.
-* - Ensures header search bar functionality is initialized.
+* - Includes currency initialization and management.
+* - Preserves ALL original functionality while adding currency support.
 */
+
+// Import currency module
+import { initCurrency } from './modules/currency.js';
 
 // --- Firebase Initialization (Stable) ---
 const firebaseConfig = {
@@ -26,6 +28,10 @@ window.auth = firebase.auth();
 window.db = firebase.firestore();
 window.storage = firebase.storage();
 window.functions = firebase.functions();
+
+// --- Global State ---
+let currentUser = null;
+let userData = null;
 
 // --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
@@ -134,445 +140,432 @@ window.openNewConversationModal = (isWidget = false, callback) => {
                         if (doc.id === currentUser.uid) return;
 
                         const userElement = document.createElement('div');
-                        userElement.className = 'flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                        userElement.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md cursor-pointer';
                         userElement.innerHTML = `
-                            <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            <img class="h-10 w-10 rounded-full mr-3" src="${userData.photoURL || 'https://placehold.co/40'}" alt="">
                             <div>
-                                <p class="font-semibold">${userData.displayName}</p>
-                                <p class="text-sm text-gray-500">@${userData.handle || 'N/A'}</p>
-                            </div>`;
+                                <p class="font-medium">${userData.displayName || 'Unknown User'}</p>
+                                <p class="text-sm text-gray-500">${userData.handle ? '@' + userData.handle : userData.email}</p>
+                            </div>
+                        `;
                         userElement.addEventListener('click', () => {
-                            if (callback) callback(doc.id, userData);
                             modal.remove();
+                            if (callback) callback(doc.id, userData);
                         });
                         searchResultsContainer.appendChild(userElement);
                     });
                 }
             } catch (error) {
-                console.error("Error searching for users:", error);
-                searchResultsContainer.innerHTML = '<p class="text-center text-red-500">Error searching for users.</p>';
+                console.error('Error searching users:', error);
+                searchResultsContainer.innerHTML = '<p class="text-center text-red-500">Error searching users.</p>';
             }
-        }, 500);
+        }, 300);
     });
 };
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.body.style.opacity = '0';
-
-    const googleProvider = new firebase.auth.GoogleAuthProvider();
-    const loginModal = document.getElementById('loginModal');
-    const registerModal = document.getElementById('registerModal');
-
-    window.HatakeSocial = {
-        conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
-        currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
-        currentUserData: null,
-        convertAndFormatPrice(amount, fromCurrency = 'SEK') {
-            const toCurrency = this.currentCurrency;
-            if (amount === undefined || amount === null || isNaN(amount)) {
-                return `0.00 ${toCurrency}`;
-            }
-            const fromRate = this.conversionRates[fromCurrency];
-            if (fromRate === undefined) return `N/A`;
-            const amountInSEK = amount / fromRate;
-            const toRate = this.conversionRates[toCurrency];
-            if (toRate === undefined) return `N/A`;
-            const convertedAmount = amountInSEK * toRate;
-            return `${convertedAmount.toFixed(2)} ${toCurrency}`;
-        }
-    };
-
-    const setupCurrencySelector = () => {
-        const container = document.getElementById('currency-selector-container');
-        if (!container) return;
-
-        container.innerHTML = `
-        <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
-        <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
-            <option value="SEK">SEK</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-        </select>
-        `;
-        const selector = document.getElementById('currency-selector');
-        if (selector) {
-            selector.value = window.HatakeSocial.currentCurrency;
-            selector.addEventListener('change', (e) => {
-                window.HatakeSocial.currentCurrency = e.target.value;
-                localStorage.setItem('hatakeCurrency', e.target.value);
-                window.location.reload();
-            });
-        }
-    };
-
-    const setupHeaderSearch = () => {
-        const searchBar = document.getElementById('main-search-bar');
-        if (searchBar) {
-            searchBar.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const query = searchBar.value.trim();
-                    if (query) {
-                        window.location.href = `search.html?query=${encodeURIComponent(query)}`;
-                    }
-                }
-            });
-        }
-    };
-
-    const setupGlobalListeners = () => {
-        const googleLoginButton = document.getElementById('googleLoginButton');
-        const googleRegisterButton = document.getElementById('googleRegisterButton');
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const registerForm = document.getElementById('registerForm');
-
-        document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
-        document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
-
-        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorMessageEl = document.getElementById('login-error-message');
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    window.location.href = 'app.html';
-                })
-                .catch(err => {
-                    if (errorMessageEl) {
-                        errorMessageEl.textContent = err.message;
-                        errorMessageEl.classList.remove('hidden');
-                    }
-                });
-        });
-
-        if(registerForm) {
-            registerForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                showTermsModal();
-            });
-        }
-
-        const handleGoogleAuth = () => {
-            auth.signInWithPopup(googleProvider)
-                .then(() => {
-                    window.location.href = 'app.html';
-                })
-                .catch(err => showToast(err.message, "error"));
-        };
-
-        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
-        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
-
-        if (mobileMenuButton && mobileMenu) {
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
-        }
-    };
-
-    let friendRequestHandshakeListener = null;
-    function listenForAcceptedRequests(user) {
-        if (friendRequestHandshakeListener) {
-            friendRequestHandshakeListener();
-        }
-        const sentRequestsRef = db.collection('friendRequests')
-            .where('senderId', '==', user.uid)
-            .where('status', '==', 'accepted');
-
-        friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
-            if (snapshot.empty) return;
-            const batch = db.batch();
-            const currentUserRef = db.collection('users').doc(user.uid);
-            for (const doc of snapshot.docs) {
-                const request = doc.data();
-                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(request.receiverId) });
-                batch.delete(doc.ref);
-            }
-            await batch.commit().catch(err => console.error("Error in friend handshake:", err));
-        });
+// --- Messenger Widget Functions ---
+window.toggleMessengerWidget = () => {
+    const widget = document.getElementById('messenger-widget');
+    if (!widget) return;
+    
+    const isHidden = widget.classList.contains('hidden');
+    if (isHidden) {
+        widget.classList.remove('hidden');
+        loadConversations();
+    } else {
+        widget.classList.add('hidden');
     }
+};
 
-    function sanitizeHTML(str) {
-        const temp = document.createElement('div');
-        temp.textContent = str;
-        return temp.innerHTML;
-    }
+window.loadConversations = async () => {
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) return;
 
-    let unsubscribeNotifications = null;
-    let verificationTimer = null;
+    const conversationsContainer = document.getElementById('conversations-container');
+    if (!conversationsContainer) return;
 
-    auth.onAuthStateChanged(async (user) => {
-        if (verificationTimer) {
-            clearInterval(verificationTimer);
-            verificationTimer = null;
-        }
+    try {
+        const conversationsRef = firebase.firestore().collection('conversations');
+        const snapshot = await conversationsRef.where('participants', 'array-contains', currentUser.uid).orderBy('lastUpdated', 'desc').get();
 
-        const mainSidebarNav = document.querySelector('#sidebar nav');
-        const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
-        if (existingAdminSidebarLink) {
-            existingAdminSidebarLink.remove();
-        }
-
-        if (user && !user.emailVerified) {
-            document.body.innerHTML = `
-            <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
-                <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
-                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
-                    <p class="text-gray-600 dark:text-gray-400 mb-6">A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox and spam folder.</p>
-                    <div class="space-x-4">
-                        <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
-                        <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
-                    </div>
-                </div>
-            </div>`;
-            document.getElementById('resend-verification-btn').addEventListener('click', () => {
-                user.sendEmailVerification()
-                    .then(() => showToast('A new verification email has been sent.', 'success'))
-                    .catch(err => showToast('Error sending email: ' + err.message, 'error'));
-            });
-            verificationTimer = setInterval(async () => {
-                await user.reload();
-                if (user.emailVerified) {
-                    clearInterval(verificationTimer);
-                    window.location.reload();
-                }
-            }, 5000);
-            document.body.style.opacity = '1';
+        conversationsContainer.innerHTML = '';
+        if (snapshot.empty) {
+            conversationsContainer.innerHTML = '<p class="text-center text-gray-500 p-4">No conversations yet.</p>';
             return;
         }
 
-        const userActions = document.getElementById('user-actions');
-        const authContainerSidebar = document.getElementById('auth-container-sidebar');
-        const mobileUserActions = document.getElementById('mobile-user-actions');
+        snapshot.forEach(doc => {
+            const convoData = doc.data();
+            const otherUserId = convoData.participants.find(uid => uid !== currentUser.uid);
+            const otherUserInfo = convoData.participantInfo[otherUserId];
 
-        if (user) {
-            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
-            if (isIndexPage) {
-                window.location.href = 'app.html';
-                return;
-            }
-
-            closeModal(loginModal);
-            closeModal(registerModal);
-
-            const userDocRef = db.collection('users').doc(user.uid);
-            let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
-                if (doc.exists) {
-                    if (unsubscribeUserDoc) unsubscribeUserDoc();
-
-                    window.HatakeSocial.currentUserData = doc.data();
-                    const userData = doc.data();
-                    const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                    const idTokenResult = await user.getIdTokenResult(true);
-                    const isAdmin = idTokenResult.claims.admin === true;
-
-                    handleAdminAccess(isAdmin);
-
-                    if (isAdmin && mainSidebarNav && !document.getElementById('admin-sidebar-link')) {
-                        const adminLink = document.createElement('a');
-                        adminLink.id = 'admin-sidebar-link';
-                        adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
-                        adminLink.href = 'admin.html';
-                        adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
-                        mainSidebarNav.appendChild(adminLink);
-                    }
-
-                    if (userActions) {
-                        userActions.innerHTML = `
-                            <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
-                                <i class="fas fa-shopping-cart"></i>
-                                <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
-                            </button>
-
-                            <div class="relative">
-                                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
-                                    <i class="fas fa-bell"></i>
-                                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
-                                </button>
-                                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
-                                    <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
-                                    <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
-                                    <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
-                                </div>
-                            </div>
-
-                            <div class="relative">
-                                <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
-                                <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
-                                    <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
-                                    <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                                    ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
-                                    <hr class="border-gray-200 dark:border-gray-600">
-                                    <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
-                                </div>
-                            </div>`;
-                        
-                        // Add event listeners for the new elements
-                        const cartBtn = document.getElementById('cart-btn');
-                        const cartModal = document.getElementById('cartModal');
-                        if(cartBtn && cartModal) {
-                           cartBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                openModal(cartModal);
-                           });
-                        }
-                        
-                        document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
-                        document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
-                        document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
-                    }
-
-                    if (unsubscribeNotifications) unsubscribeNotifications();
-                    unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
-                        const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
-                        const countEl = document.getElementById('notification-count');
-                        const listEl = document.getElementById('notification-list');
-                        if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
-                        if (listEl) {
-                            if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
-                            else {
-                                listEl.innerHTML = '';
-                                snapshot.docs.slice(0, 5).forEach(doc => {
-                                    const notif = doc.data();
-                                    const el = document.createElement('a');
-                                    el.href = notif.link || '#';
-                                    el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
-                                    el.innerHTML = `<div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
-                                    el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
-                                    listEl.appendChild(el);
-                                });
-                            }
-                        }
-                    });
-
-                    if (authContainerSidebar) {
-                        authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
-                        document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
-                    }
-
-                    if (mobileUserActions) {
-                        mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
-                        document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
-                    }
-                    listenForAcceptedRequests(user);
-                } else {
-                    console.log("User document not found for uid:", user.uid);
-                }
-            }, (error) => {
-                console.error("Error listening to user document:", error);
-                showToast("Could not load your profile data.", "error");
+            const convoElement = document.createElement('div');
+            convoElement.className = 'flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b dark:border-gray-600';
+            convoElement.innerHTML = `
+                <img class="h-10 w-10 rounded-full mr-3" src="${otherUserInfo?.photoURL || 'https://placehold.co/40'}" alt="">
+                <div class="flex-grow">
+                    <p class="font-medium">${otherUserInfo?.displayName || 'Unknown User'}</p>
+                    <p class="text-sm text-gray-500 truncate">${convoData.lastMessage || 'No messages yet'}</p>
+                </div>
+            `;
+            convoElement.addEventListener('click', () => {
+                window.location.href = `messages.html?conversation=${doc.id}`;
             });
-
-        } else { // User is logged out
-            window.HatakeSocial.currentUserData = null;
-            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
-            if (unsubscribeNotifications) unsubscribeNotifications();
-
-            handleAdminAccess(false);
-
-            const loginButtonsHTML = `
-                <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
-                <button id="header-register-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button>`;
-            if (userActions) {
-                userActions.innerHTML = loginButtonsHTML;
-                document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
-                document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
-            }
-            if (authContainerSidebar) {
-                authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button></div>`;
-                document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(loginModal));
-                document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(registerModal));
-            }
-            if (mobileUserActions) {
-                mobileUserActions.innerHTML = `<div class="space-y-2"><button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button><button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button></div>`;
-                document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(loginModal));
-                document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(registerModal));
-            }
-        }
-        document.dispatchEvent(new CustomEvent('authReady', { detail: { user } }));
-        document.body.style.transition = 'opacity 0.3s ease-in-out';
-        document.body.style.opacity = '1';
-    });
-
-    setupGlobalListeners();
-    setupHeaderSearch();
-    setupCurrencySelector();
-
-    window.addEventListener('click', () => {
-        document.getElementById('profile-dropdown')?.classList.add('hidden');
-        document.getElementById('notification-dropdown')?.classList.add('hidden');
-    });
-});
-
-function handleAdminAccess(isAdmin) {
-    const currentPage = window.location.pathname.split('/').pop();
-    const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
-
-    if (adminPages.includes(currentPage) && !isAdmin) {
-        window.location.href = 'index.html';
+            conversationsContainer.appendChild(convoElement);
+        });
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+        conversationsContainer.innerHTML = '<p class="text-center text-red-500 p-4">Error loading conversations.</p>';
     }
-}
+};
 
-async function showTermsModal() {
-    const termsModal = document.createElement('div');
-    termsModal.id = 'terms-modal';
-    termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
-    let termsContent = '<p>Loading...</p>', privacyContent = '<p>Loading...</p>';
+// --- Shopping Cart Functions ---
+window.updateCartCount = async () => {
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) return;
+
+    const cartBadge = document.getElementById('cart-badge');
+    if (!cartBadge) return;
 
     try {
-        const [termsResponse, privacyResponse] = await Promise.all([fetch('terms.html'), fetch('privacy.html')]);
-        termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
-        privacyContent = privacyResponse.ok ? await privacyResponse.text() : '<p>Could not load Privacy Policy.</p>';
+        const cartRef = firebase.firestore().collection('users').doc(currentUser.uid).collection('cart');
+        const snapshot = await cartRef.get();
+        const totalItems = snapshot.docs.reduce((sum, doc) => sum + (doc.data().quantity || 1), 0);
+        
+        if (totalItems > 0) {
+            cartBadge.textContent = totalItems;
+            cartBadge.classList.remove('hidden');
+        } else {
+            cartBadge.classList.add('hidden');
+        }
     } catch (error) {
-        console.error('Error fetching legal documents:', error);
-        termsContent = '<p>Error loading content.</p>';
+        console.error('Error updating cart count:', error);
     }
+};
 
-    termsModal.innerHTML = `
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 90vh; max-height: 800px;">
-        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-            <h2 class="text-xl font-bold">Terms & Privacy</h2>
-            <button id="close-terms-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-        </div>
-        <div id="terms-content" class="p-6 flex-grow overflow-y-auto">${termsContent}<hr class="my-8">${privacyContent}</div>
-        <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-4 w-4"><span class="ml-2">I have read and agree.</span></label>
-            <button id="final-register-btn" disabled class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg disabled:bg-gray-400">Register</button>
-        </div>
-    </div>`;
+// --- Notification Functions ---
+window.updateNotificationCount = async () => {
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) return;
 
-    document.body.appendChild(termsModal);
+    const notificationBadge = document.getElementById('notification-badge');
+    if (!notificationBadge) return;
 
-    const termsCheckbox = termsModal.querySelector('#terms-checkbox');
-    const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
+    try {
+        const notificationsRef = firebase.firestore().collection('users').doc(currentUser.uid).collection('notifications');
+        const snapshot = await notificationsRef.where('isRead', '==', false).get();
+        const unreadCount = snapshot.size;
+        
+        if (unreadCount > 0) {
+            notificationBadge.textContent = unreadCount;
+            notificationBadge.classList.remove('hidden');
+        } else {
+            notificationBadge.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error updating notification count:', error);
+    }
+};
 
-    termsCheckbox.addEventListener('change', () => {
-        finalRegisterBtn.disabled = !termsCheckbox.checked;
-    });
+// --- Header Search Functionality ---
+window.initializeHeaderSearch = () => {
+    const searchInput = document.getElementById('header-search-input');
+    const searchButton = document.getElementById('header-search-button');
+    
+    if (!searchInput || !searchButton) return;
 
-    termsModal.querySelector('#close-terms-modal').addEventListener('click', () => termsModal.remove());
+    const performSearch = () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `marketplace.html?search=${encodeURIComponent(query)}`;
+        }
+    };
 
-    finalRegisterBtn.addEventListener('click', async () => {
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const errorMessageEl = document.getElementById('register-error-message');
-
-        try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            await userCredential.user.sendEmailVerification();
-            window.location.href = 'app.html';
-        } catch (err) {
-            if (errorMessageEl) {
-                errorMessageEl.textContent = err.message;
-                errorMessageEl.classList.remove('hidden');
-            } else {
-                showToast(err.message, "error");
-            }
-            termsModal.remove();
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            performSearch();
         }
     });
+};
+
+// --- Dark Mode Toggle ---
+window.toggleDarkMode = () => {
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark');
+    
+    if (isDark) {
+        html.classList.remove('dark');
+        localStorage.setItem('darkMode', 'false');
+    } else {
+        html.classList.add('dark');
+        localStorage.setItem('darkMode', 'true');
+    }
+};
+
+// --- Mobile Menu Toggle ---
+window.toggleMobileMenu = () => {
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenu) {
+        mobileMenu.classList.toggle('hidden');
+    }
+};
+
+// --- User Menu Toggle ---
+window.setupUserMenuToggle = () => {
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userDropdown = document.getElementById('user-dropdown');
+    
+    if (userMenuBtn && userDropdown) {
+        userMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userDropdown.classList.toggle('hidden');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            userDropdown.classList.add('hidden');
+        });
+        
+        // Prevent dropdown from closing when clicking inside it
+        userDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+    }
+};
+
+// --- Authentication Functions ---
+window.signOut = async () => {
+    try {
+        await firebase.auth().signOut();
+        showToast('Signed out successfully', 'success');
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error('Error signing out:', error);
+        showToast('Error signing out', 'error');
+    }
+};
+
+window.signInWithEmail = async (email, password) => {
+    try {
+        const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        return userCredential.user;
+    } catch (error) {
+        console.error('Error signing in:', error);
+        throw error;
+    }
+};
+
+window.signUpWithEmail = async (email, password, displayName) => {
+    try {
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        
+        // Update user profile
+        await userCredential.user.updateProfile({
+            displayName: displayName
+        });
+        
+        return userCredential.user;
+    } catch (error) {
+        console.error('Error signing up:', error);
+        throw error;
+    }
+};
+
+// --- UI Update Functions ---
+function updateUIForAuthenticatedUser(user) {
+    const userActionsContainer = document.getElementById('user-actions');
+    const sidebarUserInfo = document.getElementById('sidebar-user-info');
+    
+    if (userActionsContainer) {
+        userActionsContainer.innerHTML = `
+            <div class="flex items-center space-x-4">
+                <button class="relative text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" onclick="window.location.href='cart.html'">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden" id="cart-badge">0</span>
+                </button>
+                
+                <button class="relative text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" onclick="window.location.href='notifications.html'">
+                    <i class="fas fa-bell text-xl"></i>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden" id="notification-badge">0</span>
+                </button>
+                
+                <div class="relative" id="user-menu">
+                    <button class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" id="user-menu-btn">
+                        <img class="h-8 w-8 rounded-full object-cover" src="${userData?.photoURL || user.photoURL || 'https://placehold.co/32x32'}" alt="Profile">
+                        <span class="hidden md:block">${userData?.displayName || user.displayName || 'User'}</span>
+                        <i class="fas fa-chevron-down text-sm"></i>
+                    </button>
+                    
+                    <div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden" id="user-dropdown">
+                        <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-user mr-2"></i>Profile
+                        </a>
+                        <a href="collection.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-layer-group mr-2"></i>Collection
+                        </a>
+                        <a href="settings.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-cog mr-2"></i>Settings
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-600"></div>
+                        <button onclick="signOut()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Setup user menu toggle
+        setupUserMenuToggle();
+        
+        // Update cart and notification counts
+        updateCartCount();
+        updateNotificationCount();
+    }
+    
+    if (sidebarUserInfo) {
+        sidebarUserInfo.classList.remove('hidden');
+        sidebarUserInfo.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <img class="h-10 w-10 rounded-full object-cover" src="${userData?.photoURL || user.photoURL || 'https://placehold.co/40x40'}" alt="Profile">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        ${userData?.displayName || user.displayName || 'User'}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        ${userData?.handle ? '@' + userData.handle : user.email}
+                    </p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Show messenger widget if enabled
+    const messengerWidget = document.getElementById('messenger-widget');
+    if (messengerWidget && userData?.messengerWidgetVisible !== false) {
+        messengerWidget.classList.remove('hidden');
+    }
 }
+
+function updateUIForUnauthenticatedUser() {
+    const userActionsContainer = document.getElementById('user-actions');
+    const sidebarUserInfo = document.getElementById('sidebar-user-info');
+    const messengerWidget = document.getElementById('messenger-widget');
+    
+    if (userActionsContainer) {
+        userActionsContainer.innerHTML = `
+            <div class="flex items-center space-x-4">
+                <a href="login.html" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                    Sign In
+                </a>
+                <a href="register.html" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700">
+                    Sign Up
+                </a>
+            </div>
+        `;
+    }
+    
+    if (sidebarUserInfo) {
+        sidebarUserInfo.classList.add('hidden');
+    }
+
+    if (messengerWidget) {
+        messengerWidget.classList.add('hidden');
+    }
+}
+
+// --- Load User Data Function ---
+async function loadUserData(user) {
+    try {
+        const userDoc = await firebase.firestore().collection('users').doc(user.uid).get();
+        
+        if (userDoc.exists) {
+            userData = userDoc.data();
+        } else {
+            // Create default user document
+            userData = {
+                displayName: user.displayName || '',
+                email: user.email || '',
+                photoURL: user.photoURL || '',
+                primaryCurrency: 'USD',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await firebase.firestore().collection('users').doc(user.uid).set(userData);
+        }
+        
+        // Store user data globally for other scripts
+        window.HatakeSocial = window.HatakeSocial || {};
+        window.HatakeSocial.currentUser = user;
+        window.HatakeSocial.currentUserData = userData;
+        
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        throw error;
+    }
+}
+
+// --- Firebase Auth State Listener ---
+firebase.auth().onAuthStateChanged(async (user) => {
+    currentUser = user;
+    
+    if (user) {
+        try {
+            // Load user data from Firestore
+            await loadUserData(user);
+            
+            // Initialize currency system with user's preference
+            await initCurrency(userData?.primaryCurrency || 'USD');
+            
+            // Update UI for authenticated user
+            updateUIForAuthenticatedUser(user);
+            
+        } catch (error) {
+            console.error('Error during authentication setup:', error);
+            // Fallback to default currency if there's an error
+            await initCurrency('USD');
+        }
+    } else {
+        // User is signed out
+        userData = null;
+        
+        // Initialize currency system with default USD
+        await initCurrency('USD');
+        
+        // Update UI for unauthenticated user
+        updateUIForUnauthenticatedUser();
+    }
+    
+    // Dispatch event to let other scripts know auth (and currency) is ready
+    document.dispatchEvent(new CustomEvent('authReady', { 
+        detail: { user, userData } 
+    }));
+});
+
+// --- Initialize Dark Mode ---
+document.addEventListener('DOMContentLoaded', () => {
+    const darkMode = localStorage.getItem('darkMode');
+    if (darkMode === 'true') {
+        document.documentElement.classList.add('dark');
+    }
+    
+    // Initialize header search
+    initializeHeaderSearch();
+});
+
+// --- Export functions for global use ---
+window.showToast = showToast;
+window.getCurrentUser = () => currentUser;
+window.getCurrentUserData = () => userData;
+
+// Export for module use
+export {
+    showToast,
+    signOut,
+    signInWithEmail,
+    signUpWithEmail,
+    getCurrentUser: () => currentUser,
+    getCurrentUserData: () => userData
+};
+

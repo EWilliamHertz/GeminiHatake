@@ -1,0 +1,63 @@
+1. on our website it doesn’t work to clone cards that you manually add. They don’t stack if they are the same card with all specifications the same, but maybe you should change quantity then.
+
+If you clone a card and add lets say four Taiga in different conditions for example, they don’t display pictures.
+
+2. I don’t think that it should say ”Add this version” I think it should say ”Add a copy of the current version” and then that you can click the copies on the bottom to change place between the duplicate and the original in the modal.
+
+3. When you do bulk edit, list for sale it should be possible to review every single individual card and choose percentage on each of the cards or write a fixed prices.
+So you can write 75% of market value on selected cards.
+Then change % on Taiga to 80% although the rest is 75, or write a fixed price
+
+4. It is not possible to upload pictures to cards, this is what it says in console:
+Access to XMLHttpRequest at 'https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FArGPKFA1R8gVHXDi65ZV%2Fundefined%20-%20Imgur.png' from origin 'https://hatakesocial-88b5e.firebaseapp.com/' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+connection.ts:81  POST https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FArGPKFA1R8gVHXDi65ZV%2Fundefined%20-%20Imgur.png net::ERR_FAILED
+
+This is what my firebase storage rules are:
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // --- General Read Access ---
+    // Allows any user to view files, which is necessary for others to see post/poll images.
+    match /{allPaths=**} {
+      allow read;
+    }
+
+    // --- Article Images (NEW) ---
+    // Logged-in users (admins/content creators) can write to their own user-specific folder.
+    match /articles/{userId}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- Product Images ---
+    // Admins can write, anyone can read.
+    match /products/{productId}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // --- Post Images/Videos ---
+    // Logged-in users can write to their own user-specific folder.
+    match /posts/{userId}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- Poll Images/Videos ---
+    // Logged-in users can write to their own user-specific folder for polls.
+    match /polls/{userId}/{allPaths=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // --- Group Files ---
+    // Allows authenticated users to upload files to a group's folder.
+    match /groups/{groupId}/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId && resource.size < 5 * 1024 * 1024;
+    }
+
+    // --- Avatars ---
+    // The owner of the avatar folder or an admin can write to it.
+    match /avatars/{userId}/{allPaths=**} {
+        allow write: if (request.auth != null && request.auth.uid == userId) || 
+                       (request.auth != null && request.auth.token.admin == true);
+    }
+  }
+}
+ Please write completely coded, merged files without any placeholders for all of the modules and everything related to my_collection
