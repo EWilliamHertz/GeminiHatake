@@ -32,29 +32,14 @@ export const showToast = (message, type = 'info') => {
 
 // --- CURRENCY INTEGRATION FUNCTIONS ---
 
-/**
- * Format and display prices with currency conversion
- * @param {number} price - The price to format
- * @param {boolean} isFromApi - Whether the price comes from external API (USD) or marketplace (SEK)
- * @returns {string} Formatted price string
- */
 export function displayPrice(price, isFromApi = false) {
     if (isFromApi) {
-        // Price from external APIs like Scryfall/Pokemon TCG API (USD)
         return Currency.convertAndFormat(price);
     } else {
-        // Price from marketplace listings (SEK)
         return Currency.convertFromSekAndFormat(price);
     }
 }
 
-/**
- * Create a price display element
- * @param {number} price - The price to display
- * @param {boolean} isFromApi - Whether the price comes from external API
- * @param {string} className - CSS classes to apply
- * @returns {HTMLElement} Price display element
- */
 export function createPriceElement(price, isFromApi = false, className = 'text-blue-600 font-semibold') {
     const priceEl = document.createElement('span');
     priceEl.className = className;
@@ -62,11 +47,7 @@ export function createPriceElement(price, isFromApi = false, className = 'text-b
     return priceEl;
 }
 
-/**
- * Update all price elements on the page with current currency
- */
 export function refreshPriceDisplays() {
-    // Update elements with data-price-usd attribute (from APIs)
     document.querySelectorAll('[data-price-usd]').forEach(el => {
         const priceUsd = parseFloat(el.dataset.priceUsd);
         if (!isNaN(priceUsd)) {
@@ -74,7 +55,6 @@ export function refreshPriceDisplays() {
         }
     });
 
-    // Update elements with data-price-sek attribute (from marketplace)
     document.querySelectorAll('[data-price-sek]').forEach(el => {
         const priceSek = parseFloat(el.dataset.priceSek);
         if (!isNaN(priceSek)) {
@@ -83,10 +63,6 @@ export function refreshPriceDisplays() {
     });
 }
 
-/**
- * Create a currency selector dropdown
- * @param {string} containerId - ID of container to append selector to
- */
 export function createCurrencySelector(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -94,7 +70,7 @@ export function createCurrencySelector(containerId) {
     const selector = document.createElement('select');
     selector.id = 'currency-selector';
     selector.className = 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm';
-    
+
     const currencies = [
         { code: 'SEK', name: 'Swedish Krona (kr)' },
         { code: 'USD', name: 'US Dollar ($)' },
@@ -116,31 +92,16 @@ export function createCurrencySelector(containerId) {
 
     selector.addEventListener('change', (e) => {
         Currency.updateUserCurrency(e.target.value);
-        refreshPriceDisplays();
-        
-        // Trigger custom event for other components to listen to
-        document.dispatchEvent(new CustomEvent('currencyChanged', {
-            detail: { newCurrency: e.target.value }
-        }));
+        document.dispatchEvent(new CustomEvent('currencyChanged'));
     });
-
-    const label = document.createElement('label');
-    label.textContent = 'Currency: ';
-    label.className = 'text-sm text-gray-700 dark:text-gray-300 mr-2';
-    label.htmlFor = 'currency-selector';
-
+    
     const wrapper = document.createElement('div');
     wrapper.className = 'flex items-center space-x-2';
-    wrapper.appendChild(label);
     wrapper.appendChild(selector);
 
     container.appendChild(wrapper);
 }
 
-/**
- * Show loading state for price elements
- * @param {string} selector - CSS selector for price elements
- */
 export function showPriceLoading(selector = '[data-price-usd], [data-price-sek]') {
     document.querySelectorAll(selector).forEach(el => {
         el.textContent = 'Loading...';
@@ -148,10 +109,6 @@ export function showPriceLoading(selector = '[data-price-usd], [data-price-sek]'
     });
 }
 
-/**
- * Hide loading state for price elements
- * @param {string} selector - CSS selector for price elements
- */
 export function hidePriceLoading(selector = '[data-price-usd], [data-price-sek]') {
     document.querySelectorAll(selector).forEach(el => {
         el.classList.remove('animate-pulse');
@@ -168,7 +125,6 @@ export function renderGridView(cards, activeTab) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        // Use currency conversion for USD prices from APIs
         const price = Currency.convertAndFormat(card?.prices?.usd || 0);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
@@ -222,7 +178,6 @@ export function renderListView(cards, activeTab) {
         </thead>`;
 
     const tableBody = cards.map(card => {
-        // Use currency conversion for USD prices from APIs
         const price = Currency.convertAndFormat(card?.prices?.usd || 0);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const saleStatus = (card.forSale && typeof card.salePrice === 'number')
@@ -265,7 +220,6 @@ export function renderSearchResults(results) {
     }
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        // Use currency conversion for USD prices from APIs
         const price = Currency.convertAndFormat(card?.prices?.usd || 0);
         const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
         const cardDataString = encodeURIComponent(JSON.stringify(card));
@@ -285,25 +239,30 @@ export function renderSearchResults(results) {
     container.innerHTML = resultsHTML;
 }
 
-// ** OVERHAULED: Handles cloning and swapping **
+// **FIX**: Updated to include a delete button and more descriptive text.
 export function renderPendingCards(pendingCards) {
     const container = getElement('pending-cards-container');
-    if (pendingCards.length === 0) {
+    if (!pendingCards || pendingCards.length === 0) {
         container.innerHTML = '';
         return;
     }
-    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Copies to Add:</h4>` +
-        pendingCards.map((card, index) => {
-            const details = [
-                `${card.quantity || 1}x`, card.condition, card.language,
-                card.is_foil ? 'Foil' : ''
-            ].filter(Boolean).join(', ');
-            // Added data-index for swapping
-            return `<div class="pending-card-item bg-gray-100 p-2 rounded-md text-sm mb-1 cursor-pointer" data-index="${index}">${details}</div>`;
-        }).join('');
+    const cardsHTML = pendingCards.map((card, index) => {
+        const details = [
+            `${card.quantity || 1}x`,
+            card.condition || 'N/A',
+            card.language || 'N/A',
+            card.is_foil ? 'Foil' : null
+        ].filter(Boolean).join(', ');
+
+        return `<div class="pending-card-item flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm mb-1" data-index="${index}">
+                    <p class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer flex-grow">${details}</p>
+                    <button type="button" class="delete-pending-btn text-red-500 hover:text-red-700 font-bold text-lg px-2">&times;</button>
+                </div>`;
+    }).join('');
+
+    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Copies to Add:</h4>` + cardsHTML;
 }
 
-// ** NEW: Renders the advanced bulk review modal **
 export function renderBulkReviewModal(cardIds) {
     const listContainer = getElement('bulk-review-list');
     listContainer.innerHTML = ''; // Clear previous items
@@ -356,7 +315,6 @@ export function updateStats(stats, activeTab) {
     getElement('stats-value-label').textContent = isCollection ? 'Total Value:' : 'Wishlist Value:';
     getElement('stats-total-cards').textContent = stats.totalCards;
     getElement('stats-unique-cards').textContent = stats.uniqueCards;
-    // Use currency conversion for USD total value
     getElement('stats-total-value').textContent = Currency.convertAndFormat(stats.totalValue || 0);
 }
 
@@ -382,7 +340,6 @@ export function updateViewToggle(view) {
     listBtn.classList.toggle('shadow', view === 'list');
 }
 
-// ** NEW: Implemented Missing Functions **
 export function updateActiveTab(tab) {
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -428,14 +385,6 @@ export function updateBulkEditUI(isActive) {
     const bulkToolbar = getElement('bulk-edit-toolbar');
     
     bulkEditBtn.innerHTML = isActive ? '<i class="fas fa-times w-6"></i> Cancel' : '<i class="fas fa-edit w-6"></i> Bulk Edit';
-    bulkEditBtn.classList.toggle('bg-red-600', isActive);
-    bulkEditBtn.classList.toggle('text-white', isActive);
-    bulkEditBtn.classList.toggle('hover:bg-red-700', isActive);
-    bulkEditBtn.classList.toggle('bg-gray-200', !isActive);
-    bulkEditBtn.classList.toggle('dark:bg-gray-700', !isActive);
-    bulkEditBtn.classList.toggle('hover:bg-gray-300', !isActive);
-    bulkEditBtn.classList.toggle('dark:hover:bg-gray-600', !isActive);
-    
     bulkToolbar.classList.toggle('hidden', !isActive);
 }
 
@@ -451,159 +400,90 @@ export function openModal(modal) {
     if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
     }
 }
 
 export function closeModal(modal) {
     if (modal) {
+        if (modal.id === 'card-modal') {
+            Collection.clearPendingCards();
+            renderPendingCards([]);
+        }
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        document.body.style.overflow = 'auto';
     }
 }
 
-export function openSearchModal() {
-    openModal(searchModal);
-    const searchInput = getElement('search-input');
-    if (searchInput) searchInput.focus();
+export function populateCardModalForAdd(cardData) {
+    Collection.clearPendingCards();
+    getElement('card-modal-id').value = '';
+    getElement('card-modal-title').textContent = 'Add New Card';
+    getElement('card-modal-image').src = getCardImageUrl(cardData);
+    getElement('card-quantity').value = 1;
+    getElement('card-condition').value = 'Near Mint';
+    getElement('card-language').value = 'English';
+    getElement('card-is-foil').checked = false;
+    getElement('card-is-signed').checked = false;
+    getElement('card-is-altered').checked = false;
+    getElement('card-purchase-price').value = '';
+    getElement('save-card-btn').textContent = 'Add to Collection';
+    openModal(getElement('card-modal'));
+    getElement('card-modal').dataset.card = JSON.stringify(cardData);
 }
 
-export function closeSearchModal() {
-    closeModal(searchModal);
-    getElement('search-input').value = '';
-    getElement('search-results-container').innerHTML = '';
+export function populateCardModalForEdit(card) {
+    Collection.clearPendingCards();
+    getElement('card-modal-id').value = card.id;
+    getElement('card-modal-title').textContent = 'Edit Card';
+    getElement('card-modal-image').src = getCardImageUrl(card);
+    getElement('card-quantity').value = card.quantity || 1;
+    getElement('card-condition').value = card.condition || 'Near Mint';
+    getElement('card-language').value = card.language || 'English';
+    getElement('card-is-foil').checked = card.is_foil || false;
+    getElement('card-is-signed').checked = card.is_signed || false;
+    getElement('card-is-altered').checked = card.is_altered || false;
+    getElement('card-purchase-price').value = card.purchase_price || '';
+    getElement('save-card-btn').textContent = 'Save Changes';
+    openModal(getElement('card-modal'));
+    getElement('card-modal').dataset.card = JSON.stringify(card);
 }
 
-export function openCardModal(card) {
+export function getCardFormData() {
     const modal = getElement('card-modal');
-    const imageEl = getElement('modal-card-image');
-    const nameEl = getElement('modal-card-name');
-    const setEl = getElement('modal-card-set');
-    const priceEl = getElement('modal-card-price');
-    const rarityEl = getElement('modal-card-rarity');
-    const quantityInput = getElement('modal-quantity');
-    const conditionSelect = getElement('modal-condition');
-    const languageSelect = getElement('modal-language');
-    const foilCheckbox = getElement('modal-foil');
-
-    if (imageEl) imageEl.src = getCardImageUrl(card);
-    if (nameEl) nameEl.textContent = card.name;
-    if (setEl) setEl.textContent = card.set_name;
-    // Use currency conversion for USD prices from APIs
-    if (priceEl) priceEl.textContent = Currency.convertAndFormat(card?.prices?.usd || 0);
-    if (rarityEl) rarityEl.textContent = card.rarity;
-    if (quantityInput) quantityInput.value = 1;
-    if (conditionSelect) conditionSelect.value = 'Near Mint';
-    if (languageSelect) languageSelect.value = 'English';
-    if (foilCheckbox) foilCheckbox.checked = false;
-
-    modal.dataset.cardData = JSON.stringify(card);
-    openModal(modal);
+    const cardData = JSON.parse(modal.dataset.card || '{}');
+    return {
+        id: getElement('card-modal-id').value,
+        data: {
+            name: cardData.name,
+            set_name: cardData.set_name,
+            api_id: cardData.id,
+            image_uris: cardData.image_uris,
+            prices: cardData.prices,
+            rarity: cardData.rarity,
+            game: cardData.game,
+            quantity: parseInt(getElement('card-quantity').value, 10),
+            condition: getElement('card-condition').value,
+            language: getElement('card-language').value,
+            is_foil: getElement('card-is-foil').checked,
+            is_signed: getElement('card-is-signed').checked,
+            is_altered: getElement('card-is-altered').checked,
+            purchase_price: parseFloat(getElement('card-purchase-price').value) || 0,
+        },
+        customImageFile: getElement('custom-image-upload').files[0] || null
+    };
 }
 
-export function closeCardModal() {
-    closeModal(cardModal);
+export function resetCardFormForNewVersion() {
+    getElement('card-quantity').value = 1;
+    getElement('card-condition').value = 'Near Mint';
+    getElement('card-language').value = 'English';
+    getElement('card-is-foil').checked = false;
+    getElement('card-is-signed').checked = false;
+    getElement('card-is-altered').checked = false;
+    getElement('card-purchase-price').value = '';
 }
 
-export function openCsvModal() {
-    openModal(csvModal);
+export function toggleBulkPriceInputs(selectedValue) {
+    document.getElementById('bulk-price-percentage-group').classList.toggle('hidden', selectedValue !== 'percentage');
+    document.getElementById('bulk-price-fixed-group').classList.toggle('hidden', selectedValue !== 'fixed');
 }
-
-export function closeCsvModal() {
-    closeModal(csvModal);
-    getElement('csv-file-input').value = '';
-    getElement('csv-preview').innerHTML = '';
-}
-
-export function openBulkListModal() {
-    openModal(bulkListModal);
-}
-
-export function closeBulkListModal() {
-    closeModal(bulkListModal);
-}
-
-// --- TOOLTIP FUNCTIONS ---
-export function showCardPreview(card, event) {
-    if (!cardPreviewTooltip) return;
-    
-    const imageUrl = getCardImageUrl(card);
-    // Use currency conversion for USD prices from APIs
-    const price = Currency.convertAndFormat(card?.prices?.usd || 0);
-    
-    cardPreviewTooltip.innerHTML = `
-        <img src="${imageUrl}" alt="${card.name}" class="w-48 h-auto rounded-lg shadow-lg">
-        <div class="mt-2 text-center">
-            <p class="font-semibold">${card.name}</p>
-            <p class="text-sm text-gray-600">${card.set_name}</p>
-            <p class="text-sm font-mono">${price}</p>
-        </div>
-    `;
-    
-    cardPreviewTooltip.style.left = `${event.pageX + 10}px`;
-    cardPreviewTooltip.style.top = `${event.pageY + 10}px`;
-    cardPreviewTooltip.classList.remove('hidden');
-}
-
-export function hideCardPreview() {
-    if (cardPreviewTooltip) {
-        cardPreviewTooltip.classList.add('hidden');
-    }
-}
-
-// --- CSV FUNCTIONS ---
-export function displayCsvPreview(data) {
-    const container = getElement('csv-preview');
-    if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-gray-500">No valid data found in CSV file.</p>';
-        return;
-    }
-
-    const headers = Object.keys(data[0]);
-    const tableHTML = `
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header}</th>`).join('')}
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                ${data.slice(0, 10).map(row => `
-                    <tr>
-                        ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row[header] || ''}</td>`).join('')}
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-        ${data.length > 10 ? `<p class="mt-2 text-sm text-gray-500">Showing first 10 of ${data.length} rows</p>` : ''}
-    `;
-    
-    container.innerHTML = tableHTML;
-}
-
-// --- INITIALIZATION ---
-
-/**
- * Initialize currency-related UI components
- */
-export function initCurrencyUI() {
-    // Initialize currency system with SEK as default (Hatake website preference)
-    Currency.initCurrency('SEK');
-    
-    // Refresh price displays after currency is initialized
-    setTimeout(() => {
-        refreshPriceDisplays();
-    }, 1000);
-    
-    // Listen for currency changes and refresh displays
-    document.addEventListener('currencyChanged', () => {
-        refreshPriceDisplays();
-    });
-}
-
-// Auto-initialize currency when module is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    initCurrencyUI();
-});
-

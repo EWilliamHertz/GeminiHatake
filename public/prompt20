@@ -1,0 +1,21 @@
+1. This winds up in the console at index.html:
+Failed to initialize currency rates, using fallback rates: Error: Invalid or empty response from getExchangeRates function.
+    at initCurrency (currency.js:27:19)
+    at async auth.js:325:17
+initCurrency @ currency.js:30
+await in initCurrency
+(anonymous) @ auth.js:325
+await in (anonymous)
+next @ auth.ts:378
+(anonymous) @ auth_impl.ts:513
+Promise.then
+registerStateListener @ auth_impl.ts:513
+onAuthStateChanged @ auth_impl.ts:362
+onAuthStateChanged @ auth.ts:200
+(anonymous) @ auth.js:312Understand this error
+2. The prices are still wrong, it still says 1700+ whilst the cards are less than 50kr.
+3. The edit card, add copies doesn't work. And you can BARELY (after 10+ clicks) click on the copies to edit them.
+4. When you enter the copied card, all other copies are removed.
+5. There is no X to delete a copy.
+
+Do we have to change the cloud functions for the currency changer?

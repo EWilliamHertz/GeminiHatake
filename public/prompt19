@@ -1,0 +1,24 @@
+1. This message came up in the console at index.html:
+currency.js:28 Failed to initialize currency rates: TypeError: Cannot set properties of undefined (setting 'USD')
+    at initCurrency (currency.js:25:28)
+    at async auth.js:330:13
+initCurrency    @    currency.js:28
+2. It says that my partner has a collection worth 1700kr + but all of the cards individual value except the ones saying N/A is 50kr. see printscreen
+How it fetches statistics is different from the individual card value.
+3. This shows up in the console at my_collection.html:
+ currency.js:28 Failed to initialize currency rates: TypeError: Cannot set properties of undefined (setting 'USD')
+    at initCurrency (currency.js:25:28)
+    at async auth.js:325:17
+initCurrency    @    currency.js:28
+
+currency.js:28 Failed to initialize currency rates: TypeError: Cannot set properties of undefined (setting 'USD')
+    at Module.initCurrency (currency.js:25:28)
+    at async HTMLDocument.<anonymous> (collection-app.js:16:13)
+initCurrency    @    currency.js:28
+collection-app.js:24 Initialization failed: TypeError: Currency.getUserCurrency is not a function
+    at ui.js:54:40
+    at Array.forEach (<anonymous>)
+    at Module.createCurrencySelector (ui.js:50:16)
+    at HTMLDocument.<anonymous> (collection-app.js:22:16)
+(anonymous)    @    collection-app.js:2
+4. Pending copies to add is still a white box without any information. see printscreen

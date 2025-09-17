@@ -5,6 +5,7 @@
 import * as Collection from './collection.js';
 import * as UI from './ui.js';
 import * as API from './api.js';
+import * as Currency from './currency.js';
 
 let currentUser = null;
 
@@ -12,39 +13,45 @@ document.addEventListener('authReady', async ({ detail: { user } }) => {
     if (user) {
         currentUser = user;
         try {
+            await Currency.initCurrency('SEK');
             await Collection.loadCollection(user.uid);
             await Collection.loadWishlist(user.uid);
             UI.populateFilters(Collection.getAvailableFilterOptions().sets, Collection.getAvailableFilterOptions().rarities);
             applyAndRender({});
             setupEventListeners();
+            UI.createCurrencySelector('user-actions');
         } catch (error) {
             console.error("Initialization failed:", error);
             UI.showToast("Could not load your collection.", "error");
         }
-    } else {
-        // UI.showLoggedOutState(); This function doesn't exist in the provided ui.js
     }
 });
 
 function setupEventListeners() {
-    document.getElementById('add-card-btn').addEventListener('click', () => UI.openSearchModal());
-    document.getElementById('close-search-modal').addEventListener('click', UI.closeSearchModal);
-    document.getElementById('close-card-modal').addEventListener('click', UI.closeCardModal);
-    document.getElementById('close-bulk-list-sale-modal').addEventListener('click', UI.closeBulkListSaleModal);
+    document.getElementById('add-card-btn').addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+    document.getElementById('close-search-modal').addEventListener('click', () => UI.closeModal(document.getElementById('search-modal')));
+    document.getElementById('close-card-modal').addEventListener('click', () => UI.closeModal(document.getElementById('card-modal')));
+    document.getElementById('close-bulk-list-sale-modal').addEventListener('click', () => UI.closeModal(document.getElementById('bulk-list-sale-modal')));
+
     document.getElementById('card-search-input').addEventListener('input', handleSearchInput);
     document.getElementById('search-results-container').addEventListener('click', handleSearchResultClick);
     document.getElementById('card-form').addEventListener('submit', handleCardFormSubmit);
     document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
+
     document.querySelector('[data-tab="collection"]').addEventListener('click', () => switchTab('collection'));
     document.querySelector('[data-tab="wishlist"]').addEventListener('click', () => switchTab('wishlist'));
+
     document.getElementById('view-toggle-grid').addEventListener('click', () => switchView('grid'));
     document.getElementById('view-toggle-list').addEventListener('click', () => switchView('list'));
+
     document.querySelectorAll('.tcg-filter-button').forEach(btn => btn.addEventListener('click', () => setTcgFilter(btn.dataset.game)));
+
     document.getElementById('filter-name').addEventListener('input', (e) => applyAndRender({ name: e.target.value }));
     document.getElementById('filter-set').addEventListener('change', (e) => applyAndRender({ set: e.target.value }));
     document.getElementById('filter-rarity').addEventListener('change', (e) => applyAndRender({ rarity: e.target.value }));
+
     document.getElementById('collection-display').addEventListener('click', handleCollectionDisplayClick);
-    
+
     // Bulk Edit Listeners
     document.getElementById('bulk-edit-btn').addEventListener('click', handleBulkEditToggle);
     document.getElementById('bulk-list-btn').addEventListener('click', handleBulkListClick);
@@ -52,23 +59,33 @@ function setupEventListeners() {
     document.getElementById('bulk-select-all-btn').addEventListener('click', handleBulkSelectAll);
     document.getElementById('bulk-list-form').addEventListener('submit', handleBulkListFormSubmit);
     document.querySelectorAll('input[name="price-option"]').forEach(radio => {
-        radio.addEventListener('change', UI.toggleBulkPriceInputs);
+        radio.addEventListener('change', () => UI.toggleBulkPriceInputs(radio.value));
     });
 
-    // ** NEW: Listener for the new bulk review modal **
     document.getElementById('close-bulk-review-modal').addEventListener('click', () => UI.closeModal(document.getElementById('bulk-review-modal')));
     document.getElementById('finalize-bulk-list-btn').addEventListener('click', handleFinalizeBulkList);
     document.getElementById('bulk-apply-percentage-btn').addEventListener('click', handleBulkApplyPercentage);
 
-    // ** NEW: Listener for swapping pending cards **
+    // **FIX**: Combined event listeners for the card modal to handle swaps and deletes.
     document.getElementById('card-modal').addEventListener('click', (e) => {
-        if (e.target.classList.contains('pending-card-item')) {
-            const index = parseInt(e.target.dataset.index, 10);
+        // Handle swapping
+        if (e.target.classList.contains('pending-card-item') || e.target.parentElement.classList.contains('pending-card-item')) {
+            const item = e.target.closest('.pending-card-item');
+            const index = parseInt(item.dataset.index, 10);
             Collection.swapPendingCard(index);
-            // Re-render the modal with swapped data
             UI.populateCardModalForEdit(Collection.getCurrentEditingCard());
             UI.renderPendingCards(Collection.getPendingCards());
         }
+        // Handle deleting
+        if (e.target.classList.contains('delete-pending-btn')) {
+            const index = parseInt(e.target.dataset.index, 10);
+            Collection.removePendingCard(index);
+            UI.renderPendingCards(Collection.getPendingCards());
+        }
+    });
+
+    document.addEventListener('currencyChanged', () => {
+        applyAndRender({});
     });
 }
 
@@ -76,13 +93,18 @@ function applyAndRender(filterUpdate) {
     if(filterUpdate) Collection.setFilters(filterUpdate);
     const state = Collection.getState();
     const cardsToRender = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
-    
+
     if (state.activeView === 'grid') {
         UI.renderGridView(cardsToRender, state.activeTab);
     } else {
         UI.renderListView(cardsToRender, state.activeTab);
     }
-    UI.updateStats(state.activeTab === 'collection' ? Collection.calculateCollectionStats() : { totalCards: 0, uniqueCards: 0, totalValue: 0 }, state.activeTab);
+    UI.updateStats(
+        state.activeTab === 'collection'
+            ? Collection.calculateCollectionStats()
+            : Collection.calculateWishlistStats(),
+        state.activeTab
+    );
 }
 
 async function handleCardFormSubmit(e) {
@@ -98,7 +120,7 @@ async function handleCardFormSubmit(e) {
             await Collection.addMultipleCards(allVersions);
             UI.showToast(`${allVersions.length} card(s) added!`, "success");
         }
-        UI.closeCardModal();
+        UI.closeModal(document.getElementById('card-modal'));
         applyAndRender({});
         UI.populateFilters(Collection.getAvailableFilterOptions().sets, Collection.getAvailableFilterOptions().rarities);
     } catch (error) {
@@ -107,12 +129,9 @@ async function handleCardFormSubmit(e) {
     }
 }
 
-// ** REWRITTEN: `addAnotherVersion` now creates a full clone **
 function handleAddAnotherVersion() {
     try {
-        // Get data from the currently displayed form
         const { data: currentVersionData } = UI.getCardFormData();
-        // Add a complete copy to the pending list
         Collection.addPendingCard({ ...currentVersionData });
         UI.renderPendingCards(Collection.getPendingCards());
         UI.resetCardFormForNewVersion();
@@ -146,14 +165,14 @@ function handleSearchResultClick(e) {
     const item = e.target.closest('.search-result-item');
     if (item) {
         const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
-        UI.closeSearchModal();
+        UI.closeModal(document.getElementById('search-modal'));
         UI.populateCardModalForAdd(cardData);
     }
 }
 
 function switchTab(tab) {
     Collection.setTab(tab);
-    UI.updateActiveTab(tab); // <-- UNCOMMENTED
+    UI.updateActiveTab(tab);
     applyAndRender({});
 }
 
@@ -164,30 +183,21 @@ function switchView(view) {
 }
 
 function setTcgFilter(game) {
-    UI.updateTcgFilter(game); // <-- UNCOMMENTED
+    UI.updateTcgFilter(game);
     applyAndRender({ game });
 }
 
 function handleCollectionDisplayClick(e) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
-    
+
     if (isBulkMode) {
         const checkbox = e.target.closest('.bulk-select-checkbox');
-        const selectAllCheckbox = e.target.closest('#bulk-select-all-page');
-
         if (checkbox) {
             Collection.toggleCardSelection(checkbox.dataset.id);
-            UI.updateSelectedCount();
-            applyAndRender();
-        } else if (selectAllCheckbox) {
-            const filteredIds = Collection.getState().filteredCollection.map(c => c.id);
-            if (selectAllCheckbox.checked) {
-                Collection.selectAllFiltered(filteredIds);
-            } else {
-                Collection.deselectAllFiltered();
-            }
-            UI.updateSelectedCount();
-            applyAndRender();
+            UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+            checkbox.closest('.card-container').classList.toggle('ring-4', checkbox.checked);
+            checkbox.closest('.card-container').classList.toggle('ring-blue-500', checkbox.checked);
+
         }
     } else {
         const button = e.target.closest('button[data-action]');
@@ -224,7 +234,6 @@ function handleBulkEditToggle() {
     applyAndRender();
 }
 
-// ** OVERHAULED: Now opens the new review modal **
 function handleBulkListClick() {
     const selectedIds = Collection.getSelectedCardIds();
     if (selectedIds.length === 0) {
@@ -237,7 +246,7 @@ function handleBulkListClick() {
 function handleBulkSelectAll() {
     const filteredIds = Collection.getState().filteredCollection.map(c => c.id);
     Collection.selectAllFiltered(filteredIds);
-    UI.updateSelectedCount();
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
     applyAndRender();
 }
 
@@ -294,7 +303,7 @@ async function handleBulkListFormSubmit(e) {
         try {
             await Collection.batchUpdateSaleStatus(updates);
             UI.showToast(`${updates.length} cards listed for sale!`, "success");
-            UI.closeBulkListSaleModal();
+            UI.closeModal(document.getElementById('bulk-list-sale-modal'));
             applyAndRender({});
             UI.updateBulkEditUI(false);
         } catch (error) {
@@ -303,14 +312,12 @@ async function handleBulkListFormSubmit(e) {
     }
 }
 
-// ** NEW: Logic for the bulk review modal **
 function handleBulkApplyPercentage() {
     const percentage = document.getElementById('bulk-apply-percentage-input').value;
     if (!percentage) return;
-    
+
     document.querySelectorAll('.bulk-review-percent-input').forEach(input => {
         input.value = percentage;
-        // Trigger change event to update fixed price
         input.dispatchEvent(new Event('input'));
     });
 }
@@ -341,4 +348,3 @@ async function handleFinalizeBulkList() {
         }
     }
 }
-

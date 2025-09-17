@@ -1,0 +1,46 @@
+It took a while to load index.html, but when we did this came up in console:
+Failed to initialize currency rates: TypeError: Cannot set properties of undefined (setting 'USD')
+    at initCurrency (currency.js:21:28)
+    at async auth.js:330:13
+initCurrency @ currency.js:24Understand this error
+
+1. The copies of the card is in a white box wihtout any visible information except "1x", see screenshot.
+2. The copies of cards have no image.
+3. The price is still saying N/A on all of the cards in the card list.
+4. The additional pending copies is still there although the card selected is different.
+5. Not all Pokemon cards for i.e "Abra" shows up in the search result.
+Please fetch files from the conversation history to see if they have been updated, if not, take them from github repository.
+If you cannot find a file, ask for it so you çan merge the new code with the original.
+Thanks.
+
+In Console at my_collection.html this came up:
+currency.js:24 Failed to initialize currency rates: TypeError: Cannot set properties of undefined (setting 'USD')
+    at initCurrency (currency.js:21:28)
+    at async auth.js:325:17
+initCurrency    @    currency.js:24
+await in initCurrency
+(anonymous)    @    auth.js:325
+await in (anonymous)
+next    @    auth.ts:378
+(anonymous)    @    auth_impl.ts:513
+Promise.then
+registerStateListener    @    auth_impl.ts:513
+onAuthStateChanged    @    auth_impl.ts:362
+onAuthStateChanged    @    auth.ts:200
+(anonymous)    @    auth.js:312
+
+currency.js:24 Failed to initialize currency rates: TypeError: Cannot set properties of undefined (setting 'USD')
+    at Module.initCurrency (currency.js:21:28)
+    at async HTMLDocument.<anonymous> (collection-app.js:16:13)
+initCurrency    @    currency.js:24
+await in initCurrency
+(anonymous)    @    collection-app.js:16
+(anonymous)    @    auth.js:334
+await in (anonymous)
+next    @    auth.ts:378
+(anonymous)    @    auth_impl.ts:513
+Promise.then
+registerStateListener    @    auth_impl.ts:513
+onAuthStateChanged    @    auth_impl.ts:362
+onAuthStateChanged    @    auth.ts:200
+(anonymous)    @    auth.js:312

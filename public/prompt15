@@ -1,0 +1,8 @@
+Hi.
+Can you scan public/my_collection.html, the public/js/modules to get everything regarding the collection page and scripts. Because some things have stopped working.
+
+1. The prices on cards in the pop-up modal when searching to manually add a card has dissapeared, either it says 0 SEK or N/A.
+2. The edit card button doesn’t work anymore.
+3. It says my partner has cards for 1500, but his cards are worth N/A, 1 SEK, N/A, 13 kr etcetera.
+
+Can you please write fully merged coded files taken from github repository with the new features/updaates?
