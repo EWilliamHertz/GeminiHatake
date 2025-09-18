@@ -5,9 +5,11 @@
 import * as Collection from './collection.js';
 import * as UI from './ui.js';
 import * as API from './api.js';
+import * as CSV from './csv.js';
 import * as Currency from './currency.js';
 
 let currentUser = null;
+let csvFile = null;
 
 // Initialize the application once Firebase Auth is ready
 document.addEventListener('authReady', async ({ detail: { user } }) => {
@@ -46,12 +48,51 @@ function setupInitialFilters() {
 function setupEventListeners() {
     // Modal controls
     document.getElementById('add-card-btn').addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+    document.getElementById('csv-import-btn').addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
     document.body.addEventListener('click', (e) => {
         if (e.target.id === 'close-search-modal') UI.closeModal(document.getElementById('search-modal'));
         if (e.target.id === 'close-card-modal') UI.closeModal(document.getElementById('card-modal'));
         if (e.target.id === 'close-bulk-list-sale-modal') UI.closeModal(document.getElementById('bulk-list-sale-modal'));
         if (e.target.id === 'close-bulk-review-modal') UI.closeModal(document.getElementById('bulk-review-modal'));
+        if (e.target.id === 'close-csv-import-modal') UI.closeModal(document.getElementById('csv-import-modal'));
+        if (e.target.id === 'close-csv-review-modal') UI.closeModal(document.getElementById('csv-review-modal'));
     });
+
+    // CSV import
+    document.getElementById('csv-file-input').addEventListener('change', (e) => {
+        csvFile = e.target.files[0];
+        document.getElementById('start-csv-import-btn').disabled = !csvFile;
+    });
+
+    document.getElementById('start-csv-import-btn').addEventListener('click', async () => {
+        if (csvFile) {
+            try {
+                UI.updateCsvImportStatus('Parsing file...');
+                const data = await CSV.parseCSV(csvFile);
+                UI.renderCsvReviewModal(data);
+                UI.closeModal(document.getElementById('csv-import-modal'));
+            } catch (error) {
+                UI.updateCsvImportStatus(`<span class="text-red-500">${error.message}</span>`);
+            }
+        }
+    });
+
+    document.getElementById('finalize-csv-import-btn').addEventListener('click', CSV.finalizeImport);
+    document.getElementById('csv-review-table-body').addEventListener('change', (e) => {
+        const target = e.target;
+        const index = target.closest('tr').dataset.index;
+        const field = target.dataset.field;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        CSV.updateReviewedCard(index, field, value);
+    });
+    document.getElementById('csv-review-table-body').addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-csv-row-btn')) {
+            const index = e.target.dataset.index;
+            CSV.removeReviewedCard(index);
+            e.target.closest('tr').remove();
+        }
+    });
+
 
     // Card search and forms
     document.getElementById('card-search-input').addEventListener('input', handleSearchInput);

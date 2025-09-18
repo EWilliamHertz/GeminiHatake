@@ -301,6 +301,43 @@ export function renderBulkReviewModal(cardIds) {
     openModal(getElement('bulk-review-modal'));
 }
 
+export function renderCsvReviewModal(cards) {
+    const container = getElement('csv-review-table-body');
+    container.innerHTML = cards.map((card, index) => `
+        <tr data-index="${index}">
+            <td class="p-2"><input type="text" value="${card.name}" class="w-full p-1 border rounded-md" data-field="name"></td>
+            <td class="p-2"><input type="text" value="${card.set_name}" class="w-full p-1 border rounded-md" data-field="set_name"></td>
+            <td class="p-2"><input type="number" value="${card.quantity}" class="w-20 p-1 border rounded-md" data-field="quantity"></td>
+            <td class="p-2">
+                <select class="w-full p-1 border rounded-md" data-field="condition">
+                    <option ${card.condition === 'Near Mint' ? 'selected' : ''}>Near Mint</option>
+                    <option ${card.condition === 'Lightly Played' ? 'selected' : ''}>Lightly Played</option>
+                    <option ${card.condition === 'Moderately Played' ? 'selected' : ''}>Moderately Played</option>
+                    <option ${card.condition === 'Heavily Played' ? 'selected' : ''}>Heavily Played</option>
+                    <option ${card.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                </select>
+            </td>
+            <td class="p-2">
+                <select class="w-full p-1 border rounded-md" data-field="language">
+                    <option ${card.language === 'English' ? 'selected' : ''}>English</option>
+                    <option ${card.language === 'Japanese' ? 'selected' : ''}>Japanese</option>
+                </select>
+            </td>
+            <td class="p-2"><input type="checkbox" ${card.is_foil ? 'checked' : ''} data-field="is_foil"></td>
+            <td class="p-2"><button class="btn btn-sm btn-danger remove-csv-row-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
+        </tr>
+    `).join('');
+    openModal(getElement('csv-review-modal'));
+}
+
+export function updateCsvImportStatus(message) {
+    const statusEl = getElement('csv-import-status');
+    if (statusEl) {
+        statusEl.innerHTML = message;
+    }
+}
+
+
 // --- UI STATE UPDATES ---
 export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
 export const showLoggedOutState = () => getElement('collection-display').innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';

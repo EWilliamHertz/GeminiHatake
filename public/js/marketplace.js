@@ -6,16 +6,16 @@
 
 // Import currency module for price conversion
 import * as Currency from './modules/currency.js';
+import { createCurrencySelector } from './modules/ui.js';
 
 // --- STATE MANAGEMENT ---
 let allListings = [];           // Master list of all listings from Firestore
 let filteredListings = [];      // Listings after filters and sorting are applied
 let currentView = 'grid';       // 'grid' or 'list'
-let isInitialized = false;      // Prevents double initialization
 
 // --- DOM ELEMENT REFERENCES ---
 const listingsContainer = document.getElementById('listingsContainer');
-const mainSearchInput = document.getElementById('mainSearch');
+const mainSearchInput = document.getElementById('main-search-bar'); // Use the header search bar
 const gameFilter = document.getElementById('gameFilter');
 const setFilter = document.getElementById('setFilter');
 const minPriceInput = document.getElementById('minPrice');
@@ -49,7 +49,6 @@ async function fetchMarketplaceData() {
         </div>`;
 
     try {
-        // Using compat syntax
         const db = firebase.firestore();
         const listingsRef = db.collection('marketplaceListings');
         const querySnapshot = await listingsRef.orderBy('timestamp', 'desc').get();
@@ -96,37 +95,33 @@ function renderGridView() {
 
     filteredListings.forEach(listing => {
         const cardData = listing.cardData;
-        const sellerData = listing.sellerData;
-        const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || cardData.image_uris?.small || 'https://placehold.co/223x310?text=No+Image';
-
-        // Convert price based on source - SEK prices from marketplace listings
+        const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
         const displayPrice = Currency.convertFromSekAndFormat(listing.price);
 
         const cardElement = document.createElement('div');
-        cardElement.className = 'group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg';
+        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-gray-200 dark:bg-gray-800';
+        cardElement.dataset.imageUrl = imageUrl;
 
         cardElement.onclick = () => window.location.href = `/card-view.html?id=${listing.id}`;
 
         cardElement.innerHTML = `
-            <img src="${imageUrl}" alt="${cardData.name}" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-black bg-opacity-80 flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <h3 class="text-sm font-bold text-white truncate">${cardData.name}</h3>
-                <p class="text-xs text-blue-400 font-semibold">${displayPrice}</p>
-                <p class="text-xs text-gray-300">${listing.condition} ${listing.isFoil ? '• Foil' : ''}</p>
-                <div class="mt-1 border-t border-gray-600 pt-1">
-                    <a href="/profile.html?uid=${sellerData.uid}" onclick="event.stopPropagation()" class="flex items-center space-x-1 group/seller">
-                        <img src="${sellerData.photoURL || 'https://placehold.co/24'}" class="w-5 h-5 rounded-full">
-                        <span class="text-xs text-gray-400 group-hover/seller:text-white truncate">${sellerData.displayName}</span>
-                    </div>
+            <img src="${imageUrl}" alt="${cardData.name}" class="w-full h-auto object-cover rounded-t-lg">
+            <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
+            <div class="p-2">
+                <h3 class="font-bold text-sm truncate">${cardData.name}</h3>
+                <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
+                    <p><strong>Condition:</strong> ${listing.condition}</p>
+                    ${listing.isFoil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
+                    <p class="truncate"><strong>Notes:</strong> ${listing.notes || 'None'}</p>
                 </div>
             </div>
-        </div>`;
-
+        `;
         grid.appendChild(cardElement);
     });
 
     listingsContainer.appendChild(grid);
 }
+
 
 function renderListView() {
     const tableContainer = document.createElement('div');
@@ -148,8 +143,6 @@ function renderListView() {
     filteredListings.forEach(listing => {
         const cardData = listing.cardData;
         const sellerData = listing.sellerData;
-
-        // Convert price based on source - SEK prices from marketplace listings
         const displayPrice = Currency.convertFromSekAndFormat(listing.price);
 
         tableHTML += `
@@ -244,9 +237,9 @@ function populateSetFilter(listings = allListings) {
 }
 
 // --- EVENT LISTENERS ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize currency system with SEK as default (Hatake website preference)
-    Currency.initCurrency('SEK');
+document.addEventListener('DOMContentLoaded', async () => {
+    await Currency.initCurrency('SEK');
+    createCurrencySelector('user-actions');
     
     fetchMarketplaceData();
 
@@ -263,30 +256,53 @@ document.addEventListener('DOMContentLoaded', () => {
     // View toggle event listeners
     gridViewBtn.addEventListener('click', () => {
         currentView = 'grid';
-        gridViewBtn.classList.add('bg-blue-500', 'text-white');
-        gridViewBtn.classList.remove('bg-gray-200', 'text-gray-700');
-        listViewBtn.classList.add('bg-gray-200', 'text-gray-700');
-        listViewBtn.classList.remove('bg-blue-500', 'text-white');
+        gridViewBtn.classList.add('bg-blue-600', 'text-white');
+        gridViewBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        listViewBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        listViewBtn.classList.remove('bg-blue-600', 'text-white');
         renderListings();
     });
 
     listViewBtn.addEventListener('click', () => {
         currentView = 'list';
-        listViewBtn.classList.add('bg-blue-500', 'text-white');
-        listViewBtn.classList.remove('bg-gray-200', 'text-gray-700');
-        gridViewBtn.classList.add('bg-gray-200', 'text-gray-700');
-        gridViewBtn.classList.remove('bg-blue-500', 'text-white');
+        listViewBtn.classList.add('bg-blue-600', 'text-white');
+        listViewBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        gridViewBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        gridViewBtn.classList.remove('bg-blue-600', 'text-white');
         renderListings();
+    });
+    
+    // Card hover preview functionality
+    const tooltip = document.getElementById('card-preview-tooltip');
+    listingsContainer.addEventListener('mouseover', (e) => {
+        const cardElement = e.target.closest('.card-container');
+        if (cardElement && cardElement.dataset.imageUrl) {
+            tooltip.querySelector('img').src = cardElement.dataset.imageUrl;
+            tooltip.classList.remove('hidden');
+        }
+    });
+    listingsContainer.addEventListener('mouseout', () => {
+        tooltip.classList.add('hidden');
+    });
+    listingsContainer.addEventListener('mousemove', (e) => {
+        if (!tooltip.classList.contains('hidden')) {
+            tooltip.style.left = `${e.clientX + 15}px`;
+            tooltip.style.top = `${e.clientY}px`;
+        }
     });
 
     // Advanced filters toggle
     toggleAdvancedFiltersBtn.addEventListener('click', () => {
         advancedFiltersContainer.classList.toggle('hidden');
         const isHidden = advancedFiltersContainer.classList.contains('hidden');
-        toggleAdvancedFiltersBtn.textContent = isHidden ? 'Show Advanced Filters' : 'Hide Advanced Filters';
+        toggleAdvancedFiltersBtn.innerHTML = isHidden 
+            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1 transition-transform inline-block"></i>' 
+            : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1 transition-transform inline-block"></i>';
     });
 
     // Condition filter checkboxes
     conditionFiltersContainer.addEventListener('change', applyFiltersAndSort);
+    
+    // Re-render on currency change
+    document.addEventListener('currencyChanged', renderListings);
 });
-
