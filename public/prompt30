@@ -1,9 +1,14 @@
+1. The colour filters doesn't work for Magic, the red goblin doesn't appear on red colour and nothing goes away on colourless.
+2. There is still a cors issue when uploading pictures. This comes up in console:
+Access to XMLHttpRequest at 'https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FadHaXZ7W667hN1l6fVYi%2FIMG_5405.webp' from origin 'https://hatakesocial-88b5e.firebaseapp.com/' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+connection.ts:81  POST https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FadHaXZ7W667hN1l6fVYi%2FIMG_5405.webp net::ERR_FAILED
+This is my gsutil firebase storage: bucket (gs://hatakesocial-88b5e.firebasestorage.app) 
+3. The currency selector is not on the top of the page of my_collection.html anymore, it was there previously and you could switch currencies. Can you give me the code snippet and tell me where to put it? Maybe we can put it in auth.js so it loads on the header of all pages? auth.js:
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v26 - FINAL FIX)
+* HatakeSocial - Merged Authentication & Global UI Script (v25 - FINAL FIX)
 * - This is the complete, unabridged version of the original, working script.
 * - It correctly and safely integrates the currency module without breaking other functionalities.
 * - Restores all original functions, including notification listeners, that were accidentally removed.
-* - Adds the currency selector to the header on all pages.
 */
 
 // --- Firebase Initialization (Stable) ---
@@ -156,7 +161,8 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
+    // ** FIX: Dynamically import the currency module **
+    const { initCurrency } = await import('./modules/currency.js');
 
     document.body.style.opacity = '0'; // Hide body until ready
 
@@ -166,36 +172,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
+    
+    // This is part of your original, working code. It is being restored.
+    window.HatakeSocial = {
+        conversionRates: { SEK: 1, USD: 0.095, EUR: 0.088 },
+        currentCurrency: localStorage.getItem('hatakeCurrency') || 'SEK',
+        currentUserData: null,
+        convertAndFormatPrice(amount, fromCurrency = 'SEK') {
+            const toCurrency = this.currentCurrency;
+            if (amount === undefined || amount === null || isNaN(amount)) {
+                return `0.00 ${toCurrency}`;
+            }
+            const fromRate = this.conversionRates[fromCurrency];
+            if (fromRate === undefined) return `N/A`;
+            const amountInSEK = amount / fromRate;
+            const toRate = this.conversionRates[toCurrency];
+            if (toRate === undefined) return `N/A`;
+            const convertedAmount = amountInSEK * toRate;
+            return `${convertedAmount.toFixed(2)} ${toCurrency}`;
+        }
+    };
 
     const setupCurrencySelector = () => {
-        const container = document.getElementById('user-actions');
+        const container = document.getElementById('currency-selector-container');
         if (!container) return;
 
-        let currencySelector = document.getElementById('currency-selector-container');
-        if (!currencySelector) {
-            currencySelector = document.createElement('div');
-            currencySelector.id = 'currency-selector-container';
-            currencySelector.className = 'flex items-center space-x-2';
-            container.appendChild(currencySelector);
-        }
-
-        currencySelector.innerHTML = `
-            <select id="currency-selector" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm">
-                <option value="SEK">SEK</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="NOK">NOK</option>
-                <option value="DKK">DKK</option>
-            </select>
+        container.innerHTML = `
+        <label for="currency-selector" class="text-sm text-gray-600 dark:text-gray-400">Currency</label>
+        <select id="currency-selector" class="text-sm rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500">
+            <option value="SEK">SEK</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+        </select>
         `;
-
         const selector = document.getElementById('currency-selector');
         if (selector) {
-            selector.value = getUserCurrency();
+            selector.value = window.HatakeSocial.currentCurrency;
             selector.addEventListener('change', (e) => {
-                updateUserCurrency(e.target.value);
-                window.location.reload(); 
+                window.HatakeSocial.currentCurrency = e.target.value;
+                localStorage.setItem('hatakeCurrency', e.target.value);
+                window.location.reload();
             });
         }
     };
@@ -307,19 +323,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             verificationTimer = null;
         }
 
+        // Initialize currency first based on user status
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 userData = userDoc.data();
                 await initCurrency(userData.primaryCurrency);
             } else {
-                await initCurrency();
+                await initCurrency(); // New user, default
             }
         } else {
-            await initCurrency();
+            await initCurrency(); // Logged out, default
         }
         
+        // Dispatch the ready event now that auth and currency are set
         document.dispatchEvent(new CustomEvent('authReady', { detail: { user, userData } }));
+
 
         const mainSidebarNav = document.querySelector('#sidebar nav');
         const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
@@ -372,8 +391,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const userDocRef = db.collection('users').doc(user.uid);
             let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
                 if (doc.exists) {
-                    if (unsubscribeUserDoc) unsubscribeUserDoc();
+                    if (unsubscribeUserDoc) unsubscribeUserDoc(); // Unsubscribe after first read
 
+                    window.HatakeSocial.currentUserData = doc.data();
                     userData = doc.data();
                     const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
                     const idTokenResult = await user.getIdTokenResult(true);
@@ -392,7 +412,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (userActions) {
                         userActions.innerHTML = `
-                            <div id="currency-selector-container"></div>
                             <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
                                 <i class="fas fa-shopping-cart"></i>
                                 <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
@@ -419,8 +438,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 </div>
                             </div>`;
                         
-                        setupCurrencySelector();
-
                         const cartBtn = document.getElementById('cart-btn');
                         const cartModal = document.getElementById('cartModal');
                         if(cartBtn && cartModal) {
@@ -476,7 +493,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast("Could not load your profile data.", "error");
             });
 
-        } else { 
+        } else { // User is logged out
+            window.HatakeSocial.currentUserData = null;
             if (friendRequestHandshakeListener) friendRequestHandshakeListener();
             if (unsubscribeNotifications) unsubscribeNotifications();
 
@@ -507,6 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupGlobalListeners();
     setupHeaderSearch();
+    setupCurrencySelector();
 
     window.addEventListener('click', () => {
         document.getElementById('profile-dropdown')?.classList.add('hidden');
@@ -582,3 +601,4 @@ async function showTermsModal() {
         }
     });
 }
+4. It says uncommon and common twice for the sets in the all tab, can we seperate them so that we can select MTG uncommon and/or PKMN uncommon, and what if you want to select both your MTG uncommons and MTG commons?

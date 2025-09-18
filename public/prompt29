@@ -1,0 +1,13 @@
+1. The picture upload doesn't function. This is what it says in console:
+collection-app.js:154 Uncaught (in promise) TypeError: UI.setButtonLoading is not a function
+    at HTMLFormElement.handleCardFormSubmit (collection-app.js:154:8)
+handleCardFormSubmit    @    collection-app.js:154
+2. We cannot add Pokemon cards. This is what shows up in console:
+collection-app.js:154 Uncaught (in promise) TypeError: UI.setButtonLoading is not a function
+    at HTMLFormElement.handleCardFormSubmit (collection-app.js:154:8)
+handleCardFormSubmit    @    collection-app.js:154
+3. It is the same for Magic cards:
+collection-app.js:154 Uncaught (in promise) TypeError: UI.setButtonLoading is not a function
+    at HTMLFormElement.handleCardFormSubmit (collection-app.js:154:8)
+handleCardFormSubmit    @    collection-app.js:154
+4. The sol ring's that are colourless dissapear when we click the colourless filter.
