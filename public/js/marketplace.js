@@ -294,8 +294,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     listingsContainer.addEventListener('mousemove', (e) => {
         if (!tooltip.classList.contains('hidden')) {
-            tooltip.style.left = `${e.clientX + 15}px`;
-            tooltip.style.top = `${e.clientY}px`;
+            const mouseX = e.clientX, mouseY = e.clientY;
+            const tooltipWidth = 130; // Half of 260px
+            const tooltipHeight = 182; // Maintain aspect ratio
+            let left = mouseX + 15;
+            let top = mouseY - tooltipHeight / 2;
+            if (left + tooltipWidth > window.innerWidth) left = mouseX - tooltipWidth - 15;
+            if (top < 0) top = 10;
+            else if (top + tooltipHeight > window.innerHeight) top = window.innerHeight - tooltipHeight - 10;
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
         }
     });
 

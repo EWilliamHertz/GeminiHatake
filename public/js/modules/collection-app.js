@@ -7,6 +7,7 @@ import * as UI from './ui.js';
 import * as API from './api.js';
 import * as CSV from './csv.js';
 import * as Currency from './currency.js';
+import { getCardImageUrl } from './utils.js';
 
 let currentUser = null;
 let csvFile = null;
@@ -462,8 +463,9 @@ function handleCardHover(e) {
             tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
             img = tooltip.querySelector('img');
         }
-
-        img.src = getCardImageUrl(card);
+        
+        const imageUrl = getCardImageUrl(card);
+        img.src = imageUrl;
         tooltip.classList.remove('hidden');
         updateTooltipPosition(e, tooltip);
     }
