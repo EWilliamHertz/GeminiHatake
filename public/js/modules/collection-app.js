@@ -250,9 +250,12 @@ function handleCollectionDisplayClick(e) {
 
     if (isBulkMode) {
         Collection.toggleCardSelection(cardId);
+        const isSelected = Collection.getState().bulkEdit.selected.has(cardId);
+        cardContainer.classList.toggle('ring-4', isSelected);
+        cardContainer.classList.toggle('ring-blue-500', isSelected);
+        const checkbox = cardContainer.querySelector('.bulk-select-checkbox');
+        if (checkbox) checkbox.checked = isSelected;
         UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
-        cardContainer.classList.toggle('ring-4', Collection.getState().bulkEdit.selected.has(cardId));
-        cardContainer.classList.toggle('ring-blue-500', Collection.getState().bulkEdit.selected.has(cardId));
     } else {
         const button = e.target.closest('button[data-action]');
         if (button) {
