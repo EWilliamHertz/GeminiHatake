@@ -125,7 +125,7 @@ export function renderGridView(cards, activeTab) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = Currency.convertAndFormat(card?.prices?.usd || 0);
+        const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
             ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertFromSekAndFormat(card.salePrice)}</div>`
@@ -178,7 +178,7 @@ export function renderListView(cards, activeTab) {
         </thead>`;
 
     const tableBody = cards.map(card => {
-        const price = Currency.convertAndFormat(card?.prices?.usd || 0);
+        const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const saleStatus = (card.forSale && typeof card.salePrice === 'number')
             ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertFromSekAndFormat(card.salePrice)})</span>`
@@ -220,7 +220,7 @@ export function renderSearchResults(results) {
     }
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = Currency.convertAndFormat(card?.prices?.usd || 0);
+        const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
         const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
         const cardDataString = encodeURIComponent(JSON.stringify(card));
         return `

@@ -51,6 +51,11 @@ function setupEventListeners() {
     document.getElementById('filter-rarity').addEventListener('change', (e) => applyAndRender({ rarity: e.target.value }));
 
     document.getElementById('collection-display').addEventListener('click', handleCollectionDisplayClick);
+    
+    // Card hover preview functionality
+    document.getElementById('collection-display').addEventListener('mouseover', handleCardHover);
+    document.getElementById('collection-display').addEventListener('mouseout', handleCardHoverOut);
+    document.getElementById('collection-display').addEventListener('mousemove', handleCardHoverMove);
 
     // Bulk Edit Listeners
     document.getElementById('bulk-edit-btn').addEventListener('click', handleBulkEditToggle);
@@ -393,3 +398,73 @@ async function handleFinalizeBulkList() {
         }
     }
 }
+
+// Card hover preview functionality
+function handleCardHover(e) {
+    const cardElement = e.target.closest('.card-container');
+    if (!cardElement) return;
+    
+    const cardImage = cardElement.querySelector('img');
+    if (!cardImage) return;
+    
+    const tooltip = document.getElementById('card-preview-tooltip');
+    const tooltipImage = tooltip.querySelector('img');
+    
+    // Set the image source to the card's image
+    tooltipImage.src = cardImage.src;
+    tooltipImage.alt = cardImage.alt;
+    
+    // Show the tooltip
+    tooltip.classList.remove('hidden');
+    
+    // Position the tooltip near the mouse cursor
+    updateTooltipPosition(e, tooltip);
+}
+
+function handleCardHoverOut(e) {
+    const cardElement = e.target.closest('.card-container');
+    if (!cardElement) return;
+    
+    // Check if we're still hovering over the same card or its children
+    const relatedTarget = e.relatedTarget;
+    if (relatedTarget && cardElement.contains(relatedTarget)) return;
+    
+    const tooltip = document.getElementById('card-preview-tooltip');
+    tooltip.classList.add('hidden');
+}
+
+function handleCardHoverMove(e) {
+    const cardElement = e.target.closest('.card-container');
+    if (!cardElement) return;
+    
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (tooltip.classList.contains('hidden')) return;
+    
+    updateTooltipPosition(e, tooltip);
+}
+
+function updateTooltipPosition(e, tooltip) {
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+    const tooltipWidth = 260; // Fixed width from CSS
+    const tooltipHeight = 360; // Approximate height for a card
+    
+    // Calculate position to keep tooltip on screen
+    let left = mouseX + 15; // Offset from cursor
+    let top = mouseY - tooltipHeight / 2;
+    
+    // Adjust if tooltip would go off screen
+    if (left + tooltipWidth > window.innerWidth) {
+        left = mouseX - tooltipWidth - 15;
+    }
+    
+    if (top < 0) {
+        top = 10;
+    } else if (top + tooltipHeight > window.innerHeight) {
+        top = window.innerHeight - tooltipHeight - 10;
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
