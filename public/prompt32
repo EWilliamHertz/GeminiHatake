@@ -1,0 +1,102 @@
+When we ran csv import, it said that over 200 cards succeeded but they didn't show up until the page was refreshed.
+These 8, did, however fail:
+Error processing Thousand Moons Smithy // Barracks of the Thousand: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/RxK1xsY1q0N3cfyEf9dG)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport @ csv.js:122Understand this error
+csv.js:122 Error processing The Restoration of Eiganjo // Architect of Restoration: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/ndWDUsPOMrtDadUTuRwP)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+csv.js:122 Error processing Hanweir Militia Captain // Westvale Cult Leader: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/VCbpyLSE1LUwDngiIAkX)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport    @    csv.js:122
+
+csv.js:122 Error processing Startled Awake // Persistent Nightmare: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/3Xa6GkxUELDJtN9NtevD)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport    @    csv.js:122
+csv.js:122 Error processing Starscream: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/qsdhFi73dtnwNQ5RawGB)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport    @    csv.js:122
+
+csv.js:122 Error processing Hagra Mauling // Hagra Broodpit: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/FYu4j9eTkcOErjgBJ5I2)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport    @    csv.js:122
+csv.js:122 Error processing Graveyard Trespasser // Graveyard Glutton: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/NxJnahqU9OCQth50Qav2)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport    @    csv.js:122
+
+csv.js:122 Error processing Blitzwing: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field image_uris in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/kaLMnSdOaytQNuhSXTAc)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+finalizeImport    @    csv.js:122
+
+Why did they fail? I am attaching the .csv file we used, it is called ernst.csv

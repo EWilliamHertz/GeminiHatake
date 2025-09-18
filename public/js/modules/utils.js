@@ -4,6 +4,25 @@
  */
 
 /**
+ * Creates a debounced function that delays invoking `func` until after `wait` milliseconds have elapsed
+ * since the last time the debounced function was invoked.
+ * @param {Function} func The function to debounce.
+ * @param {number} wait The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
  * Transforms a Scryfall card object into the app's standard format.
  * @param {object} scryfallCard - The raw card object from the Scryfall API.
  * @returns {object} A standardized card object.
@@ -37,12 +56,12 @@ export function transformScryfallCard(scryfallCard) {
  */
 export function transformPokemonCard(pokemonCard) {
     const prices = pokemonCard.tcgplayer?.prices || {};
-    const normalPrice = prices?.normal?.market 
-                      || prices?.unlimited?.market 
-                      || prices?.holofoil?.market 
+    const normalPrice = prices?.normal?.market
+                      || prices?.unlimited?.market
+                      || prices?.holofoil?.market
                       || null;
-    const foilPrice = prices?.holofoil?.market 
-                    || prices?.reverseHolofoil?.market 
+    const foilPrice = prices?.holofoil?.market
+                    || prices?.reverseHolofoil?.market
                     || prices?.["1stEditionHolofoil"]?.market
                     || null;
 
@@ -61,7 +80,7 @@ export function transformPokemonCard(pokemonCard) {
         rarity: pokemonCard.rarity || 'Common',
         image_uris: image_uris,
         // Keep the original images object for backward compatibility with saved cards
-        images: pokemonCard.images, 
+        images: pokemonCard.images,
         prices: {
             usd: normalPrice,
             usd_foil: foilPrice,

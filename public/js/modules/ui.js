@@ -115,6 +115,32 @@ export function hidePriceLoading(selector = '[data-price-usd], [data-price-sek]'
     });
 }
 
+/**
+ * Updates and shows the card preview tooltip.
+ * @param {Event} event - The mouse event.
+ * @param {object} card - The card data object.
+ */
+export function updateCardPreviewTooltip(event, card) {
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (!tooltip) return;
+
+    let img = tooltip.querySelector('img');
+    if (!img) {
+        tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+        img = tooltip.querySelector('img');
+    }
+
+    const imageUrl = getCardImageUrl(card);
+    img.src = imageUrl;
+
+    tooltip.classList.remove('hidden');
+
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = `${rect.right + 10}px`;
+    tooltip.style.top = `${window.scrollY + rect.top}px`;
+}
+
+
 // --- RENDER FUNCTIONS ---
 
 export function renderGridView(cards, activeTab) {

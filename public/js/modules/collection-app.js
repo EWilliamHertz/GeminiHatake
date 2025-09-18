@@ -448,12 +448,25 @@ function handleCardModalClicks(e) {
 function handleCardHover(e) {
     const cardElement = e.target.closest('.card-container, .search-result-item');
     if (!cardElement) return;
-    const cardImage = cardElement.querySelector('img');
-    if (!cardImage) return;
-    const tooltip = document.getElementById('card-preview-tooltip');
-    tooltip.querySelector('img').src = cardImage.src;
-    tooltip.classList.remove('hidden');
-    updateTooltipPosition(e, tooltip);
+
+    const cardId = cardElement.dataset.id;
+    if (!cardId) return;
+
+    const card = Collection.getCardById(cardId);
+    if (card) {
+        const tooltip = document.getElementById('card-preview-tooltip');
+        if (!tooltip) return;
+
+        let img = tooltip.querySelector('img');
+        if (!img) {
+            tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+            img = tooltip.querySelector('img');
+        }
+
+        img.src = getCardImageUrl(card);
+        tooltip.classList.remove('hidden');
+        updateTooltipPosition(e, tooltip);
+    }
 }
 
 function handleCardHoverOut(e) {

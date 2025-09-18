@@ -1,3 +1,5 @@
+// public/js/marketplace.js
+
 /**
  * @file public/js/marketplace.js
  * @description Handles all logic for the TCG Marketplace page for HatakeSocial.
@@ -96,7 +98,7 @@ function renderGridView() {
     filteredListings.forEach(listing => {
         const cardData = listing.cardData;
         const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
-        const displayPrice = Currency.convertFromSekAndFormat(listing.price);
+        const displayPrice = Currency.convertAndFormat(listing.price);
 
         const cardElement = document.createElement('div');
         cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-gray-200 dark:bg-gray-800';
@@ -143,14 +145,15 @@ function renderListView() {
     filteredListings.forEach(listing => {
         const cardData = listing.cardData;
         const sellerData = listing.sellerData;
-        const displayPrice = Currency.convertFromSekAndFormat(listing.price);
+        const displayPrice = Currency.convertAndFormat(listing.price);
+        const imageUrl = cardData.image_uris?.small || 'https://placehold.co/32';
 
         tableHTML += `
             <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='/card-view.html?id=${listing.id}'">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-8">
-                            <img class="h-10 w-8 rounded object-cover" src="${cardData.image_uris?.small || 'https://placehold.co/32'}" alt="">
+                            <img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt="">
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 dark:text-white">${cardData.name} ${listing.isFoil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div>
@@ -238,7 +241,7 @@ function populateSetFilter(listings = allListings) {
 
 // --- EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', async () => {
-    await Currency.initCurrency('SEK');
+    await Currency.initCurrency();
     createCurrencySelector('user-actions');
     
     fetchMarketplaceData();
@@ -277,7 +280,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     listingsContainer.addEventListener('mouseover', (e) => {
         const cardElement = e.target.closest('.card-container');
         if (cardElement && cardElement.dataset.imageUrl) {
-            tooltip.querySelector('img').src = cardElement.dataset.imageUrl;
+            let img = tooltip.querySelector('img');
+            if (!img) {
+                tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+                img = tooltip.querySelector('img');
+            }
+            img.src = cardElement.dataset.imageUrl;
             tooltip.classList.remove('hidden');
         }
     });
