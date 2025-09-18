@@ -17,7 +17,6 @@ export async function initCurrency(preferredCurrency = 'USD') {
     state.userCurrency = preferredCurrency in state.symbols ? preferredCurrency : 'USD';
     try {
         const result = await getExchangeRates({ base: 'USD' });
-        // **FIX**: Check for result.data and result.data.rates before assigning
         if (result && result.data && result.data.rates) {
             state.rates = result.data.rates;
             state.rates['USD'] = 1; // Ensure USD base rate is always present
@@ -27,7 +26,6 @@ export async function initCurrency(preferredCurrency = 'USD') {
         }
     } catch (error) {
         console.error("Failed to initialize currency rates, using fallback rates:", error);
-        // **FIX**: Provide a comprehensive fallback object to prevent the app from crashing
         state.rates = { 'USD': 1, 'SEK': 10.5, 'EUR': 0.92, 'GBP': 0.78, 'NOK': 9.55, 'DKK': 6.85 };
     }
 }
@@ -60,7 +58,6 @@ export function convertFromSekAndFormat(priceInSek) {
 function formatPrice(amount, currencyCode) {
     if (typeof amount !== 'number' || isNaN(amount)) return 'N/A';
     
-    // Use Intl.NumberFormat for better localization and formatting
     return new Intl.NumberFormat('sv-SE', {
         style: 'currency',
         currency: currencyCode,

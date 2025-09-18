@@ -17,7 +17,6 @@ export async function searchCards(cardName, game) {
 
 async function searchScryfall(cardName) {
     try {
-        // FIX: Re-added '&unique=prints' to ensure all printings of a card are fetched.
         const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints`);
         if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.details || 'Card not found.'); }
         const data = await response.json();
@@ -35,6 +34,11 @@ async function searchPokemon(cardName) {
 
 // --- DATA CLEANING ---
 function cleanScryfallData(card) {
+    const prices = card.prices ? {
+        usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
+        usd_foil: card.prices.usd_foil ? parseFloat(card.prices.usd_foil) : null,
+    } : { usd: null, usd_foil: null };
+
     return {
         api_id: card.id,
         name: card.name,
@@ -43,7 +47,7 @@ function cleanScryfallData(card) {
         rarity: card.rarity,
         image_uris: card.image_uris,
         card_faces: card.card_faces,
-        prices: card.prices,
+        prices: prices,
         mana_cost: card.mana_cost,
         cmc: card.cmc,
         type_line: card.type_line,
@@ -60,7 +64,6 @@ function cleanPokemonData(card) {
         set: card.set.id,
         set_name: card.set.name,
         rarity: card.rarity || 'Common',
-        // FIX: Changed 'images' property to 'image_uris' to match the Firestore data structure
         image_uris: card.images,
         prices: {
             usd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,

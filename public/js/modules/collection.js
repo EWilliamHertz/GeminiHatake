@@ -141,7 +141,6 @@ export async function updateCard(cardId, updates, customImageFile) {
         finalUpdates.customImageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
     }
 
-    // Ensure api_id is included in the update
     const originalCard = getCardById(cardId);
     if (originalCard && originalCard.api_id) {
         finalUpdates.api_id = originalCard.api_id;

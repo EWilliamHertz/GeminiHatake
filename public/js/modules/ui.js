@@ -456,7 +456,8 @@ export function getCardFormData() {
         data: {
             name: cardData.name,
             set_name: cardData.set_name,
-            api_id: cardData.id,
+            // FIX: Changed cardData.id to cardData.api_id to match the cleaned data object.
+            api_id: cardData.api_id,
             image_uris: cardData.image_uris,
             prices: cardData.prices,
             rarity: cardData.rarity,
@@ -468,6 +469,7 @@ export function getCardFormData() {
             is_signed: getElement('card-is-signed').checked,
             is_altered: getElement('card-is-altered').checked,
             purchase_price: parseFloat(getElement('card-purchase-price').value) || 0,
+            addedAt: new Date(), // Add timestamp
         },
         customImageFile: getElement('custom-image-upload').files[0] || null
     };

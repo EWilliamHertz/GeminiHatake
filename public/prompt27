@@ -1,0 +1,20 @@
+1. The filter buttons for Magic doesn't work.
+2. When you go into the Pokemon tab, there should be filter options for Pokemon cards as well.
+3. The Pokemon editions shouldn't show up in the editions dropdown menu when you are in the Magic the Gathering tab, and vice versa.
+4. It is not possible to save custom images, this shows up in console:
+Access to XMLHttpRequest at 'https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FadHaXZ7W667hN1l6fVYi%2FIMG_5405.webp' from origin 'https://hatakesocial-88b5e.firebaseapp.com/' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+connection.ts:81  POST https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.appspot.com/o?name=users%2Fx2aA4S7oGJhsBir61yJonFLIqTM2%2Fcollection_images%2FadHaXZ7W667hN1l6fVYi%2FIMG_5405.webp net::ERR_FAILED
+This is my gsutil firebase storage: bucket (gs://hatakesocial-88b5e.firebasestorage.app) 
+This is my cors.json file:
+[
+  {
+    "origin": ["https://hatakesocial-88b5e.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]
+Please write fully coded merged files without any placeholders taken from the conversation/github.

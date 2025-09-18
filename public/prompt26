@@ -1,0 +1,31 @@
+1. It isn't possible to add cards manually, both singles and duplicates whilst adding Magic cards.
+This is what it shows up in the console:
+Failed to load resource: the server responded with a status of 404 ()Understand this error
+api.js:25 Scryfall API error: Error: Your query didn’t match any cards. Adjust your search terms or refer to the syntax guide at https://scryfall.com/docs/reference
+    at searchScryfall (api.js:22:76)
+    at async collection-app.js:207:29
+searchScryfall @ api.js:25Understand this error
+collection-app.js:178 Error saving card: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field api_id in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/dgTEzMfui26iaXpvqPEn)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+2. It is not possible to add Pokemon cards manually either, this is what shows up in the console:
+Error saving card: FirebaseError: Function addDoc() called with invalid data. Unsupported field value: undefined (found in field api_id in document users/x2aA4S7oGJhsBir61yJonFLIqTM2/collection/MY6kN04B1xKx03ytaNGa)
+    at jl (index.esm2017.js:16447:16)
+    at El.Ua (index.esm2017.js:16050:16)
+    at index.esm2017.js:16364:17
+    at Ml (index.esm2017.js:16322:12)
+    at index.esm2017.js:16381:19
+    at $r (index.esm2017.js:961:70)
+    at Pl (index.esm2017.js:16380:63)
+    at Sl (index.esm2017.js:16093:15)
+    at index.esm2017.js:17540:20
+    at Hd.add (database.ts:1273:12)
+Please write fully coded files, merged from the github.

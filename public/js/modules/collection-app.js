@@ -57,6 +57,11 @@ function setupEventListeners() {
     document.getElementById('collection-display').addEventListener('mouseout', handleCardHoverOut);
     document.getElementById('collection-display').addEventListener('mousemove', handleCardHoverMove);
 
+    // Card hover preview functionality for search results
+    document.getElementById('search-results-container').addEventListener('mouseover', handleCardHover);
+    document.getElementById('search-results-container').addEventListener('mouseout', handleCardHoverOut);
+    document.getElementById('search-results-container').addEventListener('mousemove', handleCardHoverMove);
+
     // Bulk Edit Listeners
     document.getElementById('bulk-edit-btn').addEventListener('click', handleBulkEditToggle);
     document.getElementById('bulk-list-btn').addEventListener('click', handleBulkListClick);
@@ -101,31 +106,6 @@ function setupEventListeners() {
                 imagePreview.src = e.target.result;
             };
             reader.readAsDataURL(file);
-        }
-    });
-
-    // Tooltip listener
-    const tooltip = document.getElementById('card-preview-tooltip');
-    document.getElementById('collection-display').addEventListener('mousemove', (e) => {
-        const card = e.target.closest('.card-container .card img');
-        if (card) {
-            tooltip.style.left = `${e.pageX + 15}px`;
-            tooltip.style.top = `${e.pageY + 15}px`;
-        }
-    });
-
-    document.getElementById('collection-display').addEventListener('mouseover', (e) => {
-        const card = e.target.closest('.card-container .card img');
-        if (card) {
-            tooltip.querySelector('img').src = card.src;
-            tooltip.classList.remove('hidden');
-        }
-    });
-
-    document.getElementById('collection-display').addEventListener('mouseout', (e) => {
-        const card = e.target.closest('.card-container .card img');
-        if (card) {
-            tooltip.classList.add('hidden');
         }
     });
 }
@@ -401,7 +381,7 @@ async function handleFinalizeBulkList() {
 
 // Card hover preview functionality
 function handleCardHover(e) {
-    const cardElement = e.target.closest('.card-container');
+    const cardElement = e.target.closest('.card-container, .search-result-item');
     if (!cardElement) return;
     
     const cardImage = cardElement.querySelector('img');
@@ -410,22 +390,18 @@ function handleCardHover(e) {
     const tooltip = document.getElementById('card-preview-tooltip');
     const tooltipImage = tooltip.querySelector('img');
     
-    // Set the image source to the card's image
     tooltipImage.src = cardImage.src;
     tooltipImage.alt = cardImage.alt;
     
-    // Show the tooltip
     tooltip.classList.remove('hidden');
     
-    // Position the tooltip near the mouse cursor
     updateTooltipPosition(e, tooltip);
 }
 
 function handleCardHoverOut(e) {
-    const cardElement = e.target.closest('.card-container');
+    const cardElement = e.target.closest('.card-container, .search-result-item');
     if (!cardElement) return;
     
-    // Check if we're still hovering over the same card or its children
     const relatedTarget = e.relatedTarget;
     if (relatedTarget && cardElement.contains(relatedTarget)) return;
     
@@ -434,7 +410,7 @@ function handleCardHoverOut(e) {
 }
 
 function handleCardHoverMove(e) {
-    const cardElement = e.target.closest('.card-container');
+    const cardElement = e.target.closest('.card-container, .search-result-item');
     if (!cardElement) return;
     
     const tooltip = document.getElementById('card-preview-tooltip');
@@ -446,14 +422,12 @@ function handleCardHoverMove(e) {
 function updateTooltipPosition(e, tooltip) {
     const mouseX = e.clientX;
     const mouseY = e.clientY;
-    const tooltipWidth = 260; // Fixed width from CSS
-    const tooltipHeight = 360; // Approximate height for a card
+    const tooltipWidth = 260; 
+    const tooltipHeight = 360; 
     
-    // Calculate position to keep tooltip on screen
-    let left = mouseX + 15; // Offset from cursor
+    let left = mouseX + 15;
     let top = mouseY - tooltipHeight / 2;
     
-    // Adjust if tooltip would go off screen
     if (left + tooltipWidth > window.innerWidth) {
         left = mouseX - tooltipWidth - 15;
     }
@@ -467,4 +441,3 @@ function updateTooltipPosition(e, tooltip) {
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
 }
-
