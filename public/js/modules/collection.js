@@ -12,7 +12,7 @@ let state = {
     filteredCollection: [],
     activeTab: 'collection',
     activeView: 'grid',
-    filters: { name: '', set: '', rarity: [], colors: [], game: 'all', type: '' },
+    filters: { name: '', set: [], rarity: [], colors: [], game: 'all', type: '' },
     bulkEdit: { isActive: false, selected: new Set() },
     currentEditingCard: null,
     pendingCards: [],
@@ -206,7 +206,7 @@ export function applyFilters() {
 
     const filterLogic = (card) => {
         const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
-        const setMatch = !set || card.set_name === set;
+        const setMatch = set.length === 0 || set.includes(card.set_name);
         const rarityMatch = rarity.length === 0 || rarity.includes(card.rarity);
         const gameMatch = game === 'all' || (card.game || 'mtg') === game;
 

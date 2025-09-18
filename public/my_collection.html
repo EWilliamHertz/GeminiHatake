@@ -163,10 +163,11 @@
 <h3 class="text-lg font-semibold mb-3">Filters</h3>
 <div class="space-y-4">
 <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="filter-name" placeholder="Filter by name..." type="text"/>
-<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-set"><option value="">All Sets</option></select>
-<select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="filter-rarity"><option value="">All Rarities</option></select>
+<div id="filter-set-container" class="relative"></div>
+<div id="filter-rarity-container" class="relative"></div>
 <div id="game-specific-filters">
     </div>
+<button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="clear-filters-btn"><i class="fas fa-times w-6"></i> Clear Filters</button>
 </div>
 </div>
 <div>

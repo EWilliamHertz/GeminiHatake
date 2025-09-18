@@ -20,7 +20,7 @@ document.addEventListener('authReady', async ({ detail: { user } }) => {
             setupInitialFilters();
             applyAndRender({});
             setupEventListeners();
-            UI.createCurrencySelector('user-actions-header');
+            UI.createCurrencySelector('user-actions');
         } catch (error) {
             console.error("Initialization failed:", error);
             UI.showToast("Could not load your collection.", "error");
@@ -68,8 +68,9 @@ function setupEventListeners() {
 
     // Filter inputs
     document.getElementById('filter-name').addEventListener('input', (e) => applyAndRender({ name: e.target.value }));
-    document.getElementById('filter-set').addEventListener('change', (e) => applyAndRender({ set: e.target.value }));
-    document.getElementById('filter-rarity').addEventListener('change', (e) => applyAndRender({ rarity: e.target.value }));
+    document.getElementById('filter-set-container').addEventListener('change', (e) => applyAndRender({ set: UI.getCheckedValues('set') }));
+    document.getElementById('filter-rarity-container').addEventListener('change', (e) => applyAndRender({ rarity: UI.getCheckedValues('rarity') }));
+    document.getElementById('clear-filters-btn').addEventListener('click', clearFilters);
     
     // Dynamic filter container listeners
     const gameSpecificFiltersContainer = document.getElementById('game-specific-filters');
@@ -103,7 +104,7 @@ function setupEventListeners() {
         if (e.target.id === 'bulk-select-all-btn') handleBulkSelectAll();
         if (e.target.id === 'bulk-list-btn') handleBulkListClick();
         if (e.target.id === 'bulk-delete-btn') handleBulkDeleteClick();
-        if (e.target.id === 'finalize-bulk-list-btn') handleFinalizeBulkList();
+        if (e.target.id === 'finalize-bulk-list-btn') handleFinalizeBulkList(e);
         if (e.target.id === 'bulk-apply-percentage-btn') handleBulkApplyPercentage();
     });
      document.body.addEventListener('submit', e => {
@@ -248,12 +249,10 @@ function handleCollectionDisplayClick(e) {
     const cardId = cardContainer.dataset.id;
 
     if (isBulkMode) {
-        if (e.target.classList.contains('bulk-select-checkbox')) {
-             Collection.toggleCardSelection(cardId);
-             UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
-             cardContainer.classList.toggle('ring-4', e.target.checked);
-             cardContainer.classList.toggle('ring-blue-500', e.target.checked);
-        }
+        Collection.toggleCardSelection(cardId);
+        UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+        cardContainer.classList.toggle('ring-4', Collection.getState().bulkEdit.selected.has(cardId));
+        cardContainer.classList.toggle('ring-blue-500', Collection.getState().bulkEdit.selected.has(cardId));
     } else {
         const button = e.target.closest('button[data-action]');
         if (button) {
@@ -341,8 +340,48 @@ function handleBulkApplyPercentage() {
 
 async function handleFinalizeBulkList(e) {
     UI.setButtonLoading(e.target, true);
-    // Implementation from previous correct response
+    try {
+        const updates = [];
+        document.querySelectorAll('#bulk-review-list > div').forEach(item => {
+            const cardId = item.dataset.id;
+            const marketPrice = parseFloat(item.dataset.marketPrice);
+            const fixedPriceInput = item.querySelector('.bulk-review-fixed-input');
+            const percentageInput = item.querySelector('.bulk-review-percent-input');
+            let salePrice = null;
+
+            if (fixedPriceInput.value) {
+                salePrice = parseFloat(fixedPriceInput.value);
+            } else if (percentageInput.value && marketPrice > 0) {
+                salePrice = (marketPrice * parseFloat(percentageInput.value)) / 100;
+            }
+
+            if (salePrice !== null) {
+                updates.push({
+                    id: cardId,
+                    data: {
+                        forSale: true,
+                        salePrice: parseFloat(salePrice.toFixed(2))
+                    }
+                });
+            }
+        });
+
+        if (updates.length > 0) {
+            await Collection.batchUpdateSaleStatus(updates);
+            UI.showToast(`${updates.length} cards have been listed for sale.`, 'success');
+            UI.closeModal(document.getElementById('bulk-review-modal'));
+            applyAndRender({});
+        } else {
+            UI.showToast('No valid prices were set.', 'info');
+        }
+    } catch (error) {
+        console.error('Bulk list finalization failed:', error);
+        UI.showToast('There was an error listing your cards.', 'error');
+    } finally {
+        UI.setButtonLoading(e.target, false);
+    }
 }
+
 
 function handleCardModalClicks(e) {
     const item = e.target.closest('.pending-card-item');
@@ -400,4 +439,19 @@ function updateTooltipPosition(e, tooltip) {
     else if (top + tooltipHeight > window.innerHeight) top = window.innerHeight - tooltipHeight - 10;
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
+}
+
+function clearFilters() {
+    Collection.setFilters({
+        name: '',
+        set: [],
+        rarity: [],
+        colors: [],
+        type: ''
+    });
+    document.getElementById('filter-name').value = '';
+    UI.clearCheckboxes('set');
+    UI.clearCheckboxes('rarity');
+    UI.updateColorFilterSelection([]);
+    applyAndRender({});
 }

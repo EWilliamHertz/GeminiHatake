@@ -128,7 +128,7 @@ export function renderGridView(cards, activeTab) {
         const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
-            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertFromSekAndFormat(card.salePrice)}</div>`
+            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertAndFormat(card.salePrice)}</div>`
             : '';
 
         const bulkCheckbox = isBulkMode
@@ -181,7 +181,7 @@ export function renderListView(cards, activeTab) {
         const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const saleStatus = (card.forSale && typeof card.salePrice === 'number')
-            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertFromSekAndFormat(card.salePrice)})</span>`
+            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.salePrice)})</span>`
             : 'In Collection';
         
         return `
@@ -318,28 +318,47 @@ export function updateStats(stats, activeTab) {
 }
 
 export function populateFilters(sets, rarities) {
-    const setFilter = getElement('filter-set');
-    const rarityFilter = getElement('filter-rarity');
-    const currentSet = setFilter.value;
-
-    setFilter.innerHTML = '<option value="">All Sets</option>' + sets.map(s => `<option value="${s}">${s}</option>`).join('');
-    setFilter.value = currentSet;
-    
-    let rarityOptions = '';
-    if (rarities.mtg) {
-        rarityOptions += `<optgroup label="Magic: The Gathering">`;
-        rarityOptions += rarities.mtg.map(r => `<option value="${r}">${r}</option>`).join('');
-        rarityOptions += `</optgroup>`;
-    }
-    if (rarities.pokemon) {
-        rarityOptions += `<optgroup label="Pokémon">`;
-        rarityOptions += rarities.pokemon.map(r => `<option value="${r}">${r}</option>`).join('');
-        rarityOptions += `</optgroup>`;
-    }
-    
-    rarityFilter.innerHTML = '<option value="">All Rarities</option>' + rarityOptions;
+    populateMultiSelect('filter-set-container', 'Sets', 'set', sets);
+    populateMultiSelect('filter-rarity-container', 'Rarities', 'rarity', rarities);
 }
 
+function populateMultiSelect(containerId, label, type, options) {
+    const container = getElement(containerId);
+    let optionsHTML = '';
+    if (Array.isArray(options)) {
+        optionsHTML = options.map(o => `
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="${type}" value="${o}">
+                <span>${o}</span>
+            </label>
+        `).join('');
+    } else {
+        for (const game in options) {
+            optionsHTML += `<div class="font-bold">${game === 'mtg' ? 'Magic: The Gathering' : 'Pokémon'}</div>`;
+            optionsHTML += options[game].map(o => `
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="${type}" value="${o}">
+                    <span>${o}</span>
+                </label>
+            `).join('');
+        }
+    }
+
+    container.innerHTML = `
+        <button class="w-full text-left p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" onclick="this.nextElementSibling.classList.toggle('hidden')">${label}</button>
+        <div class="hidden absolute z-10 w-full bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-md mt-1 p-2 space-y-2 max-h-60 overflow-y-auto">
+            ${optionsHTML}
+        </div>
+    `;
+}
+
+export function getCheckedValues(type) {
+    return Array.from(document.querySelectorAll(`input[name=${type}]:checked`)).map(el => el.value);
+}
+
+export function clearCheckboxes(type) {
+    document.querySelectorAll(`input[name=${type}]`).forEach(el => el.checked = false);
+}
 
 export function renderGameSpecificFilters(game, types) {
     const container = getElement('game-specific-filters');
@@ -474,6 +493,9 @@ export function populateCardModalForAdd(cardData) {
     getElement('card-is-altered').checked = false;
     getElement('card-purchase-price').value = '';
     getElement('save-card-btn').textContent = 'Add to Collection';
+    getElement('market-price-display').textContent = Currency.convertAndFormat(cardData.prices?.usd || 0);
+    getElement('list-for-sale-toggle').checked = false;
+    getElement('list-for-sale-section').classList.add('hidden');
     openModal(getElement('card-modal'));
     getElement('card-modal').dataset.card = JSON.stringify(cardData);
 }
@@ -491,6 +513,10 @@ export function populateCardModalForEdit(card) {
     getElement('card-is-altered').checked = card.is_altered || false;
     getElement('card-purchase-price').value = card.purchase_price || '';
     getElement('save-card-btn').textContent = 'Save Changes';
+    getElement('market-price-display').textContent = Currency.convertAndFormat(card.prices?.usd || 0);
+    getElement('list-for-sale-toggle').checked = card.forSale || false;
+    getElement('list-for-sale-section').classList.toggle('hidden', !card.forSale);
+    getElement('card-sale-price').value = card.salePrice || '';
     openModal(getElement('card-modal'));
     getElement('card-modal').dataset.card = JSON.stringify(card);
 }
@@ -498,6 +524,20 @@ export function populateCardModalForEdit(card) {
 export function getCardFormData() {
     const modal = getElement('card-modal');
     const cardData = JSON.parse(modal.dataset.card || '{}');
+    const forSale = getElement('list-for-sale-toggle').checked;
+    let salePrice = null;
+    if (forSale) {
+        const fixedPrice = parseFloat(getElement('card-sale-price').value);
+        if (!isNaN(fixedPrice)) {
+            salePrice = fixedPrice;
+        } else {
+            const percentage = parseFloat(getElement('card-sale-percentage').value) / 100;
+            const marketPrice = cardData.prices?.usd || 0;
+            if (!isNaN(percentage) && marketPrice > 0) {
+                salePrice = parseFloat((marketPrice * percentage).toFixed(2));
+            }
+        }
+    }
     return {
         id: getElement('card-modal-id').value,
         data: {
@@ -516,6 +556,8 @@ export function getCardFormData() {
             is_altered: getElement('card-is-altered').checked,
             purchase_price: parseFloat(getElement('card-purchase-price').value) || 0,
             addedAt: new Date(), // Add timestamp
+            forSale: forSale,
+            salePrice: salePrice,
         },
         customImageFile: getElement('custom-image-upload').files[0] || null
     };
