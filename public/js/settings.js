@@ -1,24 +1,18 @@
 /**
  * HatakeSocial - Complete Settings Page Script with Currency Integration
  *
- * This is the complete and corrected script for settings.html with currency features added.
- * It preserves all original functionality and ensures all forms and toggles work as intended.
- * - Manages Profile, Payouts, Account, Shipping, Security, Display, Privacy, Notifications, and App sections.
- * - Correctly handles image uploads, form submissions, and preference updates.
- * - Includes currency selector and integration with currency system.
+ * This script manages all sections of the settings page.
+ * It uses a centralized currency module to handle currency preferences,
+ * which are saved via a dedicated button in the "Account" section.
  */
 
-// Import currency module
+// Import the centralized currency module
 import { initCurrency, updateUserCurrency, getUserCurrency } from './modules/currency.js';
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
-    // Changed the selector to match the corrected HTML structure
-    const settingsContainer = document.getElementById('settings-page-container-inner');
-    if (!settingsContainer) {
-        console.error('Settings container not found. The settings page may not be correctly rendered.');
-        return;
-    }
+    const settingsContainer = document.getElementById('settings-page-container');
+    if (!settingsContainer) return;
 
     if (!user) {
         const toast = window.showToast || alert;
@@ -79,6 +73,7 @@ document.addEventListener('authReady', (e) => {
     const primaryCurrencySelect = document.getElementById('primary-currency');
     const priceSourceSelect = document.getElementById('price-source-select');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
+    const saveAccountBtn = document.getElementById('save-account-btn');
 
     // Shipping Section
     const shippingCurrencyDisplay = document.getElementById('shipping-currency-display');
@@ -88,14 +83,15 @@ document.addEventListener('authReady', (e) => {
     const shippingRestOfWorldInput = document.getElementById('shippingRestOfWorld');
     const saveShippingBtn = document.getElementById('save-shipping-btn');
 
+    // Display Section
+    const saveDisplayBtn = document.getElementById('save-display-settings-btn');
+    const dateFormatSelect = document.getElementById('date-format-select');
+    const messengerWidgetToggle = document.getElementById('messenger-widget-toggle');
+    
     // Security Section
     const resetPasswordBtn = document.getElementById('reset-password-btn');
     const mfaSection = document.getElementById('mfa-section');
     let confirmationResult = null;
-
-    // Display Section
-    const dateFormatSelect = document.getElementById('date-format-select');
-    const messengerWidgetToggle = document.getElementById('messenger-widget-toggle');
 
     // App/PWA Section
     const installAppBtn = document.getElementById('install-app-btn');
@@ -108,14 +104,12 @@ document.addEventListener('authReady', (e) => {
     navButtons.forEach(button => {
         button.addEventListener('click', () => {
             const sectionId = `settings-${button.dataset.section}`;
-
             navButtons.forEach(btn => {
                 btn.classList.remove('bg-blue-100', 'dark:bg-blue-800', 'text-blue-700', 'dark:text-blue-200');
                 btn.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-700');
             });
             button.classList.add('bg-blue-100', 'dark:bg-blue-800', 'text-blue-700', 'dark:text-blue-200');
             button.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-200', 'dark:hover:bg-gray-700');
-
             sections.forEach(section => {
                 section.id === sectionId ? section.classList.remove('hidden') : section.classList.add('hidden');
             });
@@ -174,7 +168,7 @@ document.addEventListener('authReady', (e) => {
             // Account & Display
             accountEmailEl.textContent = user.email;
             if (primaryCurrencySelect) {
-                primaryCurrencySelect.value = data.primaryCurrency || 'USD';
+                primaryCurrencySelect.value = data.primaryCurrency || getUserCurrency();
             }
             priceSourceSelect.value = data.priceSource || 'eur';
             dateFormatSelect.value = data.dateFormat || 'dmy';
@@ -189,34 +183,18 @@ document.addEventListener('authReady', (e) => {
                 shippingNorthAmericaInput.value = data.shippingProfile.northAmerica || '';
                 shippingRestOfWorldInput.value = data.shippingProfile.restOfWorld || '';
             }
-            updateShippingCurrencyDisplay();
-            
+            // Update the shipping currency display when data loads and on currency change
+            document.addEventListener('currencyChange', () => {
+                shippingCurrencyDisplay.textContent = getUserCurrency();
+            });
+            shippingCurrencyDisplay.textContent = getUserCurrency();
+
+
             loadMfaStatus();
 
         } catch (error) {
             console.error("Error loading user data:", error);
             (window.showToast || alert)("Failed to load user settings.", "error");
-        }
-    };
-
-    // --- Currency Helper Functions ---
-    const updateShippingCurrencyDisplay = () => {
-        if (shippingCurrencyDisplay && primaryCurrencySelect) {
-            shippingCurrencyDisplay.textContent = primaryCurrencySelect.value;
-        }
-    };
-
-    const handleCurrencyChange = async () => {
-        if (!primaryCurrencySelect) return;
-        
-        const newCurrency = primaryCurrencySelect.value;
-        try {
-            await updateUserCurrency(newCurrency);
-            updateShippingCurrencyDisplay();
-            (window.showToast || alert)(`Currency updated to ${newCurrency}`, 'success');
-        } catch (error) {
-            console.error('Error updating currency:', error);
-            (window.showToast || alert)('Error updating currency', 'error');
         }
     };
 
@@ -226,7 +204,7 @@ document.addEventListener('authReady', (e) => {
         const fileRef = storage.ref(filePath);
         return fileRef.put(file).then(snapshot => snapshot.ref.getDownloadURL());
     };
-    
+
     // --- Save Logic & Event Listeners ---
 
     profilePicUpload.addEventListener('change', (e) => {
@@ -246,11 +224,6 @@ document.addEventListener('authReady', (e) => {
             reader.readAsDataURL(newBannerPicFile);
         }
     });
-
-    // Currency change listener
-    if (primaryCurrencySelect) {
-        primaryCurrencySelect.addEventListener('change', handleCurrencyChange);
-    }
 
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -273,9 +246,7 @@ document.addEventListener('authReady', (e) => {
                     state: stateInput.value.trim(),
                     zip: zipInput.value.trim(),
                     country: countryInput.value.trim()
-                },
-                // Include currency preference
-                primaryCurrency: primaryCurrencySelect ? primaryCurrencySelect.value : 'USD'
+                }
             };
 
             if (newProfilePicFile) {
@@ -290,13 +261,7 @@ document.addEventListener('authReady', (e) => {
             }
 
             await db.collection('users').doc(user.uid).set(updatedData, { merge: true });
-            
-            // Update currency system if currency changed
-            if (primaryCurrencySelect) {
-                await updateUserCurrency(updatedData.primaryCurrency);
-                updateShippingCurrencyDisplay();
-            }
-            
+
             (window.showToast || alert)("Profile settings saved successfully!", "success");
             newProfilePicFile = null;
             newBannerPicFile = null;
@@ -346,6 +311,46 @@ document.addEventListener('authReady', (e) => {
         } finally {
             saveNotificationsBtn.disabled = false;
             saveNotificationsBtn.textContent = 'Save Notification Settings';
+        }
+    });
+
+    saveAccountBtn?.addEventListener('click', async () => {
+        saveAccountBtn.disabled = true;
+        saveAccountBtn.textContent = 'Saving...';
+        try {
+            const newCurrency = primaryCurrencySelect.value;
+            const newPriceSource = priceSourceSelect.value;
+            // Use the centralized function to update currency
+            await updateUserCurrency(user.uid, newCurrency);
+            // Update other fields in the same section
+            await db.collection('users').doc(user.uid).update({
+                priceSource: newPriceSource
+            });
+            (window.showToast || alert)('Account settings saved successfully!', 'success');
+        } catch (error) {
+            console.error("Error saving account settings:", error);
+            (window.showToast || alert)("Could not save account settings. " + error.message, "error");
+        } finally {
+            saveAccountBtn.disabled = false;
+            saveAccountBtn.textContent = 'Save Changes';
+        }
+    });
+    
+    saveDisplayBtn?.addEventListener('click', async () => {
+        saveDisplayBtn.disabled = true;
+        saveDisplayBtn.textContent = 'Saving...';
+        try {
+            await db.collection('users').doc(user.uid).set({
+                dateFormat: dateFormatSelect.value,
+                messengerWidgetVisible: messengerWidgetToggle.checked,
+            }, { merge: true });
+            (window.showToast || alert)('Display settings saved successfully!', 'success');
+        } catch (error) {
+            console.error("Error saving display settings:", error);
+            (window.showToast || alert)("Could not save display settings. " + error.message, "error");
+        } finally {
+            saveDisplayBtn.disabled = false;
+            saveDisplayBtn.textContent = 'Save Display Settings';
         }
     });
 
@@ -422,10 +427,14 @@ document.addEventListener('authReady', (e) => {
     // --- PWA Section Functions ---
     const initializePwaSection = () => {
         let deferredPrompt;
+        const installedClasses = ['bg-green-100', 'text-green-800', 'dark:bg-green-900', 'dark:text-green-200'];
+        const notInstalledClasses = ['bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900', 'dark:text-yellow-200'];
+        
         const setInstallStatus = (isInstalled) => {
             if (installStatus) {
                 installStatus.textContent = isInstalled ? 'Installed' : 'Not Installed';
-                installStatus.className = `px-3 py-1 rounded-full text-sm ${isInstalled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'}`;
+                installStatus.classList.remove(...installedClasses, ...notInstalledClasses);
+                installStatus.classList.add(...(isInstalled ? installedClasses : notInstalledClasses));
             }
             if (installAppBtn) {
                 installAppBtn.style.display = isInstalled ? 'none' : 'block';
@@ -468,24 +477,27 @@ document.addEventListener('authReady', (e) => {
         });
 
         window.addEventListener('appinstalled', () => setInstallStatus(true));
+        
+        const activeClasses = ['bg-green-100', 'text-green-800', 'dark:bg-green-900', 'dark:text-green-200'];
+        const inactiveClasses = ['bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900', 'dark:text-yellow-200'];
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistration().then(reg => {
                 const active = reg && reg.active;
                 if (swStatus) {
                     swStatus.textContent = active ? 'Active' : 'Inactive';
-                    const statusClass = active ? 'green' : 'red';
-                    swStatus.className = `px-3 py-1 rounded-full text-sm bg-${statusClass}-100 text-${statusClass}-800 dark:bg-${statusClass}-900 dark:text-${statusClass}-200`;
+                    swStatus.classList.remove(...activeClasses, ...inactiveClasses);
+                    swStatus.classList.add(...(active ? activeClasses : inactiveClasses));
                 }
                 if (offlineStatus) {
                     offlineStatus.textContent = active ? 'Available' : 'Unavailable';
-                    const statusClass = active ? 'green' : 'red';
-                    offlineStatus.className = `px-3 py-1 rounded-full text-sm bg-${statusClass}-100 text-${statusClass}-800 dark:bg-${statusClass}-900 dark:text-${statusClass}-200`;
+                    offlineStatus.classList.remove(...activeClasses, ...inactiveClasses);
+                    offlineStatus.classList.add(...(active ? activeClasses : inactiveClasses));
                 }
             });
         }
     };
-    
+
     // --- MFA Functions ---
     const loadMfaStatus = () => {
         const mfaEnabled = user.multiFactor.enrolledFactors.length > 0;

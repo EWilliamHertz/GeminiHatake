@@ -1923,7 +1923,3 @@ body.dark-mode .close-button:focus {
 .platform-card {
     @apply bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700;
 }
-/* Fix for nested main tag in settings page */
-main > main {
-    display: contents; /* Allows child elements to flow as if they are direct children of the parent */
-}

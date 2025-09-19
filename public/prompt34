@@ -1,0 +1,1580 @@
+This is the original ui.js with over 650 lines:
+/**
+ * ui.js
+ * Handles all DOM manipulation, rendering, and UI updates for the collection page.
+ */
+import { getCardImageUrl, formatPrice } from './utils.js';
+import * as Collection from './collection.js';
+import * as Currency from './currency.js';
+
+// --- ELEMENT SELECTORS ---
+const getElement = (id) => document.getElementById(id);
+const display = getElement('collection-display');
+const searchModal = getElement('search-modal');
+const cardModal = getElement('card-modal');
+const csvModal = getElement('csv-import-modal');
+const bulkListModal = getElement('bulk-list-sale-modal');
+const cardPreviewTooltip = getElement('card-preview-tooltip');
+
+// --- NOTIFICATIONS ---
+export const showToast = (message, type = 'info') => {
+    const container = getElement('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.classList.add('show'); }, 100);
+    setTimeout(() => { toast.classList.remove('show'); toast.addEventListener('transitionend', () => toast.remove()); }, 5000);
+};
+
+// --- CURRENCY INTEGRATION FUNCTIONS ---
+
+export function displayPrice(price, isFromApi = false) {
+    if (isFromApi) {
+        return Currency.convertAndFormat(price);
+    } else {
+        return Currency.convertFromSekAndFormat(price);
+    }
+}
+
+export function createPriceElement(price, isFromApi = false, className = 'text-blue-600 font-semibold') {
+    const priceEl = document.createElement('span');
+    priceEl.className = className;
+    priceEl.textContent = displayPrice(price, isFromApi);
+    return priceEl;
+}
+
+export function refreshPriceDisplays() {
+    document.querySelectorAll('[data-price-usd]').forEach(el => {
+        const priceUsd = parseFloat(el.dataset.priceUsd);
+        if (!isNaN(priceUsd)) {
+            el.textContent = Currency.convertAndFormat(priceUsd);
+        }
+    });
+
+    document.querySelectorAll('[data-price-sek]').forEach(el => {
+        const priceSek = parseFloat(el.dataset.priceSek);
+        if (!isNaN(priceSek)) {
+            el.textContent = Currency.convertFromSekAndFormat(priceSek);
+        }
+    });
+}
+
+export function createCurrencySelector(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const selector = document.createElement('select');
+    selector.id = 'currency-selector';
+    selector.className = 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm';
+
+    const currencies = [
+        { code: 'SEK', name: 'Swedish Krona (kr)' },
+        { code: 'USD', name: 'US Dollar ($)' },
+        { code: 'EUR', name: 'Euro (€)' },
+        { code: 'GBP', name: 'British Pound (£)' },
+        { code: 'NOK', name: 'Norwegian Krone (kr)' },
+        { code: 'DKK', name: 'Danish Krone (kr)' }
+    ];
+
+    currencies.forEach(currency => {
+        const option = document.createElement('option');
+        option.value = currency.code;
+        option.textContent = currency.name;
+        if (currency.code === Currency.getUserCurrency()) {
+            option.selected = true;
+        }
+        selector.appendChild(option);
+    });
+
+    selector.addEventListener('change', (e) => {
+        Currency.updateUserCurrency(e.target.value);
+        document.dispatchEvent(new CustomEvent('currencyChanged'));
+    });
+    
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex items-center space-x-2';
+    wrapper.appendChild(selector);
+
+    container.appendChild(wrapper);
+}
+
+export function showPriceLoading(selector = '[data-price-usd], [data-price-sek]') {
+    document.querySelectorAll(selector).forEach(el => {
+        el.textContent = 'Loading...';
+        el.classList.add('animate-pulse');
+    });
+}
+
+export function hidePriceLoading(selector = '[data-price-usd], [data-price-sek]') {
+    document.querySelectorAll(selector).forEach(el => {
+        el.classList.remove('animate-pulse');
+    });
+}
+
+/**
+ * Updates and shows the card preview tooltip.
+ * @param {Event} event - The mouse event.
+ * @param {object} card - The card data object.
+ */
+export function updateCardPreviewTooltip(event, card) {
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (!tooltip) return;
+
+    let img = tooltip.querySelector('img');
+    if (!img) {
+        tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+        img = tooltip.querySelector('img');
+    }
+
+    const imageUrl = getCardImageUrl(card);
+    img.src = imageUrl;
+
+    tooltip.classList.remove('hidden');
+
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = `${rect.right + 10}px`;
+    tooltip.style.top = `${window.scrollY + rect.top}px`;
+}
+
+
+// --- RENDER FUNCTIONS ---
+
+export function renderGridView(cards, activeTab) {
+    if (!cards || cards.length === 0) {
+        showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
+        return;
+    }
+    const isBulkMode = Collection.getState().bulkEdit.isActive;
+    const gridHTML = cards.map(card => {
+        const imageUrl = getCardImageUrl(card);
+        const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
+        const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+        const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
+            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertAndFormat(card.salePrice)}</div>`
+            : '';
+
+        const bulkCheckbox = isBulkMode
+            ? `<div class="absolute top-2 right-2"><input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}></div>`
+            : `<div class="absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button data-action="edit" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"><i class="fas fa-pencil-alt"></i></button>
+                        <button data-action="delete" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"><i class="fas fa-trash"></i></button>
+                    </div>`;
+
+        return `
+            <div class="card-container relative group ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
+                <img src="${imageUrl}" alt="${card.name}" class="rounded-lg shadow-md w-full transition-transform transform group-hover:scale-105">
+                <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                    <div class="text-white text-center p-2"><p class="font-bold">${card.name}</p><p class="text-sm">${card.set_name}</p></div>
+                </div>
+                 ${bulkCheckbox}
+                ${salePriceDisplay}
+                <div class="absolute bottom-0 left-0 bg-gray-800 bg-opacity-75 text-white text-xs w-full p-1 rounded-b-lg flex justify-between">
+                    <span>Qty: ${card.quantity || 1}</span>
+                    <span>${price}</span>
+                </div>
+            </div>`;
+    }).join('');
+    display.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${gridHTML}</div>`;
+}
+
+export function renderListView(cards, activeTab) {
+    if (!cards || cards.length === 0) {
+        showEmptyState(activeTab === 'collection' ? "No cards match your filters." : "Your wishlist is empty.");
+        return;
+    }
+    const isBulkMode = Collection.getState().bulkEdit.isActive;
+    const allSelectedOnPage = isBulkMode && cards.length > 0 && cards.every(c => Collection.getState().bulkEdit.selected.has(c.id));
+
+    const tableHeader = `
+        <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+                ${isBulkMode ? `<th class="p-3 text-left text-xs font-medium uppercase tracking-wider"><input type="checkbox" id="bulk-select-all-page" ${allSelectedOnPage ? 'checked' : ''}></th>` : ''}
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Condition</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Market Price</th>
+                <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                ${!isBulkMode ? '<th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>' : ''}
+            </tr>
+        </thead>`;
+
+    const tableBody = cards.map(card => {
+        const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
+        const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+        const saleStatus = (card.forSale && typeof card.salePrice === 'number')
+            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.salePrice)})</span>`
+            : 'In Collection';
+        
+        return `
+            <tr class="card-container border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600/50 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/50' : ''}" data-id="${card.id}">
+                ${isBulkMode ? `<td class="p-3"><input type="checkbox" class="bulk-select-checkbox h-4 w-4" data-id="${card.id}" ${isSelected ? 'checked' : ''}></td>` : ''}
+                <td class="p-3 font-medium">${card.name} ${card.is_foil ? '<i class="fas fa-star text-yellow-400"></i>' : ''}</td>
+                <td class="p-3 text-sm text-gray-500 dark:text-gray-400">${card.set_name}</td>
+                <td class="p-3">${card.quantity || 1}</td>
+                <td class="p-3">${card.condition || 'N/A'}</td>
+                <td class="p-3">${price}</td>
+                <td class="p-3 text-sm">${saleStatus}</td>
+                ${!isBulkMode ? `
+                    <td class="p-3">
+                        <div class="flex space-x-2">
+                            <button data-action="edit" class="text-blue-500 hover:text-blue-700"><i class="fas fa-pencil-alt"></i></button>
+                            <button data-action="delete" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>` : ''
+                }
+            </tr>
+        `;
+    }).join('');
+
+    display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
+}
+
+export function renderSearchResults(results) {
+    const container = getElement('search-results-container');
+    if (typeof results === 'string') {
+        container.innerHTML = `<p class="text-center text-gray-500">${results}</p>`;
+        return;
+    }
+    if (!results || results.length === 0) {
+        container.innerHTML = `<p class="text-center text-gray-500">No cards found.</p>`;
+        return;
+    }
+    const resultsHTML = results.map(card => {
+        const imageUrl = getCardImageUrl(card);
+        const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
+        const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
+const cardDataString = encodeURIComponent(JSON.stringify(card)).replace(/'/g, "%27");        return `
+            <div class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer search-result-item" data-card='${cardDataString}'>
+                <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md pointer-events-none">
+                <div class="flex-grow pointer-events-none">
+                    <p class="font-semibold">${card.name}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${card.set_name} (${card.set.toUpperCase()}${collectorInfo})</p>
+                </div>
+                <div class="text-right pointer-events-none">
+                    <p class="font-mono">${price}</p>
+                    <p class="text-sm capitalize text-gray-500">${card.rarity}</p>
+                </div>
+            </div>`;
+    }).join('');
+    container.innerHTML = resultsHTML;
+}
+
+export function renderPendingCards(pendingCards) {
+    const container = getElement('pending-cards-container');
+    if (!pendingCards || pendingCards.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    const cardsHTML = pendingCards.map((card, index) => {
+        const details = [
+            `${card.quantity || 1}x`,
+            card.condition || 'N/A',
+            card.language || 'N/A',
+            card.is_foil ? 'Foil' : null
+        ].filter(Boolean).join(', ');
+
+        return `<div class="pending-card-item flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm mb-1" data-index="${index}">
+                    <p class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer flex-grow">${details}</p>
+                    <button type="button" class="delete-pending-btn text-red-500 hover:text-red-700 font-bold text-lg px-2">&times;</button>
+                </div>`;
+    }).join('');
+
+    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Copies to Add:</h4>` + cardsHTML;
+}
+
+export function renderBulkReviewModal(cardIds) {
+    const listContainer = getElement('bulk-review-list');
+    listContainer.innerHTML = ''; // Clear previous items
+
+    cardIds.forEach(cardId => {
+        const card = Collection.getCardById(cardId);
+        if (!card) return;
+
+        const marketPrice = card.prices?.usd || 0;
+        const displayMarketPrice = Currency.convertAndFormat(marketPrice);
+
+        const reviewItem = document.createElement('div');
+        reviewItem.className = 'grid grid-cols-5 gap-4 items-center p-2 border-b dark:border-gray-700';
+        reviewItem.dataset.id = card.id;
+        reviewItem.dataset.marketPrice = marketPrice;
+
+        reviewItem.innerHTML = `
+            <div class="col-span-2">
+                <p class="font-semibold">${card.name}</p>
+                <p class="text-xs text-gray-500">${card.set_name} - ${card.condition}</p>
+            </div>
+            <div>
+                <label class="text-xs">Market</label>
+                <p>${displayMarketPrice}</p>
+            </div>
+            <div>
+                <label for="review-percent-${card.id}" class="text-xs">% of Market</label>
+                <input type="number" id="review-percent-${card.id}" class="bulk-review-percent-input w-full p-1 border rounded-md" value="100">
+            </div>
+            <div>
+                <label for="review-fixed-${card.id}" class="text-xs">Fixed Price</label>
+                <input type="number" step="0.01" id="review-fixed-${card.id}" class="bulk-review-fixed-input w-full p-1 border rounded-md">
+            </div>
+        `;
+        listContainer.appendChild(reviewItem);
+    });
+    openModal(getElement('bulk-review-modal'));
+}
+
+export function renderCsvReviewModal(cards) {
+    const container = getElement('csv-review-table-body');
+    container.innerHTML = cards.map((card, index) => `
+        <tr data-index="${index}">
+            <td class="p-2"><input type="text" value="${card.name}" class="w-full p-1 border rounded-md" data-field="name"></td>
+            <td class="p-2"><input type="text" value="${card.set_name}" class="w-full p-1 border rounded-md" data-field="set_name"></td>
+            <td class="p-2"><input type="number" value="${card.quantity}" class="w-20 p-1 border rounded-md" data-field="quantity"></td>
+            <td class="p-2">
+                <select class="w-full p-1 border rounded-md" data-field="condition">
+                    <option ${card.condition === 'Near Mint' ? 'selected' : ''}>Near Mint</option>
+                    <option ${card.condition === 'Lightly Played' ? 'selected' : ''}>Lightly Played</option>
+                    <option ${card.condition === 'Moderately Played' ? 'selected' : ''}>Moderately Played</option>
+                    <option ${card.condition === 'Heavily Played' ? 'selected' : ''}>Heavily Played</option>
+                    <option ${card.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                </select>
+            </td>
+            <td class="p-2">
+                <select class="w-full p-1 border rounded-md" data-field="language">
+                    <option ${card.language === 'English' ? 'selected' : ''}>English</option>
+                    <option ${card.language === 'Japanese' ? 'selected' : ''}>Japanese</option>
+                </select>
+            </td>
+            <td class="p-2"><input type="checkbox" ${card.is_foil ? 'checked' : ''} data-field="is_foil"></td>
+            <td class="p-2"><button class="btn btn-sm btn-danger remove-csv-row-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
+        </tr>
+    `).join('');
+    openModal(getElement('csv-review-modal'));
+}
+
+export function updateCsvImportStatus(message) {
+    const statusEl = getElement('csv-import-status');
+    if (statusEl) {
+        statusEl.innerHTML = message;
+    }
+}
+
+
+// --- UI STATE UPDATES ---
+export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
+export const showLoggedOutState = () => getElement('collection-display').innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
+export const showEmptyState = (message) => display.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500"><p>${message}</p></div>`;
+
+export function updateStats(stats, activeTab) {
+    const isCollection = activeTab === 'collection';
+    getElement('stats-title').textContent = isCollection ? 'Collection Statistics' : 'Wishlist Statistics';
+    getElement('stats-total-label').textContent = isCollection ? 'Total Cards:' : 'Total Items:';
+    getElement('stats-unique-label').textContent = isCollection ? 'Unique Cards:' : 'Unique Items:';
+    getElement('stats-value-label').textContent = isCollection ? 'Total Value:' : 'Wishlist Value:';
+    getElement('stats-total-cards').textContent = stats.totalCards;
+    getElement('stats-unique-cards').textContent = stats.uniqueCards;
+    getElement('stats-total-value').textContent = Currency.convertAndFormat(stats.totalValue || 0);
+}
+
+export function populateFilters(sets, rarities) {
+    populateMultiSelect('filter-set-container', 'Sets', 'set', sets);
+    populateMultiSelect('filter-rarity-container', 'Rarities', 'rarity', rarities);
+}
+
+function populateMultiSelect(containerId, label, type, options) {
+    const container = getElement(containerId);
+    let optionsHTML = '';
+    if (Array.isArray(options)) {
+        optionsHTML = options.map(o => `
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="${type}" value="${o}">
+                <span>${o}</span>
+            </label>
+        `).join('');
+    } else {
+        for (const game in options) {
+            optionsHTML += `<div class="font-bold">${game === 'mtg' ? 'Magic: The Gathering' : 'Pokémon'}</div>`;
+            optionsHTML += options[game].map(o => `
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="${type}" value="${o}">
+                    <span>${o}</span>
+                </label>
+            `).join('');
+        }
+    }
+
+    container.innerHTML = `
+        <button class="w-full text-left p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" onclick="this.nextElementSibling.classList.toggle('hidden')">${label}</button>
+        <div class="hidden absolute z-10 w-full bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-md mt-1 p-2 space-y-2 max-h-60 overflow-y-auto">
+            ${optionsHTML}
+        </div>
+    `;
+}
+
+export function getCheckedValues(type) {
+    return Array.from(document.querySelectorAll(`input[name=${type}]:checked`)).map(el => el.value);
+}
+
+export function clearCheckboxes(type) {
+    document.querySelectorAll(`input[name=${type}]`).forEach(el => el.checked = false);
+}
+
+export function renderGameSpecificFilters(game, types) {
+    const container = getElement('game-specific-filters');
+    if (!container) return; // Prevent error if element doesn't exist
+    let content = '';
+
+    if (game === 'mtg') {
+        content = `
+            <div id="magic-filters">
+                <label class="text-sm">Colors (Magic)</label>
+                <div class="flex justify-around mt-2 text-2xl" id="filter-colors">
+                    <i class="fas fa-circle text-gray-400 cursor-pointer" data-color="W" title="White"></i>
+                    <i class="fas fa-tint text-gray-400 cursor-pointer" data-color="U" title="Blue"></i>
+                    <i class="fas fa-skull text-gray-400 cursor-pointer" data-color="B" title="Black"></i>
+                    <i class="fas fa-fire text-gray-400 cursor-pointer" data-color="R" title="Red"></i>
+                    <i class="fas fa-leaf text-gray-400 cursor-pointer" data-color="G" title="Green"></i>
+                    <i class="fas fa-gem text-gray-400 cursor-pointer" data-color="C" title="Colorless"></i>
+                </div>
+            </div>
+        `;
+    } else if (game === 'pokemon') {
+        const typeOptions = types.map(t => `<option value="${t}">${t}</option>`).join('');
+        content = `
+            <div id="pokemon-filters">
+                <label for="filter-type" class="text-sm">Types (Pokémon)</label>
+                <select id="filter-type" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <option value="">All Types</option>
+                    ${typeOptions}
+                </select>
+            </div>
+        `;
+    }
+
+    container.innerHTML = content;
+}
+
+export function updateViewToggle(view) {
+    const gridBtn = getElement('view-toggle-grid');
+    const listBtn = getElement('view-toggle-list');
+    gridBtn.classList.toggle('bg-white', view === 'grid');
+    gridBtn.classList.toggle('dark:bg-gray-900', view === 'grid');
+    gridBtn.classList.toggle('shadow', view === 'grid');
+    listBtn.classList.toggle('bg-white', view === 'list');
+    listBtn.classList.toggle('dark:bg-gray-900', view === 'list');
+    listBtn.classList.toggle('shadow', view === 'list');
+}
+
+export function updateActiveTab(tab) {
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+}
+
+export function updateTcgFilter(game) {
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.game === game);
+    });
+}
+
+export function updateColorFilterSelection(selectedColors) {
+    const colorIcons = document.querySelectorAll('#filter-colors i');
+    colorIcons.forEach(icon => {
+        const color = icon.dataset.color;
+        if (selectedColors.includes(color)) {
+            icon.classList.remove('text-gray-400');
+            switch(color) {
+                case 'W': icon.classList.add('text-yellow-200'); break;
+                case 'U': icon.classList.add('text-blue-500'); break;
+                case 'B': icon.classList.add('text-black'); break;
+                case 'R': icon.classList.add('text-red-500'); break;
+                case 'G': icon.classList.add('text-green-500'); break;
+                case 'C': icon.classList.add('text-gray-500'); break;
+            }
+        } else {
+            icon.className = 'fas cursor-pointer text-gray-400';
+            switch(color) {
+                case 'W': icon.classList.add('fa-circle'); break;
+                case 'U': icon.classList.add('fa-tint'); break;
+                case 'B': icon.classList.add('fa-skull'); break;
+                case 'R': icon.classList.add('fa-fire'); break;
+                case 'G': icon.classList.add('fa-leaf'); break;
+                case 'C': icon.classList.add('fa-gem'); break;
+            }
+        }
+    });
+}
+
+export function updateBulkEditUI(isActive) {
+    const bulkEditBtn = getElement('bulk-edit-btn');
+    const bulkToolbar = getElement('bulk-edit-toolbar');
+    
+    bulkEditBtn.innerHTML = isActive ? '<i class="fas fa-times w-6"></i> Cancel' : '<i class="fas fa-edit w-6"></i> Bulk Edit';
+    bulkToolbar.classList.toggle('hidden', !isActive);
+}
+
+export function updateBulkEditSelection(selectedCount) {
+    const selectedCountEl = getElement('bulk-selected-count');
+    if (selectedCountEl) {
+        selectedCountEl.textContent = selectedCount;
+    }
+}
+
+// --- MODAL FUNCTIONS ---
+export function openModal(modal) {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+export function closeModal(modal) {
+    if (modal) {
+        if (modal.id === 'card-modal') {
+            Collection.clearPendingCards();
+            renderPendingCards([]);
+        }
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+export function populateCardModalForAdd(cardData) {
+    Collection.clearPendingCards();
+    getElement('card-modal-id').value = '';
+    getElement('card-modal-title').textContent = 'Add New Card';
+    getElement('card-modal-image').src = getCardImageUrl(cardData);
+    getElement('card-quantity').value = 1;
+    getElement('card-condition').value = 'Near Mint';
+    getElement('card-language').value = 'English';
+    getElement('card-is-foil').checked = false;
+    getElement('card-is-signed').checked = false;
+    getElement('card-is-altered').checked = false;
+    getElement('card-purchase-price').value = '';
+    getElement('save-card-btn').textContent = 'Add to Collection';
+    getElement('market-price-display').textContent = Currency.convertAndFormat(cardData.prices?.usd || 0);
+    getElement('list-for-sale-toggle').checked = false;
+    getElement('list-for-sale-section').classList.add('hidden');
+    openModal(getElement('card-modal'));
+    getElement('card-modal').dataset.card = JSON.stringify(cardData);
+}
+
+export function populateCardModalForEdit(card) {
+    Collection.clearPendingCards();
+    getElement('card-modal-id').value = card.id;
+    getElement('card-modal-title').textContent = 'Edit Card';
+    getElement('card-modal-image').src = getCardImageUrl(card);
+    getElement('card-quantity').value = card.quantity || 1;
+    getElement('card-condition').value = card.condition || 'Near Mint';
+    getElement('card-language').value = card.language || 'English';
+    getElement('card-is-foil').checked = card.is_foil || false;
+    getElement('card-is-signed').checked = card.is_signed || false;
+    getElement('card-is-altered').checked = card.is_altered || false;
+    getElement('card-purchase-price').value = card.purchase_price || '';
+    getElement('save-card-btn').textContent = 'Save Changes';
+    getElement('market-price-display').textContent = Currency.convertAndFormat(card.prices?.usd || 0);
+    getElement('list-for-sale-toggle').checked = card.forSale || false;
+    getElement('list-for-sale-section').classList.toggle('hidden', !card.forSale);
+    getElement('card-sale-price').value = card.salePrice || '';
+    openModal(getElement('card-modal'));
+    getElement('card-modal').dataset.card = JSON.stringify(card);
+}
+
+export function getCardFormData() {
+    const modal = getElement('card-modal');
+    const cardData = JSON.parse(modal.dataset.card || '{}');
+    const forSale = getElement('list-for-sale-toggle').checked;
+    let salePrice = null;
+    if (forSale) {
+        const fixedPrice = parseFloat(getElement('card-sale-price').value);
+        if (!isNaN(fixedPrice)) {
+            salePrice = fixedPrice;
+        } else {
+            const percentage = parseFloat(getElement('card-sale-percentage').value) / 100;
+            const marketPrice = cardData.prices?.usd || 0;
+            if (!isNaN(percentage) && marketPrice > 0) {
+                salePrice = parseFloat((marketPrice * percentage).toFixed(2));
+            }
+        }
+    }
+    return {
+        id: getElement('card-modal-id').value,
+        data: {
+            name: cardData.name,
+            set_name: cardData.set_name,
+            api_id: cardData.api_id,
+            image_uris: cardData.image_uris,
+            prices: cardData.prices,
+            rarity: cardData.rarity,
+            game: cardData.game,
+            quantity: parseInt(getElement('card-quantity').value, 10),
+            condition: getElement('card-condition').value,
+            language: getElement('card-language').value,
+            is_foil: getElement('card-is-foil').checked,
+            is_signed: getElement('card-is-signed').checked,
+            is_altered: getElement('card-is-altered').checked,
+            purchase_price: parseFloat(getElement('card-purchase-price').value) || 0,
+            addedAt: new Date(), // Add timestamp
+            forSale: forSale,
+            salePrice: salePrice,
+        },
+        customImageFile: getElement('custom-image-upload').files[0] || null
+    };
+}
+
+export function resetCardFormForNewVersion() {
+    getElement('card-quantity').value = 1;
+    getElement('card-condition').value = 'Near Mint';
+    getElement('card-language').value = 'English';
+    getElement('card-is-foil').checked = false;
+    getElement('card-is-signed').checked = false;
+    getElement('card-is-altered').checked = false;
+    getElement('card-purchase-price').value = '';
+}
+
+export function toggleBulkPriceInputs(selectedValue) {
+    document.getElementById('bulk-price-percentage-group').classList.toggle('hidden', selectedValue !== 'percentage');
+    document.getElementById('bulk-price-fixed-group').classList.toggle('hidden', selectedValue !== 'fixed');
+}
+
+export function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing...`;
+    } else {
+        button.disabled = false;
+        button.innerHTML = button.dataset.originalText || 'Submit';
+    }
+}
+
+Ths is the original collection-app.js with over 550 lines of code:
+/**
+ * collection-app.js
+ * Main application logic for the collection page.
+ */
+import * as Collection from './collection.js';
+import * as UI from './ui.js';
+import * as API from './api.js';
+import * as CSV from './csv.js';
+import * as Currency from './currency.js';
+import { getCardImageUrl } from './utils.js';
+
+let currentUser = null;
+let csvFile = null;
+
+// Initialize the application once Firebase Auth is ready
+document.addEventListener('authReady', async ({ detail: { user } }) => {
+    if (user) {
+        currentUser = user;
+        try {
+            await Currency.initCurrency('SEK');
+            await Collection.loadCollection(user.uid);
+            await Collection.loadWishlist(user.uid);
+            setupInitialFilters();
+            applyAndRender({});
+            setupEventListeners();
+            UI.createCurrencySelector('user-actions');
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            UI.showToast("Could not load your collection.", "error");
+        }
+    } else {
+        UI.showLoggedOutState();
+    }
+});
+
+/**
+ * Populates the filter dropdowns and dynamic filter section based on the current state.
+ */
+function setupInitialFilters() {
+    const game = Collection.getState().filters.game;
+    const options = Collection.getAvailableFilterOptions(game);
+    UI.populateFilters(options.sets, options.rarities, options.types);
+    UI.renderGameSpecificFilters(game, options.types);
+}
+
+/**
+ * Sets up all the main event listeners for the page.
+ */
+function setupEventListeners() {
+    // Modal controls
+    document.getElementById('add-card-btn').addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+    document.getElementById('csv-import-btn').addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
+    document.body.addEventListener('click', (e) => {
+        if (e.target.id === 'close-search-modal') UI.closeModal(document.getElementById('search-modal'));
+        if (e.target.id === 'close-card-modal') UI.closeModal(document.getElementById('card-modal'));
+        if (e.target.id === 'close-bulk-list-sale-modal') UI.closeModal(document.getElementById('bulk-list-sale-modal'));
+        if (e.target.id === 'close-bulk-review-modal') UI.closeModal(document.getElementById('bulk-review-modal'));
+        if (e.target.id === 'close-csv-import-modal') UI.closeModal(document.getElementById('csv-import-modal'));
+        if (e.target.id === 'close-csv-review-modal') UI.closeModal(document.getElementById('csv-review-modal'));
+    });
+
+    // CSV import
+    document.getElementById('csv-file-input').addEventListener('change', (e) => {
+        csvFile = e.target.files[0];
+        document.getElementById('start-csv-import-btn').disabled = !csvFile;
+    });
+
+    document.getElementById('start-csv-import-btn').addEventListener('click', async () => {
+        if (csvFile) {
+            try {
+                UI.updateCsvImportStatus('Parsing file...');
+                const data = await CSV.parseCSV(csvFile);
+                UI.renderCsvReviewModal(data);
+                UI.closeModal(document.getElementById('csv-import-modal'));
+            } catch (error) {
+                UI.updateCsvImportStatus(`<span class="text-red-500">${error.message}</span>`);
+            }
+        }
+    });
+
+    document.getElementById('finalize-csv-import-btn').addEventListener('click', CSV.finalizeImport);
+    document.getElementById('csv-review-table-body').addEventListener('change', (e) => {
+        const target = e.target;
+        const index = target.closest('tr').dataset.index;
+        const field = target.dataset.field;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        CSV.updateReviewedCard(index, field, value);
+    });
+    document.getElementById('csv-review-table-body').addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-csv-row-btn')) {
+            const index = e.target.dataset.index;
+            CSV.removeReviewedCard(index);
+            e.target.closest('tr').remove();
+        }
+    });
+
+
+    // Card search and forms
+    document.getElementById('card-search-input').addEventListener('input', handleSearchInput);
+    document.getElementById('search-results-container').addEventListener('click', handleSearchResultClick);
+    document.getElementById('card-form').addEventListener('submit', handleCardFormSubmit);
+    document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
+
+    // Main view controls (Tabs, Grid/List, TCG type)
+    document.querySelector('[data-tab="collection"]').addEventListener('click', () => switchTab('collection'));
+    document.querySelector('[data-tab="wishlist"]').addEventListener('click', () => switchTab('wishlist'));
+    document.getElementById('view-toggle-grid').addEventListener('click', () => switchView('grid'));
+    document.getElementById('view-toggle-list').addEventListener('click', () => switchView('list'));
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => btn.addEventListener('click', () => setTcgFilter(btn.dataset.game)));
+
+    // Filter inputs
+    document.getElementById('filter-name').addEventListener('input', (e) => applyAndRender({ name: e.target.value }));
+    document.getElementById('filter-set-container').addEventListener('change', (e) => applyAndRender({ set: UI.getCheckedValues('set') }));
+    document.getElementById('filter-rarity-container').addEventListener('change', (e) => applyAndRender({ rarity: UI.getCheckedValues('rarity') }));
+    document.getElementById('clear-filters-btn').addEventListener('click', clearFilters);
+    
+    // Dynamic filter container listeners
+    const gameSpecificFiltersContainer = document.getElementById('game-specific-filters');
+    gameSpecificFiltersContainer.addEventListener('change', (e) => {
+        if (e.target.id === 'filter-type') applyAndRender({ type: e.target.value });
+    });
+    gameSpecificFiltersContainer.addEventListener('click', (e) => {
+        if (e.target.matches('#filter-colors i')) {
+            const color = e.target.dataset.color;
+            const selectedColors = Collection.toggleColorFilter(color);
+            UI.updateColorFilterSelection(selectedColors);
+            applyAndRender({});
+        }
+    });
+
+    // Collection display interactions (edit, delete, bulk select)
+    document.getElementById('collection-display').addEventListener('click', handleCollectionDisplayClick);
+
+    // Card hover preview functionality
+    const hoverAreas = ['collection-display', 'search-results-container'];
+    hoverAreas.forEach(id => {
+        const area = document.getElementById(id);
+        area.addEventListener('mouseover', handleCardHover);
+        area.addEventListener('mouseout', handleCardHoverOut);
+        area.addEventListener('mousemove', handleCardHoverMove);
+    });
+
+    // Bulk Edit listeners
+    document.getElementById('bulk-edit-btn').addEventListener('click', handleBulkEditToggle);
+    document.body.addEventListener('click', e => {
+        if (e.target.id === 'bulk-select-all-btn') handleBulkSelectAll();
+        if (e.target.id === 'bulk-list-btn') handleBulkListClick();
+        if (e.target.id === 'bulk-delete-btn') handleBulkDeleteClick();
+        if (e.target.id === 'finalize-bulk-list-btn') handleFinalizeBulkList(e);
+        if (e.target.id === 'bulk-apply-percentage-btn') handleBulkApplyPercentage();
+    });
+     document.body.addEventListener('submit', e => {
+        if (e.target.id === 'bulk-list-form') handleBulkListFormSubmit(e);
+    });
+    
+    // Card modal listeners (for adding/removing pending versions)
+    document.getElementById('card-modal').addEventListener('click', handleCardModalClicks);
+    
+    // Listen for currency changes to re-render prices
+    document.addEventListener('currencyChanged', () => applyAndRender({}));
+
+    // Image upload preview
+    document.getElementById('custom-image-upload').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById('card-modal-image').src = e.target.result; };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+/**
+ * Applies filters and re-renders the collection view.
+ * @param {object} [filterUpdate] - An object with new filter values to apply.
+ */
+function applyAndRender(filterUpdate) {
+    if (filterUpdate) Collection.setFilters(filterUpdate);
+    const state = Collection.getState();
+    const cardsToRender = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+
+    if (state.activeView === 'grid') {
+        UI.renderGridView(cardsToRender, state.activeTab);
+    } else {
+        UI.renderListView(cardsToRender, state.activeTab);
+    }
+    UI.updateStats(
+        state.activeTab === 'collection' ? Collection.calculateCollectionStats() : Collection.calculateWishlistStats(),
+        state.activeTab
+    );
+}
+
+// --- EVENT HANDLER FUNCTIONS ---
+
+async function handleCardFormSubmit(e) {
+    e.preventDefault();
+    UI.setButtonLoading(e.submitter, true);
+    try {
+        const { id, data, customImageFile } = UI.getCardFormData();
+        
+        if (id) {
+            await Collection.updateCard(id, data, customImageFile);
+            UI.showToast("Card updated!", "success");
+        } else {
+            const pendingCards = Collection.getPendingCards();
+            const allVersions = [data, ...pendingCards];
+            await Collection.addMultipleCards(allVersions, customImageFile);
+            UI.showToast(`${allVersions.length} card version(s) added!`, "success");
+        }
+        
+        UI.closeModal(document.getElementById('card-modal'));
+        applyAndRender({});
+        setupInitialFilters(); 
+    } catch (error) {
+        console.error("Error saving card:", error);
+        UI.showToast(error.message, "error");
+    } finally {
+        UI.setButtonLoading(e.submitter, false);
+    }
+}
+
+function handleAddAnotherVersion(e) {
+    UI.setButtonLoading(e.target, true);
+    try {
+        const { data: currentVersionData } = UI.getCardFormData();
+        Collection.addPendingCard({ ...currentVersionData });
+        UI.renderPendingCards(Collection.getPendingCards());
+        UI.resetCardFormForNewVersion();
+    } catch (error) {
+        console.error("Error adding another version:", error);
+        UI.showToast(error.message, "error");
+    } finally {
+         UI.setButtonLoading(e.target, false);
+    }
+}
+
+let searchTimeout;
+function handleSearchInput(e) {
+    clearTimeout(searchTimeout);
+    const query = e.target.value;
+    const game = document.getElementById('game-selector').value;
+    if (query.length < 3) {
+        UI.renderSearchResults('Enter at least 3 characters.');
+        return;
+    }
+    UI.renderSearchResults('Searching...');
+    searchTimeout = setTimeout(async () => {
+        try {
+            const results = await API.searchCards(query, game);
+            UI.renderSearchResults(results);
+        } catch (error) {
+            UI.renderSearchResults('Could not fetch card data.');
+        }
+    }, 300);
+}
+
+function handleSearchResultClick(e) {
+    const item = e.target.closest('.search-result-item');
+    if (item) {
+        try {
+            const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
+            UI.closeModal(document.getElementById('search-modal'));
+            UI.populateCardModalForAdd(cardData);
+        } catch (error) {
+            console.error("Error parsing card data:", error);
+            console.error("Problematic data-card string:", item.dataset.card);
+            alert("An error occurred while trying to add the card. This is likely due to a special character in the card's name. Please try adding the card manually for now.");
+        }
+    }
+}
+
+function switchTab(tab) {
+    Collection.setTab(tab);
+    UI.updateActiveTab(tab);
+    applyAndRender({});
+    setupInitialFilters();
+}
+
+function switchView(view) {
+    Collection.setView(view);
+    UI.updateViewToggle(view);
+    applyAndRender({});
+}
+
+function setTcgFilter(game) {
+    UI.updateTcgFilter(game);
+    applyAndRender({ game, type: '', colors: [] }); // Reset specific filters on game change
+    const options = Collection.getAvailableFilterOptions(game);
+    UI.populateFilters(options.sets, options.rarities, options.types);
+    UI.renderGameSpecificFilters(game, options.types);
+}
+
+function handleCollectionDisplayClick(e) {
+    const isBulkMode = Collection.getState().bulkEdit.isActive;
+    const cardContainer = e.target.closest('.card-container[data-id]');
+    if (!cardContainer) return;
+    const cardId = cardContainer.dataset.id;
+
+    if (isBulkMode) {
+        Collection.toggleCardSelection(cardId);
+        const isSelected = Collection.getState().bulkEdit.selected.has(cardId);
+        cardContainer.classList.toggle('ring-4', isSelected);
+        cardContainer.classList.toggle('ring-blue-500', isSelected);
+        const checkbox = cardContainer.querySelector('.bulk-select-checkbox');
+        if (checkbox) checkbox.checked = isSelected;
+        UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    } else {
+        const button = e.target.closest('button[data-action]');
+        if (button) {
+            e.stopPropagation();
+            const card = Collection.getCardById(cardId);
+            if (!card) return;
+            if (button.dataset.action === 'edit') UI.populateCardModalForEdit(card);
+            else if (button.dataset.action === 'delete') {
+                if (confirm(`Delete "${card.name}"?`)) deleteCardAction(cardId);
+            }
+        } else {
+            const card = Collection.getCardById(cardId);
+            if (card) UI.populateCardModalForEdit(card);
+        }
+    }
+}
+
+async function deleteCardAction(cardId) {
+    try {
+        await Collection.deleteCard(cardId);
+        UI.showToast("Card deleted.", "success");
+        applyAndRender({});
+        setupInitialFilters();
+    } catch (error) {
+        UI.showToast("Error deleting card.", "error");
+    }
+}
+
+function handleBulkEditToggle() {
+    const isActive = Collection.toggleBulkEditMode();
+    UI.updateBulkEditUI(isActive);
+    applyAndRender();
+}
+
+function handleBulkListClick() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) {
+        UI.showToast("Please select at least one card to list for sale.", "error");
+        return;
+    }
+    UI.renderBulkReviewModal(selectedIds);
+}
+
+function handleBulkSelectAll() {
+    const filteredIds = Collection.getState().filteredCollection.map(c => c.id);
+    Collection.selectAllFiltered(filteredIds);
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    applyAndRender();
+}
+
+async function handleBulkDeleteClick() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) {
+        UI.showToast("Select cards to delete.", "error");
+        return;
+    }
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} cards? This cannot be undone.`)) {
+        try {
+            await Collection.batchDelete(selectedIds);
+            UI.showToast(`${selectedIds.length} cards deleted.`, 'success');
+            applyAndRender({});
+            setupInitialFilters();
+        } catch (error) {
+            UI.showToast('Error deleting cards.', 'error');
+        }
+    }
+}
+
+async function handleBulkListFormSubmit(e) {
+    e.preventDefault();
+    UI.setButtonLoading(e.submitter, true);
+    // Implementation from previous correct response
+}
+
+function handleBulkApplyPercentage() {
+    const percentageInput = document.getElementById('bulk-apply-percentage-input');
+    if (!percentageInput) return;
+    const percentage = percentageInput.value;
+    if (!percentage) return;
+    document.querySelectorAll('.bulk-review-percent-input').forEach(input => {
+        input.value = percentage;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+}
+
+async function handleFinalizeBulkList(e) {
+    UI.setButtonLoading(e.target, true);
+    try {
+        const updates = [];
+        document.querySelectorAll('#bulk-review-list > div').forEach(item => {
+            const cardId = item.dataset.id;
+            const marketPrice = parseFloat(item.dataset.marketPrice);
+            const fixedPriceInput = item.querySelector('.bulk-review-fixed-input');
+            const percentageInput = item.querySelector('.bulk-review-percent-input');
+            let salePrice = null;
+
+            if (fixedPriceInput.value) {
+                salePrice = parseFloat(fixedPriceInput.value);
+            } else if (percentageInput.value && marketPrice > 0) {
+                salePrice = (marketPrice * parseFloat(percentageInput.value)) / 100;
+            }
+
+            if (salePrice !== null) {
+                updates.push({
+                    id: cardId,
+                    data: {
+                        forSale: true,
+                        salePrice: parseFloat(salePrice.toFixed(2))
+                    }
+                });
+            }
+        });
+
+        if (updates.length > 0) {
+            await Collection.batchUpdateSaleStatus(updates);
+            UI.showToast(`${updates.length} cards have been listed for sale.`, 'success');
+            UI.closeModal(document.getElementById('bulk-review-modal'));
+            applyAndRender({});
+        } else {
+            UI.showToast('No valid prices were set.', 'info');
+        }
+    } catch (error) {
+        console.error('Bulk list finalization failed:', error);
+        UI.showToast('There was an error listing your cards.', 'error');
+    } finally {
+        UI.setButtonLoading(e.target, false);
+    }
+}
+
+
+function handleCardModalClicks(e) {
+    const item = e.target.closest('.pending-card-item');
+    if (item) {
+        const index = parseInt(item.dataset.index, 10);
+        if (e.target.classList.contains('delete-pending-btn')) {
+            Collection.removePendingCard(index);
+            UI.renderPendingCards(Collection.getPendingCards());
+        } else {
+             Collection.swapPendingCard(index);
+             const currentCard = Collection.getCurrentEditingCard();
+             const originalCardData = JSON.parse(document.getElementById('card-modal').dataset.originalCard || '{}');
+             UI.populateCardModalForEdit({ ...originalCardData, ...currentCard });
+             UI.renderPendingCards(Collection.getPendingCards());
+        }
+    }
+}
+
+// Hover handlers
+function handleCardHover(e) {
+    const cardElement = e.target.closest('.card-container, .search-result-item');
+    if (!cardElement) return;
+
+    const cardId = cardElement.dataset.id;
+    if (!cardId) return;
+
+    const card = Collection.getCardById(cardId);
+    if (card) {
+        const tooltip = document.getElementById('card-preview-tooltip');
+        if (!tooltip) return;
+
+        let img = tooltip.querySelector('img');
+        if (!img) {
+            tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+            img = tooltip.querySelector('img');
+        }
+        
+        const imageUrl = getCardImageUrl(card);
+        img.src = imageUrl;
+        tooltip.classList.remove('hidden');
+        updateTooltipPosition(e, tooltip);
+    }
+}
+
+function handleCardHoverOut(e) {
+    const cardElement = e.target.closest('.card-container, .search-result-item');
+    if (cardElement) {
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !cardElement.contains(relatedTarget)) {
+             document.getElementById('card-preview-tooltip').classList.add('hidden');
+        }
+    }
+}
+
+function handleCardHoverMove(e) {
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (!tooltip.classList.contains('hidden')) {
+        updateTooltipPosition(e, tooltip);
+    }
+}
+
+function updateTooltipPosition(e, tooltip) {
+    const mouseX = e.clientX, mouseY = e.clientY;
+    
+    // Calculate tooltip size based on viewport width
+    const viewportWidth = window.innerWidth;
+    let tooltipWidth = 260; // Default width
+    if (viewportWidth < 640) {
+        tooltipWidth = viewportWidth * 0.5; // 50% of viewport width on small screens
+    } else if (viewportWidth < 1024) {
+        tooltipWidth = 220; // A bit smaller on medium screens
+    }
+
+    const aspectRatio = 2.5/3.5; // Standard card aspect ratio
+    const tooltipHeight = tooltipWidth / aspectRatio;
+    
+    let left = mouseX + 15;
+    let top = mouseY + 15;
+
+    // Prevent tooltip from going off-screen to the right
+    if (left + tooltipWidth > window.innerWidth - 10) {
+        left = mouseX - tooltipWidth - 15;
+    }
+
+    // Prevent tooltip from going off-screen to the bottom
+    if (top + tooltipHeight > window.innerHeight - 10) {
+        top = mouseY - tooltipHeight - 15;
+    }
+    
+    // Adjust position if it goes off-screen to the left
+    if (left < 10) {
+        left = 10;
+    }
+
+    // Adjust position if it goes off-screen to the top
+    if (top < 10) {
+        top = 10;
+    }
+    
+    tooltip.style.width = `${tooltipWidth}px`;
+    tooltip.style.height = `${tooltipHeight}px`;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function clearFilters() {
+    Collection.setFilters({
+        name: '',
+        set: [],
+        rarity: [],
+        colors: [],
+        type: ''
+    });
+    document.getElementById('filter-name').value = '';
+    UI.clearCheckboxes('set');
+    UI.clearCheckboxes('rarity');
+    UI.updateColorFilterSelection([]);
+    applyAndRender({});
+}
+
+This is the current marketplace.js:
+// public/js/marketplace.js
+
+/**
+ * @file public/js/marketplace.js
+ * @description Handles all logic for the TCG Marketplace page for HatakeSocial.
+ * @note This script uses the Firebase v9 compat libraries.
+ */
+
+// Import currency module for price conversion
+import * as Currency from './modules/currency.js';
+import { createCurrencySelector } from './modules/ui.js';
+
+// --- STATE MANAGEMENT ---
+let allListings = [];           // Master list of all listings from Firestore
+let filteredListings = [];      // Listings after filters and sorting are applied
+let currentView = 'grid';       // 'grid' or 'list'
+
+// --- DOM ELEMENT REFERENCES ---
+const listingsContainer = document.getElementById('listingsContainer');
+const mainSearchInput = document.getElementById('main-search-bar'); // Use the header search bar
+const gameFilter = document.getElementById('gameFilter');
+const setFilter = document.getElementById('setFilter');
+const minPriceInput = document.getElementById('minPrice');
+const maxPriceInput = document.getElementById('maxPrice');
+const conditionFiltersContainer = document.getElementById('conditionFilters');
+const foilFilter = document.getElementById('foilFilter');
+const locationFilter = document.getElementById('locationFilter');
+const sortOptions = document.getElementById('sortOptions');
+const gridViewBtn = document.getElementById('gridViewBtn');
+const listViewBtn = document.getElementById('listViewBtn');
+const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
+const advancedFiltersContainer = document.getElementById('advancedFilters');
+
+// --- UTILITY FUNCTIONS ---
+const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+};
+
+// --- DATA FETCHING ---
+async function fetchMarketplaceData() {
+    listingsContainer.innerHTML = `
+        <div class="text-center p-10">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">Loading Listings...</p>
+        </div>`;
+
+    try {
+        const db = firebase.firestore();
+        const listingsRef = db.collection('marketplaceListings');
+        const querySnapshot = await listingsRef.orderBy('timestamp', 'desc').get();
+
+        allListings = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        filteredListings = [...allListings];
+
+        if (allListings.length === 0) {
+            listingsContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 py-10">The marketplace is currently empty.</p>`;
+        } else {
+            populateSetFilter();
+            renderListings();
+        }
+
+    } catch (error) {
+        console.error("Error fetching marketplace listings:", error);
+        listingsContainer.innerHTML = `<p class="text-center text-red-500 py-10">Could not load listings. Please try again later.</p>`;
+    }
+}
+
+// --- RENDERING LOGIC ---
+function renderListings() {
+    listingsContainer.innerHTML = '';
+
+    if (filteredListings.length === 0) {
+        listingsContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 py-10">No cards found. Try adjusting your filters.</p>`;
+        return;
+    }
+
+    if (currentView === 'grid') {
+        renderGridView();
+    } else {
+        renderListView();
+    }
+}
+
+function renderGridView() {
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4';
+
+    filteredListings.forEach(listing => {
+        const cardData = listing.cardData;
+        const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+        const displayPrice = Currency.convertAndFormat(listing.price);
+
+        const cardElement = document.createElement('div');
+        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-gray-200 dark:bg-gray-800';
+        cardElement.dataset.imageUrl = imageUrl;
+
+        cardElement.onclick = () => window.location.href = `/card-view.html?id=${listing.id}`;
+
+        cardElement.innerHTML = `
+            <img src="${imageUrl}" alt="${cardData.name}" class="w-full h-auto object-cover rounded-t-lg">
+            <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
+            <div class="p-2">
+                <h3 class="font-bold text-sm truncate">${cardData.name}</h3>
+                <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
+                    <p><strong>Condition:</strong> ${listing.condition}</p>
+                    ${listing.isFoil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
+                    <p class="truncate"><strong>Notes:</strong> ${listing.notes || 'None'}</p>
+                </div>
+            </div>
+        `;
+        grid.appendChild(cardElement);
+    });
+
+    listingsContainer.appendChild(grid);
+}
+
+
+function renderListView() {
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700';
+
+    let tableHTML = `
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Card Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Set</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Condition</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Seller</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
+
+    filteredListings.forEach(listing => {
+        const cardData = listing.cardData;
+        const sellerData = listing.sellerData;
+        const displayPrice = Currency.convertAndFormat(listing.price);
+        const imageUrl = cardData.image_uris?.small || 'https://placehold.co/32';
+
+        tableHTML += `
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='/card-view.html?id=${listing.id}'">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-8">
+                            <img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt="">
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">${cardData.name} ${listing.isFoil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${cardData.set_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.condition}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <a href="/profile.html?uid=${sellerData.uid}" onclick="event.stopPropagation()" class="flex items-center space-x-2 group">
+                        <img class="h-8 w-8 rounded-full" src="${sellerData.photoURL || 'https://placehold.co/32'}" alt="">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">${sellerData.displayName}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${sellerData.country || 'N/A'}</div>
+                        </div>
+                    </a>
+                </td>
+            </tr>`;
+    });
+
+    tableHTML += `</tbody></table>`;
+    tableContainer.innerHTML = tableHTML;
+    listingsContainer.appendChild(tableContainer);
+}
+
+// --- FILTERING AND SORTING LOGIC ---
+function applyFiltersAndSort() {
+    let listings = [...allListings];
+
+    const searchTerm = mainSearchInput.value.toLowerCase();
+    const selectedGame = gameFilter.value;
+    const selectedSet = setFilter.value;
+    const minPrice = parseFloat(minPriceInput.value);
+    const maxPrice = parseFloat(maxPriceInput.value);
+    const selectedConditions = Array.from(conditionFiltersContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+    const showFoilOnly = foilFilter.checked;
+    const sellerLocation = locationFilter.value.toLowerCase();
+
+    if (searchTerm) listings = listings.filter(l => l.cardData.name.toLowerCase().includes(searchTerm));
+    if (selectedGame !== 'all') listings = listings.filter(l => l.cardData.game === selectedGame);
+
+    populateSetFilter(listings);
+
+    if (selectedSet !== 'all') listings = listings.filter(l => l.cardData.set_name === selectedSet);
+    if (!isNaN(minPrice)) listings = listings.filter(l => l.price >= minPrice);
+    if (!isNaN(maxPrice)) listings = listings.filter(l => l.price <= maxPrice);
+    if (selectedConditions.length > 0) listings = listings.filter(l => selectedConditions.includes(l.condition));
+    if (showFoilOnly) listings = listings.filter(l => l.isFoil);
+    if (sellerLocation) listings = listings.filter(l => l.sellerData.country && l.sellerData.country.toLowerCase().includes(sellerLocation));
+
+    const sortBy = sortOptions.value;
+    switch (sortBy) {
+        case 'price-asc':
+            listings.sort((a, b) => a.price - b.price);
+            break;
+        case 'price-desc':
+            listings.sort((a, b) => b.price - a.price);
+            break;
+        case 'newly-listed':
+        default:
+            listings.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+    }
+
+    filteredListings = listings;
+    renderListings();
+}
+
+function populateSetFilter(listings = allListings) {
+    const currentSetValue = setFilter.value;
+    const setNames = [...new Set(listings.map(l => l.cardData.set_name))].sort();
+
+    setFilter.innerHTML = '<option value="all">All Sets</option>';
+    setNames.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        option.textContent = setName;
+        setFilter.appendChild(option);
+    });
+
+    if (setNames.includes(currentSetValue)) {
+        setFilter.value = currentSetValue;
+    }
+}
+
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', async () => {
+    await Currency.initCurrency();
+    createCurrencySelector('user-actions');
+    
+    fetchMarketplaceData();
+
+    // Search and filter event listeners
+    mainSearchInput.addEventListener('input', debounce(applyFiltersAndSort, 300));
+    gameFilter.addEventListener('change', applyFiltersAndSort);
+    setFilter.addEventListener('change', applyFiltersAndSort);
+    minPriceInput.addEventListener('input', debounce(applyFiltersAndSort, 500));
+    maxPriceInput.addEventListener('input', debounce(applyFiltersAndSort, 500));
+    foilFilter.addEventListener('change', applyFiltersAndSort);
+    locationFilter.addEventListener('input', debounce(applyFiltersAndSort, 300));
+    sortOptions.addEventListener('change', applyFiltersAndSort);
+
+    // View toggle event listeners
+    gridViewBtn.addEventListener('click', () => {
+        currentView = 'grid';
+        gridViewBtn.classList.add('bg-blue-600', 'text-white');
+        gridViewBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        listViewBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        listViewBtn.classList.remove('bg-blue-600', 'text-white');
+        renderListings();
+    });
+
+    listViewBtn.addEventListener('click', () => {
+        currentView = 'list';
+        listViewBtn.classList.add('bg-blue-600', 'text-white');
+        listViewBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        gridViewBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
+        gridViewBtn.classList.remove('bg-blue-600', 'text-white');
+        renderListings();
+    });
+    
+    // Card hover preview functionality
+    const tooltip = document.getElementById('card-preview-tooltip');
+    
+    // Updated mouseover event listener to handle card preview
+    const handleMouseOver = (e) => {
+        const cardElement = e.target.closest('.card-container');
+        const listCardElement = e.target.closest('.card-preview-trigger');
+
+        let imageUrl = null;
+        if (cardElement && cardElement.dataset.imageUrl) {
+            imageUrl = cardElement.dataset.imageUrl;
+        } else if (listCardElement) {
+            imageUrl = listCardElement.src.replace('small', 'large');
+        }
+
+        if (imageUrl) {
+            let img = tooltip.querySelector('img');
+            if (!img) {
+                tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+                img = tooltip.querySelector('img');
+            }
+            img.src = imageUrl;
+            tooltip.classList.remove('hidden');
+        }
+    };
+    
+    listingsContainer.addEventListener('mouseover', handleMouseOver);
+    listingsContainer.addEventListener('mouseout', () => {
+        tooltip.classList.add('hidden');
+    });
+    listingsContainer.addEventListener('mousemove', (e) => {
+        if (!tooltip.classList.contains('hidden')) {
+            const mouseX = e.clientX, mouseY = e.clientY;
+            
+            // Calculate tooltip size based on viewport width
+            const viewportWidth = window.innerWidth;
+            let tooltipWidth = 260; // Default width
+            if (viewportWidth < 640) {
+                tooltipWidth = viewportWidth * 0.5; // 50% of viewport width on small screens
+            } else if (viewportWidth < 1024) {
+                tooltipWidth = 220; // A bit smaller on medium screens
+            }
+
+            const aspectRatio = 2.5/3.5; // Standard card aspect ratio
+            const tooltipHeight = tooltipWidth / aspectRatio;
+
+            let left = mouseX + 15;
+            let top = mouseY + 15;
+
+            // Prevent tooltip from going off-screen to the right
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                left = mouseX - tooltipWidth - 15;
+            }
+
+            // Prevent tooltip from going off-screen to the bottom
+            if (top + tooltipHeight > window.innerHeight - 10) {
+                top = mouseY - tooltipHeight - 15;
+            }
+
+            // Adjust position if it goes off-screen to the left
+            if (left < 10) {
+                left = 10;
+            }
+
+            // Adjust position if it goes off-screen to the top
+            if (top < 10) {
+                top = 10;
+            }
+
+            tooltip.style.width = `${tooltipWidth}px`;
+            tooltip.style.height = `${tooltipHeight}px`;
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+        }
+    });
+
+    // Advanced filters toggle
+    toggleAdvancedFiltersBtn.addEventListener('click', () => {
+        advancedFiltersContainer.classList.toggle('hidden');
+        const isHidden = advancedFiltersContainer.classList.contains('hidden');
+        toggleAdvancedFiltersBtn.innerHTML = isHidden 
+            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1 transition-transform inline-block"></i>' 
+            : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1 transition-transform inline-block"></i>';
+    });
+
+    // Condition filter checkboxes
+    conditionFiltersContainer.addEventListener('change', applyFiltersAndSort);
+    
+    // Re-render on currency change
+    document.addEventListener('currencyChanged', renderListings);
+});
+
+Please merge them with the new code.

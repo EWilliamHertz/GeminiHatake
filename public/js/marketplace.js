@@ -1,23 +1,22 @@
-// public/js/marketplace.js
-
 /**
- * @file public/js/marketplace.js
- * @description Handles all logic for the TCG Marketplace page for HatakeSocial.
- * @note This script uses the Firebase v9 compat libraries.
+ * HatakeSocial - Marketplace Page Logic (FULLY RESTORED & FIXED)
+ *
+ * Fetches, filters, and displays card listings from all users.
+ * Uses the centralized currency module for all price conversions and display.
+ * Includes the restored card hover-preview functionality.
  */
 
-// Import currency module for price conversion
-import * as Currency from './modules/currency.js';
-import { createCurrencySelector } from './modules/ui.js';
+// --- CORRECTED IMPORT PATH ---
+import { convertAndFormat } from './modules/currency.js';
 
 // --- STATE MANAGEMENT ---
-let allListings = [];           // Master list of all listings from Firestore
-let filteredListings = [];      // Listings after filters and sorting are applied
-let currentView = 'grid';       // 'grid' or 'list'
+let allListings = [];
+let filteredListings = [];
+let currentView = 'grid';
 
 // --- DOM ELEMENT REFERENCES ---
 const listingsContainer = document.getElementById('listingsContainer');
-const mainSearchInput = document.getElementById('main-search-bar'); // Use the header search bar
+const mainSearchInput = document.getElementById('main-search-bar');
 const gameFilter = document.getElementById('gameFilter');
 const setFilter = document.getElementById('setFilter');
 const minPriceInput = document.getElementById('minPrice');
@@ -30,6 +29,8 @@ const gridViewBtn = document.getElementById('gridViewBtn');
 const listViewBtn = document.getElementById('listViewBtn');
 const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
 const advancedFiltersContainer = document.getElementById('advancedFilters');
+const tooltip = document.getElementById('card-preview-tooltip');
+
 
 // --- UTILITY FUNCTIONS ---
 const debounce = (func, delay) => {
@@ -45,25 +46,46 @@ const debounce = (func, delay) => {
 // --- DATA FETCHING ---
 async function fetchMarketplaceData() {
     listingsContainer.innerHTML = `
-        <div class="text-center p-10">
+        <div class="col-span-full text-center p-10">
             <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
             <p class="mt-2 text-gray-600 dark:text-gray-400">Loading Listings...</p>
         </div>`;
 
     try {
         const db = firebase.firestore();
-        const listingsRef = db.collection('marketplaceListings');
-        const querySnapshot = await listingsRef.orderBy('timestamp', 'desc').get();
+        const listingsRef = db.collectionGroup('forSale');
+        const querySnapshot = await listingsRef.orderBy('listedAt', 'desc').get();
 
         allListings = querySnapshot.docs.map(doc => ({
             id: doc.id,
+            sellerId: doc.ref.parent.parent.id, // Get sellerId from path
             ...doc.data()
         }));
+        
+        // Post-process to add seller data
+        const sellerIds = [...new Set(allListings.map(l => l.sellerId))];
+        const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
+        const sellerDocs = await Promise.all(sellerPromises);
+        const sellerMap = new Map();
+        sellerDocs.forEach(doc => {
+            if(doc.exists) sellerMap.set(doc.id, doc.data());
+        });
+
+        allListings.forEach(listing => {
+            const seller = sellerMap.get(listing.sellerId) || {};
+            listing.sellerData = {
+                uid: listing.sellerId,
+                displayName: seller.displayName || 'Unknown Seller',
+                photoURL: seller.photoURL || 'https://placehold.co/32',
+                country: seller.address?.country || 'N/A'
+            };
+        });
+
 
         filteredListings = [...allListings];
 
         if (allListings.length === 0) {
-            listingsContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 py-10">The marketplace is currently empty.</p>`;
+            listingsContainer.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-10">The marketplace is currently empty.</p>`;
         } else {
             populateSetFilter();
             renderListings();
@@ -78,12 +100,10 @@ async function fetchMarketplaceData() {
 // --- RENDERING LOGIC ---
 function renderListings() {
     listingsContainer.innerHTML = '';
-
     if (filteredListings.length === 0) {
-        listingsContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 py-10">No cards found. Try adjusting your filters.</p>`;
+        listingsContainer.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-10">No cards found. Try adjusting your filters.</p>`;
         return;
     }
-
     if (currentView === 'grid') {
         renderGridView();
     } else {
@@ -92,43 +112,36 @@ function renderListings() {
 }
 
 function renderGridView() {
-    const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4';
+    listingsContainer.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4';
+    const fragment = document.createDocumentFragment();
 
     filteredListings.forEach(listing => {
-        const cardData = listing.cardData;
-        const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
-        const displayPrice = Currency.convertAndFormat(listing.price);
+        const imageUrl = listing.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+        const displayPrice = convertAndFormat(listing.salePrice);
 
         const cardElement = document.createElement('div');
-        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-gray-200 dark:bg-gray-800';
+        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-white dark:bg-gray-800';
         cardElement.dataset.imageUrl = imageUrl;
-
-        cardElement.onclick = () => window.location.href = `/card-view.html?id=${listing.id}`;
+        cardElement.onclick = () => window.location.href = `listing.html?sellerId=${listing.sellerId}&listingId=${listing.id}`;
 
         cardElement.innerHTML = `
-            <img src="${imageUrl}" alt="${cardData.name}" class="w-full h-auto object-cover rounded-t-lg">
+            <img src="${imageUrl}" alt="${listing.name}" class="w-full h-auto object-cover">
             <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
             <div class="p-2">
-                <h3 class="font-bold text-sm truncate">${cardData.name}</h3>
+                <h3 class="font-bold text-sm truncate">${listing.name}</h3>
                 <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
                     <p><strong>Condition:</strong> ${listing.condition}</p>
-                    ${listing.isFoil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
-                    <p class="truncate"><strong>Notes:</strong> ${listing.notes || 'None'}</p>
+                    ${listing.is_foil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
                 </div>
             </div>
         `;
-        grid.appendChild(cardElement);
+        fragment.appendChild(cardElement);
     });
-
-    listingsContainer.appendChild(grid);
+    listingsContainer.appendChild(fragment);
 }
 
-
 function renderListView() {
-    const tableContainer = document.createElement('div');
-    tableContainer.className = 'overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700';
-
+    listingsContainer.className = 'overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700';
     let tableHTML = `
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
@@ -143,32 +156,27 @@ function renderListView() {
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
 
     filteredListings.forEach(listing => {
-        const cardData = listing.cardData;
         const sellerData = listing.sellerData;
-        const displayPrice = Currency.convertAndFormat(listing.price);
-        const imageUrl = cardData.image_uris?.small || 'https://placehold.co/32';
+        const displayPrice = convertAndFormat(listing.salePrice);
+        const imageUrl = listing.image_uris?.small || 'https://placehold.co/32';
 
         tableHTML += `
-            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='/card-view.html?id=${listing.id}'">
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='listing.html?sellerId=${listing.sellerId}&listingId=${listing.id}'">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 h-10 w-8">
-                            <img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt="">
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">${cardData.name} ${listing.isFoil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div>
-                        </div>
+                        <div class="flex-shrink-0 h-10 w-8"><img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt=""></div>
+                        <div class="ml-4"><div class="text-sm font-medium text-gray-900 dark:text-white">${listing.name} ${listing.is_foil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div></div>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${cardData.set_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.set_name}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.condition}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     <a href="/profile.html?uid=${sellerData.uid}" onclick="event.stopPropagation()" class="flex items-center space-x-2 group">
-                        <img class="h-8 w-8 rounded-full" src="${sellerData.photoURL || 'https://placehold.co/32'}" alt="">
+                        <img class="h-8 w-8 rounded-full" src="${sellerData.photoURL}" alt="">
                         <div>
                             <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">${sellerData.displayName}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">${sellerData.country || 'N/A'}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${sellerData.country}</div>
                         </div>
                     </a>
                 </td>
@@ -176,9 +184,9 @@ function renderListView() {
     });
 
     tableHTML += `</tbody></table>`;
-    tableContainer.innerHTML = tableHTML;
-    listingsContainer.appendChild(tableContainer);
+    listingsContainer.innerHTML = tableHTML;
 }
+
 
 // --- FILTERING AND SORTING LOGIC ---
 function applyFiltersAndSort() {
@@ -193,29 +201,29 @@ function applyFiltersAndSort() {
     const showFoilOnly = foilFilter.checked;
     const sellerLocation = locationFilter.value.toLowerCase();
 
-    if (searchTerm) listings = listings.filter(l => l.cardData.name.toLowerCase().includes(searchTerm));
-    if (selectedGame !== 'all') listings = listings.filter(l => l.cardData.game === selectedGame);
+    if (searchTerm) listings = listings.filter(l => l.name.toLowerCase().includes(searchTerm));
+    if (selectedGame !== 'all') listings = listings.filter(l => l.game === selectedGame);
 
     populateSetFilter(listings);
 
-    if (selectedSet !== 'all') listings = listings.filter(l => l.cardData.set_name === selectedSet);
-    if (!isNaN(minPrice)) listings = listings.filter(l => l.price >= minPrice);
-    if (!isNaN(maxPrice)) listings = listings.filter(l => l.price <= maxPrice);
+    if (selectedSet !== 'all') listings = listings.filter(l => l.set_name === selectedSet);
+    if (!isNaN(minPrice)) listings = listings.filter(l => l.salePrice >= minPrice);
+    if (!isNaN(maxPrice)) listings = listings.filter(l => l.salePrice <= maxPrice);
     if (selectedConditions.length > 0) listings = listings.filter(l => selectedConditions.includes(l.condition));
-    if (showFoilOnly) listings = listings.filter(l => l.isFoil);
+    if (showFoilOnly) listings = listings.filter(l => l.is_foil);
     if (sellerLocation) listings = listings.filter(l => l.sellerData.country && l.sellerData.country.toLowerCase().includes(sellerLocation));
 
     const sortBy = sortOptions.value;
     switch (sortBy) {
         case 'price-asc':
-            listings.sort((a, b) => a.price - b.price);
+            listings.sort((a, b) => a.salePrice - b.salePrice);
             break;
         case 'price-desc':
-            listings.sort((a, b) => b.price - a.price);
+            listings.sort((a, b) => b.salePrice - a.salePrice);
             break;
         case 'newly-listed':
         default:
-            listings.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+            listings.sort((a, b) => b.listedAt.seconds - a.listedAt.seconds);
     }
 
     filteredListings = listings;
@@ -224,7 +232,7 @@ function applyFiltersAndSort() {
 
 function populateSetFilter(listings = allListings) {
     const currentSetValue = setFilter.value;
-    const setNames = [...new Set(listings.map(l => l.cardData.set_name))].sort();
+    const setNames = [...new Set(listings.map(l => l.set_name))].sort();
 
     setFilter.innerHTML = '<option value="all">All Sets</option>';
     setNames.forEach(setName => {
@@ -240,13 +248,14 @@ function populateSetFilter(listings = allListings) {
 }
 
 // --- EVENT LISTENERS ---
-document.addEventListener('DOMContentLoaded', async () => {
-    await Currency.initCurrency();
-    createCurrencySelector('user-actions');
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    if (!user) {
+        listingsContainer.innerHTML = `<div class="col-span-full text-center p-8"><h2 class="text-xl font-bold">Please log in to view the marketplace.</h2></div>`;
+        return;
+    }
     
     fetchMarketplaceData();
 
-    // Search and filter event listeners
     mainSearchInput.addEventListener('input', debounce(applyFiltersAndSort, 300));
     gameFilter.addEventListener('change', applyFiltersAndSort);
     setFilter.addEventListener('change', applyFiltersAndSort);
@@ -255,13 +264,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     foilFilter.addEventListener('change', applyFiltersAndSort);
     locationFilter.addEventListener('input', debounce(applyFiltersAndSort, 300));
     sortOptions.addEventListener('change', applyFiltersAndSort);
+    conditionFiltersContainer.addEventListener('change', applyFiltersAndSort);
 
-    // View toggle event listeners
     gridViewBtn.addEventListener('click', () => {
         currentView = 'grid';
         gridViewBtn.classList.add('bg-blue-600', 'text-white');
-        gridViewBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
-        listViewBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
         listViewBtn.classList.remove('bg-blue-600', 'text-white');
         renderListings();
     });
@@ -269,28 +276,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     listViewBtn.addEventListener('click', () => {
         currentView = 'list';
         listViewBtn.classList.add('bg-blue-600', 'text-white');
-        listViewBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
-        gridViewBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:bg-gray-300', 'dark:hover:bg-gray-600');
         gridViewBtn.classList.remove('bg-blue-600', 'text-white');
         renderListings();
     });
-    
-    // Card hover preview functionality
-    const tooltip = document.getElementById('card-preview-tooltip');
-    
-    // Updated mouseover event listener to handle card preview
+
+    toggleAdvancedFiltersBtn.addEventListener('click', () => {
+        advancedFiltersContainer.classList.toggle('hidden');
+        const isHidden = advancedFiltersContainer.classList.contains('hidden');
+        toggleAdvancedFiltersBtn.innerHTML = isHidden 
+            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1"></i>' 
+            : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1"></i>';
+    });
+
+    // --- RESTORED: Card hover preview functionality ---
     const handleMouseOver = (e) => {
         const cardElement = e.target.closest('.card-container');
         const listCardElement = e.target.closest('.card-preview-trigger');
-
         let imageUrl = null;
         if (cardElement && cardElement.dataset.imageUrl) {
             imageUrl = cardElement.dataset.imageUrl;
         } else if (listCardElement) {
             imageUrl = listCardElement.src.replace('small', 'large');
         }
-
-        if (imageUrl) {
+        if (imageUrl && tooltip) {
             let img = tooltip.querySelector('img');
             if (!img) {
                 tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
@@ -303,66 +311,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     listingsContainer.addEventListener('mouseover', handleMouseOver);
     listingsContainer.addEventListener('mouseout', () => {
-        tooltip.classList.add('hidden');
+        if (tooltip) tooltip.classList.add('hidden');
     });
     listingsContainer.addEventListener('mousemove', (e) => {
-        if (!tooltip.classList.contains('hidden')) {
+        if (tooltip && !tooltip.classList.contains('hidden')) {
             const mouseX = e.clientX, mouseY = e.clientY;
-            
-            // Calculate tooltip size based on viewport width
-            const viewportWidth = window.innerWidth;
-            let tooltipWidth = 260; // Default width
-            if (viewportWidth < 640) {
-                tooltipWidth = viewportWidth * 0.5; // 50% of viewport width on small screens
-            } else if (viewportWidth < 1024) {
-                tooltipWidth = 220; // A bit smaller on medium screens
-            }
+            const tooltipWidth = 240;
+            const aspectRatio = 3.5 / 2.5;
+            const tooltipHeight = tooltipWidth * aspectRatio;
+            let left = mouseX + 20;
+            let top = mouseY + 20;
 
-            const aspectRatio = 2.5/3.5; // Standard card aspect ratio
-            const tooltipHeight = tooltipWidth / aspectRatio;
-
-            let left = mouseX + 15;
-            let top = mouseY + 15;
-
-            // Prevent tooltip from going off-screen to the right
-            if (left + tooltipWidth > window.innerWidth - 10) {
-                left = mouseX - tooltipWidth - 15;
-            }
-
-            // Prevent tooltip from going off-screen to the bottom
-            if (top + tooltipHeight > window.innerHeight - 10) {
-                top = mouseY - tooltipHeight - 15;
-            }
-
-            // Adjust position if it goes off-screen to the left
-            if (left < 10) {
-                left = 10;
-            }
-
-            // Adjust position if it goes off-screen to the top
-            if (top < 10) {
-                top = 10;
-            }
+            if (left + tooltipWidth > window.innerWidth - 15) left = mouseX - tooltipWidth - 20;
+            if (top + tooltipHeight > window.innerHeight - 15) top = window.innerHeight - tooltipHeight - 15;
+            if (left < 15) left = 15;
+            if (top < 15) top = 15;
 
             tooltip.style.width = `${tooltipWidth}px`;
-            tooltip.style.height = `${tooltipHeight}px`;
+            tooltip.style.height = `auto`;
             tooltip.style.left = `${left}px`;
             tooltip.style.top = `${top}px`;
         }
     });
 
-    // Advanced filters toggle
-    toggleAdvancedFiltersBtn.addEventListener('click', () => {
-        advancedFiltersContainer.classList.toggle('hidden');
-        const isHidden = advancedFiltersContainer.classList.contains('hidden');
-        toggleAdvancedFiltersBtn.innerHTML = isHidden 
-            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1 transition-transform inline-block"></i>' 
-            : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1 transition-transform inline-block"></i>';
-    });
-
-    // Condition filter checkboxes
-    conditionFiltersContainer.addEventListener('change', applyFiltersAndSort);
-    
-    // Re-render on currency change
-    document.addEventListener('currencyChanged', renderListings);
+    // Re-render when currency changes
+    document.addEventListener('currencyChange', renderListings);
 });
+
