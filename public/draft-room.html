@@ -7,39 +7,154 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
     <link href="css/style.css" rel="stylesheet"/>
+    <style>
+        .card-hover {
+            transition: all 0.2s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        .draft-timer {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .picked-card {
+            transition: all 0.3s ease;
+        }
+        .picked-card:hover {
+            transform: scale(1.1);
+            z-index: 5;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-200 font-sans">
     <div class="flex flex-col h-screen">
-        <header class="bg-gray-800 p-4 shadow-lg flex justify-between items-center flex-shrink-0">
-            <div>
-                <h1 class="text-xl font-bold" id="draft-set-name">Loading Draft...</h1>
-                <p class="text-sm text-gray-400">Pack <span id="pack-number">1</span>, Pick <span id="pick-number">1</span></p>
+        <!-- Header -->
+        <header class="bg-gray-800 shadow-lg flex-shrink-0">
+            <div class="px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <div>
+                            <h1 class="text-xl font-bold text-white" id="draft-set-name">
+                                <i class="fas fa-magic mr-2 text-purple-400"></i>Loading Draft...
+                            </h1>
+                            <div class="flex items-center space-x-4 text-sm text-gray-400 mt-1">
+                                <span>Pack <span id="pack-number" class="font-semibold text-blue-400">1</span></span>
+                                <span>•</span>
+                                <span>Pick <span id="pick-number" class="font-semibold text-green-400">1</span></span>
+                                <span>•</span>
+                                <span id="timer-display" class="draft-timer font-semibold text-yellow-400">∞</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="toggle-picks-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                            <i class="fas fa-eye mr-1"></i>Toggle Picks
+                        </button>
+                        <a href="draft-lobby.html" class="text-red-400 hover:text-red-300 transition-colors">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Exit Draft
+                        </a>
+                    </div>
+                </div>
             </div>
-            <a href="/events.html" class="text-sm text-blue-400 hover:underline">Exit Draft</a>
         </header>
 
-        <main class="flex-1 overflow-hidden p-4 flex flex-col">
-            <div id="current-pack-container" class="flex-grow">
-                <h2 class="font-bold text-lg mb-2">Your Current Pack - Pick a Card</h2>
-                <div id="current-pack-cards" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 h-full overflow-y-auto">
-                    <p class="col-span-full text-center text-gray-400">Waiting for pack...</p>
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden p-6 flex flex-col">
+            <!-- Current Pack Section -->
+            <div id="current-pack-container" class="flex-grow mb-4">
+                <div class="bg-gray-800 rounded-lg p-4 h-full flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-lg text-white flex items-center">
+                            <i class="fas fa-cards-blank mr-2 text-blue-400"></i>
+                            Current Pack - Pick a Card
+                        </h2>
+                        <div id="pack-info" class="text-sm text-gray-400">
+                            <span id="cards-remaining">0</span> cards remaining
+                        </div>
+                    </div>
+                    
+                    <div id="current-pack-cards" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3 flex-grow overflow-y-auto p-2">
+                        <div class="col-span-full flex items-center justify-center h-64">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin text-4xl text-blue-400 mb-4"></i>
+                                <p class="text-gray-400">Waiting for pack...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
         
-        <footer class="bg-gray-800 p-4 shadow-inner flex-shrink-0">
-             <h2 class="font-bold text-lg mb-2">Your Picks (<span id="picked-count">0</span>)</h2>
-            <div id="picked-cards-container" class="flex space-x-2 overflow-x-auto h-36 pb-2">
-                <p class="text-sm text-gray-500">Your drafted cards will appear here.</p>
+        <!-- Footer - Picked Cards -->
+        <footer id="picked-cards-footer" class="bg-gray-800 shadow-inner flex-shrink-0 transition-all duration-300">
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-bold text-lg text-white flex items-center">
+                        <i class="fas fa-collection mr-2 text-green-400"></i>
+                        Your Picks (<span id="picked-count" class="text-green-400">0</span>)
+                    </h2>
+                    <div class="flex items-center space-x-4 text-sm text-gray-400">
+                        <span>Total: <span id="total-picks">0</span>/42</span>
+                        <button id="build-deck-btn" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                            <i class="fas fa-hammer mr-2"></i>Build Deck
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="picked-cards-container" class="flex space-x-2 overflow-x-auto pb-2" style="height: 140px;">
+                    <div class="flex items-center justify-center w-full text-gray-500">
+                        <div class="text-center">
+                            <i class="fas fa-cards-blank text-2xl mb-2"></i>
+                            <p class="text-sm">Your drafted cards will appear here</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </footer>
     </div>
 
+    <!-- Card Preview Modal -->
+    <div id="card-preview-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="relative max-w-md max-h-full p-4">
+            <button id="close-preview" class="absolute top-2 right-2 text-white hover:text-gray-300 z-10">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <img id="preview-image" src="" alt="" class="max-w-full max-h-full rounded-lg shadow-2xl">
+        </div>
+    </div>
+
+    <!-- Draft Complete Modal -->
+    <div id="draft-complete-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+            <div class="text-center">
+                <i class="fas fa-trophy text-6xl text-yellow-400 mb-4"></i>
+                <h2 class="text-2xl font-bold text-white mb-4">Draft Complete!</h2>
+                <p class="text-gray-300 mb-6">You've successfully drafted all your cards. Ready to build your deck?</p>
+                <div class="flex space-x-4">
+                    <button id="view-pool-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-eye mr-2"></i>View Pool
+                    </button>
+                    <button id="start-building-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-hammer mr-2"></i>Build Deck
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
     
+    <!-- Custom Scripts -->
     <script src="js/auth.js"></script>
     <script src="js/draft.js" type="module"></script>
 </body>

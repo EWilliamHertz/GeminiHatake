@@ -1923,3 +1923,606 @@ body.dark-mode .close-button:focus {
 .platform-card {
     @apply bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700;
 }
+
+
+/* ===================================================================
+   MTG DRAFT APPLICATION STYLES
+   ================================================================== */
+
+/* --- Draft Lobby Styles --- */
+.draft-card-preview {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.draft-card-preview:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.draft-lobby-bg {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
+    min-height: 100vh;
+}
+
+.draft-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.draft-status-waiting {
+    background-color: #fbbf24;
+    color: #92400e;
+}
+
+.draft-status-drafting {
+    background-color: #34d399;
+    color: #065f46;
+}
+
+.draft-status-completed {
+    background-color: #60a5fa;
+    color: #1e40af;
+}
+
+/* --- Draft Room Styles --- */
+.draft-pack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.draft-card {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.draft-card:hover {
+    transform: scale(1.05) translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.draft-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.draft-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: flex-end;
+    padding: 0.5rem;
+}
+
+.draft-card:hover .draft-card-overlay {
+    opacity: 1;
+}
+
+.draft-card-info {
+    color: white;
+    font-size: 0.75rem;
+}
+
+.draft-card-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.draft-card-rarity {
+    opacity: 0.8;
+}
+
+.draft-timer-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: conic-gradient(#3b82f6 0deg, #e5e7eb 0deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.draft-timer-text {
+    font-weight: bold;
+    font-size: 1.125rem;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* --- Deck Builder Styles --- */
+.deck-builder-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    height: calc(100vh - 140px);
+}
+
+.deck-zone {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid #3b82f6;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.pool-zone {
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid #6b7280;
+    box-shadow: 0 4px 20px rgba(107, 114, 128, 0.2);
+}
+
+.card-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+    overflow-y: auto;
+    padding: 0.5rem;
+    max-height: 400px;
+}
+
+.deck-card {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.deck-card:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    z-index: 5;
+}
+
+.deck-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.card-count-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.mana-curve-container {
+    display: flex;
+    align-items: end;
+    gap: 0.25rem;
+    height: 60px;
+    margin-top: 1rem;
+}
+
+.mana-curve-bar {
+    flex: 1;
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+    min-height: 2px;
+}
+
+.mana-curve-label {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+/* --- Game Room Styles --- */
+.game-board {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.game-board::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="%23334155" stroke-width="0.5" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.battlefield-zone {
+    position: relative;
+    z-index: 1;
+    min-height: 150px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
+}
+
+.battlefield-zone:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.game-card {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.game-card:hover {
+    transform: scale(1.1) translateY(-8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    z-index: 20;
+}
+
+.game-card.tapped {
+    transform: rotate(90deg);
+    opacity: 0.7;
+}
+
+.game-card.tapped:hover {
+    transform: rotate(90deg) scale(1.1) translateY(-8px);
+}
+
+.game-card.selected {
+    border: 3px solid #3b82f6;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.game-card.attacking {
+    border: 3px solid #ef4444;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+    animation: attack-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes attack-glow {
+    from { box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+    to { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+}
+
+.game-card.blocking {
+    border: 3px solid #10b981;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+    animation: block-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes block-glow {
+    from { box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); }
+    to { box-shadow: 0 0 25px rgba(16, 185, 129, 0.8); }
+}
+
+.hand-zone {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.25rem;
+    padding: 1rem;
+    min-height: 140px;
+    position: relative;
+    z-index: 1;
+}
+
+.hand-card {
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.hand-card:hover {
+    transform: translateY(-20px) scale(1.05);
+    z-index: 15;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.life-counter {
+    font-size: 2rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    transition: all 0.3s ease;
+}
+
+.life-counter.low-life {
+    color: #ef4444;
+    animation: low-life-pulse 2s ease-in-out infinite;
+}
+
+@keyframes low-life-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.mana-symbol {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.mana-symbol:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.mana-white { background: linear-gradient(135deg, #fffbd5, #f7fafc); color: #000; }
+.mana-blue { background: linear-gradient(135deg, #0e68ab, #3182ce); }
+.mana-black { background: linear-gradient(135deg, #150b00, #2d3748); }
+.mana-red { background: linear-gradient(135deg, #d3202a, #e53e3e); }
+.mana-green { background: linear-gradient(135deg, #00733e, #38a169); }
+.mana-colorless { background: linear-gradient(135deg, #9ca3af, #d1d5db); color: #000; }
+
+.phase-indicator {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.phase-active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border-color: #60a5fa;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+    animation: phase-pulse 2s ease-in-out infinite;
+}
+
+@keyframes phase-pulse {
+    0%, 100% { box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+    50% { box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); }
+}
+
+.phase-inactive {
+    background: #374151;
+    color: #9ca3af;
+    border-color: #4b5563;
+}
+
+.game-log {
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.log-entry {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.log-entry:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    padding-left: 0.5rem;
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.priority-indicator {
+    animation: priority-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes priority-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* --- Stack Zone Styles --- */
+.stack-zone {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(31, 41, 55, 0.95));
+    border: 3px solid #fbbf24;
+    border-radius: 12px;
+    padding: 1.5rem;
+    z-index: 200;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.stack-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.stack-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* --- Targeting Lines --- */
+.targeting-line {
+    position: absolute;
+    height: 3px;
+    background: linear-gradient(90deg, #ef4444, #fbbf24, #ef4444);
+    z-index: 150;
+    pointer-events: none;
+    border-radius: 2px;
+    animation: targeting-flow 2s linear infinite;
+}
+
+@keyframes targeting-flow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .deck-builder-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .draft-pack-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 0.5rem;
+    }
+    
+    .hand-zone {
+        gap: 0.125rem;
+    }
+    
+    .hand-card {
+        max-width: 80px;
+    }
+    
+    .game-card {
+        max-width: 80px;
+    }
+    
+    .mana-symbol {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+}
+
+/* --- Accessibility Improvements --- */
+@media (prefers-reduced-motion: reduce) {
+    .draft-card,
+    .deck-card,
+    .game-card,
+    .hand-card,
+    .mana-symbol,
+    .phase-indicator {
+        transition: none;
+        animation: none;
+    }
+    
+    .game-card.attacking,
+    .game-card.blocking,
+    .phase-active,
+    .priority-indicator {
+        animation: none;
+    }
+}
+
+/* --- Focus States for Keyboard Navigation --- */
+.draft-card:focus,
+.deck-card:focus,
+.game-card:focus,
+.hand-card:focus {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* --- Loading States --- */
+.loading-shimmer {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* --- Notification Styles --- */
+.notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-success { background: linear-gradient(135deg, #10b981, #059669); }
+.notification-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.notification-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.notification-info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+
+/* --- Card Rarity Indicators --- */
+.rarity-common { border-left: 4px solid #6b7280; }
+.rarity-uncommon { border-left: 4px solid #c0c0c0; }
+.rarity-rare { border-left: 4px solid #ffd700; }
+.rarity-mythic { border-left: 4px solid #ff6b35; }
+
+/* --- Smooth Scrollbars --- */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}

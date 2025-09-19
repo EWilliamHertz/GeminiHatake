@@ -1,40 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draft Lobby - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900">
-    <main class="flex-1 overflow-y-auto p-6">
-        <div class="max-w-7xl mx-auto">
-            <h1 class="text-3xl font-bold mb-4">Draft Lobby</h1>
-            
-            <div class="mb-6">
-                <button id="create-draft-btn" class="btn btn-success">Create New Draft</button>
-            </div>
-
-            <div id="draft-list-container">
-                <p>Loading open drafts...</p>
-            </div>
-
-            <div id="current-draft-lobby" class="hidden mt-8">
-                <h2 class="text-2xl font-bold mb-2">Draft: <span id="draft-set-name"></span></h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-1">
-                        <h3 class="font-semibold mb-2">Players</h3>
-                        <ul id="player-list" class="space-y-2"></ul>
-                        <button id="start-draft-btn" class="btn btn-primary w-full mt-4 hidden">Start Draft</button>
+<body class="bg-gray-900 text-gray-200 font-sans min-h-screen">
+    <div class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-gray-800 shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 py-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white">🃏 Draft Lobby</h1>
+                        <p class="text-gray-400 mt-1">Create or join a Magic: The Gathering booster draft</p>
                     </div>
-                    <div class="md:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-lg flex flex-col">
-                        <h3 class="font-semibold mb-2">Lobby Chat</h3>
-                        <div id="chat-messages" class="flex-grow overflow-y-auto border rounded mb-2 p-2"></div>
-                        <div class="flex">
-                            <input type="text" id="chat-input" class="input flex-grow" placeholder="Type a message...">
-                            <button id="send-chat-btn" class="btn btn-secondary ml-2">Send</button>
+                    <a href="index.html" class="text-blue-400 hover:text-blue-300 transition-colors">
+                        <i class="fas fa-home mr-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6">
+            <div class="max-w-7xl mx-auto">
+                <!-- Create Draft Section -->
+                <div class="mb-8">
+                    <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4 text-white">Start a New Draft</h2>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <select id="set-selector" class="bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select a Set...</option>
+                                <option value="MKM">Murders at Karlov Manor</option>
+                                <option value="LCI">The Lost Caverns of Ixalan</option>
+                                <option value="WOE">Wilds of Eldraine</option>
+                                <option value="LTR">The Lord of the Rings: Tales of Middle-earth</option>
+                                <option value="MOM">March of the Machine</option>
+                                <option value="ONE">Phyrexia: All Will Be One</option>
+                                <option value="BRO">The Brothers' War</option>
+                                <option value="DMU">Dominaria United</option>
+                            </select>
+                            <button id="create-draft-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-plus mr-2"></i>Create Draft
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Draft List -->
+                <div id="draft-list-container" class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-white">Open Drafts</h2>
+                    <div id="draft-list" class="space-y-4">
+                        <div class="bg-gray-800 rounded-lg p-4 animate-pulse">
+                            <div class="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+                            <div class="h-3 bg-gray-700 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Draft Lobby -->
+                <div id="current-draft-lobby" class="hidden">
+                    <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-white">
+                                Draft: <span id="draft-set-name" class="text-blue-400"></span>
+                            </h2>
+                            <button id="leave-draft-btn" class="text-red-400 hover:text-red-300 transition-colors">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Leave Draft
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Players Section -->
+                            <div class="lg:col-span-1">
+                                <div class="bg-gray-700 rounded-lg p-4">
+                                    <h3 class="font-semibold mb-4 text-white flex items-center">
+                                        <i class="fas fa-users mr-2"></i>Players (<span id="player-count">0</span>/8)
+                                    </h3>
+                                    <ul id="player-list" class="space-y-3"></ul>
+                                    <button id="start-draft-btn" class="hidden w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
+                                        <i class="fas fa-play mr-2"></i>Start Draft
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Chat Section -->
+                            <div class="lg:col-span-2">
+                                <div class="bg-gray-700 rounded-lg p-4 h-96 flex flex-col">
+                                    <h3 class="font-semibold mb-4 text-white flex items-center">
+                                        <i class="fas fa-comments mr-2"></i>Lobby Chat
+                                    </h3>
+                                    <div id="chat-messages" class="flex-grow overflow-y-auto bg-gray-800 rounded p-3 mb-4 space-y-2">
+                                        <div class="text-gray-400 text-sm italic">Welcome to the draft lobby! Chat with other players while waiting for the draft to start.</div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="chat-input" class="flex-grow bg-gray-800 text-white border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type a message..." maxlength="200">
+                                        <button id="send-chat-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-center py-4 text-gray-400">
+            <p>&copy; 2024 HatakeSocial. Ready to draft some Magic!</p>
+        </footer>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/draft.js" type="module"></script>
 </body>
 </html>
