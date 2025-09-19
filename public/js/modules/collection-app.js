@@ -1,14 +1,15 @@
 /**
  * collection-app.js
  * Main application logic for the collection page.
+ * - Includes live currency updates and card hover previews.
  */
 import * as Collection from './collection.js';
 import * as UI from './ui.js';
 import * as API from './api.js';
 import * as CSV from './csv.js';
-// --- CORRECTED IMPORT PATH ---
-import { initCurrency } from './currency.js';
+import * as Currency from './currency.js';
 import { getCardImageUrl } from './utils.js';
+
 
 let currentUser = null;
 let csvFile = null;
@@ -18,14 +19,13 @@ document.addEventListener('authReady', async ({ detail: { user } }) => {
     if (user) {
         currentUser = user;
         try {
-            // initCurrency is now called globally from auth.js, so we don't need to call it here.
-            // But we do need to pass the user ID to the UI for the selector.
+            await Currency.initCurrency(user.uid);
             await Collection.loadCollection(user.uid);
             await Collection.loadWishlist(user.uid);
             setupInitialFilters();
             applyAndRender({});
             setupEventListeners();
-            UI.createCurrencySelector('user-actions', user.uid);
+            UI.createCurrencySelector('user-actions');
         } catch (error) {
             console.error("Initialization failed:", error);
             UI.showToast("Could not load your collection.", "error");
@@ -41,7 +41,7 @@ document.addEventListener('authReady', async ({ detail: { user } }) => {
 function setupInitialFilters() {
     const game = Collection.getState().filters.game;
     const options = Collection.getAvailableFilterOptions(game);
-    UI.populateFilters(options.sets, options.rarities);
+    UI.populateFilters(options.sets, options.rarities, options.types);
     UI.renderGameSpecificFilters(game, options.types);
 }
 
@@ -80,20 +80,7 @@ function setupEventListeners() {
         }
     });
 
-    document.getElementById('finalize-csv-import-btn').addEventListener('click', async () => {
-        const button = document.getElementById('finalize-csv-import-btn');
-        UI.setButtonLoading(button, true);
-        try {
-            await CSV.finalizeImport(currentUser.uid);
-            UI.closeModal(document.getElementById('csv-review-modal'));
-            await Collection.loadCollection(currentUser.uid); // Reload collection
-            applyAndRender({});
-        } catch (error) {
-            UI.showToast(error.message, 'error');
-        } finally {
-            UI.setButtonLoading(button, false);
-        }
-    });
+    document.getElementById('finalize-csv-import-btn').addEventListener('click', CSV.finalizeImport);
     document.getElementById('csv-review-table-body').addEventListener('change', (e) => {
         const target = e.target;
         const index = target.closest('tr').dataset.index;
@@ -102,11 +89,10 @@ function setupEventListeners() {
         CSV.updateReviewedCard(index, field, value);
     });
     document.getElementById('csv-review-table-body').addEventListener('click', (e) => {
-        const button = e.target.closest('.remove-csv-row-btn');
-        if (button) {
-            const index = button.dataset.index;
+        if (e.target.classList.contains('remove-csv-row-btn')) {
+            const index = e.target.dataset.index;
             CSV.removeReviewedCard(index);
-            button.closest('tr').remove();
+            e.target.closest('tr').remove();
         }
     });
 
@@ -129,7 +115,7 @@ function setupEventListeners() {
     document.getElementById('filter-set-container').addEventListener('change', (e) => applyAndRender({ set: UI.getCheckedValues('set') }));
     document.getElementById('filter-rarity-container').addEventListener('change', (e) => applyAndRender({ rarity: UI.getCheckedValues('rarity') }));
     document.getElementById('clear-filters-btn').addEventListener('click', clearFilters);
-    
+
     // Dynamic filter container listeners
     const gameSpecificFiltersContainer = document.getElementById('game-specific-filters');
     gameSpecificFiltersContainer.addEventListener('change', (e) => {
@@ -159,21 +145,21 @@ function setupEventListeners() {
     // Bulk Edit listeners
     document.getElementById('bulk-edit-btn').addEventListener('click', handleBulkEditToggle);
     document.body.addEventListener('click', e => {
-        if (e.target.id === 'bulk-select-all-page') handleBulkSelectAllOnPage(e.target.checked);
+        if (e.target.id === 'bulk-select-all-btn') handleBulkSelectAll();
         if (e.target.id === 'bulk-list-btn') handleBulkListClick();
         if (e.target.id === 'bulk-delete-btn') handleBulkDeleteClick();
         if (e.target.id === 'finalize-bulk-list-btn') handleFinalizeBulkList(e);
         if (e.target.id === 'bulk-apply-percentage-btn') handleBulkApplyPercentage();
     });
-     document.body.addEventListener('submit', e => {
+    document.body.addEventListener('submit', e => {
         if (e.target.id === 'bulk-list-form') handleBulkListFormSubmit(e);
     });
-    
+
     // Card modal listeners (for adding/removing pending versions)
     document.getElementById('card-modal').addEventListener('click', handleCardModalClicks);
-    
+
     // Listen for currency changes to re-render prices
-    document.addEventListener('currencyChange', () => applyAndRender({}));
+    document.addEventListener('currencyChanged', () => applyAndRender({}));
 
     // Image upload preview
     document.getElementById('custom-image-upload').addEventListener('change', (event) => {
@@ -206,31 +192,27 @@ function applyAndRender(filterUpdate) {
     );
 }
 
-
-// ... (rest of your original collection-app.js file remains exactly the same) ...
-// ... (handleCardFormSubmit, handleSearchInput, switchTab, etc.) ...
-// --- I have omitted the rest for brevity, but you should keep your original code ---
-// --- The key changes were at the top (imports) and in the authReady listener. ---
+// --- EVENT HANDLER FUNCTIONS ---
 
 async function handleCardFormSubmit(e) {
     e.preventDefault();
     UI.setButtonLoading(e.submitter, true);
     try {
         const { id, data, customImageFile } = UI.getCardFormData();
-        
+
         if (id) {
-            await Collection.updateCard(currentUser.uid, id, data, customImageFile);
+            await Collection.updateCard(id, data, customImageFile);
             UI.showToast("Card updated!", "success");
         } else {
             const pendingCards = Collection.getPendingCards();
             const allVersions = [data, ...pendingCards];
-            await Collection.addMultipleCards(currentUser.uid, allVersions, customImageFile);
+            await Collection.addMultipleCards(allVersions, customImageFile);
             UI.showToast(`${allVersions.length} card version(s) added!`, "success");
         }
-        
+
         UI.closeModal(document.getElementById('card-modal'));
         applyAndRender({});
-        setupInitialFilters(); 
+        setupInitialFilters();
     } catch (error) {
         console.error("Error saving card:", error);
         UI.showToast(error.message, "error");
@@ -250,7 +232,7 @@ function handleAddAnotherVersion(e) {
         console.error("Error adding another version:", error);
         UI.showToast(error.message, "error");
     } finally {
-         UI.setButtonLoading(e.target, false);
+        UI.setButtonLoading(e.target, false);
     }
 }
 
@@ -277,15 +259,9 @@ function handleSearchInput(e) {
 function handleSearchResultClick(e) {
     const item = e.target.closest('.search-result-item');
     if (item) {
-        try {
-            const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
-            UI.closeModal(document.getElementById('search-modal'));
-            UI.populateCardModalForAdd(cardData);
-        } catch (error) {
-            console.error("Error parsing card data:", error);
-            console.error("Problematic data-card string:", item.dataset.card);
-            alert("An error occurred while trying to add the card. This is likely due to a special character in the card's name. Please try adding the card manually for now.");
-        }
+        const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
+        UI.closeModal(document.getElementById('search-modal'));
+        UI.populateCardModalForAdd(cardData);
     }
 }
 
@@ -306,7 +282,7 @@ function setTcgFilter(game) {
     UI.updateTcgFilter(game);
     applyAndRender({ game, type: '', colors: [] }); // Reset specific filters on game change
     const options = Collection.getAvailableFilterOptions(game);
-    UI.populateFilters(options.sets, options.rarities);
+    UI.populateFilters(options.sets, options.rarities, options.types);
     UI.renderGameSpecificFilters(game, options.types);
 }
 
@@ -343,7 +319,7 @@ function handleCollectionDisplayClick(e) {
 
 async function deleteCardAction(cardId) {
     try {
-        await Collection.deleteCard(currentUser.uid, cardId);
+        await Collection.deleteCard(cardId);
         UI.showToast("Card deleted.", "success");
         applyAndRender({});
         setupInitialFilters();
@@ -355,7 +331,7 @@ async function deleteCardAction(cardId) {
 function handleBulkEditToggle() {
     const isActive = Collection.toggleBulkEditMode();
     UI.updateBulkEditUI(isActive);
-    applyAndRender({});
+    applyAndRender();
 }
 
 function handleBulkListClick() {
@@ -367,11 +343,11 @@ function handleBulkListClick() {
     UI.renderBulkReviewModal(selectedIds);
 }
 
-function handleBulkSelectAllOnPage(isChecked) {
-    const cardElements = document.querySelectorAll('#collection-display .card-container[data-id]');
-    const pageIds = Array.from(cardElements).map(el => el.dataset.id);
-    Collection.selectCards(pageIds, isChecked);
-    applyAndRender({});
+function handleBulkSelectAll() {
+    const filteredIds = Collection.getState().filteredCollection.map(c => c.id);
+    Collection.selectAllFiltered(filteredIds);
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    applyAndRender();
 }
 
 async function handleBulkDeleteClick() {
@@ -382,7 +358,7 @@ async function handleBulkDeleteClick() {
     }
     if (confirm(`Are you sure you want to delete ${selectedIds.length} cards? This cannot be undone.`)) {
         try {
-            await Collection.batchDelete(currentUser.uid, selectedIds);
+            await Collection.batchDelete(selectedIds);
             UI.showToast(`${selectedIds.length} cards deleted.`, 'success');
             applyAndRender({});
             setupInitialFilters();
@@ -438,7 +414,7 @@ async function handleFinalizeBulkList(e) {
         });
 
         if (updates.length > 0) {
-            await Collection.batchUpdateSaleStatus(currentUser.uid, updates);
+            await Collection.batchUpdateSaleStatus(updates);
             UI.showToast(`${updates.length} cards have been listed for sale.`, 'success');
             UI.closeModal(document.getElementById('bulk-review-modal'));
             applyAndRender({});
@@ -458,8 +434,14 @@ function handleCardModalClicks(e) {
     const item = e.target.closest('.pending-card-item');
     if (item) {
         const index = parseInt(item.dataset.index, 10);
-        if (e.target.closest('.delete-pending-btn')) {
+        if (e.target.classList.contains('delete-pending-btn')) {
             Collection.removePendingCard(index);
+            UI.renderPendingCards(Collection.getPendingCards());
+        } else {
+            Collection.swapPendingCard(index);
+            const currentCard = Collection.getCurrentEditingCard();
+            const originalCardData = JSON.parse(document.getElementById('card-modal').dataset.originalCard || '{}');
+            UI.populateCardModalForEdit({ ...originalCardData, ...currentCard });
             UI.renderPendingCards(Collection.getPendingCards());
         }
     }
@@ -469,17 +451,17 @@ function handleCardModalClicks(e) {
 function handleCardHover(e) {
     const cardElement = e.target.closest('.card-container, .search-result-item');
     if (!cardElement) return;
-    
-    let cardData;
-    if (cardElement.dataset.card) { // From search results
-        try {
-            cardData = JSON.parse(decodeURIComponent(cardElement.dataset.card));
-        } catch (err) { return; }
-    } else if (cardElement.dataset.id) { // From collection view
-        cardData = Collection.getCardById(cardElement.dataset.id);
+
+    let card = null;
+    const cardId = cardElement.dataset.id;
+    if (cardId) {
+        card = Collection.getCardById(cardId);
+    } else if (cardElement.dataset.card) {
+        card = JSON.parse(decodeURIComponent(cardElement.dataset.card));
     }
 
-    if (cardData) {
+
+    if (card) {
         const tooltip = document.getElementById('card-preview-tooltip');
         if (!tooltip) return;
 
@@ -488,9 +470,8 @@ function handleCardHover(e) {
             tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
             img = tooltip.querySelector('img');
         }
-        
-        const imageUrl = getCardImageUrl(cardData);
-        img.src = imageUrl;
+
+        img.src = getCardImageUrl(card);
         tooltip.classList.remove('hidden');
         updateTooltipPosition(e, tooltip);
     }
@@ -501,7 +482,7 @@ function handleCardHoverOut(e) {
     if (cardElement) {
         const relatedTarget = e.relatedTarget;
         if (!relatedTarget || !cardElement.contains(relatedTarget)) {
-             document.getElementById('card-preview-tooltip').classList.add('hidden');
+            document.getElementById('card-preview-tooltip').classList.add('hidden');
         }
     }
 }
@@ -515,32 +496,23 @@ function handleCardHoverMove(e) {
 
 function updateTooltipPosition(e, tooltip) {
     const mouseX = e.clientX, mouseY = e.clientY;
-    
-    const tooltipWidth = 240; 
-    const aspectRatio = 3.5/2.5; 
+    const tooltipWidth = 240;
+    const aspectRatio = 3.5 / 2.5;
     const tooltipHeight = tooltipWidth * aspectRatio;
-    
     let left = mouseX + 20;
     let top = mouseY + 20;
 
-    if (left + tooltipWidth > window.innerWidth - 15) {
-        left = mouseX - tooltipWidth - 20;
-    }
-    if (top + tooltipHeight > window.innerHeight - 15) {
-        top = window.innerHeight - tooltipHeight - 15;
-    }
-    if (left < 15) {
-        left = 15;
-    }
-    if (top < 15) {
-        top = 15;
-    }
-    
+    if (left + tooltipWidth > window.innerWidth - 15) left = mouseX - tooltipWidth - 20;
+    if (top + tooltipHeight > window.innerHeight - 15) top = window.innerHeight - tooltipHeight - 15;
+    if (left < 15) left = 15;
+    if (top < 15) top = 15;
+
     tooltip.style.width = `${tooltipWidth}px`;
     tooltip.style.height = `auto`;
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
 }
+
 
 function clearFilters() {
     Collection.setFilters({
@@ -556,4 +528,3 @@ function clearFilters() {
     UI.updateColorFilterSelection([]);
     applyAndRender({});
 }
-

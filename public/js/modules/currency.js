@@ -39,14 +39,14 @@ async function loadExchangeRates() {
     }
 
     try {
-        if (!API_KEY || API_KEY.includes('...')) {
-             throw new Error("API Key is not set. Using fallback rates.");
+        if (!API_KEY || API_KEY.includes('PASTE YOUR')) {
+            throw new Error("API Key is not set. Using fallback rates.");
         }
         console.log("Fetching live exchange rates from API...");
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
         const data = await response.json();
-        
+
         exchangeRates = data.data;
         localStorage.setItem('exchangeRates', JSON.stringify({ timestamp: now, rates: exchangeRates }));
         console.log("Successfully fetched and cached new exchange rates.");
@@ -57,45 +57,62 @@ async function loadExchangeRates() {
 }
 
 /**
- * Initializes the currency system. Should be called once when the user logs in.
- * @param {string} userId The UID of the currently logged-in user.
+ * Initializes the currency system. Should be called once when the user state is known.
+ * @param {string|null} userId The UID of the currently logged-in user, or null if logged out.
  */
 export async function initCurrency(userId) {
     await loadExchangeRates();
-    if (!userId) {
-        currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
-        return;
-    }
-    const userDoc = await db.collection('users').doc(userId).get();
-    if (userDoc.exists) {
-        currentUserCurrency = userDoc.data().primaryCurrency || 'USD';
+    if (userId) {
+        const userDocRef = db.collection('users').doc(userId);
+        const userDoc = await userDocRef.get();
+        if (userDoc.exists) {
+            currentUserCurrency = userDoc.data().primaryCurrency || 'USD';
+        } else {
+            currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
+        }
+
+        // Listen for realtime updates from Firestore
+        userDocRef.onSnapshot((doc) => {
+            if (doc.exists) {
+                const newCurrency = doc.data().primaryCurrency || 'USD';
+                if (newCurrency !== currentUserCurrency) {
+                    currentUserCurrency = newCurrency;
+                    localStorage.setItem('userCurrency', currentUserCurrency);
+                    document.dispatchEvent(new CustomEvent('currencyChanged', {
+                        detail: { currency: newCurrency }
+                    }));
+                }
+            }
+        });
+
     } else {
+        // For logged-out users, just use local storage
         currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
     }
     localStorage.setItem('userCurrency', currentUserCurrency);
-
-    db.collection('users').doc(userId).onSnapshot((doc) => {
-        if (doc.exists) {
-            const newCurrency = doc.data().primaryCurrency || 'USD';
-            if (newCurrency !== currentUserCurrency) {
-                currentUserCurrency = newCurrency;
-                localStorage.setItem('userCurrency', currentUserCurrency);
-                document.dispatchEvent(new CustomEvent('currencyChange', {
-                    detail: { currency: newCurrency }
-                }));
-            }
-        }
-    });
 }
 
 /**
- * Updates the user's preferred currency in Firestore.
- * @param {string} userId The user's UID.
+ * Updates the user's preferred currency in both Firestore (if logged in) and local storage.
  * @param {string} newCurrency The new currency code (e.g., 'SEK').
  */
-export function updateUserCurrency(userId, newCurrency) {
-    if (!userId || !newCurrency) return Promise.reject("Invalid user or currency");
-    return db.collection('users').doc(userId).update({ primaryCurrency: newCurrency });
+export function updateUserCurrency(newCurrency) {
+    if (!newCurrency) return Promise.reject("Invalid currency");
+
+    // Update local state immediately for responsiveness
+    currentUserCurrency = newCurrency;
+    localStorage.setItem('userCurrency', newCurrency);
+    document.dispatchEvent(new CustomEvent('currencyChanged', {
+        detail: { currency: newCurrency }
+    }));
+
+    // Update Firestore if the user is logged in
+    const user = firebase.auth().currentUser;
+    if (user) {
+       return db.collection('users').doc(user.uid).update({ primaryCurrency: newCurrency });
+    }
+
+    return Promise.resolve(); // Return a resolved promise for logged-out users
 }
 
 export function getUserCurrency() {
@@ -108,6 +125,7 @@ export function formatPrice(amount) {
     try {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency, currencyDisplay: 'symbol' }).format(numberAmount);
     } catch (e) {
+        // Fallback to USD if the currency code is invalid
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(numberAmount);
     }
 }
@@ -125,16 +143,15 @@ export function convertAndFormat(priceInput) {
     } else if (typeof priceInput === 'number') {
         sourcePriceUSD = priceInput;
     } else if (priceInput === null || priceInput === undefined) {
-         return 'N/A';
+        return 'N/A';
     }
-
 
     if (isNaN(sourcePriceUSD)) {
         return 'N/A';
     }
-    
-    const rate = exchangeRates[targetCurrency] || 1.0;
+
+    const rate = exchangeRates[targetCurrency] || 1.0; // Fallback to 1.0 if rate not found
     const finalPrice = sourcePriceUSD * rate;
-    
+
     return formatPrice(finalPrice);
 }

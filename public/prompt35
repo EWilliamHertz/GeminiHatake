@@ -215,3 +215,7 @@ service cloud.firestore {
     }
   }
 }
+
+The cards were put in marketplaceListings in firestore database, originally at least, but the damn AI changed it recently.
+Can you see how it looks now?
+Also, the currency selector in the header loaded by auth.js doesn't do shit, neither do the one in settings. They need to be synchronized and functional.

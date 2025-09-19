@@ -1,0 +1,2711 @@
+This is my_collection.html:
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>My Collection - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            plugins: [
+                function ({ addVariant }) {
+                    addVariant('has-[:checked]', '&:has(:checked)')
+                }
+            ]
+        };
+    </script>
+    <link href="/manifest.json" rel="manifest"/>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+<div class="flex h-screen">
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+        <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+            <a class="flex flex-col items-center space-y-1" href="app.html">
+                <img alt="HatakeSocial Logo" class="h-16" src="https://i.imgur.com/B06rBhI.png"/>
+                <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+            </a>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+                <i class="fas fa-home w-6 text-center"></i><span class="ml-3">Feed</span>
+            </a>
+            <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="messages.html">
+                <i class="fas fa-comments w-6 text-center"></i><span class="ml-3">Messages</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+                <i class="fas fa-users w-6 text-center"></i><span class="ml-3">Community</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+                <i class="fas fa-newspaper w-6 text-center"></i><span class="ml-3">TCG Articles</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+                <i class="fas fa-blog w-6 text-center"></i><span class="ml-3">Hatake Blog</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+                <i class="fas fa-calendar-alt w-6 text-center"></i><span class="ml-3">Events</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+                <i class="fas fa-layer-group w-6 text-center"></i><span class="ml-3">My Collection</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+                <i class="fas fa-book-open w-6 text-center"></i><span class="ml-3">Deck Builder</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+                <i class="fas fa-shopping-cart w-6 text-center"></i><span class="ml-3">Shop</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+                <i class="fas fa-store w-6 text-center"></i><span class="ml-3">Marketplace</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+                <i class="fas fa-exchange-alt w-6 text-center"></i><span class="ml-3">Trades</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+                <i class="fas fa-user w-6 text-center"></i><span class="ml-3">Profile</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+                <i class="fas fa-cog w-6 text-center"></i><span class="ml-3">Settings</span>
+            </a>
+            <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+                <i class="fas fa-info-circle w-6 text-center"></i><span class="ml-3">About Us</span>
+            </a>
+        </nav>
+        <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+            <div id="auth-container-sidebar"></div>
+        </div>
+    </aside>
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center">
+                <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+                </div>
+            </div>
+            <div class="flex items-center space-x-5" id="user-actions">
+            </div>
+        </header>
+        <main class="flex-1 overflow-hidden flex">
+            <div class="w-full md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-6 flex-shrink-0 flex flex-col overflow-y-auto">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-3" id="stats-title">Statistics</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span id="stats-total-label">Total Cards:</span> <span class="font-mono" id="stats-total-cards">0</span></div>
+                        <div class="flex justify-between"><span id="stats-unique-label">Unique Cards:</span> <span class="font-mono" id="stats-unique-cards">0</span></div>
+                        <div class="flex justify-between"><span id="stats-value-label">Total Value:</span> <span class="font-mono" id="stats-total-value">$0.00</span></div>
+                    </div>
+                </div>
+                <div class="mb-6 flex-1">
+                    <h3 class="text-lg font-semibold mb-3">Filters</h3>
+                    <div class="space-y-4">
+                        <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="filter-name" placeholder="Filter by name..." type="text"/>
+                        <div id="filter-set-container" class="relative"></div>
+                        <div id="filter-rarity-container" class="relative"></div>
+                        <div id="game-specific-filters"></div>
+                        <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="clear-filters-btn"><i class="fas fa-times w-6"></i> Clear Filters</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-3">Actions</h3>
+                    <div class="space-y-2">
+                        <button class="w-full text-left flex items-center p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" id="add-card-btn"><i class="fas fa-plus w-6"></i> Add Card</button>
+                        <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="bulk-edit-btn"><i class="fas fa-edit w-6"></i> Bulk Edit</button>
+                        <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="csv-import-btn"><i class="fas fa-file-csv w-6"></i> Import from CSV</button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col overflow-hidden p-6">
+                <div class="flex-shrink-0 mb-4">
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold">
+                            <button class="tab-button flex-1 px-4 py-2 rounded-full active" data-tab="collection">Collection</button>
+                            <button class="tab-button flex-1 px-4 py-2 rounded-full" data-tab="wishlist">Wishlist</button>
+                        </div>
+                        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold" id="tcg-filter-buttons">
+                            <button class="tcg-filter-button flex-1 px-4 py-2 rounded-full active" data-game="all">All</button>
+                            <button class="tcg-filter-button flex-1 px-4 py-2 rounded-full" data-game="mtg">Magic</button>
+                            <button class="tcg-filter-button flex-1 px-4 py-2 rounded-full" data-game="pokemon">Pokémon</button>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+                                <button class="p-2 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow" id="view-toggle-grid"><i class="fas fa-th-large"></i></button>
+                                <button class="p-2 rounded-full text-gray-500 dark:text-gray-400" id="view-toggle-list"><i class="fas fa-list"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden mb-4 p-4 rounded-lg bg-blue-100 dark:bg-blue-900/50 shadow-md flex items-center justify-between gap-4" id="bulk-edit-toolbar">
+                    <div class="flex items-center gap-4">
+                        <p class="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                            <span id="bulk-selected-count">0</span> selected
+                        </p>
+                        <button class="btn btn-sm bg-blue-200 text-blue-800 hover:bg-blue-300" id="bulk-select-all-btn">Select All</button>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="btn btn-success" id="bulk-list-btn">
+                            <i class="fas fa-tag mr-2"></i>List for Sale
+                        </button>
+                        <button class="btn bg-red-500 hover:bg-red-600 text-white" id="bulk-delete-btn">
+                            <i class="fas fa-trash mr-2"></i>Delete Selected
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto" id="collection-display">
+                    <div class="flex items-center justify-center h-full text-gray-500"><p>Loading your collection...</p></div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<div class="fixed bottom-5 right-5 z-[1003]" id="toast-container"></div>
+<div class="fixed z-[1005] pointer-events-none hidden rounded-xl shadow-lg" id="card-preview-tooltip">
+    <div class="flex" id="card-preview-image-container">
+        </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-start justify-center z-[1001] pt-16" id="search-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 80vh;">
+        <div class="p-4 border-b dark:border-gray-700 flex items-center">
+            <div class="relative flex-grow mr-4">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="card-search-input" placeholder="Search for a card..." type="text"/>
+            </div>
+            <select class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="game-selector">
+                <option value="mtg">Magic: The Gathering</option>
+                <option value="pokemon">Pokémon</option>
+            </select>
+            <button class="ml-4 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-search-modal">×</button>
+        </div>
+        <div class="p-6 flex-grow overflow-y-auto" id="search-results-container">
+            <p class="text-center text-gray-500">Search results will appear here.</p>
+        </div>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]" id="card-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;">
+        <div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center">
+            <img class="max-w-full max-h-full rounded-lg object-contain" id="card-modal-image" src="https://placehold.co/300x420?text=Card+Image"/>
+        </div>
+        <div class="w-2/3 p-6 flex flex-col">
+            <form class="flex flex-col h-full" id="card-form">
+                <input id="card-modal-id" type="hidden"/>
+                <input id="card-api-id" type="hidden"/>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-bold" id="card-modal-title">Add New Card</h2>
+                        <p class="text-sm text-gray-500" id="card-modal-subtitle">Details for this version</p>
+                    </div>
+                    <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-card-modal" type="button">×</button>
+                </div>
+                <div class="flex-grow overflow-y-auto pr-2">
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium" for="card-quantity">Quantity</label><input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-quantity" min="1" type="number" value="1"/></div>
+                        <div><label class="block text-sm font-medium" for="card-condition">Condition</label><select class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-condition"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></div>
+                        <div><label class="block text-sm font-medium" for="card-language">Language</label><select class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-language"><option>English</option><option>Japanese</option><option>French</option><option>German</option><option>Spanish</option><option>Italian</option><option>Portuguese</option><option>Russian</option><option>Korean</option><option>Chinese (Simplified)</option><option>Chinese (Traditional)</option></select></div>
+                        <div><label class="block text-sm font-medium" for="card-purchase-price">Purchase Price ($)</label><input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-purchase-price" placeholder="0.00" step="0.01" type="number"/></div>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="flex items-center"><input class="mr-2" id="card-is-foil" type="checkbox"/> Foil</label>
+                        <label class="flex items-center"><input class="mr-2" id="card-is-signed" type="checkbox"/> Signed</label>
+                        <label class="flex items-center"><input class="mr-2" id="card-is-altered" type="checkbox"/> Altered</label>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium" for="custom-image-upload">Custom Image (optional)</label>
+                        <input accept="image/*" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="custom-image-upload" type="file"/>
+                    </div>
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input class="mr-2" id="list-for-sale-toggle" type="checkbox"/>
+                            List for Sale
+                        </label>
+                        <div class="hidden mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md" id="list-for-sale-section">
+                            <div class="mb-2">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Market Price: </span>
+                                <span class="font-semibold" id="market-price-display">$0.00</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-sm font-medium" for="card-sale-percentage">% of Market</label>
+                                    <div class="flex items-center">
+                                        <input class="flex-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-sale-percentage" max="500" min="1" type="number" value="100"/>
+                                        <span class="ml-1 text-sm">%</span>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium" for="card-sale-price">Or set fixed price ($)</label>
+                                    <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-sale-price" placeholder="0.00" step="0.01" type="number"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 border-t pt-2" id="pending-cards-container"></div>
+                </div>
+                <div class="mt-auto pt-4 flex justify-end items-center space-x-3 flex-shrink-0">
+                    <button class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500" id="add-another-version-btn" type="button">Add This Version</button>
+                    <button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700" id="save-card-btn" type="submit">Add to Collection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center" id="bulk-list-sale-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold">List <span id="bulk-list-count">0</span> Cards for Sale</h3>
+            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" id="close-bulk-list-sale-modal">
+                <i class="fas fa-times fa-lg"></i>
+            </button>
+        </div>
+        <form id="bulk-list-form">
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Choose how to price the selected cards.</p>
+                <div class="space-y-2">
+                    <label class="flex items-center p-3 rounded-lg border dark:border-gray-600 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/50">
+                        <input checked="" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" name="price-option" type="radio" value="percentage"/>
+                        <span class="ml-3 text-sm font-medium">Set Price by % of Market Value</span>
+                    </label>
+                    <label class="flex items-center p-3 rounded-lg border dark:border-gray-600 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/50">
+                        <input class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" name="price-option" type="radio" value="fixed"/>
+                        <span class="ml-3 text-sm font-medium">Set a Fixed Price for all cards</span>
+                    </label>
+                    <label class="flex items-center p-3 rounded-lg border dark:border-gray-600 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/50">
+                        <input class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" name="price-option" type="radio" value="individual"/>
+                        <span class="ml-3 text-sm font-medium">Keep Individual Prices (if set)</span>
+                    </label>
+                </div>
+                <div id="bulk-price-percentage-group">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="bulk-price-percentage">Market Value Percentage (%)</label>
+                    <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="bulk-price-percentage" name="percentage" placeholder="e.g., 90 for 90%" type="number" value="100"/>
+                </div>
+                <div class="hidden" id="bulk-price-fixed-group">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="bulk-price-fixed">Fixed Price ($)</label>
+                    <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="bulk-price-fixed" name="fixed-price" placeholder="e.g., 5.00" step="0.01" type="number"/>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button class="btn btn-primary" type="submit">Apply and List Cards</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1003]" id="bulk-review-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col" style="height: 90vh;">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h2 class="text-xl font-bold">Review and Price Items for Sale</h2>
+            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-bulk-review-modal">×</button>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium" for="bulk-apply-percentage">Apply % to All</label>
+                    <div class="flex items-center">
+                        <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="bulk-apply-percentage-input" placeholder="e.g., 75" type="number"/>
+                        <button class="ml-2 btn btn-primary" id="bulk-apply-percentage-btn">%</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex-grow overflow-y-auto p-4 space-y-2" id="bulk-review-list">
+        </div>
+        <div class="p-4 border-t dark:border-gray-700">
+            <button class="btn btn-success w-full" id="finalize-bulk-list-btn">Finalize and List Selected Cards</button>
+        </div>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">Login</h2>
+            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
+        </div>
+        <form class="mt-4 space-y-4" id="loginForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/><p class="text-red-500 text-sm hidden" id="login-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>Sign in with Google</button></form>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-xl font-bold">Register</h2>
+            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
+        </div>
+        <form class="mt-4 space-y-4" id="registerForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/><p class="text-red-500 text-sm hidden" id="register-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>Register with Google</button></form>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1003]" id="csv-import-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col">
+        <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold">Import from CSV</h2>
+            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-csv-import-modal">×</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">Select a CSV file to import. Compatible with ManaBox exports.</p>
+            <input type="file" id="csv-file-input" accept=".csv" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <button id="start-csv-import-btn" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" disabled>Parse CSV</button>
+            <div id="csv-import-status" class="text-sm text-center p-2 rounded-md"></div>
+        </div>
+    </div>
+</div>
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1004]" id="csv-review-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl flex flex-col" style="height: 90vh;">
+        <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-xl font-bold">Review CSV Import</h2>
+            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-csv-review-modal">×</button>
+        </div>
+        <div class="flex-grow overflow-y-auto p-4">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Condition</th>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Language</th>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Foil</th>
+                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="csv-review-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4 border-t dark:border-gray-700">
+            <button class="btn btn-success w-full" id="finalize-csv-import-btn">Finalize Import</button>
+        </div>
+    </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/darkmode.js"></script>
+<script src="js/messenger.js"></script>
+<script src="js/modules/collection-app.js" type="module"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            });
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+        }
+    });
+</script>
+</body>
+</html>
+
+This is public/js/modules/utils.js
+/**
+ * utils.js
+ * Contains helper and utility functions for data transformation and formatting.
+ */
+
+/**
+ * Creates a debounced function that delays invoking `func` until after `wait` milliseconds have elapsed
+ * since the last time the debounced function was invoked.
+ * @param {Function} func The function to debounce.
+ * @param {number} wait The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Transforms a Scryfall card object into the app's standard format.
+ * @param {object} scryfallCard - The raw card object from the Scryfall API.
+ * @returns {object} A standardized card object.
+ */
+export function transformScryfallCard(scryfallCard) {
+    return {
+        api_id: scryfallCard.id,
+        name: scryfallCard.name,
+        set: scryfallCard.set,
+        set_name: scryfallCard.set_name,
+        rarity: scryfallCard.rarity,
+        image_uris: scryfallCard.image_uris,
+        prices: {
+            usd: scryfallCard.prices?.usd || null,
+            usd_foil: scryfallCard.prices?.usd_foil || null,
+        },
+        purchasePrice: 0,
+        collector_number: scryfallCard.collector_number,
+        color_identity: scryfallCard.color_identity,
+        type_line: scryfallCard.type_line,
+        game: 'mtg',
+    };
+}
+
+
+/**
+ * Transforms a Pokémon TCG API card object into the app's standard format.
+ * This function is now robust and safely handles missing data.
+ * @param {object} pokemonCard - The raw card object from the Pokémon TCG API.
+ * @returns {object} A standardized card object.
+ */
+export function transformPokemonCard(pokemonCard) {
+    const prices = pokemonCard.tcgplayer?.prices || {};
+    const normalPrice = prices?.normal?.market
+                      || prices?.unlimited?.market
+                      || prices?.holofoil?.market
+                      || null;
+    const foilPrice = prices?.holofoil?.market
+                    || prices?.reverseHolofoil?.market
+                    || prices?.["1stEditionHolofoil"]?.market
+                    || null;
+
+    const image_uris = {
+        small: pokemonCard.images?.small || '',
+        normal: pokemonCard.images?.large || '',
+        large: pokemonCard.images?.large || '',
+        art_crop: pokemonCard.images?.large || '',
+    };
+
+    return {
+        api_id: pokemonCard.id,
+        name: pokemonCard.name,
+        set: pokemonCard.set.id,
+        set_name: pokemonCard.set.name,
+        rarity: pokemonCard.rarity || 'Common',
+        image_uris: image_uris,
+        // Keep the original images object for backward compatibility with saved cards
+        images: pokemonCard.images,
+        prices: {
+            usd: normalPrice,
+            usd_foil: foilPrice,
+        },
+        purchasePrice: 0,
+        collector_number: pokemonCard.number,
+        type_line: pokemonCard.supertype + (pokemonCard.subtypes ? ` - ${pokemonCard.subtypes.join(' ')}` : ''),
+        game: 'pokemon',
+    };
+}
+
+// --- START: CORRECTED IMAGE URL LOGIC ---
+/**
+ * Gets a reliable image URL from a card object, supporting both old and new data structures.
+ * @param {object} card - The card object.
+ * @returns {string} The URL for the card image.
+ */
+export function getCardImageUrl(card) {
+    if (card.customImageUrl) {
+        return card.customImageUrl;
+    }
+    // Check for the standardized `image_uris` object first (works for MTG and new Pokémon searches)
+    if (card.image_uris) {
+        return card.image_uris.normal || card.image_uris.large || card.image_uris.small;
+    }
+    // Fallback for older Pokémon cards already saved in the database
+    if (card.images) {
+        return card.images.large || card.images.small;
+    }
+    return 'https://placehold.co/223x310?text=No+Image';
+}
+// --- END: CORRECTED IMAGE URL LOGIC ---
+
+
+/**
+ * Formats a price string.
+ * @param {number|string|null} price - The price to format.
+ * @param {string} currency - The currency code (e.g., 'USD').
+ * @returns {string} The formatted price string (e.g., '$1.23').
+ */
+export function formatPrice(price, currency = 'USD') {
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice)) {
+        return 'N/A';
+    }
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+    }).format(numericPrice);
+}
+
+This is public/js/modules/api.js
+// public/js/modules/api.js
+
+/**
+ * api.js
+ * Handles all external API calls (Scryfall, Pokémon TCG via Firebase) and Firestore interactions.
+ */
+
+import { debounce } from './utils.js';
+
+const db = firebase.firestore();
+const storage = firebase.storage();
+const functions = firebase.functions();
+const searchPokemonCloudFunction = functions.httpsCallable('searchPokemon');
+
+// --- CARD SEARCH APIS ---
+export async function searchCards(cardName, game) {
+    if (game === 'mtg') {
+        return searchScryfall(cardName);
+    } else if (game === 'pokemon') {
+        return searchPokemon(cardName);
+    }
+    return [];
+}
+
+async function searchScryfall(cardName) {
+    // Correctly encode the URL to handle special characters
+    const encodedUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints`;
+    try {
+        // Added a 100ms delay to respect API rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const response = await fetch(encodedUrl);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || 'Card not found.');
+        }
+        const data = await response.json();
+        return data.data.map(card => cleanScryfallData(card));
+    } catch (error) {
+        console.error("Scryfall API error:", error);
+        throw error;
+    }
+}
+
+async function searchPokemon(cardName) {
+    try {
+        const result = await searchPokemonCloudFunction({ cardName });
+        if (!result.data) {
+            throw new Error("Invalid response from Pokémon search function.");
+        }
+        return result.data.map(card => cleanPokemonData(card));
+    } catch (error) {
+        console.error("Pokémon search function error:", error);
+        throw new Error(error.message || 'Could not fetch Pokémon cards.');
+    }
+}
+
+/**
+ * A debounced version of the searchCards function to limit API calls while typing.
+ */
+export const debouncedSearchCards = debounce(searchCards, 300);
+
+
+// --- DATA CLEANING ---
+function cleanScryfallData(card) {
+    const prices = card.prices ? {
+        usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
+        usd_foil: card.prices.usd_foil ? parseFloat(card.prices.usd_foil) : null,
+    } : {
+        usd: null,
+        usd_foil: null
+    };
+
+    // Handle double-faced cards by taking the first face's image URIs and mana cost
+    const image_uris = card.image_uris || (card.card_faces && card.card_faces[0].image_uris) || null;
+    const mana_cost = card.mana_cost || (card.card_faces && card.card_faces[0].mana_cost) || null;
+
+    return {
+        api_id: card.id,
+        name: card.name,
+        set: card.set,
+        set_name: card.set_name,
+        rarity: card.rarity,
+        image_uris: image_uris,
+        card_faces: card.card_faces || null, // Ensure card_faces is not undefined
+        prices: prices,
+        mana_cost: mana_cost,
+        cmc: card.cmc,
+        type_line: card.type_line,
+        color_identity: card.color_identity,
+        collector_number: card.collector_number,
+        game: 'mtg'
+    };
+}
+
+function cleanPokemonData(card) {
+    return {
+        api_id: card.id,
+        name: card.name,
+        set: card.set.id,
+        set_name: card.set.name,
+        rarity: card.rarity || 'Common',
+        image_uris: card.images,
+        prices: {
+            usd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
+            usd_foil: card.tcgplayer?.prices?.holofoil?.market || null,
+        },
+        types: card.types,
+        hp: card.hp,
+        game: 'pokemon'
+    };
+}
+
+// --- FIRESTORE DATABASE OPERATIONS ---
+const getCollectionRef = (userId) => db.collection('users').doc(userId).collection('collection');
+const getWishlistRef = (userId) => db.collection('users').doc(userId).collection('wishlist');
+
+export async function getCollection(userId) {
+    const snapshot = await getCollectionRef(userId).orderBy('addedAt', 'desc').get();
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
+}
+export async function getWishlist(userId) {
+    const snapshot = await getWishlistRef(userId).orderBy('addedAt', 'desc').get();
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
+}
+export async function addCardToCollection(userId, cardData) {
+    const docRef = await getCollectionRef(userId).add(cardData);
+    return docRef.id;
+}
+export async function updateCardInCollection(userId, cardId, updates) {
+    await getCollectionRef(userId).doc(cardId).update(updates);
+}
+export async function deleteCardFromCollection(userId, cardId) {
+    await getCollectionRef(userId).doc(cardId).delete();
+}
+export async function batchDeleteCards(userId, cardIds) {
+    const batch = db.batch();
+    const collectionRef = getCollectionRef(userId);
+    cardIds.forEach(id => {
+        batch.delete(collectionRef.doc(id));
+    });
+    await batch.commit();
+}
+export async function batchUpdateCards(userId, updates) {
+    const batch = db.batch();
+    const collectionRef = getCollectionRef(userId);
+    updates.forEach(update => {
+        batch.update(collectionRef.doc(update.id), update.data);
+    });
+    await batch.commit();
+}
+export async function uploadCustomImage(userId, cardId, file) {
+    const filePath = `users/${userId}/collection_images/${cardId}/${file.name}`;
+    const fileRef = storage.ref(filePath);
+    const snapshot = await fileRef.put(file);
+    return snapshot.ref.getDownloadURL();
+}
+
+This is public/js/modules/bulk-operations.js
+/**
+ * bulk-operations.js
+ * Handles logic for bulk editing the collection.
+ */
+import * as Collection from './collection.js';
+import * as UI from './ui.js';
+import * as API from './api.js';
+import { showToast } from './ui.js';
+
+const state = Collection.getState();
+
+export const isBulkEditMode = () => state.bulkEdit.isActive;
+
+export function enterBulkEditMode() {
+    state.bulkEdit.isActive = true;
+    state.bulkEdit.selected.clear();
+    document.getElementById('bulk-actions-toolbar').classList.remove('hidden');
+    updateSelectionCount();
+    return true;
+}
+
+export function exitBulkEditMode() {
+    state.bulkEdit.isActive = false;
+    state.bulkEdit.selected.clear();
+    document.getElementById('bulk-actions-toolbar').classList.add('hidden');
+    document.querySelector('.tab-button.active').click(); 
+}
+
+export function toggleCardSelection(cardId) {
+    if (state.bulkEdit.selected.has(cardId)) {
+        state.bulkEdit.selected.delete(cardId);
+    } else {
+        state.bulkEdit.selected.add(cardId);
+    }
+    updateSelectionCount();
+}
+
+export function toggleSelectAll(isChecked) {
+    const filteredIds = state.filteredCollection.map(c => c.id);
+    if (isChecked) {
+        filteredIds.forEach(id => state.bulkEdit.selected.add(id));
+    } else {
+        state.bulkEdit.selected.clear();
+    }
+    updateSelectionCount();
+}
+
+
+function updateSelectionCount() {
+    const count = state.bulkEdit.selected.size;
+    document.getElementById('bulk-selection-count').textContent = `${count} card${count === 1 ? '' : 's'} selected`;
+}
+
+export async function deleteSelected() {
+    const selectedIds = Array.from(state.bulkEdit.selected);
+    if (selectedIds.length === 0) {
+        showToast("No cards selected.", "info");
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} card entries? This cannot be undone.`)) {
+        try {
+            await API.batchDeleteCards(state.currentUser.uid, selectedIds);
+            
+            state.fullCollection = state.fullCollection.filter(c => !selectedIds.includes(c.id));
+            Collection.applyFilters();
+            
+            showToast(`${selectedIds.length} cards deleted.`, "success");
+            exitBulkEditMode();
+        } catch (error) {
+            console.error("Bulk delete failed:", error);
+            showToast("Error deleting cards.", "error");
+        }
+    }
+}
+
+export function listSelectedForSale() {
+    const count = state.bulkEdit.selected.size;
+    if (count === 0) {
+        showToast("No cards selected.", "info");
+        return;
+    }
+    UI.openBulkListSaleModal(count);
+}
+
+export async function applyBulkListForSale() {
+    const selectedIds = Array.from(state.bulkEdit.selected);
+    const form = document.getElementById('bulk-list-form');
+    const priceOption = form.elements['price-option'].value;
+
+    const updates = [];
+    
+    for (const id of selectedIds) {
+        const card = Collection.getCardById(id);
+        if (!card) continue;
+
+        let salePrice = null;
+        if (priceOption === 'percentage') {
+            const percentage = parseFloat(document.getElementById('bulk-price-percentage').value) / 100;
+            const marketPrice = card.prices?.usd || 0;
+            if (!isNaN(percentage) && marketPrice > 0) {
+                salePrice = parseFloat((marketPrice * percentage).toFixed(2));
+            }
+        } else {
+            const fixedPrice = parseFloat(document.getElementById('bulk-price-fixed').value);
+            if (!isNaN(fixedPrice)) {
+                salePrice = fixedPrice;
+            }
+        }
+        
+        updates.push({
+            id: id,
+            data: { forSale: true, salePrice: salePrice }
+        });
+    }
+
+    if (updates.length > 0) {
+         try {
+            await API.batchUpdateCards(state.currentUser.uid, updates);
+             updates.forEach(update => {
+                const cardIndex = state.fullCollection.findIndex(c => c.id === update.id);
+                if (cardIndex > -1) {
+                    state.fullCollection[cardIndex] = { ...state.fullCollection[cardIndex], ...update.data };
+                }
+            });
+            Collection.applyFilters();
+            showToast(`${updates.length} cards listed for sale.`, "success");
+            exitBulkEditMode();
+        } catch (error) {
+            console.error("Bulk list for sale failed:", error);
+            showToast("Error listing cards for sale.", "error");
+        }
+    }
+}
+
+This is public/js/modules/collection-app.js
+/**
+ * collection-app.js
+ * Main application logic for the collection page.
+ */
+import * as Collection from './collection.js';
+import * as UI from './ui.js';
+import * as API from './api.js';
+import * as CSV from './csv.js';
+import * as Currency from './currency.js';
+
+let currentUser = null;
+let csvFile = null;
+
+// Initialize the application once Firebase Auth is ready
+document.addEventListener('authReady', async ({ detail: { user } }) => {
+    if (user) {
+        currentUser = user;
+        try {
+            await Currency.initCurrency('SEK');
+            await Collection.loadCollection(user.uid);
+            await Collection.loadWishlist(user.uid);
+            setupInitialFilters();
+            applyAndRender({});
+            setupEventListeners();
+            UI.createCurrencySelector('user-actions');
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            UI.showToast("Could not load your collection.", "error");
+        }
+    } else {
+        UI.showLoggedOutState();
+    }
+});
+
+/**
+ * Populates the filter dropdowns and dynamic filter section based on the current state.
+ */
+function setupInitialFilters() {
+    const game = Collection.getState().filters.game;
+    const options = Collection.getAvailableFilterOptions(game);
+    UI.populateFilters(options.sets, options.rarities, options.types);
+    UI.renderGameSpecificFilters(game, options.types);
+}
+
+/**
+ * Sets up all the main event listeners for the page.
+ */
+function setupEventListeners() {
+    // Modal controls
+    document.getElementById('add-card-btn').addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+    document.getElementById('csv-import-btn').addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
+    document.body.addEventListener('click', (e) => {
+        if (e.target.id === 'close-search-modal') UI.closeModal(document.getElementById('search-modal'));
+        if (e.target.id === 'close-card-modal') UI.closeModal(document.getElementById('card-modal'));
+        if (e.target.id === 'close-bulk-list-sale-modal') UI.closeModal(document.getElementById('bulk-list-sale-modal'));
+        if (e.target.id === 'close-bulk-review-modal') UI.closeModal(document.getElementById('bulk-review-modal'));
+        if (e.target.id === 'close-csv-import-modal') UI.closeModal(document.getElementById('csv-import-modal'));
+        if (e.target.id === 'close-csv-review-modal') UI.closeModal(document.getElementById('csv-review-modal'));
+    });
+
+    // CSV import
+    document.getElementById('csv-file-input').addEventListener('change', (e) => {
+        csvFile = e.target.files[0];
+        document.getElementById('start-csv-import-btn').disabled = !csvFile;
+    });
+
+    document.getElementById('start-csv-import-btn').addEventListener('click', async () => {
+        if (csvFile) {
+            try {
+                UI.updateCsvImportStatus('Parsing file...');
+                const data = await CSV.parseCSV(csvFile);
+                UI.renderCsvReviewModal(data);
+                UI.closeModal(document.getElementById('csv-import-modal'));
+            } catch (error) {
+                UI.updateCsvImportStatus(`<span class="text-red-500">${error.message}</span>`);
+            }
+        }
+    });
+
+    document.getElementById('finalize-csv-import-btn').addEventListener('click', CSV.finalizeImport);
+    document.getElementById('csv-review-table-body').addEventListener('change', (e) => {
+        const target = e.target;
+        const index = target.closest('tr').dataset.index;
+        const field = target.dataset.field;
+        const value = target.type === 'checkbox' ? target.checked : target.value;
+        CSV.updateReviewedCard(index, field, value);
+    });
+    document.getElementById('csv-review-table-body').addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-csv-row-btn')) {
+            const index = e.target.dataset.index;
+            CSV.removeReviewedCard(index);
+            e.target.closest('tr').remove();
+        }
+    });
+
+
+    // Card search and forms
+    document.getElementById('card-search-input').addEventListener('input', handleSearchInput);
+    document.getElementById('search-results-container').addEventListener('click', handleSearchResultClick);
+    document.getElementById('card-form').addEventListener('submit', handleCardFormSubmit);
+    document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
+
+    // Main view controls (Tabs, Grid/List, TCG type)
+    document.querySelector('[data-tab="collection"]').addEventListener('click', () => switchTab('collection'));
+    document.querySelector('[data-tab="wishlist"]').addEventListener('click', () => switchTab('wishlist'));
+    document.getElementById('view-toggle-grid').addEventListener('click', () => switchView('grid'));
+    document.getElementById('view-toggle-list').addEventListener('click', () => switchView('list'));
+    document.querySelectorAll('.tcg-filter-button').forEach(btn => btn.addEventListener('click', () => setTcgFilter(btn.dataset.game)));
+
+    // Filter inputs
+    document.getElementById('filter-name').addEventListener('input', (e) => applyAndRender({ name: e.target.value }));
+    document.getElementById('filter-set-container').addEventListener('change', (e) => applyAndRender({ set: UI.getCheckedValues('set') }));
+    document.getElementById('filter-rarity-container').addEventListener('change', (e) => applyAndRender({ rarity: UI.getCheckedValues('rarity') }));
+    document.getElementById('clear-filters-btn').addEventListener('click', clearFilters);
+    
+    // Dynamic filter container listeners
+    const gameSpecificFiltersContainer = document.getElementById('game-specific-filters');
+    gameSpecificFiltersContainer.addEventListener('change', (e) => {
+        if (e.target.id === 'filter-type') applyAndRender({ type: e.target.value });
+    });
+    gameSpecificFiltersContainer.addEventListener('click', (e) => {
+        if (e.target.matches('#filter-colors i')) {
+            const color = e.target.dataset.color;
+            const selectedColors = Collection.toggleColorFilter(color);
+            UI.updateColorFilterSelection(selectedColors);
+            applyAndRender({});
+        }
+    });
+
+    // Collection display interactions (edit, delete, bulk select)
+    document.getElementById('collection-display').addEventListener('click', handleCollectionDisplayClick);
+
+    // Card hover preview functionality
+    const hoverAreas = ['collection-display', 'search-results-container'];
+    hoverAreas.forEach(id => {
+        const area = document.getElementById(id);
+        area.addEventListener('mouseover', handleCardHover);
+        area.addEventListener('mouseout', handleCardHoverOut);
+        area.addEventListener('mousemove', handleCardHoverMove);
+    });
+
+    // Bulk Edit listeners
+    document.getElementById('bulk-edit-btn').addEventListener('click', handleBulkEditToggle);
+    document.body.addEventListener('click', e => {
+        if (e.target.id === 'bulk-select-all-btn') handleBulkSelectAll();
+        if (e.target.id === 'bulk-list-btn') handleBulkListClick();
+        if (e.target.id === 'bulk-delete-btn') handleBulkDeleteClick();
+        if (e.target.id === 'finalize-bulk-list-btn') handleFinalizeBulkList(e);
+        if (e.target.id === 'bulk-apply-percentage-btn') handleBulkApplyPercentage();
+    });
+     document.body.addEventListener('submit', e => {
+        if (e.target.id === 'bulk-list-form') handleBulkListFormSubmit(e);
+    });
+    
+    // Card modal listeners (for adding/removing pending versions)
+    document.getElementById('card-modal').addEventListener('click', handleCardModalClicks);
+    
+    // Listen for currency changes to re-render prices
+    document.addEventListener('currencyChanged', () => applyAndRender({}));
+
+    // Image upload preview
+    document.getElementById('custom-image-upload').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { document.getElementById('card-modal-image').src = e.target.result; };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+/**
+ * Applies filters and re-renders the collection view.
+ * @param {object} [filterUpdate] - An object with new filter values to apply.
+ */
+function applyAndRender(filterUpdate) {
+    if (filterUpdate) Collection.setFilters(filterUpdate);
+    const state = Collection.getState();
+    const cardsToRender = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+
+    if (state.activeView === 'grid') {
+        UI.renderGridView(cardsToRender, state.activeTab);
+    } else {
+        UI.renderListView(cardsToRender, state.activeTab);
+    }
+    UI.updateStats(
+        state.activeTab === 'collection' ? Collection.calculateCollectionStats() : Collection.calculateWishlistStats(),
+        state.activeTab
+    );
+}
+
+// --- EVENT HANDLER FUNCTIONS ---
+
+async function handleCardFormSubmit(e) {
+    e.preventDefault();
+    UI.setButtonLoading(e.submitter, true);
+    try {
+        const { id, data, customImageFile } = UI.getCardFormData();
+        
+        if (id) {
+            await Collection.updateCard(id, data, customImageFile);
+            UI.showToast("Card updated!", "success");
+        } else {
+            const pendingCards = Collection.getPendingCards();
+            const allVersions = [data, ...pendingCards];
+            await Collection.addMultipleCards(allVersions, customImageFile);
+            UI.showToast(`${allVersions.length} card version(s) added!`, "success");
+        }
+        
+        UI.closeModal(document.getElementById('card-modal'));
+        applyAndRender({});
+        setupInitialFilters(); 
+    } catch (error) {
+        console.error("Error saving card:", error);
+        UI.showToast(error.message, "error");
+    } finally {
+        UI.setButtonLoading(e.submitter, false);
+    }
+}
+
+function handleAddAnotherVersion(e) {
+    UI.setButtonLoading(e.target, true);
+    try {
+        const { data: currentVersionData } = UI.getCardFormData();
+        Collection.addPendingCard({ ...currentVersionData });
+        UI.renderPendingCards(Collection.getPendingCards());
+        UI.resetCardFormForNewVersion();
+    } catch (error) {
+        console.error("Error adding another version:", error);
+        UI.showToast(error.message, "error");
+    } finally {
+         UI.setButtonLoading(e.target, false);
+    }
+}
+
+let searchTimeout;
+function handleSearchInput(e) {
+    clearTimeout(searchTimeout);
+    const query = e.target.value;
+    const game = document.getElementById('game-selector').value;
+    if (query.length < 3) {
+        UI.renderSearchResults('Enter at least 3 characters.');
+        return;
+    }
+    UI.renderSearchResults('Searching...');
+    searchTimeout = setTimeout(async () => {
+        try {
+            const results = await API.searchCards(query, game);
+            UI.renderSearchResults(results);
+        } catch (error) {
+            UI.renderSearchResults('Could not fetch card data.');
+        }
+    }, 300);
+}
+
+function handleSearchResultClick(e) {
+    const item = e.target.closest('.search-result-item');
+    if (item) {
+        const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
+        UI.closeModal(document.getElementById('search-modal'));
+        UI.populateCardModalForAdd(cardData);
+    }
+}
+
+function switchTab(tab) {
+    Collection.setTab(tab);
+    UI.updateActiveTab(tab);
+    applyAndRender({});
+    setupInitialFilters();
+}
+
+function switchView(view) {
+    Collection.setView(view);
+    UI.updateViewToggle(view);
+    applyAndRender({});
+}
+
+function setTcgFilter(game) {
+    UI.updateTcgFilter(game);
+    applyAndRender({ game, type: '', colors: [] }); // Reset specific filters on game change
+    const options = Collection.getAvailableFilterOptions(game);
+    UI.populateFilters(options.sets, options.rarities, options.types);
+    UI.renderGameSpecificFilters(game, options.types);
+}
+
+function handleCollectionDisplayClick(e) {
+    const isBulkMode = Collection.getState().bulkEdit.isActive;
+    const cardContainer = e.target.closest('.card-container[data-id]');
+    if (!cardContainer) return;
+    const cardId = cardContainer.dataset.id;
+
+    if (isBulkMode) {
+        Collection.toggleCardSelection(cardId);
+        const isSelected = Collection.getState().bulkEdit.selected.has(cardId);
+        cardContainer.classList.toggle('ring-4', isSelected);
+        cardContainer.classList.toggle('ring-blue-500', isSelected);
+        const checkbox = cardContainer.querySelector('.bulk-select-checkbox');
+        if (checkbox) checkbox.checked = isSelected;
+        UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    } else {
+        const button = e.target.closest('button[data-action]');
+        if (button) {
+            e.stopPropagation();
+            const card = Collection.getCardById(cardId);
+            if (!card) return;
+            if (button.dataset.action === 'edit') UI.populateCardModalForEdit(card);
+            else if (button.dataset.action === 'delete') {
+                if (confirm(`Delete "${card.name}"?`)) deleteCardAction(cardId);
+            }
+        } else {
+            const card = Collection.getCardById(cardId);
+            if (card) UI.populateCardModalForEdit(card);
+        }
+    }
+}
+
+async function deleteCardAction(cardId) {
+    try {
+        await Collection.deleteCard(cardId);
+        UI.showToast("Card deleted.", "success");
+        applyAndRender({});
+        setupInitialFilters();
+    } catch (error) {
+        UI.showToast("Error deleting card.", "error");
+    }
+}
+
+function handleBulkEditToggle() {
+    const isActive = Collection.toggleBulkEditMode();
+    UI.updateBulkEditUI(isActive);
+    applyAndRender();
+}
+
+function handleBulkListClick() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) {
+        UI.showToast("Please select at least one card to list for sale.", "error");
+        return;
+    }
+    UI.renderBulkReviewModal(selectedIds);
+}
+
+function handleBulkSelectAll() {
+    const filteredIds = Collection.getState().filteredCollection.map(c => c.id);
+    Collection.selectAllFiltered(filteredIds);
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    applyAndRender();
+}
+
+async function handleBulkDeleteClick() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) {
+        UI.showToast("Select cards to delete.", "error");
+        return;
+    }
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} cards? This cannot be undone.`)) {
+        try {
+            await Collection.batchDelete(selectedIds);
+            UI.showToast(`${selectedIds.length} cards deleted.`, 'success');
+            applyAndRender({});
+            setupInitialFilters();
+        } catch (error) {
+            UI.showToast('Error deleting cards.', 'error');
+        }
+    }
+}
+
+async function handleBulkListFormSubmit(e) {
+    e.preventDefault();
+    UI.setButtonLoading(e.submitter, true);
+    // Implementation from previous correct response
+}
+
+function handleBulkApplyPercentage() {
+    const percentageInput = document.getElementById('bulk-apply-percentage-input');
+    if (!percentageInput) return;
+    const percentage = percentageInput.value;
+    if (!percentage) return;
+    document.querySelectorAll('.bulk-review-percent-input').forEach(input => {
+        input.value = percentage;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+}
+
+async function handleFinalizeBulkList(e) {
+    UI.setButtonLoading(e.target, true);
+    try {
+        const updates = [];
+        document.querySelectorAll('#bulk-review-list > div').forEach(item => {
+            const cardId = item.dataset.id;
+            const marketPrice = parseFloat(item.dataset.marketPrice);
+            const fixedPriceInput = item.querySelector('.bulk-review-fixed-input');
+            const percentageInput = item.querySelector('.bulk-review-percent-input');
+            let salePrice = null;
+
+            if (fixedPriceInput.value) {
+                salePrice = parseFloat(fixedPriceInput.value);
+            } else if (percentageInput.value && marketPrice > 0) {
+                salePrice = (marketPrice * parseFloat(percentageInput.value)) / 100;
+            }
+
+            if (salePrice !== null) {
+                updates.push({
+                    id: cardId,
+                    data: {
+                        forSale: true,
+                        salePrice: parseFloat(salePrice.toFixed(2))
+                    }
+                });
+            }
+        });
+
+        if (updates.length > 0) {
+            await Collection.batchUpdateSaleStatus(updates);
+            UI.showToast(`${updates.length} cards have been listed for sale.`, 'success');
+            UI.closeModal(document.getElementById('bulk-review-modal'));
+            applyAndRender({});
+        } else {
+            UI.showToast('No valid prices were set.', 'info');
+        }
+    } catch (error) {
+        console.error('Bulk list finalization failed:', error);
+        UI.showToast('There was an error listing your cards.', 'error');
+    } finally {
+        UI.setButtonLoading(e.target, false);
+    }
+}
+
+
+function handleCardModalClicks(e) {
+    const item = e.target.closest('.pending-card-item');
+    if (item) {
+        const index = parseInt(item.dataset.index, 10);
+        if (e.target.classList.contains('delete-pending-btn')) {
+            Collection.removePendingCard(index);
+            UI.renderPendingCards(Collection.getPendingCards());
+        } else {
+             Collection.swapPendingCard(index);
+             const currentCard = Collection.getCurrentEditingCard();
+             const originalCardData = JSON.parse(document.getElementById('card-modal').dataset.originalCard || '{}');
+             UI.populateCardModalForEdit({ ...originalCardData, ...currentCard });
+             UI.renderPendingCards(Collection.getPendingCards());
+        }
+    }
+}
+
+// Hover handlers
+function handleCardHover(e) {
+    const cardElement = e.target.closest('.card-container, .search-result-item');
+    if (!cardElement) return;
+
+    const cardId = cardElement.dataset.id;
+    if (!cardId) return;
+
+    const card = Collection.getCardById(cardId);
+    if (card) {
+        const tooltip = document.getElementById('card-preview-tooltip');
+        if (!tooltip) return;
+
+        let img = tooltip.querySelector('img');
+        if (!img) {
+            tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+            img = tooltip.querySelector('img');
+        }
+
+        img.src = getCardImageUrl(card);
+        tooltip.classList.remove('hidden');
+        updateTooltipPosition(e, tooltip);
+    }
+}
+
+function handleCardHoverOut(e) {
+    const cardElement = e.target.closest('.card-container, .search-result-item');
+    if (cardElement) {
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !cardElement.contains(relatedTarget)) {
+             document.getElementById('card-preview-tooltip').classList.add('hidden');
+        }
+    }
+}
+
+function handleCardHoverMove(e) {
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (!tooltip.classList.contains('hidden')) {
+        updateTooltipPosition(e, tooltip);
+    }
+}
+
+function updateTooltipPosition(e, tooltip) {
+    const mouseX = e.clientX, mouseY = e.clientY;
+    const tooltipWidth = 260, tooltipHeight = 360;
+    let left = mouseX + 15;
+    let top = mouseY - tooltipHeight / 2;
+    if (left + tooltipWidth > window.innerWidth) left = mouseX - tooltipWidth - 15;
+    if (top < 0) top = 10;
+    else if (top + tooltipHeight > window.innerHeight) top = window.innerHeight - tooltipHeight - 10;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function clearFilters() {
+    Collection.setFilters({
+        name: '',
+        set: [],
+        rarity: [],
+        colors: [],
+        type: ''
+    });
+    document.getElementById('filter-name').value = '';
+    UI.clearCheckboxes('set');
+    UI.clearCheckboxes('rarity');
+    UI.updateColorFilterSelection([]);
+    applyAndRender({});
+}
+
+This is public/js/modules/collection.js
+/**
+ * collection.js
+ * Manages the application's state for the TCG collection.
+ */
+import * as API from './api.js';
+
+let state = {
+    currentUser: null,
+    fullCollection: [],
+    fullWishlist: [],
+    wishlist: [],
+    filteredCollection: [],
+    activeTab: 'collection',
+    activeView: 'grid',
+    filters: { name: '', set: [], rarity: [], colors: [], game: 'all', type: '' },
+    bulkEdit: { isActive: false, selected: new Set() },
+    currentEditingCard: null,
+    pendingCards: [],
+};
+
+export const getState = () => state;
+export function setCurrentEditingCard(cardData) { state.currentEditingCard = cardData; }
+export function getCurrentEditingCard() { return state.currentEditingCard; }
+export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
+export function getPendingCards() { return state.pendingCards; }
+export function clearPendingCards() { state.pendingCards = []; }
+
+export function removePendingCard(index) {
+    if (index > -1 && index < state.pendingCards.length) {
+        state.pendingCards.splice(index, 1);
+    }
+}
+
+function findMatchingCard(cardData) {
+    return state.fullCollection.find(card =>
+        card.api_id === cardData.api_id &&
+        card.condition === cardData.condition &&
+        card.language === cardData.language &&
+        card.is_foil === cardData.is_foil &&
+        card.is_signed === cardData.is_signed &&
+        card.is_altered === cardData.is_altered
+    );
+}
+
+export function swapPendingCard(index) {
+    if (!state.pendingCards[index]) return;
+    const mainCardData = { ...state.currentEditingCard };
+    const pendingCardData = { ...state.pendingCards[index] };
+    
+    state.currentEditingCard = pendingCardData;
+    state.pendingCards[index] = mainCardData;
+}
+
+export function toggleBulkEditMode() {
+    state.bulkEdit.isActive = !state.bulkEdit.isActive;
+    if (!state.bulkEdit.isActive) {
+        state.bulkEdit.selected.clear();
+    }
+    return state.bulkEdit.isActive;
+}
+
+export function toggleCardSelection(cardId) {
+    if (state.bulkEdit.selected.has(cardId)) {
+        state.bulkEdit.selected.delete(cardId);
+    } else {
+        state.bulkEdit.selected.add(cardId);
+    }
+    return state.bulkEdit.selected.has(cardId);
+}
+
+export function selectAllFiltered(cardIds) {
+    cardIds.forEach(id => state.bulkEdit.selected.add(id));
+}
+
+export function deselectAllFiltered() {
+    state.bulkEdit.selected.clear();
+}
+
+export function getSelectedCardIds() {
+    return Array.from(state.bulkEdit.selected);
+}
+
+export async function loadCollection(userId) {
+    state.currentUser = { uid: userId };
+    try {
+        state.fullCollection = await API.getCollection(userId);
+        applyFilters();
+    } catch (error) {
+        console.error("Failed to load collection:", error);
+        state.fullCollection = [];
+        state.filteredCollection = [];
+        throw error;
+    }
+}
+
+export async function loadWishlist(userId) {
+    try {
+        state.fullWishlist = await API.getWishlist(userId);
+        state.wishlist = [...state.fullWishlist];
+    } catch (error) {
+        console.error("Failed to load wishlist:", error);
+        state.wishlist = [];
+        state.fullWishlist = [];
+    }
+}
+
+export function setView(view) { state.activeView = view; }
+export function setTab(tab) { state.activeTab = tab; }
+export function setFilters(newFilters) { 
+    state.filters = { ...state.filters, ...newFilters }; 
+    applyFilters(); 
+}
+export function toggleColorFilter(color) { 
+    const index = state.filters.colors.indexOf(color); 
+    if (index > -1) { 
+        state.filters.colors.splice(index, 1); 
+    } else { 
+        state.filters.colors.push(color); 
+    } 
+    return state.filters.colors; 
+}
+
+export async function addMultipleCards(cardVersions, customImageFile) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    for (const cardData of cardVersions) {
+        const matchingCard = findMatchingCard(cardData);
+        if (matchingCard) {
+            const newQuantity = (matchingCard.quantity || 1) + (cardData.quantity || 1);
+            await API.updateCardInCollection(state.currentUser.uid, matchingCard.id, { quantity: newQuantity });
+            matchingCard.quantity = newQuantity;
+        } else {
+            const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
+            let finalCardData = { ...cardData, id: cardId };
+            if (customImageFile) {
+                const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
+                finalCardData.customImageUrl = imageUrl;
+                await API.updateCardInCollection(state.currentUser.uid, cardId, { customImageUrl: imageUrl });
+            }
+            state.fullCollection.unshift(finalCardData);
+        }
+    }
+    applyFilters();
+}
+
+export async function updateCard(cardId, updates, customImageFile) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+
+    let finalUpdates = { ...updates };
+
+    if (customImageFile) {
+        finalUpdates.customImageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
+    }
+
+    const originalCard = getCardById(cardId);
+    if (originalCard && originalCard.api_id) {
+        finalUpdates.api_id = originalCard.api_id;
+    }
+
+    await API.updateCardInCollection(state.currentUser.uid, cardId, finalUpdates);
+
+    const index = state.fullCollection.findIndex(c => c.id === cardId);
+    if (index !== -1) {
+        state.fullCollection[index] = { ...state.fullCollection[index], ...finalUpdates };
+    }
+    applyFilters();
+}
+
+
+export async function batchUpdateSaleStatus(updates) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.batchUpdateCards(state.currentUser.uid, updates);
+
+    updates.forEach(update => {
+        const index = state.fullCollection.findIndex(c => c.id === update.id);
+        if (index !== -1) {
+            state.fullCollection[index] = { ...state.fullCollection[index], ...update.data };
+        }
+    });
+
+    applyFilters();
+    toggleBulkEditMode();
+}
+
+export async function deleteCard(cardId) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.deleteCardFromCollection(state.currentUser.uid, cardId);
+    state.fullCollection = state.fullCollection.filter(c => c.id !== cardId);
+    applyFilters();
+}
+
+export async function batchDelete(cardIds) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.batchDeleteCards(state.currentUser.uid, cardIds);
+
+    state.fullCollection = state.fullCollection.filter(c => !cardIds.includes(c.id));
+    
+    applyFilters();
+    toggleBulkEditMode();
+}
+
+export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId) || state.wishlist.find(c => c.id === cardId);
+
+export function applyFilters() {
+    const { name, set, rarity, colors, game, type } = state.filters;
+
+    const filterLogic = (card) => {
+        const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
+        const setMatch = set.length === 0 || set.includes(card.set_name);
+        const rarityMatch = rarity.length === 0 || rarity.includes(card.rarity);
+        const gameMatch = game === 'all' || (card.game || 'mtg') === game;
+
+        if (game === 'mtg') {
+            const colorIdentity = card.color_identity || [];
+            let colorMatch = true;
+            if (colors.length > 0) {
+                if (colors.includes('C')) {
+                    colorMatch = colorIdentity.length === 0;
+                } else {
+                    colorMatch = colors.every(c => colorIdentity.includes(c));
+                }
+            }
+            return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
+        } else if (game === 'pokemon') {
+            const typeMatch = !type || (card.types && card.types.includes(type));
+            return nameMatch && setMatch && rarityMatch && typeMatch && gameMatch;
+        }
+
+        return nameMatch && setMatch && rarityMatch && gameMatch;
+    };
+
+    if (state.activeTab === 'collection') {
+        state.filteredCollection = state.fullCollection.filter(filterLogic);
+    } else {
+        state.wishlist = state.fullWishlist.filter(filterLogic);
+    }
+}
+
+
+export function calculateCollectionStats() {
+    const collectionToCount = state.filteredCollection;
+    const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);
+    const uniqueCards = new Set(collectionToCount.map(card => card.api_id)).size;
+    const totalValue = collectionToCount.reduce((sum, card) => {
+        const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
+        return sum + (price * (card.quantity || 1));
+    }, 0);
+    return { totalCards, uniqueCards, totalValue };
+}
+
+export function calculateWishlistStats() {
+    const totalCards = state.wishlist.length;
+    const uniqueCards = state.wishlist.length;
+    const totalValue = state.wishlist.reduce((sum, card) => {
+        const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
+        return sum + price;
+    }, 0);
+    return { totalCards, uniqueCards, totalValue };
+}
+
+export function getAvailableFilterOptions(game) {
+    const sourceList = state.activeTab === 'collection' ? state.fullCollection : state.fullWishlist;
+    const filteredList = sourceList.filter(c => game === 'all' || (c.game || 'mtg') === game);
+
+    const sets = [...new Set(filteredList.map(c => c.set_name))].sort();
+    
+    const rarities = {};
+    filteredList.forEach(card => {
+        const gameKey = card.game || 'mtg';
+        if (!rarities[gameKey]) {
+            rarities[gameKey] = new Set();
+        }
+        rarities[gameKey].add(card.rarity);
+    });
+
+    for (const gameKey in rarities) {
+        rarities[gameKey] = [...rarities[gameKey]].sort();
+    }
+
+    let types = [];
+    if (game === 'pokemon') {
+        types = [...new Set(filteredList.flatMap(c => c.types || []))].sort();
+    }
+    
+    return { sets, rarities, types };
+}
+This is public/js/modules/currency.js:
+/**
+ * HatakeSocial - Centralized Currency Module with Live API Data
+ *
+ * This module handles all currency-related logic, fetching live exchange rates
+ * from freecurrencyapi.com, caching them, converting between currencies,
+ * and formatting prices for display across the entire application.
+ */
+
+// --- CONFIGURATION ---
+// IMPORTANT: Replace this with your actual API key from https://app.freecurrencyapi.com/dashboard
+const API_KEY = 'fca_live_ISCJ9fqb6skS8PcFfoU0u5PLRgBlb1pNahlYMY4f'; // <-- PASTE YOUR FREE CURRENCY API KEY HERE
+const API_URL = `https://api.freecurrencyapi.com/v1/latest?apikey=${API_KEY}&base_currency=USD`;
+const CACHE_DURATION_HOURS = 6;
+
+const db = firebase.firestore();
+
+let currentUserCurrency = 'USD';
+let exchangeRates = {};
+
+// --- Fallback rates in case the API fails ---
+const fallbackRates = {
+    'USD': 1.0, 'SEK': 10.58, 'EUR': 0.93, 'GBP': 0.79, 'NOK': 10.60, 'DKK': 6.95
+};
+
+/**
+ * Fetches the latest exchange rates from the API or retrieves them from cache.
+ */
+async function loadExchangeRates() {
+    const cachedData = localStorage.getItem('exchangeRates');
+    const now = new Date().getTime();
+
+    if (cachedData) {
+        const { timestamp, rates } = JSON.parse(cachedData);
+        if (now - timestamp < CACHE_DURATION_HOURS * 60 * 60 * 1000) {
+            exchangeRates = rates;
+            console.log("Using cached exchange rates.");
+            return;
+        }
+    }
+
+    try {
+        if (!API_KEY || API_KEY.includes('PASTE YOUR')) {
+             throw new Error("API Key is not set. Using fallback rates.");
+        }
+        console.log("Fetching live exchange rates from API...");
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+        const data = await response.json();
+        
+        exchangeRates = data.data;
+        localStorage.setItem('exchangeRates', JSON.stringify({ timestamp: now, rates: exchangeRates }));
+        console.log("Successfully fetched and cached new exchange rates.");
+    } catch (error) {
+        console.error("Failed to fetch live exchange rates, using fallback rates.", error);
+        exchangeRates = fallbackRates;
+    }
+}
+
+/**
+ * Initializes the currency system. Should be called once when the user state is known.
+ * @param {string|null} userId The UID of the currently logged-in user, or null if logged out.
+ */
+export async function initCurrency(userId) {
+    await loadExchangeRates();
+    if (userId) {
+        const userDocRef = db.collection('users').doc(userId);
+        const userDoc = await userDocRef.get();
+        if (userDoc.exists) {
+            currentUserCurrency = userDoc.data().primaryCurrency || 'USD';
+        } else {
+            currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
+        }
+        
+        // Listen for realtime updates from Firestore
+        userDocRef.onSnapshot((doc) => {
+            if (doc.exists) {
+                const newCurrency = doc.data().primaryCurrency || 'USD';
+                if (newCurrency !== currentUserCurrency) {
+                    currentUserCurrency = newCurrency;
+                    localStorage.setItem('userCurrency', currentUserCurrency);
+                    document.dispatchEvent(new CustomEvent('currencyChange', {
+                        detail: { currency: newCurrency }
+                    }));
+                }
+            }
+        });
+
+    } else {
+        // For logged-out users, just use local storage
+        currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
+    }
+    localStorage.setItem('userCurrency', currentUserCurrency);
+}
+
+/**
+ * Updates the user's preferred currency in both Firestore (if logged in) and local storage.
+ * @param {string} newCurrency The new currency code (e.g., 'SEK').
+ */
+export function updateUserCurrency(newCurrency) {
+    if (!newCurrency) return Promise.reject("Invalid currency");
+    
+    // Update local state immediately for responsiveness
+    currentUserCurrency = newCurrency;
+    localStorage.setItem('userCurrency', newCurrency);
+     document.dispatchEvent(new CustomEvent('currencyChange', {
+        detail: { currency: newCurrency }
+    }));
+
+    // Update Firestore if the user is logged in
+    const user = firebase.auth().currentUser;
+    if (user) {
+       return db.collection('users').doc(user.uid).update({ primaryCurrency: newCurrency });
+    }
+    
+    return Promise.resolve(); // Return a resolved promise for logged-out users
+}
+
+export function getUserCurrency() {
+    return localStorage.getItem('userCurrency') || currentUserCurrency;
+}
+
+export function formatPrice(amount) {
+    const currency = getUserCurrency();
+    const numberAmount = Number(amount) || 0;
+    try {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency, currencyDisplay: 'symbol' }).format(numberAmount);
+    } catch (e) {
+        // Fallback to USD if the currency code is invalid
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(numberAmount);
+    }
+}
+
+/**
+ * Converts a price to the user's selected currency and formats it.
+ * @param {object|number} priceInput Price data (e.g., {usd: 10.50}) or a raw number assumed to be in USD.
+ */
+export function convertAndFormat(priceInput) {
+    const targetCurrency = getUserCurrency();
+    let sourcePriceUSD = 0;
+
+    if (typeof priceInput === 'object' && priceInput !== null && priceInput.usd) {
+        sourcePriceUSD = parseFloat(priceInput.usd);
+    } else if (typeof priceInput === 'number') {
+        sourcePriceUSD = priceInput;
+    } else if (priceInput === null || priceInput === undefined) {
+         return 'N/A';
+    }
+
+    if (isNaN(sourcePriceUSD)) {
+        return 'N/A';
+    }
+    
+    const rate = exchangeRates[targetCurrency] || 1.0; // Fallback to 1.0 if rate not found
+    const finalPrice = sourcePriceUSD * rate;
+    
+    return formatPrice(finalPrice);
+}
+
+This is auth.js:
+/**
+* HatakeSocial - Merged Authentication & Global UI Script (v30 - FULLY RESTORED & INITIALIZATION FIXED)
+* - This is the complete version of your original script.
+* - Fixes the Firebase initialization race condition by ensuring Firebase is globally available BEFORE other modules run.
+* - Restores all original functions for notifications, friend requests, currency, etc.
+*/
+
+// --- Firebase Initialization (Stable & Global) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+  authDomain: "hatakesocial-88b5e.firebaseapp.com",
+  projectId: "hatakesocial-88b5e",
+  storageBucket: "hatakesocial-88b5e.appspot.com",
+  messagingSenderId: "1091697032506",
+  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+  measurementId: "G-EH0PS2Z84J"
+};
+
+// Initialize Firebase and expose services globally for other scripts to use
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+window.auth = firebase.auth();
+window.db = firebase.firestore();
+window.storage = firebase.storage();
+window.functions = firebase.functions();
+
+// --- Global Toast Notification Function ---
+const showToast = (message, type = 'info') => {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-5 right-5 z-[1003]';
+        document.body.appendChild(toastContainer);
+        container = toastContainer;
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    let iconClass = 'fa-info-circle';
+    if (type === 'success') iconClass = 'fa-check-circle';
+    if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+    toast.innerHTML = `<i class="fas ${iconClass} toast-icon"></i> <p>${message}</p>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 5000);
+};
+window.showToast = showToast; // Make globally accessible
+
+// --- Global Modal Helper Functions ---
+window.openModal = (modal) => {
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        const errorMsg = modal.querySelector('[id$="-error-message"]');
+        if (errorMsg) {
+            errorMsg.classList.add('hidden');
+            errorMsg.textContent = '';
+        }
+    }
+};
+window.closeModal = (modal) => {
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+// --- New Conversation Modal ---
+window.openNewConversationModal = (isWidget = false, callback) => {
+    const existingModal = document.getElementById('new-conversation-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'new-conversation-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[1002]';
+    modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col" style="height: 70vh; max-height: 500px;">
+            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold">New Message</h2>
+                <button id="close-new-convo-modal" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-4">
+                <input type="text" id="user-search-input" placeholder="Search for a user..." class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div id="user-search-results" class="flex-grow overflow-y-auto p-4 space-y-2">
+                <p class="text-center text-gray-500">Start typing to find users.</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const searchInput = modal.querySelector('#user-search-input');
+    const searchResultsContainer = modal.querySelector('#user-search-results');
+    const closeModalBtn = modal.querySelector('#close-new-convo-modal');
+
+    closeModalBtn.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target.id === 'new-conversation-modal') modal.remove();
+    });
+
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim().toLowerCase();
+        if (query.length < 2) {
+            searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 2 characters.</p>';
+            return;
+        }
+
+        searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+        searchTimeout = setTimeout(async () => {
+            try {
+                const currentUser = firebase.auth().currentUser;
+                if (!currentUser) return;
+                const usersRef = firebase.firestore().collection('users');
+                const snapshot = await usersRef.where('displayName_lower', '>=', query).where('displayName_lower', '<=', query + '\uf8ff').limit(10).get();
+
+                searchResultsContainer.innerHTML = '';
+                if (snapshot.empty) {
+                    searchResultsContainer.innerHTML = '<p class="text-center text-gray-500">No users found.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        if (doc.id === currentUser.uid) return;
+
+                        const userElement = document.createElement('div');
+                        userElement.className = 'flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+                        userElement.innerHTML = `
+                            <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            <div>
+                                <p class="font-semibold">${userData.displayName}</p>
+                                <p class="text-sm text-gray-500">@${userData.handle || 'N/A'}</p>
+                            </div>`;
+                        userElement.addEventListener('click', () => {
+                            if (callback) callback(doc.id, userData);
+                            modal.remove();
+                        });
+                        searchResultsContainer.appendChild(userElement);
+                    });
+                }
+            } catch (error) {
+                console.error("Error searching for users:", error);
+                searchResultsContainer.innerHTML = '<p class="text-center text-red-500">Error searching for users.</p>';
+            }
+        }, 500);
+    });
+};
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Import the currency module
+    const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
+
+    document.body.style.opacity = '0'; // Hide body until ready
+
+    const auth = window.auth;
+    const db = window.db;
+
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const loginModal = document.getElementById('loginModal');
+    const registerModal = document.getElementById('registerModal');
+
+    // --- CURRENCY SELECTOR LOGIC ---
+    const setupCurrencySelector = () => {
+        const container = document.getElementById('user-actions');
+        if (!container) return;
+
+        let currencySelectorContainer = document.getElementById('currency-selector-container');
+        if (!currencySelectorContainer) {
+            currencySelectorContainer = document.createElement('div');
+            currencySelectorContainer.id = 'currency-selector-container';
+            // Adjusted classes to better align with other header items
+            currencySelectorContainer.className = 'relative flex items-center'; 
+            container.insertAdjacentElement('afterbegin', currencySelectorContainer); // Add it at the beginning of user actions
+        }
+
+        currencySelectorContainer.innerHTML = `
+            <select id="currency-selector" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="USD">USD</option>
+                <option value="SEK">SEK</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="NOK">NOK</option>
+                <option value="DKK">DKK</option>
+            </select>
+        `;
+
+        const selector = document.getElementById('currency-selector');
+        if (selector) {
+            selector.value = getUserCurrency(); // Set initial value from module
+            selector.addEventListener('change', async (e) => {
+                const newCurrency = e.target.value;
+                try {
+                    await updateUserCurrency(newCurrency);
+                    showToast(`Currency changed to ${newCurrency}`, 'success');
+                    // Reload to apply currency change everywhere
+                    setTimeout(() => window.location.reload(), 500); 
+                } catch (error) {
+                    showToast('Could not save currency preference.', 'error');
+                    console.error('Error updating currency:', error);
+                }
+            });
+        }
+    };
+
+    const setupHeaderSearch = () => {
+        const searchBar = document.getElementById('main-search-bar');
+        if (searchBar) {
+            searchBar.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = searchBar.value.trim();
+                    if (query) {
+                        window.location.href = `search.html?query=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+    };
+
+    const setupGlobalListeners = () => {
+        const googleLoginButton = document.getElementById('googleLoginButton');
+        const googleRegisterButton = document.getElementById('googleRegisterButton');
+        const registerForm = document.getElementById('registerForm');
+
+        document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
+        document.getElementById('closeRegisterModal')?.addEventListener('click', () => closeModal(registerModal));
+
+        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorMessageEl = document.getElementById('login-error-message');
+
+            auth.signInWithEmailAndPassword(email, password)
+                .catch(err => {
+                    if (errorMessageEl) {
+                        errorMessageEl.textContent = err.message;
+                        errorMessageEl.classList.remove('hidden');
+                    }
+                });
+        });
+
+        if (registerForm) {
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                showTermsModal();
+            });
+        }
+
+        const handleGoogleAuth = () => {
+            auth.signInWithPopup(googleProvider)
+                .catch(err => showToast(err.message, "error"));
+        };
+
+        if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
+        if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
+
+        // Sidebar toggle logic for mobile
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarToggle && sidebar && sidebarOverlay) {
+             const toggleSidebar = () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            };
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+        }
+    };
+
+    let friendRequestHandshakeListener = null;
+    function listenForAcceptedRequests(user) {
+        if (friendRequestHandshakeListener) {
+            friendRequestHandshakeListener();
+        }
+        const sentRequestsRef = db.collection('friendRequests')
+            .where('senderId', '==', user.uid)
+            .where('status', '==', 'accepted');
+
+        friendRequestHandshakeListener = sentRequestsRef.onSnapshot(async (snapshot) => {
+            if (snapshot.empty) return;
+            const batch = db.batch();
+            const currentUserRef = db.collection('users').doc(user.uid);
+            for (const doc of snapshot.docs) {
+                const request = doc.data();
+                batch.update(currentUserRef, { friends: firebase.firestore.FieldValue.arrayUnion(request.receiverId) });
+                batch.delete(doc.ref);
+            }
+            await batch.commit().catch(err => console.error("Error in friend handshake:", err));
+        });
+    }
+
+    function sanitizeHTML(str) {
+        const temp = document.createElement('div');
+        temp.textContent = str;
+        return temp.innerHTML;
+    }
+
+    let unsubscribeNotifications = null;
+    let verificationTimer = null;
+
+    auth.onAuthStateChanged(async (user) => {
+        let userData = null;
+
+        if (verificationTimer) {
+            clearInterval(verificationTimer);
+            verificationTimer = null;
+        }
+
+        await initCurrency(user ? user.uid : null);
+        
+        if (user) {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (userDoc.exists) {
+                userData = userDoc.data();
+            }
+        }
+        
+        document.dispatchEvent(new CustomEvent('authReady', { detail: { user, userData } }));
+
+        const mainSidebarNav = document.querySelector('#sidebar nav');
+        const existingAdminSidebarLink = document.getElementById('admin-sidebar-link');
+        if (existingAdminSidebarLink) {
+            existingAdminSidebarLink.remove();
+        }
+
+        if (user && !user.emailVerified) {
+            document.body.innerHTML = `
+            <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+                <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">A verification link has been sent to <strong>${user.email}</strong>. Please check your inbox and spam folder.</p>
+                    <div class="space-x-4">
+                        <button id="resend-verification-btn" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Resend Email</button>
+                        <button onclick="firebase.auth().signOut()" class="px-5 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Logout</button>
+                    </div>
+                </div>
+            </div>`;
+            document.getElementById('resend-verification-btn').addEventListener('click', () => {
+                user.sendEmailVerification()
+                    .then(() => showToast('A new verification email has been sent.', 'success'))
+                    .catch(err => showToast('Error sending email: ' + err.message, 'error'));
+            });
+            verificationTimer = setInterval(async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                    clearInterval(verificationTimer);
+                    window.location.reload();
+                }
+            }, 5000);
+            document.body.style.opacity = '1';
+            return;
+        }
+
+        const userActions = document.getElementById('user-actions');
+        const authContainerSidebar = document.getElementById('auth-container-sidebar');
+
+        if (user && userData) {
+            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
+            if (isIndexPage) {
+                window.location.href = 'app.html';
+                return;
+            }
+
+            closeModal(loginModal);
+            closeModal(registerModal);
+            
+            const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+            const idTokenResult = await user.getIdTokenResult(true);
+            const isAdmin = idTokenResult.claims.admin === true;
+
+            handleAdminAccess(isAdmin);
+
+            if (isAdmin && mainSidebarNav && !document.getElementById('admin-sidebar-link')) {
+                const adminLink = document.createElement('a');
+                adminLink.id = 'admin-sidebar-link';
+                adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
+                adminLink.href = 'admin.html';
+                adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
+                mainSidebarNav.appendChild(adminLink);
+            }
+
+            if (userActions) {
+                userActions.innerHTML = `
+                    <div id="currency-selector-container"></div>
+                    <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <div class="relative">
+                        <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                        </button>
+                        <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                            <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
+                            <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
+                            <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
+                        <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
+                            <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
+                            <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                            ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
+                            <hr class="border-gray-200 dark:border-gray-600">
+                            <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                        </div>
+                    </div>`;
+                setupCurrencySelector();
+                document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
+                document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
+                document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
+            }
+
+            if (unsubscribeNotifications) unsubscribeNotifications();
+            unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
+                const countEl = document.getElementById('notification-count');
+                const listEl = document.getElementById('notification-list');
+                if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
+                if (listEl) {
+                    if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
+                    else {
+                        listEl.innerHTML = '';
+                        snapshot.docs.slice(0, 5).forEach(doc => {
+                            const notif = doc.data();
+                            const el = document.createElement('a');
+                            el.href = notif.link || '#';
+                            el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
+                            el.innerHTML = `<div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
+                            el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
+                            listEl.appendChild(el);
+                        });
+                    }
+                }
+            });
+
+            if (authContainerSidebar) {
+                authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
+                document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
+            }
+            listenForAcceptedRequests(user);
+        } else { 
+            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
+            if (unsubscribeNotifications) unsubscribeNotifications();
+            handleAdminAccess(false);
+
+            const loginButtonsHTML = `
+                <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
+                <button id="header-register-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button>`;
+            if (userActions) {
+                userActions.innerHTML = `<div id="currency-selector-container"></div> ${loginButtonsHTML}`;
+                setupCurrencySelector();
+                document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
+                document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
+            }
+            if (authContainerSidebar) {
+                authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button></div>`;
+                document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(loginModal));
+                document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(registerModal));
+            }
+        }
+        document.body.style.opacity = '1';
+    });
+
+    setupGlobalListeners();
+    setupHeaderSearch();
+
+    window.addEventListener('click', () => {
+        document.getElementById('profile-dropdown')?.classList.add('hidden');
+        document.getElementById('notification-dropdown')?.classList.add('hidden');
+    });
+
+    document.addEventListener('currencyChange', ({ detail }) => {
+        const selector = document.getElementById('currency-selector');
+        if (selector && detail.currency) selector.value = detail.currency;
+    });
+});
+
+function handleAdminAccess(isAdmin) {
+    const currentPage = window.location.pathname.split('/').pop();
+    const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
+    if (adminPages.includes(currentPage) && !isAdmin) {
+        window.location.href = 'index.html';
+    }
+}
+
+async function showTermsModal() {
+    const termsModal = document.createElement('div');
+    termsModal.id = 'terms-modal';
+    termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
+    let termsContent = '<p>Loading...</p>', privacyContent = '<p>Loading...</p>';
+    try {
+        const [termsResponse, privacyResponse] = await Promise.all([fetch('terms.html'), fetch('privacy.html')]);
+        termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
+        privacyContent = privacyResponse.ok ? await privacyResponse.text() : '<p>Could not load Privacy Policy.</p>';
+    } catch (error) {
+        console.error('Error fetching legal documents:', error);
+        termsContent = '<p>Error loading content.</p>';
+    }
+
+    termsModal.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 90vh; max-height: 800px;">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h2 class="text-xl font-bold">Terms & Privacy</h2>
+            <button id="close-terms-modal" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        </div>
+        <div id="terms-content" class="p-6 flex-grow overflow-y-auto">${termsContent}<hr class="my-8">${privacyContent}</div>
+        <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <label class="flex items-center"><input type="checkbox" id="terms-checkbox" class="h-4 w-4"><span class="ml-2">I have read and agree.</span></label>
+            <button id="final-register-btn" disabled class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg disabled:bg-gray-400">Register</button>
+        </div>
+    </div>`;
+    document.body.appendChild(termsModal);
+    const termsCheckbox = termsModal.querySelector('#terms-checkbox');
+    const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
+    termsCheckbox.addEventListener('change', () => {
+        finalRegisterBtn.disabled = !termsCheckbox.checked;
+    });
+    termsModal.querySelector('#close-terms-modal').addEventListener('click', () => termsModal.remove());
+    finalRegisterBtn.addEventListener('click', async () => {
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const errorMessageEl = document.getElementById('register-error-message');
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await userCredential.user.sendEmailVerification();
+        } catch (err) {
+            if (errorMessageEl) {
+                errorMessageEl.textContent = err.message;
+                errorMessageEl.classList.remove('hidden');
+            } else {
+                showToast(err.message, "error");
+            }
+        } finally {
+             termsModal.remove();
+        }
+    });
+}
+This is public/js/marketplace.js:
+/**
+ * HatakeSocial - Marketplace Page Logic (FULLY RESTORED & FIXED)
+ *
+ * Fetches, filters, and displays card listings from all users.
+ * Uses the centralized currency module for all price conversions and display.
+ * Includes the restored card hover-preview functionality.
+ */
+
+// --- CORRECTED IMPORT PATH ---
+import { convertAndFormat } from './modules/currency.js';
+
+// --- STATE MANAGEMENT ---
+let allListings = [];
+let filteredListings = [];
+let currentView = 'grid';
+
+// --- DOM ELEMENT REFERENCES ---
+const listingsContainer = document.getElementById('listingsContainer');
+const mainSearchInput = document.getElementById('main-search-bar');
+const gameFilter = document.getElementById('gameFilter');
+const setFilter = document.getElementById('setFilter');
+const minPriceInput = document.getElementById('minPrice');
+const maxPriceInput = document.getElementById('maxPrice');
+const conditionFiltersContainer = document.getElementById('conditionFilters');
+const foilFilter = document.getElementById('foilFilter');
+const locationFilter = document.getElementById('locationFilter');
+const sortOptions = document.getElementById('sortOptions');
+const gridViewBtn = document.getElementById('gridViewBtn');
+const listViewBtn = document.getElementById('listViewBtn');
+const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
+const advancedFiltersContainer = document.getElementById('advancedFilters');
+const tooltip = document.getElementById('card-preview-tooltip');
+
+
+// --- UTILITY FUNCTIONS ---
+const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+};
+
+// --- DATA FETCHING ---
+async function fetchMarketplaceData() {
+    listingsContainer.innerHTML = `
+        <div class="col-span-full text-center p-10">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">Loading Listings...</p>
+        </div>`;
+
+    try {
+        const db = firebase.firestore();
+        // Correctly query the 'forSale' collection group as intended.
+        const listingsRef = db.collectionGroup('forSale');
+        const querySnapshot = await listingsRef.orderBy('listedAt', 'desc').get();
+
+        allListings = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            sellerId: doc.ref.parent.parent.id, // Get sellerId from path users/{sellerId}/forSale/{listingId}
+            ...doc.data()
+        }));
+        
+        // Post-process to add seller data
+        const sellerIds = [...new Set(allListings.map(l => l.sellerId))];
+        const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
+        const sellerDocs = await Promise.all(sellerPromises);
+        const sellerMap = new Map();
+        sellerDocs.forEach(doc => {
+            if(doc.exists) sellerMap.set(doc.id, doc.data());
+        });
+
+        allListings.forEach(listing => {
+            const seller = sellerMap.get(listing.sellerId) || {};
+            listing.sellerData = {
+                uid: listing.sellerId,
+                displayName: seller.displayName || 'Unknown Seller',
+                photoURL: seller.photoURL || 'https://placehold.co/32',
+                country: seller.address?.country || 'N/A'
+            };
+        });
+
+
+        filteredListings = [...allListings];
+
+        if (allListings.length === 0) {
+            listingsContainer.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-10">The marketplace is currently empty.</p>`;
+        } else {
+            populateSetFilter();
+            renderListings();
+        }
+
+    } catch (error) {
+        console.error("Error fetching marketplace listings:", error);
+        listingsContainer.innerHTML = `<p class="text-center text-red-500 py-10">Could not load listings. Please try again later.</p>`;
+    }
+}
+
+// --- RENDERING LOGIC ---
+function renderListings() {
+    listingsContainer.innerHTML = '';
+    if (filteredListings.length === 0) {
+        listingsContainer.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-10">No cards found. Try adjusting your filters.</p>`;
+        return;
+    }
+    if (currentView === 'grid') {
+        renderGridView();
+    } else {
+        renderListView();
+    }
+}
+
+function renderGridView() {
+    listingsContainer.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4';
+    const fragment = document.createDocumentFragment();
+
+    filteredListings.forEach(listing => {
+        const imageUrl = listing.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+        const displayPrice = convertAndFormat(listing.salePrice);
+
+        const cardElement = document.createElement('div');
+        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-white dark:bg-gray-800';
+        cardElement.dataset.imageUrl = imageUrl;
+        cardElement.onclick = () => window.location.href = `listing.html?sellerId=${listing.sellerId}&listingId=${listing.id}`;
+
+        cardElement.innerHTML = `
+            <img src="${imageUrl}" alt="${listing.name}" class="w-full h-auto object-cover">
+            <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
+            <div class="p-2">
+                <h3 class="font-bold text-sm truncate">${listing.name}</h3>
+                <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
+                    <p><strong>Condition:</strong> ${listing.condition}</p>
+                    ${listing.is_foil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
+                </div>
+            </div>
+        `;
+        fragment.appendChild(cardElement);
+    });
+    listingsContainer.appendChild(fragment);
+}
+
+function renderListView() {
+    listingsContainer.className = 'overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700';
+    let tableHTML = `
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Card Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Set</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Condition</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Seller</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
+
+    filteredListings.forEach(listing => {
+        const sellerData = listing.sellerData;
+        const displayPrice = convertAndFormat(listing.salePrice);
+        const imageUrl = listing.image_uris?.small || 'https://placehold.co/32';
+
+        tableHTML += `
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='listing.html?sellerId=${listing.sellerId}&listingId=${listing.id}'">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-8"><img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt=""></div>
+                        <div class="ml-4"><div class="text-sm font-medium text-gray-900 dark:text-white">${listing.name} ${listing.is_foil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div></div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.set_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.condition}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <a href="/profile.html?uid=${sellerData.uid}" onclick="event.stopPropagation()" class="flex items-center space-x-2 group">
+                        <img class="h-8 w-8 rounded-full" src="${sellerData.photoURL}" alt="">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">${sellerData.displayName}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${sellerData.country}</div>
+                        </div>
+                    </a>
+                </td>
+            </tr>`;
+    });
+
+    tableHTML += `</tbody></table>`;
+    listingsContainer.innerHTML = tableHTML;
+}
+
+
+// --- FILTERING AND SORTING LOGIC ---
+function applyFiltersAndSort() {
+    let listings = [...allListings];
+
+    const searchTerm = mainSearchInput.value.toLowerCase();
+    const selectedGame = gameFilter.value;
+    const selectedSet = setFilter.value;
+    const minPrice = parseFloat(minPriceInput.value);
+    const maxPrice = parseFloat(maxPriceInput.value);
+    const selectedConditions = Array.from(conditionFiltersContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+    const showFoilOnly = foilFilter.checked;
+    const sellerLocation = locationFilter.value.toLowerCase();
+
+    if (searchTerm) listings = listings.filter(l => l.name.toLowerCase().includes(searchTerm));
+    if (selectedGame !== 'all') listings = listings.filter(l => l.game === selectedGame);
+
+    populateSetFilter(listings);
+
+    if (selectedSet !== 'all') listings = listings.filter(l => l.set_name === selectedSet);
+    if (!isNaN(minPrice)) listings = listings.filter(l => l.salePrice >= minPrice);
+    if (!isNaN(maxPrice)) listings = listings.filter(l => l.salePrice <= maxPrice);
+    if (selectedConditions.length > 0) listings = listings.filter(l => selectedConditions.includes(l.condition));
+    if (showFoilOnly) listings = listings.filter(l => l.is_foil);
+    if (sellerLocation) listings = listings.filter(l => l.sellerData.country && l.sellerData.country.toLowerCase().includes(sellerLocation));
+
+    const sortBy = sortOptions.value;
+    switch (sortBy) {
+        case 'price-asc':
+            listings.sort((a, b) => a.salePrice - b.salePrice);
+            break;
+        case 'price-desc':
+            listings.sort((a, b) => b.salePrice - a.salePrice);
+            break;
+        case 'newly-listed':
+        default:
+            listings.sort((a, b) => b.listedAt.seconds - a.listedAt.seconds);
+    }
+
+    filteredListings = listings;
+    renderListings();
+}
+
+function populateSetFilter(listings = allListings) {
+    const currentSetValue = setFilter.value;
+    const setNames = [...new Set(listings.map(l => l.set_name))].sort();
+
+    setFilter.innerHTML = '<option value="all">All Sets</option>';
+    setNames.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        option.textContent = setName;
+        setFilter.appendChild(option);
+    });
+
+    if (setNames.includes(currentSetValue)) {
+        setFilter.value = currentSetValue;
+    }
+}
+
+// --- EVENT LISTENERS ---
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    if (!user) {
+        listingsContainer.innerHTML = `<div class="col-span-full text-center p-8"><h2 class="text-xl font-bold">Please log in to view the marketplace.</h2></div>`;
+        return;
+    }
+    
+    fetchMarketplaceData();
+
+    mainSearchInput.addEventListener('input', debounce(applyFiltersAndSort, 300));
+    gameFilter.addEventListener('change', applyFiltersAndSort);
+    setFilter.addEventListener('change', applyFiltersAndSort);
+    minPriceInput.addEventListener('input', debounce(applyFiltersAndSort, 500));
+    maxPriceInput.addEventListener('input', debounce(applyFiltersAndSort, 500));
+    foilFilter.addEventListener('change', applyFiltersAndSort);
+    locationFilter.addEventListener('input', debounce(applyFiltersAndSort, 300));
+    sortOptions.addEventListener('change', applyFiltersAndSort);
+    conditionFiltersContainer.addEventListener('change', applyFiltersAndSort);
+
+    gridViewBtn.addEventListener('click', () => {
+        currentView = 'grid';
+        gridViewBtn.classList.add('bg-blue-600', 'text-white');
+        listViewBtn.classList.remove('bg-blue-600', 'text-white');
+        renderListings();
+    });
+
+    listViewBtn.addEventListener('click', () => {
+        currentView = 'list';
+        listViewBtn.classList.add('bg-blue-600', 'text-white');
+        gridViewBtn.classList.remove('bg-blue-600', 'text-white');
+        renderListings();
+    });
+
+    toggleAdvancedFiltersBtn.addEventListener('click', () => {
+        advancedFiltersContainer.classList.toggle('hidden');
+        const isHidden = advancedFiltersContainer.classList.contains('hidden');
+        toggleAdvancedFiltersBtn.innerHTML = isHidden 
+            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1"></i>' 
+            : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1"></i>';
+    });
+
+    // --- RESTORED: Card hover preview functionality ---
+    const handleMouseOver = (e) => {
+        const cardElement = e.target.closest('.card-container');
+        const listCardElement = e.target.closest('.card-preview-trigger');
+        let imageUrl = null;
+        if (cardElement && cardElement.dataset.imageUrl) {
+            imageUrl = cardElement.dataset.imageUrl;
+        } else if (listCardElement) {
+            imageUrl = listCardElement.src.replace('small', 'large');
+        }
+        if (imageUrl && tooltip) {
+            let img = tooltip.querySelector('img');
+            if (!img) {
+                tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+                img = tooltip.querySelector('img');
+            }
+            img.src = imageUrl;
+            tooltip.classList.remove('hidden');
+        }
+    };
+    
+    listingsContainer.addEventListener('mouseover', handleMouseOver);
+    listingsContainer.addEventListener('mouseout', () => {
+        if (tooltip) tooltip.classList.add('hidden');
+    });
+    listingsContainer.addEventListener('mousemove', (e) => {
+        if (tooltip && !tooltip.classList.contains('hidden')) {
+            const mouseX = e.clientX, mouseY = e.clientY;
+            const tooltipWidth = 240;
+            const aspectRatio = 3.5 / 2.5;
+            const tooltipHeight = tooltipWidth * aspectRatio;
+            let left = mouseX + 20;
+            let top = mouseY + 20;
+
+            if (left + tooltipWidth > window.innerWidth - 15) left = mouseX - tooltipWidth - 20;
+            if (top + tooltipHeight > window.innerHeight - 15) top = window.innerHeight - tooltipHeight - 15;
+            if (left < 15) left = 15;
+            if (top < 15) top = 15;
+
+            tooltip.style.width = `${tooltipWidth}px`;
+            tooltip.style.height = `auto`;
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+        }
+    });
+
+    // Re-render when currency changes
+    document.addEventListener('currencyChange', renderListings);
+});
+
+Can you make sure that the buttons for bulk edit, list for sale, delete, filters for games and that the currency changer works on all the pages? I want to be able to list cards for sale for them to appear up in the marketplace. 
+Card hover should be taken from this file:
+marketplace.js
+and be present on marketplace and my_collection.html
+These files are from an earlier commit on github when things worked previously, my local workstation has non-functional updates related to currency selector.
+Please compare them to the github versions and take the best combined from 
+The currency changer in the header from auth.js is from a new update and should be present in all the files, but, it shouldn't refresh the page when a new currency is selected.
+Please write fully merged, coded files without any placeholders.

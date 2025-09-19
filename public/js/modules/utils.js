@@ -57,13 +57,13 @@ export function transformScryfallCard(scryfallCard) {
 export function transformPokemonCard(pokemonCard) {
     const prices = pokemonCard.tcgplayer?.prices || {};
     const normalPrice = prices?.normal?.market
-                      || prices?.unlimited?.market
-                      || prices?.holofoil?.market
-                      || null;
+        || prices?.unlimited?.market
+        || prices?.holofoil?.market
+        || null;
     const foilPrice = prices?.holofoil?.market
-                    || prices?.reverseHolofoil?.market
-                    || prices?.["1stEditionHolofoil"]?.market
-                    || null;
+        || prices?.reverseHolofoil?.market
+        || prices?.["1stEditionHolofoil"]?.market
+        || null;
 
     const image_uris = {
         small: pokemonCard.images?.small || '',

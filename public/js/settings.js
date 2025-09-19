@@ -184,10 +184,11 @@ document.addEventListener('authReady', (e) => {
                 shippingRestOfWorldInput.value = data.shippingProfile.restOfWorld || '';
             }
             // Update the shipping currency display when data loads and on currency change
-            document.addEventListener('currencyChange', () => {
+            const updateShippingCurrency = () => {
                 shippingCurrencyDisplay.textContent = getUserCurrency();
-            });
-            shippingCurrencyDisplay.textContent = getUserCurrency();
+            };
+            document.addEventListener('currencyChange', updateShippingCurrency);
+            updateShippingCurrency();
 
 
             loadMfaStatus();
@@ -321,8 +322,8 @@ document.addEventListener('authReady', (e) => {
             const newCurrency = primaryCurrencySelect.value;
             const newPriceSource = priceSourceSelect.value;
             // Use the centralized function to update currency
-            await updateUserCurrency(user.uid, newCurrency);
-            // Update other fields in the same section
+            await updateUserCurrency(newCurrency); 
+            // Update other non-currency fields
             await db.collection('users').doc(user.uid).update({
                 priceSource: newPriceSource
             });
@@ -413,13 +414,14 @@ document.addEventListener('authReady', (e) => {
     deleteAccountBtn?.addEventListener('click', async () => {
         if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
             try {
-                await db.collection('users').doc(user.uid).delete();
+                // It's good practice to delete user data before deleting the user auth record.
+                await db.collection('users').doc(user.uid).delete(); 
                 await user.delete();
                 (window.showToast || alert)('Account deleted successfully.', 'success');
                 window.location.href = 'index.html';
             } catch (error) {
                 console.error("Error deleting account:", error);
-                (window.showToast || alert)("Could not delete account. " + error.message, "error");
+                (window.showToast || alert)("Could not delete account. You may need to log in again to perform this action. " + error.message, "error");
             }
         }
     });
@@ -468,10 +470,14 @@ document.addEventListener('authReady', (e) => {
                 url: window.location.origin
             };
             try {
-                await navigator.share(shareData);
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                } else {
+                    throw new Error('Web Share API not supported');
+                }
             } catch (err) {
                 navigator.clipboard.writeText(shareData.url)
-                    .then(() => alert('App URL copied to clipboard!'))
+                    .then(() => (window.showToast || alert)('App URL copied to clipboard!', 'success'))
                     .catch(() => prompt('Copy this URL:', shareData.url));
             }
         });
@@ -500,7 +506,7 @@ document.addEventListener('authReady', (e) => {
 
     // --- MFA Functions ---
     const loadMfaStatus = () => {
-        const mfaEnabled = user.multiFactor.enrolledFactors.length > 0;
+        const mfaEnabled = user.multiFactor && user.multiFactor.enrolledFactors.length > 0;
         if (mfaEnabled) {
             mfaSection.innerHTML = `
                 <p class="text-green-600 dark:text-green-400 font-semibold">Multi-Factor Authentication is enabled.</p>
@@ -528,29 +534,35 @@ document.addEventListener('authReady', (e) => {
         window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { 'size': 'invisible' });
         document.getElementById('send-verification-btn').addEventListener('click', async () => {
             const phoneNumber = document.getElementById('phone-number-input').value;
-            if (!phoneNumber) { alert("Please enter a phone number."); return; }
+            if (!phoneNumber) { (window.showToast || alert)("Please enter a phone number.", "error"); return; }
+            const sendBtn = document.getElementById('send-verification-btn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
             try {
                 const phoneProvider = new firebase.auth.PhoneAuthProvider();
                 confirmationResult = await phoneProvider.verifyPhoneNumber(phoneNumber, window.recaptchaVerifier);
-                alert("Verification code sent!");
+                (window.showToast || alert)("Verification code sent!", "success");
                 document.getElementById('mfa-verification-step').classList.remove('hidden');
             } catch (error) {
                 console.error("Error sending verification code:", error);
-                alert("Error sending code: " + error.message);
+                (window.showToast || alert)("Error sending code: " + error.message, "error");
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Verification Code';
             }
         });
         document.getElementById('verify-mfa-btn').addEventListener('click', async () => {
             const code = document.getElementById('mfa-code-input').value;
-            if (!code) { alert("Please enter the verification code."); return; }
+            if (!code) { (window.showToast || alert)("Please enter the verification code.", "error"); return; }
             try {
                 const cred = firebase.auth.PhoneAuthProvider.credential(confirmationResult.verificationId, code);
                 const multiFactorAssertion = firebase.auth.PhoneMultiFactorGenerator.assertion(cred);
                 await user.multiFactor.enroll(multiFactorAssertion, "My Phone");
-                alert("MFA enabled successfully!");
+                (window.showToast || alert)("MFA enabled successfully!", "success");
                 loadMfaStatus();
             } catch (error) {
                 console.error("Error verifying MFA code:", error);
-                alert("Error verifying code: " + error.message);
+                (window.showToast || alert)("Error verifying code: " + error.message, "error");
             }
         });
     };
@@ -558,13 +570,14 @@ document.addEventListener('authReady', (e) => {
     const disableMfa = async () => {
         if (confirm("Are you sure you want to disable Multi-Factor Authentication?")) {
             try {
-                const phoneFactor = user.multiFactor.enrolledFactors[0];
+                // Assuming the first factor is the one to unenroll
+                const phoneFactor = user.multiFactor.enrolledFactors[0]; 
                 await user.multiFactor.unenroll(phoneFactor);
-                alert("MFA has been disabled.");
+                (window.showToast || alert)("MFA has been disabled.", "success");
                 loadMfaStatus();
             } catch (error) {
                 console.error("Error disabling MFA:", error);
-                alert("Could not disable MFA. " + error.message);
+                (window.showToast || alert)("Could not disable MFA. " + error.message, "error");
             }
         }
     };

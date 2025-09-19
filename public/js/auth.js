@@ -1,22 +1,21 @@
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v26 - FINAL FIX)
-* - This is the complete, unabridged version of the original, working script.
-* - It correctly and safely integrates the currency module without breaking other functionalities.
-* - Restores all original functions, including notification listeners, that were accidentally removed.
-* - Adds the currency selector to the header on all pages.
+* HatakeSocial - Merged Authentication & Global UI Script (v31 - Live Currency Update)
+* - This version updates the currency selector to dispatch a 'currencyChanged' event
+* instead of reloading the page, allowing modules to update prices dynamically.
 */
 
-// --- Firebase Initialization (Stable) ---
+// --- Firebase Initialization (Stable & Global) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
-  authDomain: "hatakesocial-88b5e.firebaseapp.com",
-  projectId: "hatakesocial-88b5e",
-  storageBucket: "hatakesocial-88b5e.appspot.com",
-  messagingSenderId: "1091697032506",
-  appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
-  measurementId: "G-EH0PS2Z84J"
+    apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
+    authDomain: "hatakesocial-88b5e.firebaseapp.com",
+    projectId: "hatakesocial-88b5e",
+    storageBucket: "hatakesocial-88b5e.appspot.com",
+    messagingSenderId: "1091697032506",
+    appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
+    measurementId: "G-EH0PS2Z84J"
 };
 
+// Initialize Firebase and expose services globally for other scripts to use
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -53,6 +52,7 @@ const showToast = (message, type = 'info') => {
         toast.addEventListener('transitionend', () => toast.remove());
     }, 5000);
 };
+window.showToast = showToast; // Make globally accessible
 
 // --- Global Modal Helper Functions ---
 window.openModal = (modal) => {
@@ -156,33 +156,36 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Import the currency module
     const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
 
     document.body.style.opacity = '0'; // Hide body until ready
 
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const auth = window.auth;
+    const db = window.db;
 
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
 
+    // --- CURRENCY SELECTOR LOGIC ---
     const setupCurrencySelector = () => {
         const container = document.getElementById('user-actions');
         if (!container) return;
 
-        let currencySelector = document.getElementById('currency-selector-container');
-        if (!currencySelector) {
-            currencySelector = document.createElement('div');
-            currencySelector.id = 'currency-selector-container';
-            currencySelector.className = 'flex items-center space-x-2';
-            container.appendChild(currencySelector);
+        let currencySelectorContainer = document.getElementById('currency-selector-container');
+        if (!currencySelectorContainer) {
+            currencySelectorContainer = document.createElement('div');
+            currencySelectorContainer.id = 'currency-selector-container';
+            // Adjusted classes to better align with other header items
+            currencySelectorContainer.className = 'relative flex items-center';
+            container.insertAdjacentElement('afterbegin', currencySelectorContainer); // Add it at the beginning of user actions
         }
 
-        currencySelector.innerHTML = `
-            <select id="currency-selector" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm">
-                <option value="SEK">SEK</option>
+        currencySelectorContainer.innerHTML = `
+            <select id="currency-selector" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="USD">USD</option>
+                <option value="SEK">SEK</option>
                 <option value="EUR">EUR</option>
                 <option value="GBP">GBP</option>
                 <option value="NOK">NOK</option>
@@ -192,10 +195,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const selector = document.getElementById('currency-selector');
         if (selector) {
-            selector.value = getUserCurrency();
-            selector.addEventListener('change', (e) => {
-                updateUserCurrency(e.target.value);
-                window.location.reload(); 
+            selector.value = getUserCurrency(); // Set initial value from module
+            selector.addEventListener('change', async (e) => {
+                const newCurrency = e.target.value;
+                try {
+                    await updateUserCurrency(newCurrency);
+                    showToast(`Currency changed to ${newCurrency}`, 'success');
+                    // **MODIFICATION**: Dispatch event instead of reloading
+                    document.dispatchEvent(new CustomEvent('currencyChanged', { detail: { currency: newCurrency } }));
+                } catch (error) {
+                    showToast('Could not save currency preference.', 'error');
+                    console.error('Error updating currency:', error);
+                }
             });
         }
     };
@@ -218,8 +229,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const setupGlobalListeners = () => {
         const googleLoginButton = document.getElementById('googleLoginButton');
         const googleRegisterButton = document.getElementById('googleRegisterButton');
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
         const registerForm = document.getElementById('registerForm');
 
         document.getElementById('closeLoginModal')?.addEventListener('click', () => closeModal(loginModal));
@@ -232,9 +241,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const errorMessageEl = document.getElementById('login-error-message');
 
             auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    window.location.href = 'app.html';
-                })
                 .catch(err => {
                     if (errorMessageEl) {
                         errorMessageEl.textContent = err.message;
@@ -252,19 +258,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const handleGoogleAuth = () => {
             auth.signInWithPopup(googleProvider)
-                .then(() => {
-                    window.location.href = 'app.html';
-                })
                 .catch(err => showToast(err.message, "error"));
         };
 
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
-        if (mobileMenuButton && mobileMenu) {
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
+        // Sidebar toggle logic for mobile
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarToggle && sidebar && sidebarOverlay) {
+            const toggleSidebar = () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            };
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
         }
     };
 
@@ -307,18 +317,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             verificationTimer = null;
         }
 
+        await initCurrency(user ? user.uid : null);
+
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 userData = userDoc.data();
-                await initCurrency(userData.primaryCurrency);
-            } else {
-                await initCurrency();
             }
-        } else {
-            await initCurrency();
         }
-        
+
         document.dispatchEvent(new CustomEvent('authReady', { detail: { user, userData } }));
 
         const mainSidebarNav = document.querySelector('#sidebar nav');
@@ -357,9 +364,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const userActions = document.getElementById('user-actions');
         const authContainerSidebar = document.getElementById('auth-container-sidebar');
-        const mobileUserActions = document.getElementById('mobile-user-actions');
 
-        if (user) {
+        if (user && userData) {
             const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
             if (isIndexPage) {
                 window.location.href = 'app.html';
@@ -369,139 +375,103 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeModal(loginModal);
             closeModal(registerModal);
 
-            const userDocRef = db.collection('users').doc(user.uid);
-            let unsubscribeUserDoc = userDocRef.onSnapshot(async (doc) => {
-                if (doc.exists) {
-                    if (unsubscribeUserDoc) unsubscribeUserDoc();
+            const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+            const idTokenResult = await user.getIdTokenResult(true);
+            const isAdmin = idTokenResult.claims.admin === true;
 
-                    userData = doc.data();
-                    const photoURL = userData.photoURL || 'https://i.imgur.com/B06rBhI.png';
-                    const idTokenResult = await user.getIdTokenResult(true);
-                    const isAdmin = idTokenResult.claims.admin === true;
+            handleAdminAccess(isAdmin);
 
-                    handleAdminAccess(isAdmin);
+            if (isAdmin && mainSidebarNav && !document.getElementById('admin-sidebar-link')) {
+                const adminLink = document.createElement('a');
+                adminLink.id = 'admin-sidebar-link';
+                adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
+                adminLink.href = 'admin.html';
+                adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
+                mainSidebarNav.appendChild(adminLink);
+            }
 
-                    if (isAdmin && mainSidebarNav && !document.getElementById('admin-sidebar-link')) {
-                        const adminLink = document.createElement('a');
-                        adminLink.id = 'admin-sidebar-link';
-                        adminLink.className = 'flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md font-bold';
-                        adminLink.href = 'admin.html';
-                        adminLink.innerHTML = `<i class="fas fa-user-shield w-6 text-center"></i><span class="ml-3">Admin Panel</span>`;
-                        mainSidebarNav.appendChild(adminLink);
+            if (userActions) {
+                userActions.innerHTML = `
+                    <div id="currency-selector-container"></div>
+                    <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                    </button>
+                    <div class="relative">
+                        <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
+                            <i class="fas fa-bell"></i>
+                            <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+                        </button>
+                        <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
+                            <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
+                            <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
+                            <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
+                        <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
+                            <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
+                            <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                            ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
+                            <hr class="border-gray-200 dark:border-gray-600">
+                            <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+                        </div>
+                    </div>`;
+                setupCurrencySelector();
+                document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
+                document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
+                document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
+            }
+
+            if (unsubscribeNotifications) unsubscribeNotifications();
+            unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
+                const countEl = document.getElementById('notification-count');
+                const listEl = document.getElementById('notification-list');
+                if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
+                if (listEl) {
+                    if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
+                    else {
+                        listEl.innerHTML = '';
+                        snapshot.docs.slice(0, 5).forEach(doc => {
+                            const notif = doc.data();
+                            const el = document.createElement('a');
+                            el.href = notif.link || '#';
+                            el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
+                            el.innerHTML = `<div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
+                            el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
+                            listEl.appendChild(el);
+                        });
                     }
-
-                    if (userActions) {
-                        userActions.innerHTML = `
-                            <div id="currency-selector-container"></div>
-                            <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
-                                <i class="fas fa-shopping-cart"></i>
-                                <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
-                            </button>
-                            <div class="relative">
-                                <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl">
-                                    <i class="fas fa-bell"></i>
-                                    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
-                                </button>
-                                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
-                                    <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
-                                    <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
-                                    <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
-                                </div>
-                            </div>
-                            <div class="relative">
-                                <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
-                                <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
-                                    <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
-                                    <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                                    ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
-                                    <hr class="border-gray-200 dark:border-gray-600">
-                                    <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
-                                </div>
-                            </div>`;
-                        
-                        setupCurrencySelector();
-
-                        const cartBtn = document.getElementById('cart-btn');
-                        const cartModal = document.getElementById('cartModal');
-                        if(cartBtn && cartModal) {
-                           cartBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                openModal(cartModal);
-                           });
-                        }
-                        
-                        document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
-                        document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
-                        document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
-                    }
-
-                    if (unsubscribeNotifications) unsubscribeNotifications();
-                    unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
-                        const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
-                        const countEl = document.getElementById('notification-count');
-                        const listEl = document.getElementById('notification-list');
-                        if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
-                        if (listEl) {
-                            if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
-                            else {
-                                listEl.innerHTML = '';
-                                snapshot.docs.slice(0, 5).forEach(doc => {
-                                    const notif = doc.data();
-                                    const el = document.createElement('a');
-                                    el.href = notif.link || '#';
-                                    el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
-                                    el.innerHTML = `<div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
-                                    el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
-                                    listEl.appendChild(el);
-                                });
-                            }
-                        }
-                    });
-
-                    if (authContainerSidebar) {
-                        authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
-                        document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
-                    }
-
-                    if (mobileUserActions) {
-                        mobileUserActions.innerHTML = `<div class="flex items-center space-x-4 px-3 py-2"><img src="${photoURL}" alt="User Avatar" class="h-10 w-10 rounded-full border-2 border-blue-500 object-cover"><div><div class="font-medium text-base text-gray-800 dark:text-white">${userData.displayName}</div><div class="font-medium text-sm text-gray-500 dark:text-gray-400">${user.email}</div></div></div><div class="mt-3 space-y-1"><a href="profile.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Profile</a><a href="settings.html" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Settings</a><a href="#" id="mobileLogoutButton" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Logout</a></div>`;
-                        document.getElementById('mobileLogoutButton').addEventListener('click', (e) => { e.preventDefault(); auth.signOut(); });
-                    }
-                    listenForAcceptedRequests(user);
-                } else {
-                    console.log("User document not found for uid:", user.uid);
                 }
-            }, (error) => {
-                console.error("Error listening to user document:", error);
-                showToast("Could not load your profile data.", "error");
             });
 
-        } else { 
+            if (authContainerSidebar) {
+                authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
+                document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
+            }
+            listenForAcceptedRequests(user);
+        } else {
             if (friendRequestHandshakeListener) friendRequestHandshakeListener();
             if (unsubscribeNotifications) unsubscribeNotifications();
-
             handleAdminAccess(false);
 
             const loginButtonsHTML = `
                 <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
-                <button id="header-register-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button>`;
+                <button id="header-register-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button>`;
             if (userActions) {
-                userActions.innerHTML = loginButtonsHTML;
+                userActions.innerHTML = `<div id="currency-selector-container"></div> ${loginButtonsHTML}`;
+                setupCurrencySelector();
                 document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
                 document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
             }
             if (authContainerSidebar) {
-                authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-600 text-white font-semibold rounded-full hover:bg-gray-700">Register</button></div>`;
+                authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button></div>`;
                 document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(loginModal));
                 document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(registerModal));
             }
-            if (mobileUserActions) {
-                mobileUserActions.innerHTML = `<div class="space-y-2"><button id="mobileLoginButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Login</button><button id="mobileRegisterButton" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Register</button></div>`;
-                document.getElementById('mobileLoginButton').addEventListener('click', () => openModal(loginModal));
-                document.getElementById('mobileRegisterButton').addEventListener('click', () => openModal(registerModal));
-            }
         }
-        
         document.body.style.opacity = '1';
     });
 
@@ -512,12 +482,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('profile-dropdown')?.classList.add('hidden');
         document.getElementById('notification-dropdown')?.classList.add('hidden');
     });
+
+    document.addEventListener('currencyChanged', ({ detail }) => {
+        const selector = document.getElementById('currency-selector');
+        if (selector && detail.currency) selector.value = detail.currency;
+    });
 });
 
 function handleAdminAccess(isAdmin) {
     const currentPage = window.location.pathname.split('/').pop();
     const adminPages = ['admin.html', 'create-article.html', 'edit-article.html'];
-
     if (adminPages.includes(currentPage) && !isAdmin) {
         window.location.href = 'index.html';
     }
@@ -528,7 +502,6 @@ async function showTermsModal() {
     termsModal.id = 'terms-modal';
     termsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1002]';
     let termsContent = '<p>Loading...</p>', privacyContent = '<p>Loading...</p>';
-
     try {
         const [termsResponse, privacyResponse] = await Promise.all([fetch('terms.html'), fetch('privacy.html')]);
         termsContent = termsResponse.ok ? await termsResponse.text() : '<p>Could not load Terms of Service.</p>';
@@ -550,27 +523,20 @@ async function showTermsModal() {
             <button id="final-register-btn" disabled class="w-full mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg disabled:bg-gray-400">Register</button>
         </div>
     </div>`;
-
     document.body.appendChild(termsModal);
-
     const termsCheckbox = termsModal.querySelector('#terms-checkbox');
     const finalRegisterBtn = termsModal.querySelector('#final-register-btn');
-
     termsCheckbox.addEventListener('change', () => {
         finalRegisterBtn.disabled = !termsCheckbox.checked;
     });
-
     termsModal.querySelector('#close-terms-modal').addEventListener('click', () => termsModal.remove());
-
     finalRegisterBtn.addEventListener('click', async () => {
         const email = document.getElementById('registerEmail').value;
         const password = document.getElementById('registerPassword').value;
         const errorMessageEl = document.getElementById('register-error-message');
-
         try {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             await userCredential.user.sendEmailVerification();
-            window.location.href = 'app.html';
         } catch (err) {
             if (errorMessageEl) {
                 errorMessageEl.textContent = err.message;
@@ -578,6 +544,7 @@ async function showTermsModal() {
             } else {
                 showToast(err.message, "error");
             }
+        } finally {
             termsModal.remove();
         }
     });

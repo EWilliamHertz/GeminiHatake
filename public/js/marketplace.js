@@ -53,15 +53,16 @@ async function fetchMarketplaceData() {
 
     try {
         const db = firebase.firestore();
-        const listingsRef = db.collectionGroup('forSale');
-        const querySnapshot = await listingsRef.orderBy('listedAt', 'desc').get();
+        const listingsRef = db.collectionGroup('collection').where('forSale', '==', true);
+        const querySnapshot = await listingsRef.orderBy('name').get();
+
 
         allListings = querySnapshot.docs.map(doc => ({
             id: doc.id,
-            sellerId: doc.ref.parent.parent.id, // Get sellerId from path
+            sellerId: doc.ref.parent.parent.id, // Get sellerId from path users/{sellerId}/collection/{cardId}
             ...doc.data()
         }));
-        
+
         // Post-process to add seller data
         const sellerIds = [...new Set(allListings.map(l => l.sellerId))];
         const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
@@ -223,7 +224,7 @@ function applyFiltersAndSort() {
             break;
         case 'newly-listed':
         default:
-            listings.sort((a, b) => b.listedAt.seconds - a.listedAt.seconds);
+             listings.sort((a, b) => (b.addedAt?.seconds || 0) - (a.addedAt?.seconds || 0));
     }
 
     filteredListings = listings;
@@ -253,7 +254,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         listingsContainer.innerHTML = `<div class="col-span-full text-center p-8"><h2 class="text-xl font-bold">Please log in to view the marketplace.</h2></div>`;
         return;
     }
-    
+
     fetchMarketplaceData();
 
     mainSearchInput.addEventListener('input', debounce(applyFiltersAndSort, 300));
@@ -283,8 +284,8 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     toggleAdvancedFiltersBtn.addEventListener('click', () => {
         advancedFiltersContainer.classList.toggle('hidden');
         const isHidden = advancedFiltersContainer.classList.contains('hidden');
-        toggleAdvancedFiltersBtn.innerHTML = isHidden 
-            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1"></i>' 
+        toggleAdvancedFiltersBtn.innerHTML = isHidden
+            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1"></i>'
             : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1"></i>';
     });
 
@@ -308,7 +309,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             tooltip.classList.remove('hidden');
         }
     };
-    
+
     listingsContainer.addEventListener('mouseover', handleMouseOver);
     listingsContainer.addEventListener('mouseout', () => {
         if (tooltip) tooltip.classList.add('hidden');
@@ -335,6 +336,5 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     });
 
     // Re-render when currency changes
-    document.addEventListener('currencyChange', renderListings);
+    document.addEventListener('currencyChanged', renderListings);
 });
-
