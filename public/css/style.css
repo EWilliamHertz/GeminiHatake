@@ -1800,7 +1800,7 @@ body.dark-mode .close-button:focus {
 }
 
 .card-container .card:hover {
-    transform: scale(1.1);
+    transform: scale(1.05); /* Adjusted from 1.1 to 1.05 for a more subtle effect */
     z-index: 10;
     box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
@@ -1809,4 +1809,3 @@ body.dark-mode .close-button:focus {
     transform: scale(1.05);
     z-index: 10;
 }
-

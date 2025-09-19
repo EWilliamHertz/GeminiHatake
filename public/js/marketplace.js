@@ -277,31 +277,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Card hover preview functionality
     const tooltip = document.getElementById('card-preview-tooltip');
-    listingsContainer.addEventListener('mouseover', (e) => {
+    
+    // Updated mouseover event listener to handle card preview
+    const handleMouseOver = (e) => {
         const cardElement = e.target.closest('.card-container');
+        const listCardElement = e.target.closest('.card-preview-trigger');
+
+        let imageUrl = null;
         if (cardElement && cardElement.dataset.imageUrl) {
+            imageUrl = cardElement.dataset.imageUrl;
+        } else if (listCardElement) {
+            imageUrl = listCardElement.src.replace('small', 'large');
+        }
+
+        if (imageUrl) {
             let img = tooltip.querySelector('img');
             if (!img) {
                 tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
                 img = tooltip.querySelector('img');
             }
-            img.src = cardElement.dataset.imageUrl;
+            img.src = imageUrl;
             tooltip.classList.remove('hidden');
         }
-    });
+    };
+    
+    listingsContainer.addEventListener('mouseover', handleMouseOver);
     listingsContainer.addEventListener('mouseout', () => {
         tooltip.classList.add('hidden');
     });
     listingsContainer.addEventListener('mousemove', (e) => {
         if (!tooltip.classList.contains('hidden')) {
             const mouseX = e.clientX, mouseY = e.clientY;
-            const tooltipWidth = 130; // Half of 260px
-            const tooltipHeight = 182; // Maintain aspect ratio
+            
+            // Calculate tooltip size based on viewport width
+            const viewportWidth = window.innerWidth;
+            let tooltipWidth = 260; // Default width
+            if (viewportWidth < 640) {
+                tooltipWidth = viewportWidth * 0.5; // 50% of viewport width on small screens
+            } else if (viewportWidth < 1024) {
+                tooltipWidth = 220; // A bit smaller on medium screens
+            }
+
+            const aspectRatio = 2.5/3.5; // Standard card aspect ratio
+            const tooltipHeight = tooltipWidth / aspectRatio;
+
             let left = mouseX + 15;
-            let top = mouseY - tooltipHeight / 2;
-            if (left + tooltipWidth > window.innerWidth) left = mouseX - tooltipWidth - 15;
-            if (top < 0) top = 10;
-            else if (top + tooltipHeight > window.innerHeight) top = window.innerHeight - tooltipHeight - 10;
+            let top = mouseY + 15;
+
+            // Prevent tooltip from going off-screen to the right
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                left = mouseX - tooltipWidth - 15;
+            }
+
+            // Prevent tooltip from going off-screen to the bottom
+            if (top + tooltipHeight > window.innerHeight - 10) {
+                top = mouseY - tooltipHeight - 15;
+            }
+
+            // Adjust position if it goes off-screen to the left
+            if (left < 10) {
+                left = 10;
+            }
+
+            // Adjust position if it goes off-screen to the top
+            if (top < 10) {
+                top = 10;
+            }
+
+            tooltip.style.width = `${tooltipWidth}px`;
+            tooltip.style.height = `${tooltipHeight}px`;
             tooltip.style.left = `${left}px`;
             tooltip.style.top = `${top}px`;
         }

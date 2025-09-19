@@ -496,12 +496,44 @@ function handleCardHoverMove(e) {
 
 function updateTooltipPosition(e, tooltip) {
     const mouseX = e.clientX, mouseY = e.clientY;
-    const tooltipWidth = 175, tooltipHeight = 245; // Adjusted from 260 and 360
+    
+    // Calculate tooltip size based on viewport width
+    const viewportWidth = window.innerWidth;
+    let tooltipWidth = 260; // Default width
+    if (viewportWidth < 640) {
+        tooltipWidth = viewportWidth * 0.5; // 50% of viewport width on small screens
+    } else if (viewportWidth < 1024) {
+        tooltipWidth = 220; // A bit smaller on medium screens
+    }
+
+    const aspectRatio = 2.5/3.5; // Standard card aspect ratio
+    const tooltipHeight = tooltipWidth / aspectRatio;
+    
     let left = mouseX + 15;
-    let top = mouseY - tooltipHeight / 2;
-    if (left + tooltipWidth > window.innerWidth) left = mouseX - tooltipWidth - 15;
-    if (top < 0) top = 10;
-    else if (top + tooltipHeight > window.innerHeight) top = window.innerHeight - tooltipHeight - 10;
+    let top = mouseY + 15;
+
+    // Prevent tooltip from going off-screen to the right
+    if (left + tooltipWidth > window.innerWidth - 10) {
+        left = mouseX - tooltipWidth - 15;
+    }
+
+    // Prevent tooltip from going off-screen to the bottom
+    if (top + tooltipHeight > window.innerHeight - 10) {
+        top = mouseY - tooltipHeight - 15;
+    }
+    
+    // Adjust position if it goes off-screen to the left
+    if (left < 10) {
+        left = 10;
+    }
+
+    // Adjust position if it goes off-screen to the top
+    if (top < 10) {
+        top = 10;
+    }
+    
+    tooltip.style.width = `${tooltipWidth}px`;
+    tooltip.style.height = `${tooltipHeight}px`;
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
 }
