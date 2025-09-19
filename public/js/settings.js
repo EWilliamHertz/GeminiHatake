@@ -13,11 +13,14 @@ import { initCurrency, updateUserCurrency, getUserCurrency } from './modules/cur
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
-    const settingsContainer = document.getElementById('settings-page-container');
-    if (!settingsContainer) return;
+    // Changed the selector to match the corrected HTML structure
+    const settingsContainer = document.getElementById('settings-page-container-inner');
+    if (!settingsContainer) {
+        console.error('Settings container not found. The settings page may not be correctly rendered.');
+        return;
+    }
 
     if (!user) {
-        // Use showToast if available, otherwise alert.
         const toast = window.showToast || alert;
         toast("You must be logged in to view settings.");
         window.location.href = 'index.html';
@@ -73,7 +76,7 @@ document.addEventListener('authReady', (e) => {
 
     // Account Section
     const accountEmailEl = document.getElementById('account-email');
-    const primaryCurrencySelect = document.getElementById('primary-currency'); // Updated to match HTML
+    const primaryCurrencySelect = document.getElementById('primary-currency');
     const priceSourceSelect = document.getElementById('price-source-select');
     const deleteAccountBtn = document.getElementById('delete-account-btn');
 
@@ -388,7 +391,7 @@ document.addEventListener('authReady', (e) => {
             (window.showToast || alert)("Could not save shipping settings. " + error.message, "error");
         } finally {
             saveShippingBtn.disabled = false;
-            saveShippingBtn.textContent = 'Save Shipping Settings';
+            saveShippingBtn.textContent = 'Save Shipping Profile';
         }
     });
 
@@ -558,4 +561,3 @@ document.addEventListener('authReady', (e) => {
     loadUserData();
     initializePwaSection();
 });
-

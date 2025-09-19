@@ -1096,7 +1096,7 @@ body {
 .toast {
     padding: 1rem 1.5rem;
     border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4-6px -2px rgba(0, 0, 0, 0.05);
     color: white;
     display: flex;
     align-items: center;
@@ -1767,7 +1767,86 @@ body.dark-mode .close-button:focus {
         display: none !important;
     }
 }
+/* Additional mobile-specific fixes */
+@media (max-width: 768px) {
+  /* Ensure conversations list doesn't take too much space on mobile */
+  #conversations-list {
+    width: 100% !important;
+    max-width: 320px;
+  }
+  
+  /* Make chat window take remaining space properly */
+  #chat-window {
+    min-width: 0;
+    flex: 1;
+  }
+  
+  /* Fix message form to stay within bounds */
+  #message-form {
+    gap: 8px;
+    padding: 0;
+  }
+  
+  /* Ensure message input doesn't overflow */
+  #message-input {
+    min-width: 0;
+    flex: 1;
+  }
+  
+  /* Fix send button size and positioning */
+  #message-form button {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+  }
+  
+  /* Improve header search on mobile */
+  .relative input {
+    width: 100% !important;
+    max-width: 250px;
+  }
+  
+  /* Better spacing for mobile */
+  .p-4 {
+    padding: 12px;
+  }
+  
+  /* Ensure proper text wrapping */
+  .space-y-2 > * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
 
+@media (max-width: 640px) {
+  /* Hide conversations list on very small screens when chat is active */
+  .mobile-chat-active #conversations-list {
+    display: none;
+  }
+  
+  /* Full width chat on small screens */
+  .mobile-chat-active #chat-window {
+    width: 100%;
+  }
+  
+  /* Smaller padding on very small screens */
+  .p-4 {
+    padding: 8px;
+  }
+  
+  /* Adjust header height for mobile */
+  header {
+    height: auto;
+    min-height: 64px;
+    padding: 12px 16px;
+  }
+  
+  /* Stack header elements on very small screens */
+  header .flex {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
 /* --- New Message Button (Floating Action Button) --- */
 .new-message-btn {
     position: fixed;
@@ -1800,7 +1879,7 @@ body.dark-mode .close-button:focus {
 }
 
 .card-container .card:hover {
-    transform: scale(1.05); /* Adjusted from 1.1 to 1.05 for a more subtle effect */
+    transform: scale(1.05);
     z-index: 10;
     box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
@@ -1808,4 +1887,43 @@ body.dark-mode .close-button:focus {
 .search-result-item:hover {
     transform: scale(1.05);
     z-index: 10;
+}
+/* Settings Page Specific Styles */
+.settings-page-container {
+    max-width: 1200px;
+}
+.settings-nav-btn {
+    @apply transition-colors duration-200;
+}
+.settings-section {
+    @apply transition-opacity duration-200;
+}
+.settings-section.hidden {
+    @apply absolute opacity-0 pointer-events-none;
+}
+/* Styles from File 1 for PWA/App section */
+.install-card {
+    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg shadow-lg;
+}
+.install-btn {
+    @apply bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors;
+}
+.share-btn {
+    @apply bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors;
+}
+.feature-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6;
+}
+.feature-card {
+    @apply bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700;
+}
+.platform-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-6 mt-6;
+}
+.platform-card {
+    @apply bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700;
+}
+/* Fix for nested main tag in settings page */
+main > main {
+    display: contents; /* Allows child elements to flow as if they are direct children of the parent */
 }
