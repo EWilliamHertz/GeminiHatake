@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Draft Lobby - HatakeSocial</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+    <main class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold mb-4">Draft Lobby</h1>
+            
+            <div class="mb-6">
+                <button id="create-draft-btn" class="btn btn-success">Create New Draft</button>
+            </div>
+
+            <div id="draft-list-container">
+                <p>Loading open drafts...</p>
+            </div>
+
+            <div id="current-draft-lobby" class="hidden mt-8">
+                <h2 class="text-2xl font-bold mb-2">Draft: <span id="draft-set-name"></span></h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1">
+                        <h3 class="font-semibold mb-2">Players</h3>
+                        <ul id="player-list" class="space-y-2"></ul>
+                        <button id="start-draft-btn" class="btn btn-primary w-full mt-4 hidden">Start Draft</button>
+                    </div>
+                    <div class="md:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-lg flex flex-col">
+                        <h3 class="font-semibold mb-2">Lobby Chat</h3>
+                        <div id="chat-messages" class="flex-grow overflow-y-auto border rounded mb-2 p-2"></div>
+                        <div class="flex">
+                            <input type="text" id="chat-input" class="input flex-grow" placeholder="Type a message...">
+                            <button id="send-chat-btn" class="btn btn-secondary ml-2">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

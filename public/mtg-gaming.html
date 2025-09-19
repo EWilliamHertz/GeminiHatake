@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Game Room - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <style>
+        .playmat {
+            background-color: #1a202c; /* Fallback color */
+            position: relative;
+            overflow: hidden;
+        }
+        .playmat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7934.webp?alt=media&token=14a6cde5-a3e1-419b-b401-7ede0fbd8453');
+            background-size: cover; /* This will make it fill the area */
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 1; /* Fully opaque */
+            z-index: 0;
+        }
+        #opponent-board.playmat::before {
+            transform: rotate(180deg);
+        }
+        .player-zone, header {
+            position: relative;
+            z-index: 1;
+        }
+        .card-in-play {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .card-in-play:hover {
+            transform: scale(1.15) translateY(-15px);
+            z-index: 100;
+        }
+        .tapped {
+            transform: rotate(90deg);
+        }
+        .tapped:hover {
+             transform: rotate(90deg) scale(1.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans overflow-hidden h-screen flex flex-col">
+    
+    <!-- Game Info Header -->
+    <header class="bg-gray-800 p-2 flex justify-between items-center text-sm shadow-lg flex-shrink-0">
+        <div id="opponent-info" class="flex items-center space-x-2">
+            <!-- Opponent info loaded by JS -->
+        </div>
+        <div class="flex items-center space-x-4">
+            <div id="game-phase" class="font-bold">Untap</div>
+            <button id="next-phase-btn" class="btn btn-sm btn-primary">Next Phase</button>
+        </div>
+        <div id="player-info" class="flex items-center space-x-2">
+            <!-- Your info loaded by JS -->
+        </div>
+    </header>
+
+    <!-- Main Play Area -->
+    <div class="flex-1 grid grid-rows-2">
+        <!-- Opponent's Side -->
+        <div id="opponent-board" class="border-b-4 border-red-500/50 p-4 flex flex-col playmat">
+            <div id="opponent-hand" class="text-center text-xs text-gray-400 relative z-10">Opponent's Hand (<span id="opponent-hand-count">0</span>)</div>
+            <div id="opponent-battlefield" class="flex-grow flex items-center justify-center space-x-2 player-zone">
+                <!-- Opponent's cards in play -->
+            </div>
+        </div>
+
+        <!-- Player's Side -->
+        <div id="player-board" class="p-4 flex flex-col-reverse playmat">
+             <div id="player-hand" class="flex justify-center space-x-2 h-40 relative z-10">
+                <!-- Your cards in hand -->
+            </div>
+            <div id="player-battlefield" class="flex-grow flex items-center justify-center space-x-2 player-zone">
+                 <!-- Your cards in play -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+    
+    <!-- Main Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/mtggame.js" type="module"></script>
+</body>
+</html>
+

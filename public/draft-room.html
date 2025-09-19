@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draft Room - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans">
+    <div class="flex flex-col h-screen">
+        <header class="bg-gray-800 p-4 shadow-lg flex justify-between items-center flex-shrink-0">
+            <div>
+                <h1 class="text-xl font-bold" id="draft-set-name">Loading Draft...</h1>
+                <p class="text-sm text-gray-400">Pack <span id="pack-number">1</span>, Pick <span id="pick-number">1</span></p>
+            </div>
+            <a href="/events.html" class="text-sm text-blue-400 hover:underline">Exit Draft</a>
+        </header>
+
+        <main class="flex-1 overflow-hidden p-4 flex flex-col">
+            <div id="current-pack-container" class="flex-grow">
+                <h2 class="font-bold text-lg mb-2">Your Current Pack - Pick a Card</h2>
+                <div id="current-pack-cards" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 h-full overflow-y-auto">
+                    <p class="col-span-full text-center text-gray-400">Waiting for pack...</p>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="bg-gray-800 p-4 shadow-inner flex-shrink-0">
+             <h2 class="font-bold text-lg mb-2">Your Picks (<span id="picked-count">0</span>)</h2>
+            <div id="picked-cards-container" class="flex space-x-2 overflow-x-auto h-36 pb-2">
+                <p class="text-sm text-gray-500">Your drafted cards will appear here.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+    
+    <script src="js/auth.js"></script>
+    <script src="js/draft.js" type="module"></script>
+</body>
+</html>

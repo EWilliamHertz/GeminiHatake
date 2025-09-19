@@ -186,7 +186,13 @@ function applyFiltersAndSort() {
     let listings = [...allListings];
 
     const searchTerm = mainSearchInput.value.toLowerCase();
-    const selectedGame = gameFilter.value;
+    const selectedGameValue = gameFilter.value;
+    let gameToFilter = selectedGameValue;
+    if (selectedGameValue === 'Magic: The Gathering') {
+        gameToFilter = 'mtg';
+    } else if (selectedGameValue === 'Pokémon') {
+        gameToFilter = 'pokemon';
+    }
     const selectedSet = setFilter.value;
     const minPrice = parseFloat(minPriceInput.value);
     const maxPrice = parseFloat(maxPriceInput.value);
@@ -195,7 +201,7 @@ function applyFiltersAndSort() {
     const sellerLocation = locationFilter.value.toLowerCase();
 
     if (searchTerm) listings = listings.filter(l => l.cardData.name.toLowerCase().includes(searchTerm));
-    if (selectedGame !== 'all') listings = listings.filter(l => l.cardData.game === selectedGame);
+    if (gameToFilter !== 'all') listings = listings.filter(l => l.cardData.game === gameToFilter);
 
     populateSetFilter(listings);
 

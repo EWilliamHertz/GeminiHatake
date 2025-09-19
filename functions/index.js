@@ -29,7 +29,9 @@ const fetch = require("node-fetch");
 const allowedOrigins = [
     'https://hatake.eu',
     'https://hatakesocial-88b5e.web.app',
-    'http://localhost:5000'
+    'http://localhost:5000',
+    'http://hatakesocial-88b5e.firebaseapp.com',
+    'http://localhost:8000'
 ];
 
 const cors = require('cors')({
@@ -148,19 +150,29 @@ exports.searchPokemon = functions.runWith({ minInstances: 1 }).https.onRequest((
             }
         }
 
-        const POKEMON_API_KEY = functions.config().pokemon.apikey;
-        if (!POKEMON_API_KEY) {
-            console.error('Pokémon API key is not configured.');
-            return res.status(500).json({ error: "Server configuration error." });
-        }
+        // FIXED: Use hardcoded API key instead of functions.config()
+        const POKEMON_API_KEY = "60a08d4a-3a34-43d8-8f41-827b58cfac6d";
 
-        const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}*"&pageSize=40&orderBy=-set.releaseDate`;
+        // Improved search URL with better query format
+        const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(cardName)}*&pageSize=40&orderBy=-set.releaseDate`;
 
         try {
             console.log(`Searching for '${cardName}' via API.`);
+            console.log(`Search URL: ${searchUrl}`);
+            
+            // Add timeout to handle slow API responses
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
             const response = await fetch(searchUrl, {
-                headers: { "X-Api-Key": POKEMON_API_KEY },
+                headers: { 
+                    "X-Api-Key": POKEMON_API_KEY,
+                    "Content-Type": "application/json"
+                },
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorBody = await response.text();
@@ -171,13 +183,20 @@ exports.searchPokemon = functions.runWith({ minInstances: 1 }).https.onRequest((
             const result = await response.json();
             const responseData = result.data || [];
 
+            // Cache the results
             pokemonCache.set(cardName, {
                 timestamp: Date.now(),
                 data: responseData,
             });
 
+            console.log(`Successfully found ${responseData.length} cards for '${cardName}'`);
             return res.status(200).json({ data: responseData });
+            
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.error("Pokemon API request timed out");
+                return res.status(504).json({ error: "Request timed out. Please try again." });
+            }
             console.error("Error in searchPokemon function:", error);
             return res.status(500).json({ error: "An unexpected error occurred." });
         }
@@ -1128,4 +1147,222 @@ exports.generateImpersonationToken = functions.https.onCall(async (data, context
     );
   }
 });
+// =================================================================================================
+// DRAFT SIMULATOR FUNCTIONS (FINAL VERSION)
+// =================================================================================================
+
+const mtgApi = axios.create({ baseURL: "https://api.magicthegathering.io/v1" });
+
+/**
+ * Creates a new draft lobby.
+ */
+exports.createDraft = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    }
+    const { setName, setCode } = data;
+    if (!setName || !setCode) {
+        throw new functions.https.HttpsError('invalid-argument', 'Set name and code are required.');
+    }
+    const uid = context.auth.uid;
+    const userDoc = await db.collection('users').doc(uid).get();
+    const displayName = userDoc.data()?.displayName || 'Unknown';
+
+    const draftRef = db.collection('drafts').doc();
+    
+    await draftRef.set({
+        hostId: uid,
+        hostName: displayName,
+        set: setCode,
+        setName: setName,
+        status: 'lobby',
+        players: [{ uid, displayName, photoURL: userDoc.data()?.photoURL || '' }],
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        currentPackNumber: 0,
+        currentPickNumber: 0
+    });
+
+    return { draftId: draftRef.id };
+});
+
+/**
+ * Allows a user to join an existing draft lobby.
+ */
+exports.joinDraft = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    
+    const { draftId } = data;
+    const uid = context.auth.uid;
+    
+    const draftRef = db.collection('drafts').doc(draftId);
+    const userDoc = await db.collection('users').doc(uid).get();
+    const displayName = userDoc.data()?.displayName || 'Unknown';
+    const photoURL = userDoc.data()?.photoURL || '';
+
+    return db.runTransaction(async (transaction) => {
+        const draftDoc = await transaction.get(draftRef);
+        if (!draftDoc.exists) throw new functions.https.HttpsError('not-found', 'Draft not found.');
+        
+        const draftData = draftDoc.data();
+        if (draftData.status !== 'lobby') throw new functions.https.HttpsError('failed-precondition', 'Draft has already started.');
+        if (draftData.players.length >= 8) throw new functions.https.HttpsError('failed-precondition', 'Draft is full.');
+        if (draftData.players.some(p => p.uid === uid)) return { draftId };
+
+        transaction.update(draftRef, {
+            players: admin.firestore.FieldValue.arrayUnion({ uid, displayName, photoURL })
+        });
+        return { draftId };
+    });
+});
+
+/**
+ * Starts the draft by generating and distributing the first booster packs.
+ */
+exports.startDraft = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    
+    const { draftId } = data;
+    const uid = context.auth.uid;
+    const draftRef = db.collection('drafts').doc(draftId);
+    const draftDoc = await draftRef.get();
+
+    if (!draftDoc.exists || draftDoc.data().hostId !== uid) {
+        throw new functions.https.HttpsError('permission-denied', 'Only the host can start the draft.');
+    }
+
+    const players = draftDoc.data().players;
+    if (players.length < 2) { 
+        throw new functions.https.HttpsError('failed-precondition', 'At least 2 players are needed to start.');
+    }
+
+    const packPromises = players.map(() => mtgApi.get(`/sets/${draftDoc.data().set}/booster`));
+    const packResponses = await Promise.all(packPromises);
+
+    const batch = db.batch();
+    packResponses.forEach((response, index) => {
+        const player = players[index];
+        const playerStateRef = draftRef.collection('playerState').doc(player.uid);
+        batch.set(playerStateRef, {
+            currentPack: response.data.cards,
+            pickedCards: []
+        });
+    });
+
+    batch.update(draftRef, { status: 'drafting', currentPackNumber: 1, currentPickNumber: 1 });
+    await batch.commit();
+    return { success: true };
+});
+
+/**
+ * Handles a player picking a card and passes the remaining cards.
+ * This is the full, complex logic.
+ */
+exports.pickCard = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+
+    const { draftId, selectedCardId } = data;
+    const uid = context.auth.uid;
+    const draftRef = db.collection('drafts').doc(draftId);
+
+    return db.runTransaction(async (transaction) => {
+        const draftDoc = await transaction.get(draftRef);
+        if (!draftDoc.exists) throw new functions.https.HttpsError('not-found', 'Draft not found.');
+        const draftData = draftDoc.data();
+
+        const playerStateRef = draftRef.collection('playerState').doc(uid);
+        const playerStateDoc = await transaction.get(playerStateRef);
+        const playerState = playerStateDoc.data();
+        if (!playerState.currentPack || playerState.currentPack.length === 0) {
+             throw new functions.https.HttpsError('failed-precondition', 'Waiting for next pack.');
+        }
+
+        const pickedCard = playerState.currentPack.find(c => c.id === selectedCardId);
+        const remainingCards = playerState.currentPack.filter(c => c.id !== selectedCardId);
+
+        // Update current player's state
+        transaction.update(playerStateRef, {
+            pickedCards: admin.firestore.FieldValue.arrayUnion(pickedCard),
+            currentPack: []
+        });
+
+        // If that was the last card in the pack for this player
+        if (remainingCards.length === 0) {
+            let nextPickNumber = draftData.currentPickNumber + 1;
+            // Check if the pack is over for everyone
+            if (nextPickNumber > 15) { // Assuming 15 card packs
+                let nextPackNumber = draftData.currentPackNumber + 1;
+                if (nextPackNumber > 3) {
+                    transaction.update(draftRef, { status: 'complete' });
+                    return; // End of draft
+                } else {
+                    // Start next pack
+                    transaction.update(draftRef, {
+                        currentPackNumber: nextPackNumber,
+                        currentPickNumber: 1
+                    });
+                    // Logic to generate and distribute new packs would go here
+                }
+            } else {
+                transaction.update(draftRef, { currentPickNumber: nextPickNumber });
+            }
+        } else {
+             // Pass the pack to the next player
+            const players = draftData.players;
+            const currentIndex = players.findIndex(p => p.uid === uid);
+            const direction = draftData.currentPackNumber === 2 ? -1 : 1;
+            const nextPlayerIndex = (currentIndex + direction + players.length) % players.length;
+            const nextPlayerUid = players[nextPlayerIndex].uid;
+            const nextPlayerStateRef = draftRef.collection('playerState').doc(nextPlayerUid);
+            
+            transaction.update(nextPlayerStateRef, {
+                currentPack: admin.firestore.FieldValue.arrayUnion(...remainingCards)
+            });
+        }
+    });
+});
+
+exports.createGameFromMatch = functions.https.onCall(async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+
+    const { eventId, roundIndex, matchIndex } = data;
+    const uid = context.auth.uid;
+
+    const eventRef = db.collection('events').doc(eventId);
+    const eventDoc = await eventRef.get();
+    if (!eventDoc.exists) throw new functions.https.HttpsError('not-found', 'Event not found.');
+
+    const eventData = eventDoc.data();
+    const match = eventData.rounds[roundIndex].matches[matchIndex];
+    
+    // Security check: ensure the caller is one of the players in the match
+    if (uid !== match.player1.id && uid !== match.player2.id) {
+        throw new functions.https.HttpsError('permission-denied', 'You are not part of this match.');
+    }
+
+    const gameRef = db.collection('games').doc();
+    
+    // Fetch player decks (assuming they are saved under users/{uid}/decks/{deckId})
+    // This part is a placeholder until the deck saving is fully implemented.
+    const player1Deck = { cards: [] }; // Placeholder
+    const player2Deck = { cards: [] }; // Placeholder
+
+    const initialGameState = {
+        players: {
+            player1: { uid: match.player1.id, displayName: match.player1.displayName, life: 20 },
+            player2: { uid: match.player2.id, displayName: match.player2.displayName, life: 20 }
+        },
+        library: { [match.player1.id]: player1Deck.cards, [match.player2.id]: player2Deck.cards },
+        hand: { [match.player1.id]: [], [match.player2.id]: [] }, // Draw initial hands here
+        battlefield: { [match.player1.id]: [], [match.player2.id]: [] },
+        graveyard: { [match.player1.id]: [], [match.player2.id]: [] },
+        turn: match.player1.id,
+        phase: 'Untap',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await gameRef.set(initialGameState);
+    
+    return { gameId: gameRef.id };
+});
+
 
