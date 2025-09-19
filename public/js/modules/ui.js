@@ -248,8 +248,7 @@ export function renderSearchResults(results) {
         const imageUrl = getCardImageUrl(card);
         const price = (card?.prices?.usd && card.prices.usd > 0) ? Currency.convertAndFormat(card.prices.usd) : 'N/A';
         const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
-        const cardDataString = encodeURIComponent(JSON.stringify(card));
-        return `
+const cardDataString = encodeURIComponent(JSON.stringify(card)).replace(/'/g, "%27");        return `
             <div class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer search-result-item" data-card='${cardDataString}'>
                 <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md pointer-events-none">
                 <div class="flex-grow pointer-events-none">

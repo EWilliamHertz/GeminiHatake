@@ -257,9 +257,15 @@ function handleSearchInput(e) {
 function handleSearchResultClick(e) {
     const item = e.target.closest('.search-result-item');
     if (item) {
-        const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
-        UI.closeModal(document.getElementById('search-modal'));
-        UI.populateCardModalForAdd(cardData);
+        try {
+            const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
+            UI.closeModal(document.getElementById('search-modal'));
+            UI.populateCardModalForAdd(cardData);
+        } catch (error) {
+            console.error("Error parsing card data:", error);
+            console.error("Problematic data-card string:", item.dataset.card);
+            alert("An error occurred while trying to add the card. This is likely due to a special character in the card's name. Please try adding the card manually for now.");
+        }
     }
 }
 
@@ -490,7 +496,7 @@ function handleCardHoverMove(e) {
 
 function updateTooltipPosition(e, tooltip) {
     const mouseX = e.clientX, mouseY = e.clientY;
-    const tooltipWidth = 260, tooltipHeight = 360;
+    const tooltipWidth = 175, tooltipHeight = 245; // Adjusted from 260 and 360
     let left = mouseX + 15;
     let top = mouseY - tooltipHeight / 2;
     if (left + tooltipWidth > window.innerWidth) left = mouseX - tooltipWidth - 15;

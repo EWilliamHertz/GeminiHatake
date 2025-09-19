@@ -1809,17 +1809,4 @@ body.dark-mode .close-button:focus {
     transform: scale(1.05);
     z-index: 10;
 }
-/* Disable hover effects on touch devices to prevent double-tap issues */
-@media (hover: none) {
-    .card-container:hover .group-hover\:opacity-100 {
-        opacity: 0;
-    }
-    .card-container:hover .group-hover\:scale-105 {
-        transform: scale(1);
-    }
-}
 
-/* Resize the card preview tooltip on the marketplace page */
-body.marketplace #card-preview-tooltip {
-    width: 130px; /* Half of the original 260px */
-}
