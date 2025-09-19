@@ -1148,28 +1148,47 @@ exports.generateImpersonationToken = functions.https.onCall(async (data, context
   }
 });
 // =================================================================================================
-// DRAFT SIMULATOR FUNCTIONS (FINAL VERSION)
+// DRAFT, DECK, & GAME FUNCTIONS (FINAL VERSION)
 // =================================================================================================
 
 const mtgApi = axios.create({ baseURL: "https://api.magicthegathering.io/v1" });
 
 /**
- * Creates a new draft lobby.
+ * Creates a new draft lobby. Anyone who is logged in can create a draft.
  */
 exports.createDraft = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to create a draft.');
     }
     const { setName, setCode } = data;
     if (!setName || !setCode) {
         throw new functions.https.HttpsError('invalid-argument', 'Set name and code are required.');
     }
+
     const uid = context.auth.uid;
     const userDoc = await db.collection('users').doc(uid).get();
-    const displayName = userDoc.data()?.displayName || 'Unknown';
+    const displayName = userDoc.data()?.displayName || 'Unknown Player';
 
     const draftRef = db.collection('drafts').doc();
     
+    // Associate the draft with the event by storing the draft ID on the event document
+    const eventData = {
+        name: `Draft Event: ${setName}`,
+        eventType: 'tournament',
+        format: 'swiss', // Drafts will use Swiss pairings
+        game: 'Magic: The Gathering',
+        date: admin.firestore.FieldValue.serverTimestamp(),
+        organizerId: uid,
+        organizerName: displayName,
+        status: 'upcoming',
+        participants: {},
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        draftId: draftRef.id, // Link to the draft document
+        isDraftEvent: true
+    };
+    
+    const eventRef = await db.collection('events').add(eventData);
+
     await draftRef.set({
         hostId: uid,
         hostName: displayName,
@@ -1178,8 +1197,7 @@ exports.createDraft = functions.https.onCall(async (data, context) => {
         status: 'lobby',
         players: [{ uid, displayName, photoURL: userDoc.data()?.photoURL || '' }],
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        currentPackNumber: 0,
-        currentPickNumber: 0
+        eventId: eventRef.id // Link back to the event document
     });
 
     return { draftId: draftRef.id };
@@ -1196,7 +1214,7 @@ exports.joinDraft = functions.https.onCall(async (data, context) => {
     
     const draftRef = db.collection('drafts').doc(draftId);
     const userDoc = await db.collection('users').doc(uid).get();
-    const displayName = userDoc.data()?.displayName || 'Unknown';
+    const displayName = userDoc.data()?.displayName || 'Unknown Player';
     const photoURL = userDoc.data()?.photoURL || '';
 
     return db.runTransaction(async (transaction) => {
@@ -1215,8 +1233,9 @@ exports.joinDraft = functions.https.onCall(async (data, context) => {
     });
 });
 
+
 /**
- * Starts the draft by generating and distributing the first booster packs.
+ * Starts the draft by generating and distributing booster packs.
  */
 exports.startDraft = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
@@ -1243,8 +1262,10 @@ exports.startDraft = functions.https.onCall(async (data, context) => {
         const player = players[index];
         const playerStateRef = draftRef.collection('playerState').doc(player.uid);
         batch.set(playerStateRef, {
-            currentPack: response.data.cards,
-            pickedCards: []
+            pickedCards: [],
+            sideboard: [],
+            mainDeck: [],
+            currentPack: response.data.cards.map(c => ({...c, id: c.id || admin.firestore.FieldValue.serverTimestamp().toMillis().toString()}))
         });
     });
 
@@ -1254,77 +1275,12 @@ exports.startDraft = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Handles a player picking a card and passes the remaining cards.
- * This is the full, complex logic.
+ * Creates a new game instance from a tournament match.
  */
-exports.pickCard = functions.https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
-
-    const { draftId, selectedCardId } = data;
-    const uid = context.auth.uid;
-    const draftRef = db.collection('drafts').doc(draftId);
-
-    return db.runTransaction(async (transaction) => {
-        const draftDoc = await transaction.get(draftRef);
-        if (!draftDoc.exists) throw new functions.https.HttpsError('not-found', 'Draft not found.');
-        const draftData = draftDoc.data();
-
-        const playerStateRef = draftRef.collection('playerState').doc(uid);
-        const playerStateDoc = await transaction.get(playerStateRef);
-        const playerState = playerStateDoc.data();
-        if (!playerState.currentPack || playerState.currentPack.length === 0) {
-             throw new functions.https.HttpsError('failed-precondition', 'Waiting for next pack.');
-        }
-
-        const pickedCard = playerState.currentPack.find(c => c.id === selectedCardId);
-        const remainingCards = playerState.currentPack.filter(c => c.id !== selectedCardId);
-
-        // Update current player's state
-        transaction.update(playerStateRef, {
-            pickedCards: admin.firestore.FieldValue.arrayUnion(pickedCard),
-            currentPack: []
-        });
-
-        // If that was the last card in the pack for this player
-        if (remainingCards.length === 0) {
-            let nextPickNumber = draftData.currentPickNumber + 1;
-            // Check if the pack is over for everyone
-            if (nextPickNumber > 15) { // Assuming 15 card packs
-                let nextPackNumber = draftData.currentPackNumber + 1;
-                if (nextPackNumber > 3) {
-                    transaction.update(draftRef, { status: 'complete' });
-                    return; // End of draft
-                } else {
-                    // Start next pack
-                    transaction.update(draftRef, {
-                        currentPackNumber: nextPackNumber,
-                        currentPickNumber: 1
-                    });
-                    // Logic to generate and distribute new packs would go here
-                }
-            } else {
-                transaction.update(draftRef, { currentPickNumber: nextPickNumber });
-            }
-        } else {
-             // Pass the pack to the next player
-            const players = draftData.players;
-            const currentIndex = players.findIndex(p => p.uid === uid);
-            const direction = draftData.currentPackNumber === 2 ? -1 : 1;
-            const nextPlayerIndex = (currentIndex + direction + players.length) % players.length;
-            const nextPlayerUid = players[nextPlayerIndex].uid;
-            const nextPlayerStateRef = draftRef.collection('playerState').doc(nextPlayerUid);
-            
-            transaction.update(nextPlayerStateRef, {
-                currentPack: admin.firestore.FieldValue.arrayUnion(...remainingCards)
-            });
-        }
-    });
-});
-
 exports.createGameFromMatch = functions.https.onCall(async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
 
-    const { eventId, roundIndex, matchIndex } = data;
+    const { eventId, roundIndex, matchIndex, draftId } = data;
     const uid = context.auth.uid;
 
     const eventRef = db.collection('events').doc(eventId);
@@ -1334,28 +1290,33 @@ exports.createGameFromMatch = functions.https.onCall(async (data, context) => {
     const eventData = eventDoc.data();
     const match = eventData.rounds[roundIndex].matches[matchIndex];
     
-    // Security check: ensure the caller is one of the players in the match
     if (uid !== match.player1.id && uid !== match.player2.id) {
         throw new functions.https.HttpsError('permission-denied', 'You are not part of this match.');
     }
 
-    const gameRef = db.collection('games').doc();
-    
-    // Fetch player decks (assuming they are saved under users/{uid}/decks/{deckId})
-    // This part is a placeholder until the deck saving is fully implemented.
-    const player1Deck = { cards: [] }; // Placeholder
-    const player2Deck = { cards: [] }; // Placeholder
+    const p1StateDoc = await db.collection('drafts').doc(draftId).collection('playerState').doc(match.player1.id).get();
+    const p2StateDoc = await db.collection('drafts').doc(draftId).collection('playerState').doc(match.player2.id).get();
 
+    if (!p1StateDoc.exists || !p2StateDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'One or both player decklists could not be found.');
+    }
+
+    const shuffle = (deck) => deck.sort(() => Math.random() - 0.5);
+
+    const p1Deck = shuffle(p1StateDoc.data().mainDeck);
+    const p2Deck = shuffle(p2StateDoc.data().mainDeck);
+
+    const gameRef = db.collection('games').doc();
     const initialGameState = {
         players: {
             player1: { uid: match.player1.id, displayName: match.player1.displayName, life: 20 },
             player2: { uid: match.player2.id, displayName: match.player2.displayName, life: 20 }
         },
-        library: { [match.player1.id]: player1Deck.cards, [match.player2.id]: player2Deck.cards },
-        hand: { [match.player1.id]: [], [match.player2.id]: [] }, // Draw initial hands here
+        library: { [match.player1.id]: p1Deck.slice(7), [match.player2.id]: p2Deck.slice(7) },
+        hand: { [match.player1.id]: p1Deck.slice(0, 7), [match.player2.id]: p2Deck.slice(0, 7) },
         battlefield: { [match.player1.id]: [], [match.player2.id]: [] },
         graveyard: { [match.player1.id]: [], [match.player2.id]: [] },
-        turn: match.player1.id,
+        turn: Math.random() < 0.5 ? match.player1.id : match.player2.id,
         phase: 'Untap',
         createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
@@ -1364,5 +1325,4 @@ exports.createGameFromMatch = functions.https.onCall(async (data, context) => {
     
     return { gameId: gameRef.id };
 });
-
 
