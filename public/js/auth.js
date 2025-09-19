@@ -21,8 +21,8 @@ if (!firebase.apps.length) {
 }
 window.auth = firebase.auth();
 window.db = firebase.firestore();
-window.storage = firebase.storage();
 window.functions = firebase.functions();
+window.storage = firebase.storage();
 
 // --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
