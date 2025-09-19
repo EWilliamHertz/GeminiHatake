@@ -125,62 +125,63 @@ const pokemonCache = new Map();
 const CACHE_DURATION_MS = 1000 * 60 * 60; // Cache results for 1 hour
 
 /**
- * A callable function that acts as a secure proxy to the Pokémon TCG API.
- * This prevents the API key from being exposed on the client-side.
- * It's configured to have a minimum of 1 instance running to prevent "cold starts".
+ * An HTTP Request function that acts as a secure proxy to the Pokémon TCG API.
+ * This version correctly handles CORS for client-side fetch requests.
  */
-exports.searchPokemon = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
-    const cardName = data.cardName;
-    if (!cardName) {
-        throw new functions.https.HttpsError(
-            "invalid-argument",
-            "The function must be called with a 'cardName' argument."
-        );
-    }
+exports.searchPokemon = functions.runWith({ minInstances: 1 }).https.onRequest((req, res) => {
+    // Enable CORS for specified origins
+    cors(req, res, async () => {
+        // HTTP POST requests send data in req.body. For callable compatibility, it's often in req.body.data
+        const cardName = req.body.data ? req.body.data.cardName : req.body.cardName;
 
-    // Check cache first
-    if (pokemonCache.has(cardName)) {
-        const cachedItem = pokemonCache.get(cardName);
-        if (Date.now() - cachedItem.timestamp < CACHE_DURATION_MS) {
-            console.log(`Serving '${cardName}' from cache.`);
-            return cachedItem.data;
-        }
-    }
-
-    // Securely get the API key from Firebase environment configuration
-    const POKEMON_API_KEY = functions.config().pokemon.apikey;
-    if (!POKEMON_API_KEY) {
-        throw new functions.https.HttpsError('internal', 'Pokémon API key is not configured.');
-    }
-
-    const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}*"&pageSize=40&orderBy=-set.releaseDate`;
-
-    try {
-        console.log(`Searching for '${cardName}' via API.`);
-        const response = await fetch(searchUrl, {
-            headers: { "X-Api-Key": POKEMON_API_KEY },
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error("Pokemon API Error:", response.status, errorBody);
-            throw new functions.https.HttpsError("internal", `Failed to fetch from Pokémon TCG API. Status: ${response.status}`);
+        if (!cardName) {
+            console.error("Card name not provided in request body.");
+            return res.status(400).json({ error: "The function must be called with a 'cardName' argument." });
         }
 
-        const result = await response.json();
-        const responseData = result.data;
+        // Check cache first
+        if (pokemonCache.has(cardName)) {
+            const cachedItem = pokemonCache.get(cardName);
+            if (Date.now() - cachedItem.timestamp < CACHE_DURATION_MS) {
+                console.log(`Serving '${cardName}' from cache.`);
+                return res.status(200).json({ data: cachedItem.data });
+            }
+        }
 
-        // Store successful result in cache
-        pokemonCache.set(cardName, {
-            timestamp: Date.now(),
-            data: responseData,
-        });
+        const POKEMON_API_KEY = functions.config().pokemon.apikey;
+        if (!POKEMON_API_KEY) {
+            console.error('Pokémon API key is not configured.');
+            return res.status(500).json({ error: "Server configuration error." });
+        }
 
-        return responseData; // Return the array of cards
-    } catch (error) {
-        console.error("Error fetching Pokémon cards in cloud function:", error);
-        throw new functions.https.HttpsError("internal", "An unexpected error occurred while fetching Pokémon cards.");
-    }
+        const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:"${encodeURIComponent(cardName)}*"&pageSize=40&orderBy=-set.releaseDate`;
+
+        try {
+            console.log(`Searching for '${cardName}' via API.`);
+            const response = await fetch(searchUrl, {
+                headers: { "X-Api-Key": POKEMON_API_KEY },
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error("Pokemon API Error:", response.status, errorBody);
+                return res.status(500).json({ error: `Failed to fetch from Pokémon TCG API. Status: ${response.status}` });
+            }
+
+            const result = await response.json();
+            const responseData = result.data || [];
+
+            pokemonCache.set(cardName, {
+                timestamp: Date.now(),
+                data: responseData,
+            });
+
+            return res.status(200).json({ data: responseData });
+        } catch (error) {
+            console.error("Error in searchPokemon function:", error);
+            return res.status(500).json({ error: "An unexpected error occurred." });
+        }
+    });
 });
 
 // =================================================================================================

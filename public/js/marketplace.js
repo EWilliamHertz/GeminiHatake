@@ -3,7 +3,7 @@
  *
  * Fetches, filters, and displays card listings from all users.
  * Uses the centralized currency module for all price conversions and display.
- * Includes the restored card hover-preview functionality.
+ * Includes the restored card hover-preview functionality and corrected card view links.
  */
 
 // --- CORRECTED IMPORT PATH ---
@@ -53,35 +53,14 @@ async function fetchMarketplaceData() {
 
     try {
         const db = firebase.firestore();
-        const listingsRef = db.collectionGroup('collection').where('forSale', '==', true);
-        const querySnapshot = await listingsRef.orderBy('name').get();
-
+        // Correctly query the 'marketplaceListings' collection.
+        const listingsRef = db.collection('marketplaceListings');
+        const querySnapshot = await listingsRef.orderBy('listedAt', 'desc').get();
 
         allListings = querySnapshot.docs.map(doc => ({
             id: doc.id,
-            sellerId: doc.ref.parent.parent.id, // Get sellerId from path users/{sellerId}/collection/{cardId}
             ...doc.data()
         }));
-
-        // Post-process to add seller data
-        const sellerIds = [...new Set(allListings.map(l => l.sellerId))];
-        const sellerPromises = sellerIds.map(id => db.collection('users').doc(id).get());
-        const sellerDocs = await Promise.all(sellerPromises);
-        const sellerMap = new Map();
-        sellerDocs.forEach(doc => {
-            if(doc.exists) sellerMap.set(doc.id, doc.data());
-        });
-
-        allListings.forEach(listing => {
-            const seller = sellerMap.get(listing.sellerId) || {};
-            listing.sellerData = {
-                uid: listing.sellerId,
-                displayName: seller.displayName || 'Unknown Seller',
-                photoURL: seller.photoURL || 'https://placehold.co/32',
-                country: seller.address?.country || 'N/A'
-            };
-        });
-
 
         filteredListings = [...allListings];
 
@@ -117,22 +96,34 @@ function renderGridView() {
     const fragment = document.createDocumentFragment();
 
     filteredListings.forEach(listing => {
-        const imageUrl = listing.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
-        const displayPrice = convertAndFormat(listing.salePrice);
+        const cardData = listing.cardData;
+        const sellerData = listing.sellerData;
+        const imageUrl = cardData.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+        const displayPrice = convertAndFormat(listing.price);
 
         const cardElement = document.createElement('div');
-        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-white dark:bg-gray-800';
+        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-white dark:bg-gray-800 flex flex-col';
         cardElement.dataset.imageUrl = imageUrl;
-        cardElement.onclick = () => window.location.href = `listing.html?sellerId=${listing.sellerId}&listingId=${listing.id}`;
+        // Corrected link to match card-view.js expectations
+        cardElement.onclick = () => window.location.href = `card-view.html?id=${listing.id}`;
 
         cardElement.innerHTML = `
-            <img src="${imageUrl}" alt="${listing.name}" class="w-full h-auto object-cover">
-            <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
-            <div class="p-2">
-                <h3 class="font-bold text-sm truncate">${listing.name}</h3>
-                <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
-                    <p><strong>Condition:</strong> ${listing.condition}</p>
-                    ${listing.is_foil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
+            <div class="relative">
+                <img src="${imageUrl}" alt="${cardData.name}" class="w-full h-auto object-cover">
+                <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
+            </div>
+            <div class="p-2 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-sm truncate">${cardData.name}</h3>
+                    <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
+                        <p><strong>Condition:</strong> ${listing.condition}</p>
+                        ${listing.isFoil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
+                    </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex items-center space-x-2">
+                    <img src="${sellerData.photoURL}" alt="${sellerData.displayName}" class="w-6 h-6 rounded-full">
+                    <span class="text-xs font-semibold truncate">${sellerData.displayName}</span>
+                    <span class="text-xs" title="${sellerData.country}"><i class="fas fa-globe-americas"></i></span>
                 </div>
             </div>
         `;
@@ -157,19 +148,20 @@ function renderListView() {
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
 
     filteredListings.forEach(listing => {
+        const cardData = listing.cardData;
         const sellerData = listing.sellerData;
-        const displayPrice = convertAndFormat(listing.salePrice);
-        const imageUrl = listing.image_uris?.small || 'https://placehold.co/32';
+        const displayPrice = convertAndFormat(listing.price);
+        const imageUrl = cardData.image_uris?.small || 'https://placehold.co/32';
 
         tableHTML += `
-            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='listing.html?sellerId=${listing.sellerId}&listingId=${listing.id}'">
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='card-view.html?id=${listing.id}'">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-8"><img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt=""></div>
-                        <div class="ml-4"><div class="text-sm font-medium text-gray-900 dark:text-white">${listing.name} ${listing.is_foil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div></div>
+                        <div class="ml-4"><div class="text-sm font-medium text-gray-900 dark:text-white">${cardData.name} ${listing.isFoil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div></div>
                     </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.set_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${cardData.set_name}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.condition}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -202,29 +194,29 @@ function applyFiltersAndSort() {
     const showFoilOnly = foilFilter.checked;
     const sellerLocation = locationFilter.value.toLowerCase();
 
-    if (searchTerm) listings = listings.filter(l => l.name.toLowerCase().includes(searchTerm));
-    if (selectedGame !== 'all') listings = listings.filter(l => l.game === selectedGame);
+    if (searchTerm) listings = listings.filter(l => l.cardData.name.toLowerCase().includes(searchTerm));
+    if (selectedGame !== 'all') listings = listings.filter(l => l.cardData.game === selectedGame);
 
     populateSetFilter(listings);
 
-    if (selectedSet !== 'all') listings = listings.filter(l => l.set_name === selectedSet);
-    if (!isNaN(minPrice)) listings = listings.filter(l => l.salePrice >= minPrice);
-    if (!isNaN(maxPrice)) listings = listings.filter(l => l.salePrice <= maxPrice);
+    if (selectedSet !== 'all') listings = listings.filter(l => l.cardData.set_name === selectedSet);
+    if (!isNaN(minPrice)) listings = listings.filter(l => l.price >= minPrice);
+    if (!isNaN(maxPrice)) listings = listings.filter(l => l.price <= maxPrice);
     if (selectedConditions.length > 0) listings = listings.filter(l => selectedConditions.includes(l.condition));
-    if (showFoilOnly) listings = listings.filter(l => l.is_foil);
+    if (showFoilOnly) listings = listings.filter(l => l.isFoil);
     if (sellerLocation) listings = listings.filter(l => l.sellerData.country && l.sellerData.country.toLowerCase().includes(sellerLocation));
 
     const sortBy = sortOptions.value;
     switch (sortBy) {
         case 'price-asc':
-            listings.sort((a, b) => a.salePrice - b.salePrice);
+            listings.sort((a, b) => a.price - b.price);
             break;
         case 'price-desc':
-            listings.sort((a, b) => b.salePrice - a.salePrice);
+            listings.sort((a, b) => b.price - a.price);
             break;
         case 'newly-listed':
         default:
-             listings.sort((a, b) => (b.addedAt?.seconds || 0) - (a.addedAt?.seconds || 0));
+             listings.sort((a, b) => (b.listedAt?.seconds || 0) - (a.listedAt?.seconds || 0));
     }
 
     filteredListings = listings;
@@ -233,7 +225,7 @@ function applyFiltersAndSort() {
 
 function populateSetFilter(listings = allListings) {
     const currentSetValue = setFilter.value;
-    const setNames = [...new Set(listings.map(l => l.set_name))].sort();
+    const setNames = [...new Set(listings.map(l => l.cardData.set_name))].sort();
 
     setFilter.innerHTML = '<option value="all">All Sets</option>';
     setNames.forEach(setName => {
@@ -289,7 +281,6 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
             : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1"></i>';
     });
 
-    // --- RESTORED: Card hover preview functionality ---
     const handleMouseOver = (e) => {
         const cardElement = e.target.closest('.card-container');
         const listCardElement = e.target.closest('.card-preview-trigger');
@@ -335,6 +326,5 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
         }
     });
 
-    // Re-render when currency changes
     document.addEventListener('currencyChanged', renderListings);
 });

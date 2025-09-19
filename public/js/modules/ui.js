@@ -4,7 +4,6 @@
  */
 import { getCardImageUrl } from './utils.js';
 import * as Collection from './collection.js';
-// --- CORRECTED IMPORT ---
 import * as Currency from './currency.js';
 
 // --- ELEMENT SELECTORS ---
@@ -198,12 +197,6 @@ export function renderSearchResults(results) {
     container.innerHTML = resultsHTML;
 }
 
-// ... the rest of your original ui.js file is identical from here ...
-// ... (renderPendingCards, renderBulkReviewModal, updateStats, etc.) ...
-// --- I have omitted the rest for brevity, but you should keep your original code ---
-// --- The key changes were at the top (imports) and in the render functions. ---
-// --- The following is the rest of your unchanged original code ---
-
 export function renderPendingCards(pendingCards) {
     const container = getElement('pending-cards-container');
     if (!pendingCards || pendingCards.length === 0) {
@@ -229,7 +222,7 @@ export function renderPendingCards(pendingCards) {
 
 export function renderBulkReviewModal(cardIds) {
     const listContainer = getElement('bulk-review-list');
-    listContainer.innerHTML = ''; // Clear previous items
+    listContainer.innerHTML = '';
 
     cardIds.forEach(cardId => {
         const card = Collection.getCardById(cardId);
@@ -266,15 +259,21 @@ export function renderBulkReviewModal(cardIds) {
     openModal(getElement('bulk-review-modal'));
 }
 
-export function renderCsvReviewModal(cards) {
-    const container = getElement('csv-review-table-body');
-    container.innerHTML = cards.map((card, index) => `
-        <tr data-index="${index}">
-            <td class="p-2"><input type="text" value="${card.name}" class="w-full p-1 border rounded-md" data-field="name"></td>
-            <td class="p-2"><input type="text" value="${card.set_name}" class="w-full p-1 border rounded-md" data-field="set_name"></td>
-            <td class="p-2"><input type="number" value="${card.quantity}" class="w-20 p-1 border rounded-md" data-field="quantity"></td>
-            <td class="p-2">
-                <select class="w-full p-1 border rounded-md" data-field="condition">
+export function renderCsvReviewModal(data) {
+    const tableBody = document.getElementById('csv-review-table-body');
+    if (!tableBody) return;
+    tableBody.innerHTML = '';
+    
+    data.forEach((card, index) => {
+        const row = document.createElement('tr');
+        row.dataset.index = index;
+        row.innerHTML = `
+            <td class="p-3 whitespace-nowrap">${card.name}</td>
+            <td class="p-3 whitespace-nowrap">${card.set_name}</td>
+            <td class="p-3 whitespace-nowrap">${card.collector_number}</td>
+            <td class="p-3"><input type="number" class="w-16 p-1 dark:bg-gray-700 rounded" value="${card.quantity}" data-field="quantity"></td>
+            <td class="p-3">
+                <select class="p-1 dark:bg-gray-700 rounded" data-field="condition">
                     <option ${card.condition === 'Near Mint' ? 'selected' : ''}>Near Mint</option>
                     <option ${card.condition === 'Lightly Played' ? 'selected' : ''}>Lightly Played</option>
                     <option ${card.condition === 'Moderately Played' ? 'selected' : ''}>Moderately Played</option>
@@ -282,18 +281,70 @@ export function renderCsvReviewModal(cards) {
                     <option ${card.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
                 </select>
             </td>
-            <td class="p-2">
-                <select class="w-full p-1 border rounded-md" data-field="language">
+            <td class="p-3">
+                 <select class="p-1 dark:bg-gray-700 rounded" data-field="language">
                     <option ${card.language === 'English' ? 'selected' : ''}>English</option>
                     <option ${card.language === 'Japanese' ? 'selected' : ''}>Japanese</option>
+                    <option ${card.language === 'German' ? 'selected' : ''}>German</option>
+                    <option ${card.language === 'French' ? 'selected' : ''}>French</option>
+                    <option ${card.language === 'Spanish' ? 'selected' : ''}>Spanish</option>
                 </select>
             </td>
-            <td class="p-2"><input type="checkbox" ${card.is_foil ? 'checked' : ''} data-field="is_foil"></td>
-            <td class="p-2"><button class="btn btn-sm btn-danger remove-csv-row-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
-        </tr>
-    `).join('');
-    openModal(getElement('csv-review-modal'));
+            <td class="p-3"><input type="checkbox" ${card.is_foil ? 'checked' : ''} data-field="is_foil"></td>
+            <td class="p-3 csv-row-status" data-status="pending">Pending</td>
+            <td class="p-3"><button class="text-red-500 hover:text-red-700 remove-csv-row-btn" data-index="${index}">&times;</button></td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    openModal(document.getElementById('csv-review-modal'));
 }
+
+export function updateCsvReviewRowStatus(index, status, message = '') {
+    const row = document.querySelector(`#csv-review-table-body tr[data-index='${index}']`);
+    if (!row) return;
+
+    const statusCell = row.querySelector('.csv-row-status');
+    if (!statusCell) return;
+
+    switch (status) {
+        case 'loading':
+            statusCell.innerHTML = '<i class="fas fa-spinner fa-spin text-blue-500"></i>';
+            row.classList.add('opacity-50');
+            break;
+        case 'success':
+            statusCell.innerHTML = `<i class="fas fa-check-circle text-green-500"></i> <span class="text-xs">${message}</span>`;
+            row.classList.remove('opacity-50');
+            row.classList.add('bg-green-50', 'dark:bg-green-900/50');
+            break;
+        case 'error':
+            statusCell.innerHTML = `<i class="fas fa-times-circle text-red-500"></i> <span class="text-xs text-red-500">${message}</span>`;
+            row.classList.remove('opacity-50');
+            row.classList.add('bg-red-50', 'dark:bg-red-900/50');
+            break;
+        default:
+            statusCell.textContent = 'Pending';
+            row.className = '';
+    }
+}
+
+export function toggleCsvImportProgress(show) {
+    const container = document.getElementById('csv-import-progress-container');
+    if (container) {
+        container.classList.toggle('hidden', !show);
+    }
+}
+
+export function updateCsvImportProgress(current, total, percentage) {
+    const text = document.getElementById('csv-progress-text');
+    const percentEl = document.getElementById('csv-progress-percentage');
+    const bar = document.getElementById('csv-progress-bar');
+
+    if (text) text.textContent = `Importing ${current} of ${total}...`;
+    if (percentEl) percentEl.textContent = `${percentage}%`;
+    if (bar) bar.style.width = `${percentage}%`;
+}
+
 
 export function updateCsvImportStatus(message) {
     const statusEl = getElement('csv-import-status');
@@ -302,8 +353,6 @@ export function updateCsvImportStatus(message) {
     }
 }
 
-
-// --- UI STATE UPDATES ---
 export const showLoadingState = () => display.innerHTML = '<p class="text-center text-gray-500">Loading your collection...</p>';
 export const showLoggedOutState = () => getElement('collection-display').innerHTML = '<p class="text-center text-gray-500">Please log in to manage your collection.</p>';
 export const showEmptyState = (message) => display.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500"><p>${message}</p></div>`;
@@ -364,7 +413,7 @@ export function clearCheckboxes(type) {
 
 export function renderGameSpecificFilters(game, types) {
     const container = getElement('game-specific-filters');
-    if (!container) return; // Prevent error if element doesn't exist
+    if (!container) return;
     let content = '';
 
     if (game === 'mtg') {
@@ -463,7 +512,6 @@ export function updateBulkEditSelection(selectedCount) {
     }
 }
 
-// --- MODAL FUNCTIONS ---
 export function openModal(modal) {
     if (modal) {
         modal.classList.remove('hidden');
@@ -545,7 +593,7 @@ export function getCardFormData() {
         data: {
             name: cardData.name,
             set_name: cardData.set_name,
-            api_id: cardData.id,
+            api_id: cardData.api_id, // Corrected from cardData.id
             image_uris: cardData.image_uris,
             prices: cardData.prices,
             rarity: cardData.rarity,
@@ -580,16 +628,15 @@ export function toggleBulkPriceInputs(selectedValue) {
     document.getElementById('bulk-price-fixed-group').classList.toggle('hidden', selectedValue !== 'fixed');
 }
 
-export function setButtonLoading(button, isLoading) {
+export function setButtonLoading(button, isLoading, loadingText = "Processing...") {
     if (button) {
         if (isLoading) {
             button.disabled = true;
             button.dataset.originalText = button.innerHTML;
-            button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing...`;
+            button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`;
         } else {
             button.disabled = false;
             button.innerHTML = button.dataset.originalText || 'Submit';
         }
     }
 }
-

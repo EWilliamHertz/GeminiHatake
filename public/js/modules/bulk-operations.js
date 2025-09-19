@@ -14,7 +14,7 @@ export const isBulkEditMode = () => state.bulkEdit.isActive;
 export function enterBulkEditMode() {
     state.bulkEdit.isActive = true;
     state.bulkEdit.selected.clear();
-    document.getElementById('bulk-actions-toolbar').classList.remove('hidden');
+    document.getElementById('bulk-edit-toolbar').classList.remove('hidden');
     updateSelectionCount();
     return true;
 }
@@ -22,8 +22,8 @@ export function enterBulkEditMode() {
 export function exitBulkEditMode() {
     state.bulkEdit.isActive = false;
     state.bulkEdit.selected.clear();
-    document.getElementById('bulk-actions-toolbar').classList.add('hidden');
-    document.querySelector('.tab-button.active').click(); 
+    document.getElementById('bulk-edit-toolbar').classList.add('hidden');
+    document.querySelector('.tab-button.active').click();
 }
 
 export function toggleCardSelection(cardId) {
@@ -48,7 +48,7 @@ export function toggleSelectAll(isChecked) {
 
 function updateSelectionCount() {
     const count = state.bulkEdit.selected.size;
-    document.getElementById('bulk-selection-count').textContent = `${count} card${count === 1 ? '' : 's'} selected`;
+    document.getElementById('bulk-selected-count').textContent = `${count} card${count === 1 ? '' : 's'} selected`;
 }
 
 export async function deleteSelected() {
@@ -61,10 +61,10 @@ export async function deleteSelected() {
     if (confirm(`Are you sure you want to delete ${selectedIds.length} card entries? This cannot be undone.`)) {
         try {
             await API.batchDeleteCards(state.currentUser.uid, selectedIds);
-            
+
             state.fullCollection = state.fullCollection.filter(c => !selectedIds.includes(c.id));
             Collection.applyFilters();
-            
+
             showToast(`${selectedIds.length} cards deleted.`, "success");
             exitBulkEditMode();
         } catch (error) {
@@ -89,7 +89,7 @@ export async function applyBulkListForSale() {
     const priceOption = form.elements['price-option'].value;
 
     const updates = [];
-    
+
     for (const id of selectedIds) {
         const card = Collection.getCardById(id);
         if (!card) continue;
@@ -107,17 +107,17 @@ export async function applyBulkListForSale() {
                 salePrice = fixedPrice;
             }
         }
-        
+
         updates.push({
             id: id,
-            data: { forSale: true, salePrice: salePrice }
+            data: { forSale: true, salePrice: salePrice, listedAt: new Date() }
         });
     }
 
     if (updates.length > 0) {
-         try {
+        try {
             await API.batchUpdateCards(state.currentUser.uid, updates);
-             updates.forEach(update => {
+            updates.forEach(update => {
                 const cardIndex = state.fullCollection.findIndex(c => c.id === update.id);
                 if (cardIndex > -1) {
                     state.fullCollection[cardIndex] = { ...state.fullCollection[cardIndex], ...update.data };

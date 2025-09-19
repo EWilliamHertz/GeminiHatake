@@ -42,18 +42,31 @@ async function searchScryfall(cardName) {
 }
 
 async function searchPokemon(cardName) {
+    // This is the public URL of your cloud function
+    const functionUrl = 'https://us-central1-hatakesocial-88b5e.cloudfunctions.net/searchPokemon';
     try {
-        const result = await searchPokemonCloudFunction({ cardName });
-        if (!result.data) {
-            throw new Error("Invalid response from Pokémon search function.");
+        const response = await fetch(functionUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ data: { cardName: cardName } }) // Match the expected structure
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch Pokémon cards.');
         }
+
+        const result = await response.json();
+        // The data is nested under a 'data' property in the response
         return result.data.map(card => cleanPokemonData(card));
+
     } catch (error) {
         console.error("Pokémon search function error:", error);
         throw new Error(error.message || 'Could not fetch Pokémon cards.');
     }
 }
-
 /**
  * A debounced version of the searchCards function to limit API calls while typing.
  */
