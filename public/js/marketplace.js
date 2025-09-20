@@ -1,7 +1,7 @@
 /**
  * HatakeSocial - Marketplace Page Logic (FULLY RESTORED & FIXED)
  *
- * Fetches, filters, and displays card listings from all users.
+ * Fetches, filters, and displays card listings from all users using a collectionGroup query.
  * Uses the centralized currency module for all price conversions and display.
  * Includes the restored card hover-preview functionality and corrected card view links.
  */
@@ -53,14 +53,27 @@ async function fetchMarketplaceData() {
 
     try {
         const db = firebase.firestore();
-        // Correctly query the 'marketplaceListings' collection.
-        const listingsRef = db.collection('marketplaceListings');
+        // --- MODIFICATION START ---
+        // Switched to a collectionGroup query to fetch all 'forSale' items from all users.
+        const listingsRef = db.collectionGroup('forSale');
+        // --- MODIFICATION END ---
         const querySnapshot = await listingsRef.orderBy('listedAt', 'desc').get();
 
-        allListings = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        allListings = querySnapshot.docs.map(doc => {
+            // --- MODIFICATION START ---
+            // We need to get the parent document (the user) to get the seller's ID
+            const path = doc.ref.path;
+            const pathParts = path.split('/');
+            const sellerId = pathParts[1]; // Assumes path is users/{userId}/forSale/{listingId}
+
+            return {
+                id: doc.id,
+                sellerId: sellerId, // Store sellerId for creating links
+                ...doc.data()
+            };
+            // --- MODIFICATION END ---
+        });
+
 
         filteredListings = [...allListings];
 
@@ -73,9 +86,29 @@ async function fetchMarketplaceData() {
 
     } catch (error) {
         console.error("Error fetching marketplace listings:", error);
-        listingsContainer.innerHTML = `<p class="text-center text-red-500 py-10">Could not load listings. Please try again later.</p>`;
+        // --- MODIFICATION START ---
+        // Added a more helpful error message for the missing index issue.
+        if (error.code === 'failed-precondition') {
+            listingsContainer.innerHTML = `
+                <div class="col-span-full text-center text-red-500 p-10">
+                    <p class="font-bold">Error: Missing Firestore Index</p>
+                    <p>To fix this, please create a composite index for the 'forSale' collection group.</p>
+                    <p class="mt-2 text-left text-sm bg-gray-100 dark:bg-gray-700 p-4 rounded">
+                        1. Go to your Firebase Console -> Firestore Database -> Indexes.<br>
+                        2. Click 'Add Index'.<br>
+                        3. Collection ID: 'forSale'.<br>
+                        4. Fields to index: 'listedAt' (Descending).<br>
+                        5. Query Scopes: 'Collection group'.<br>
+                        6. Click 'Create'.
+                    </p>
+                </div>`;
+        } else {
+            listingsContainer.innerHTML = `<p class="text-center text-red-500 py-10">Could not load listings. Please try again later.</p>`;
+        }
+        // --- MODIFICATION END ---
     }
 }
+
 
 // --- RENDERING LOGIC ---
 function renderListings() {
@@ -104,8 +137,12 @@ function renderGridView() {
         const cardElement = document.createElement('div');
         cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-white dark:bg-gray-800 flex flex-col';
         cardElement.dataset.imageUrl = imageUrl;
-        // Corrected link to match card-view.js expectations
-        cardElement.onclick = () => window.location.href = `card-view.html?id=${listing.id}`;
+        // --- MODIFICATION START ---
+        // Corrected link to include both sellerId and listingId for a unique path.
+        // NOTE: Your card-view.html and card-view.js must be updated to handle these two URL parameters.
+        cardElement.onclick = () => window.location.href = `card-view.html?userId=${listing.sellerId}&listingId=${listing.id}`;
+        // --- MODIFICATION END ---
+
 
         cardElement.innerHTML = `
             <div class="relative">
@@ -152,9 +189,12 @@ function renderListView() {
         const sellerData = listing.sellerData;
         const displayPrice = convertAndFormat(listing.price);
         const imageUrl = cardData.image_uris?.small || 'https://placehold.co/32';
-
+        // --- MODIFICATION START ---
+        // Corrected link to include both sellerId and listingId for a unique path.
+        // NOTE: Your card-view.html and card-view.js must be updated to handle these two URL parameters.
         tableHTML += `
-            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='card-view.html?id=${listing.id}'">
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='card-view.html?userId=${listing.sellerId}&listingId=${listing.id}'">
+        // --- MODIFICATION END ---
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 h-10 w-8"><img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt=""></div>

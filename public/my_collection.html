@@ -165,11 +165,10 @@
         </main>
     </div>
 </div>
+
 <div class="fixed bottom-5 right-5 z-[1003]" id="toast-container"></div>
-<div class="fixed z-[1005] pointer-events-none hidden rounded-xl shadow-lg" id="card-preview-tooltip">
-    <div class="flex" id="card-preview-image-container">
-        </div>
-</div>
+<div class="fixed z-[1005] pointer-events-none hidden rounded-xl shadow-lg" id="card-preview-tooltip"></div>
+
 <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-start justify-center z-[1001] pt-16" id="search-modal">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col" style="height: 80vh;">
         <div class="p-4 border-b dark:border-gray-700 flex items-center">
@@ -188,6 +187,7 @@
         </div>
     </div>
 </div>
+
 <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]" id="card-modal">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;">
         <div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center">
@@ -196,7 +196,6 @@
         <div class="w-2/3 p-6 flex flex-col">
             <form class="flex flex-col h-full" id="card-form">
                 <input id="card-modal-id" type="hidden"/>
-                <input id="card-api-id" type="hidden"/>
                 <div class="flex justify-between items-start">
                     <div>
                         <h2 class="text-2xl font-bold" id="card-modal-title">Add New Card</h2>
@@ -255,138 +254,63 @@
         </div>
     </div>
 </div>
-<div class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center" id="bulk-list-sale-modal">
+
+<div class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center" id="bulk-list-for-sale-modal">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">List <span id="bulk-list-count">0</span> Cards for Sale</h3>
-            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" id="close-bulk-list-sale-modal">
+            <h3 class="text-xl font-bold">List Cards for Sale</h3>
+            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cancel-btn">
                 <i class="fas fa-times fa-lg"></i>
             </button>
         </div>
-        <form id="bulk-list-form">
-            <div class="space-y-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">Choose how to price the selected cards.</p>
-                <div class="space-y-2">
-                    <label class="flex items-center p-3 rounded-lg border dark:border-gray-600 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/50">
-                        <input checked="" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" name="price-option" type="radio" value="percentage"/>
-                        <span class="ml-3 text-sm font-medium">Set Price by % of Market Value</span>
-                    </label>
-                    <label class="flex items-center p-3 rounded-lg border dark:border-gray-600 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/50">
-                        <input class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" name="price-option" type="radio" value="fixed"/>
-                        <span class="ml-3 text-sm font-medium">Set a Fixed Price for all cards</span>
-                    </label>
-                    <label class="flex items-center p-3 rounded-lg border dark:border-gray-600 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/50">
-                        <input class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" name="price-option" type="radio" value="individual"/>
-                        <span class="ml-3 text-sm font-medium">Keep Individual Prices (if set)</span>
-                    </label>
-                </div>
-                <div id="bulk-price-percentage-group">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="bulk-price-percentage">Market Value Percentage (%)</label>
-                    <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="bulk-price-percentage" name="percentage" placeholder="e.g., 90 for 90%" type="number" value="100"/>
-                </div>
-                <div class="hidden" id="bulk-price-fixed-group">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="bulk-price-fixed">Fixed Price ($)</label>
-                    <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="bulk-price-fixed" name="fixed-price" placeholder="e.g., 5.00" step="0.01" type="number"/>
-                </div>
+        <div class="space-y-4">
+             <div>
+                <label for="bulk-sale-price" class="block text-sm font-medium">Sale Price ($)</label>
+                <input type="number" step="0.01" id="bulk-sale-price" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="e.g., 5.00">
             </div>
-            <div class="mt-6 flex justify-end">
-                <button class="btn btn-primary" type="submit">Apply and List Cards</button>
-            </div>
-        </form>
-    </div>
-</div>
-<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1003]" id="bulk-review-modal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col" style="height: 90vh;">
-        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-            <h2 class="text-xl font-bold">Review and Price Items for Sale</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-bulk-review-modal">×</button>
-        </div>
-        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-b dark:border-gray-700">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium" for="bulk-apply-percentage">Apply % to All</label>
-                    <div class="flex items-center">
-                        <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="bulk-apply-percentage-input" placeholder="e.g., 75" type="number"/>
-                        <button class="ml-2 btn btn-primary" id="bulk-apply-percentage-btn">%</button>
-                    </div>
-                </div>
+            <div>
+                <label for="bulk-sale-condition" class="block text-sm font-medium">Condition</label>
+                <select id="bulk-sale-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <option>Near Mint</option>
+                    <option>Lightly Played</option>
+                    <option>Moderately Played</option>
+                    <option>Heavily Played</option>
+                    <option>Damaged</option>
+                </select>
             </div>
         </div>
-        <div class="flex-grow overflow-y-auto p-4 space-y-2" id="bulk-review-list">
-        </div>
-        <div class="p-4 border-t dark:border-gray-700">
-            <button class="btn btn-success w-full" id="finalize-bulk-list-btn">Finalize and List Selected Cards</button>
+        <div class="mt-6 flex justify-end">
+            <button class="btn btn-primary" id="confirm-bulk-list-btn">List Cards</button>
         </div>
     </div>
 </div>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-bold">Login</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
-        </div>
-        <form class="mt-4 space-y-4" id="loginForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/><p class="text-red-500 text-sm hidden" id="login-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>Sign in with Google</button></form>
-    </div>
-</div>
-<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <div class="flex justify-between items-center">
-            <h2 class="text-xl font-bold">Register</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
-        </div>
-        <form class="mt-4 space-y-4" id="registerForm"><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/><input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/><p class="text-red-500 text-sm hidden" id="register-error-message"></p><button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button><button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button"><img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>Register with Google</button></form>
-    </div>
-</div>
-<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1003]" id="csv-import-modal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col">
-        <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-            <h2 class="text-xl font-bold">Import from CSV</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-csv-import-modal">×</button>
+
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1004]" id="missing-data-modal">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md flex flex-col">
+        <div class="p-4 border-b dark:border-gray-700">
+            <h2 class="text-xl font-bold" id="missing-data-title">Complete Card Information</h2>
+            <p class="text-sm text-gray-500">Card: <span id="missing-data-card-name" class="font-semibold"></span></p>
         </div>
         <div class="p-6 space-y-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">Select a CSV file to import. Compatible with ManaBox exports.</p>
-            <input type="file" id="csv-file-input" accept=".csv" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
-            <button id="start-csv-import-btn" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" disabled>Parse CSV</button>
-            <div id="csv-import-status" class="text-sm text-center p-2 rounded-md"></div>
-        </div>
-    </div>
-</div>
-<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1004]" id="csv-review-modal">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl flex flex-col" style="height: 90vh;">
-        <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-            <h2 class="text-xl font-bold">Review CSV Import</h2>
-            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-csv-review-modal">×</button>
-        </div>
-        <div class="flex-grow overflow-y-auto p-4">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Collector #</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Quantity</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Condition</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Language</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Foil</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                    <th class="p-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
-                </tr>
-                </thead>
-                <tbody id="csv-review-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
-                </tbody>
-            </table>
-        </div>
-        <div class="p-4 border-t dark:border-gray-700">
-            <div id="csv-import-progress-container" class="hidden w-full mb-4">
-                <div class="flex justify-between mb-1">
-                    <span class="text-base font-medium text-blue-700 dark:text-white" id="csv-progress-text">Importing...</span>
-                    <span class="text-sm font-medium text-blue-700 dark:text-white" id="csv-progress-percentage">0%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                    <div class="bg-blue-600 h-2.5 rounded-full" id="csv-progress-bar" style="width: 0%"></div>
-                </div>
+            <p>This card is missing some information required to list it for sale. Please fill it in.</p>
+            <div id="missing-price-section">
+                <label for="missing-sale-price" class="block text-sm font-medium">Sale Price ($)</label>
+                <input type="number" step="0.01" id="missing-sale-price" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="e.g., 5.00">
             </div>
-            <button class="btn btn-success w-full" id="finalize-csv-import-btn">Finalize Import</button>
+            <div id="missing-condition-section">
+                <label for="missing-sale-condition" class="block text-sm font-medium">Condition</label>
+                <select id="missing-sale-condition" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <option>Near Mint</option>
+                    <option>Lightly Played</option>
+                    <option>Moderately Played</option>
+                    <option>Heavily Played</option>
+                    <option>Damaged</option>
+                </select>
+            </div>
+        </div>
+        <div class="p-4 border-t dark:border-gray-700 mt-auto flex justify-end space-x-2">
+            <button class="btn bg-gray-200 dark:bg-gray-600" id="skip-missing-data-btn">Skip This Card</button>
+            <button class="btn btn-primary" id="save-missing-data-btn">Save and Continue</button>
         </div>
     </div>
 </div>

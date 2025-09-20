@@ -7,11 +7,13 @@
  * - Content Moderation (Articles, Comments, Reported Content)
  * - Platform Management (Broadcast Messages)
  * - Product Management (CRUD for Shop)
+ * - User Content Deletion (Users, Posts, and Decks)
  * * FIXES APPLIED:
  * - Implemented product editing functionality.
  * - Implemented user impersonation functionality.
  * - Corrected user action calls (ban/suspend) to match backend functions.
  * - Implemented a simple user profile view modal.
+ * - Added User Content Deletion functionality.
  */
 
 document.addEventListener('authReady', (e) => {
@@ -45,6 +47,11 @@ document.addEventListener('authReady', (e) => {
         userProfileModal: document.getElementById('user-profile-modal'),
         closeUserProfileModalBtn: document.getElementById('close-user-profile-modal'),
         userProfileModalContent: document.getElementById('user-profile-modal-content'),
+
+        userContentModal: document.getElementById('user-content-modal'),
+        closeUserContentModalBtn: document.getElementById('close-user-content-modal'),
+        userContentModalTitle: document.getElementById('user-content-modal-title'),
+        userContentModalBody: document.getElementById('user-content-modal-body'),
 
         productModal: document.getElementById('product-modal'),
         productModalTitle: document.getElementById('product-modal-title'),
@@ -85,6 +92,7 @@ document.addEventListener('authReady', (e) => {
                     <button data-tab="content" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-file-alt mr-2"></i>Content</button>
                     <button data-tab="platform" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-cogs mr-2"></i>Platform</button>
                     <button data-tab="products" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-shopping-cart mr-2"></i>Products</button>
+                    <button data-tab="user-content" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-trash mr-2"></i>User Content</button>
                 </nav>
             </div>
             <div>
@@ -93,12 +101,14 @@ document.addEventListener('authReady', (e) => {
                 <div id="tab-content-content" class="admin-tab-content hidden"></div>
                 <div id="tab-content-platform" class="admin-tab-content hidden"></div>
                 <div id="tab-content-products" class="admin-tab-content hidden"></div>
+                <div id="tab-content-user-content" class="admin-tab-content hidden"></div>
             </div>`;
         renderDashboardTab();
         renderUsersTab();
         renderContentTab();
         renderPlatformTab();
         renderProductsTab();
+        renderUserContentTab();
     };
 
     // --- Tab Rendering Functions ---
@@ -122,6 +132,13 @@ document.addEventListener('authReady', (e) => {
 
     const renderProductsTab = () => {
         document.getElementById('tab-content-products').innerHTML = `<div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">Product Management</h2><button id="add-product-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700"><i class="fas fa-plus mr-2"></i>Add New Product</button></div><div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow"><table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Product</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Price</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Stock</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th></tr></thead><tbody id="products-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div>`;
+    };
+
+    const renderUserContentTab = () => {
+        document.getElementById('tab-content-user-content').innerHTML = `<div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+            <h3 class="font-bold text-lg mb-4">User Content Management</h3>
+            <div id="user-list-for-content" class="space-y-2"></div>
+        </div>`;
     };
 
     // --- Data Loading and Rendering ---
@@ -150,6 +167,7 @@ document.addEventListener('authReady', (e) => {
             currentUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             currentUsers.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
             renderUsers();
+            renderUsersForContentTab();
         } catch (error) {
             console.error("Error loading users:", error);
             tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Could not load users.</td></tr>';
@@ -184,6 +202,17 @@ document.addEventListener('authReady', (e) => {
                  </td>
              </tr>`;
         }).join('');
+    };
+
+    const renderUsersForContentTab = () => {
+        const container = document.getElementById('user-list-for-content');
+        if (!container) return;
+        container.innerHTML = currentUsers.map(u => `
+            <div class="p-2 border-b dark:border-gray-700 flex justify-between items-center">
+                <span>${u.displayName || 'No Name'} (${u.handle || u.email})</span>
+                <button class="view-user-content-btn text-blue-500" data-uid="${u.id}" data-handle="${u.handle || u.displayName}">View Content</button>
+            </div>
+        `).join('');
     };
 
     const loadArticles = async () => {
@@ -238,6 +267,45 @@ document.addEventListener('authReady', (e) => {
                     <button class="delete-product-btn text-red-500 hover:underline" data-id="${p.id}">Delete</button>
                 </td>
             </tr>`).join('');
+    };
+
+    const loadUserContent = async (userId, handle) => {
+        const { userContentModal, userContentModalTitle, userContentModalBody } = getElements();
+        userContentModalTitle.textContent = `Content for ${handle}`;
+        userContentModalBody.innerHTML = '<p>Loading user content...</p>';
+        userContentModal.classList.remove('hidden');
+        userContentModal.classList.add('flex');
+
+        try {
+            const postsSnapshot = await db.collection('posts').where('authorId', '==', userId).get();
+            const decksSnapshot = await db.collection('users').doc(userId).collection('decks').get();
+
+            let postsHtml = '<h3>Posts</h3>';
+            if(postsSnapshot.empty){
+                postsHtml += '<p>No posts found for this user.</p>';
+            } else {
+                postsHtml += postsSnapshot.docs.map(doc => {
+                    const post = doc.data();
+                    return `<div class="p-2 border-b dark:border-gray-700 flex justify-between items-center">${post.content} <button class="delete-post-btn text-red-500" data-post-id="${doc.id}">Delete</button></div>`;
+                }).join('');
+            }
+            
+            let decksHtml = '<h3 class="mt-4">Decks</h3>';
+            if(decksSnapshot.empty){
+                decksHtml += '<p>No decks found for this user.</p>';
+            } else {
+                decksHtml += decksSnapshot.docs.map(doc => {
+                    const deck = doc.data();
+                    return `<div class="p-2 border-b dark:border-gray-700 flex justify-between items-center">${deck.name} <button class="delete-deck-btn text-red-500" data-deck-id="${doc.id}" data-user-id="${userId}">Delete</button></div>`;
+                }).join('');
+            }
+
+            userContentModalBody.innerHTML = postsHtml + decksHtml;
+
+        } catch (error) {
+            console.error("Error loading user content:", error);
+            userContentModalBody.innerHTML = `<p class="text-red-500">Could not load user content. See console for details.</p>`;
+        }
     };
 
     // --- Admin Actions ---
@@ -321,6 +389,51 @@ document.addEventListener('authReady', (e) => {
             saveProductBtn.textContent = 'Save Product';
         }
     };
+
+    const handleDeleteUserAndContent = async () => {
+        const handle = document.getElementById('delete-user-handle').value;
+        if (!handle) {
+            alert('Please enter a user handle.');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete the user with handle "${handle}" and all of their content? This action is irreversible.`)) {
+            try {
+                const usersRef = firebase.firestore().collection('users');
+                const querySnapshot = await usersRef.where('handle', '==', handle).get();
+
+                if (querySnapshot.empty) {
+                    alert('User not found.');
+                    return;
+                }
+
+                const userId = querySnapshot.docs[0].id;
+
+                // Delete decks
+                const decksSnapshot = await db.collection('users').doc(userId).collection('decks').get();
+                const deleteDecksPromises = decksSnapshot.docs.map(doc => doc.ref.delete());
+                await Promise.all(deleteDecksPromises);
+                
+                // Delete Posts
+                const postsSnapshot = await db.collection('posts').where('authorId', '==', userId).get();
+                const deletePostsPromises = postsSnapshot.docs.map(doc => doc.ref.delete());
+                await Promise.all(deletePostsPromises);
+
+                // You'll need to implement a Cloud Function to delete the user from Firebase Authentication
+                const deleteUserFunction = firebase.functions().httpsCallable('deleteUser');
+                await deleteUserFunction({ uid: userId });
+
+                // Now delete the user's document from Firestore
+                await usersRef.doc(userId).delete();
+
+                alert(`User "${handle}" and their content has been deleted.`);
+                document.getElementById('user-decks-container').innerHTML = ''; // Clear the decks list
+            } catch (error) {
+                console.error("Error deleting user and content: ", error);
+                alert('An error occurred while deleting the user and their content.');
+            }
+        }
+    };
     
     // --- Initialization ---
     const initializeAdminPanel = async () => {
@@ -363,6 +476,14 @@ document.addEventListener('authReady', (e) => {
                 elements.productModalTitle.textContent = 'Add Product';
                 elements.productModal.classList.add('flex');
                 elements.productModal.classList.remove('hidden');
+            }
+            if(button.id === 'delete-user-btn'){
+                handleDeleteUserAndContent();
+            }
+            if (button.classList.contains('view-user-content-btn')) {
+                const userId = button.dataset.uid;
+                const handle = button.dataset.handle;
+                loadUserContent(userId, handle);
             }
             if (button.classList.contains('view-user-btn')) {
                 const user = currentUsers.find(u => u.id === uid);
@@ -444,6 +565,28 @@ document.addEventListener('authReady', (e) => {
                     showToast('Product deleted.', 'success'); loadProducts();
                 });
             }
+            if(button.classList.contains('delete-post-btn')){
+                const postId = button.dataset.postId;
+                showConfirmation('Delete Post?', 'This cannot be undone.', async () => {
+                    await db.collection('posts').doc(postId).delete();
+                    showToast('Post deleted.', 'success');
+                    // Refresh the user content view
+                    const userId = currentUsers.find(u => u.posts.includes(postId)).id;
+                    const handle = currentUsers.find(u => u.id === userId).handle;
+                    if(handle) loadUserContent(userId, handle);
+                });
+            }
+            if(button.classList.contains('delete-deck-btn')){
+                const deckId = button.dataset.deckId;
+                const userId = button.dataset.userId;
+                showConfirmation('Delete Deck?', 'This cannot be undone.', async () => {
+                    await db.collection('users').doc(userId).collection('decks').doc(deckId).delete();
+                    showToast('Deck deleted.', 'success');
+                    // Refresh the user content view
+                    const handle = currentUsers.find(u => u.id === userId).handle;
+                    if(handle) loadUserContent(userId, handle);
+                });
+            }
         });
         
         // Modal and form listeners
@@ -455,6 +598,7 @@ document.addEventListener('authReady', (e) => {
         elements.suspendCancelBtn.addEventListener('click', () => elements.suspendUserModal.classList.add('hidden'));
         elements.closeProductModalBtn.addEventListener('click', () => elements.productModal.classList.add('hidden'));
         elements.closeUserProfileModalBtn.addEventListener('click', () => elements.userProfileModal.classList.add('hidden'));
+        elements.closeUserContentModalBtn.addEventListener('click', () => elements.userContentModal.classList.add('hidden'));
         
         elements.suspendUserForm.addEventListener('submit', handleSuspendFormSubmit);
         elements.productForm.addEventListener('submit', handleProductFormSubmit);

@@ -124,10 +124,9 @@ export async function addMultipleCards(cardVersions, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
     
     for (const cardData of cardVersions) {
-        // Ensure api_id is a valid string
         if (!cardData.api_id || typeof cardData.api_id !== 'string') {
             console.error("Invalid api_id for card:", cardData);
-            continue; // Skip this card
+            continue;
         }
 
         const matchingCard = findMatchingCard(cardData);
@@ -151,7 +150,6 @@ export async function addMultipleCards(cardVersions, customImageFile) {
 
 export async function updateCard(cardId, updates, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
-
     let finalUpdates = { ...updates };
 
     if (customImageFile) {
@@ -172,11 +170,24 @@ export async function updateCard(cardId, updates, customImageFile) {
     applyFilters();
 }
 
-
+// --- MODIFICATION START ---
+// This function now prepares all necessary data before calling the API.
 export async function batchUpdateSaleStatus(updates) {
     if (!state.currentUser) throw new Error("User not logged in.");
-    await API.batchUpdateCards(state.currentUser.uid, updates);
 
+    // Create a richer update object that includes the full card data
+    const cardUpdates = updates.map(update => {
+        const fullCardData = getCardById(update.id);
+        return {
+            id: update.id,
+            data: update.data, // The changes (e.g., price, forSale status)
+            fullCardData: fullCardData // The complete original card object
+        };
+    });
+
+    await API.batchUpdateCards(state.currentUser.uid, cardUpdates);
+
+    // Update local state after the API call succeeds
     updates.forEach(update => {
         const index = state.fullCollection.findIndex(c => c.id === update.id);
         if (index !== -1) {
@@ -187,6 +198,7 @@ export async function batchUpdateSaleStatus(updates) {
     applyFilters();
     toggleBulkEditMode();
 }
+// --- MODIFICATION END ---
 
 export async function deleteCard(cardId) {
     if (!state.currentUser) throw new Error("User not logged in.");
@@ -198,9 +210,7 @@ export async function deleteCard(cardId) {
 export async function batchDelete(cardIds) {
     if (!state.currentUser) throw new Error("User not logged in.");
     await API.batchDeleteCards(state.currentUser.uid, cardIds);
-
     state.fullCollection = state.fullCollection.filter(c => !cardIds.includes(c.id));
-    
     applyFilters();
     toggleBulkEditMode();
 }
@@ -209,7 +219,6 @@ export const getCardById = (cardId) => state.fullCollection.find(c => c.id === c
 
 export function applyFilters() {
     const { name, set, rarity, colors, game, type } = state.filters;
-
     const filterLogic = (card) => {
         const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
         const setMatch = set.length === 0 || set.includes(card.set_name);
@@ -231,7 +240,6 @@ export function applyFilters() {
             const typeMatch = !type || (card.types && card.types.includes(type));
             return nameMatch && setMatch && rarityMatch && typeMatch && gameMatch;
         }
-
         return nameMatch && setMatch && rarityMatch && gameMatch;
     };
 
@@ -241,7 +249,6 @@ export function applyFilters() {
         state.wishlist = state.fullWishlist.filter(filterLogic);
     }
 }
-
 
 export function calculateCollectionStats() {
     const collectionToCount = state.filteredCollection;
@@ -267,9 +274,7 @@ export function calculateWishlistStats() {
 export function getAvailableFilterOptions(game) {
     const sourceList = state.activeTab === 'collection' ? state.fullCollection : state.fullWishlist;
     const filteredList = sourceList.filter(c => game === 'all' || (c.game || 'mtg') === game);
-
     const sets = [...new Set(filteredList.map(c => c.set_name))].sort();
-    
     const rarities = {};
     filteredList.forEach(card => {
         const gameKey = card.game || 'mtg';
@@ -278,15 +283,12 @@ export function getAvailableFilterOptions(game) {
         }
         rarities[gameKey].add(card.rarity);
     });
-
     for (const gameKey in rarities) {
         rarities[gameKey] = [...rarities[gameKey]].sort();
     }
-
     let types = [];
     if (game === 'pokemon') {
         types = [...new Set(filteredList.flatMap(c => c.types || []))].sort();
     }
-    
     return { sets, rarities, types };
 }
