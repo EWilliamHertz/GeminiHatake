@@ -9,35 +9,18 @@
   <script src="https://cdn.tailwindcss.com">
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
-  <!-- Leaflet CSS for the map -->
   <link crossorigin="" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" rel="stylesheet"/>
   <link href="css/style.css" rel="stylesheet"/>
   <link href="/manifest.json" rel="manifest"/>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-  <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-   <div class="flex items-center">
-    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-     <i class="fas fa-bars text-xl">
-     </i>
-    </button>
-    <div class="relative">
-     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-     </i>
-     <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-    </div>
-   </div>
-   <div class="flex items-center space-x-5" id="user-actions">
-    <!-- This container is dynamically filled by auth.js -->
-   </div>
-  </header>
   <div class="flex h-screen">
    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
    </div>
    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
     <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
      <a class="flex flex-col items-center space-y-1" href="app.html">
-      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
       <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
        HatakeSocial
       </span>
@@ -146,27 +129,39 @@
     <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
     </div>
    </aside>
-   <main class="flex-1 flex flex-col overflow-y-auto">
-    <!-- Header Section -->
-    <!-- Main Profile Content -->
-    <main class="container mx-auto p-4 flex-grow">
-     <div id="profile-container">
-      <!-- The entire profile will be built here by profile.js -->
-      <div class="text-center p-10">
-       <i class="fas fa-spinner fa-spin text-4xl text-blue-500">
+   <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
        </i>
-       <p class="mt-4 text-gray-600 dark:text-gray-400">
-        Loading Profile...
-       </p>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
       </div>
      </div>
-    </main>
-    <!-- Modals (Login/Register) -->
-   </main>
+     <div class="flex items-center space-x-5" id="user-actions">
+      </div>
+    </header>
+    <main class="flex-1 overflow-y-auto">
+     <main class="container mx-auto p-4 flex-grow">
+      <div id="profile-container">
+       <div class="text-center p-10">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-500">
+        </i>
+        <p class="mt-4 text-gray-600 dark:text-gray-400">
+         Loading Profile...
+        </p>
+       </div>
+      </div>
+     </main>
+     </main>
+   </div>
   </div>
   <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002] p-4" id="postDetailModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col h-[95vh]">
-    <!-- Modal Header -->
     <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
      <h2 class="text-xl font-bold" id="modal-post-header">
       Post Details
@@ -175,29 +170,20 @@
       ×
      </button>
     </div>
-    <!-- Modal Content -->
     <div class="flex-grow overflow-y-auto grid grid-cols-1 md:grid-cols-2" id="modal-grid-container">
-     <!-- Left Side: Media -->
      <div class="bg-black flex items-center justify-center md:h-full" id="modal-post-media-container">
-      <!-- Media will be inserted here -->
-     </div>
-     <!-- Right Side: Details & Comments -->
+      </div>
      <div class="flex flex-col h-full">
       <div class="p-4 space-y-3 flex-shrink-0">
-       <!-- Author Info -->
        <div class="flex items-center" id="modal-post-author">
        </div>
-       <!-- Post Content -->
        <div class="whitespace-pre-wrap text-gray-800 dark:text-gray-200 text-sm max-h-48 overflow-y-auto" id="modal-post-content">
        </div>
-       <!-- Post Actions -->
        <div class="flex justify-start items-center text-gray-600 dark:text-gray-400 border-t dark:border-gray-700 pt-3" id="modal-post-actions">
        </div>
       </div>
-      <!-- Comments -->
       <div class="flex-grow overflow-y-auto border-t dark:border-gray-700 p-4 space-y-4" id="modal-post-comments-list">
       </div>
-      <!-- Comment Form -->
       <div class="p-4 border-t dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900/50">
        <form class="modal-comment-form flex">
         <input class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a comment..." required="" type="text"/>
@@ -302,8 +288,6 @@
     </div>
    </div>
   </footer>
-  <!-- Firebase and custom scripts -->
-  <!-- Leaflet JS for the map -->
   <script crossorigin="" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
   </script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
@@ -326,8 +310,6 @@
   </script>
   <script src="js/darkmode.js">
   </script>
-  <!-- Login Modal -->
-  <!-- Register Modal -->
   <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
     <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
@@ -339,7 +321,6 @@
      </button>
     </div>
     <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-     <!-- Cart items will be dynamically inserted here -->
      <p class="text-center text-gray-500 dark:text-gray-400">
       Your cart is empty.
      </p>
