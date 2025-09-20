@@ -15,27 +15,12 @@
   <link href="/manifest.json" rel="manifest"/>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-  <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-   <div class="flex items-center">
-    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-     <i class="fas fa-bars text-xl">
-     </i>
-    </button>
-    <div class="relative">
-     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-     </i>
-     <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-    </div>
-   </div>
-   <div class="flex items-center space-x-5" id="user-actions">
-    <!-- This container is dynamically filled by auth.js -->
-   </div>
-  </header>
+  
   <div class="flex h-screen">
    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
    </div>
    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+        <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
      <a class="flex flex-col items-center space-y-1" href="app.html">
       <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://i.imgur.com/B06rBhI.png"/>
       <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
@@ -146,10 +131,29 @@
     <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info">
     </div>
    </aside>
-   <main class="flex-1 flex flex-col overflow-y-auto">
+   
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+   <div class="flex items-center">
+    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+     <i class="fas fa-bars text-xl">
+     </i>
+    </button>
+    <div class="relative">
+     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+     </i>
+     <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+    </div>
+   </div>
+   <div class="flex items-center space-x-5" id="user-actions">
+    <!-- This container is dynamically filled by auth.js -->
+   </div>
+  </header>
+      
+
     <!-- Header Section -->
     <!-- Main Profile Content -->
-    <main class="container mx-auto p-4 flex-grow">
+    
      <div id="profile-container">
       <!-- The entire profile will be built here by profile.js -->
       <div class="text-center p-10">
@@ -465,5 +469,8 @@
     </form>
    </div>
   </div>
- </body>
+       </main>
+    </div>
+  </div>
+</body>
 </html>
