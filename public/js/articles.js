@@ -31,7 +31,7 @@ document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
 
     // --- Page specific logic ---
-    if (document.getElementById('articles-list')) {
+    if (document.getElementById('articles-grid')) { // FIX: Changed ID to 'articles-grid'
         initArticlesListPage(user);
     }
     if (document.getElementById('create-article-form')) {
@@ -47,7 +47,7 @@ document.addEventListener('authReady', (e) => {
 
 // --- Articles List Page ---
 function initArticlesListPage(user) {
-    const articlesListContainer = document.getElementById('articles-list');
+    const articlesListContainer = document.getElementById('articles-grid'); // FIX: Changed ID to 'articles-grid'
     const writeNewArticleBtn = document.getElementById('write-new-article-btn');
     const searchInput = document.getElementById('article-search');
     const categoryFilter = document.getElementById('article-category-filter');
@@ -79,8 +79,10 @@ function initArticlesListPage(user) {
         articlesListContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 col-span-full">Loading posts...</p>';
         try {
             let query = db.collection('articles').where('status', '==', 'published');
+            
+            // FIX: Query by 'category' for blog posts as per your Firestore data structure
             if (pageType === 'blog') {
-                query = query.where('type', '==', 'blog_post');
+                query = query.where('category', '==', 'Blog Post');
             } else {
                 query = query.where('type', '==', 'tcg_article');
             }
@@ -94,7 +96,7 @@ function initArticlesListPage(user) {
             renderArticles(allArticles);
         } catch (error) {
             console.error("Error loading articles:", error);
-            articlesListContainer.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load posts.</p>';
+            articlesListContainer.innerHTML = '<p class="text-center text-red-500 col-span-full">Could not load posts. You may need to create a Firestore index for this query.</p>';
         }
     };
 
