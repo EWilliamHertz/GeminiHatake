@@ -1,7 +1,8 @@
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v31 - Live Currency Update)
-* - This version updates the currency selector to dispatch a 'currencyChanged' event
-* instead of reloading the page, allowing modules to update prices dynamically.
+* HatakeSocial - Merged Authentication & Global UI Script (v33 - Final Fix)
+* - Corrects a variable redeclaration error that caused the page to remain grey after login.
+* - Ensures login/register buttons for logged-out users are always displayed correctly.
+* - Integrates the interactive guided tour for new user onboarding.
 */
 
 // --- Firebase Initialization (Stable & Global) ---
@@ -177,9 +178,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!currencySelectorContainer) {
             currencySelectorContainer = document.createElement('div');
             currencySelectorContainer.id = 'currency-selector-container';
-            // Adjusted classes to better align with other header items
             currencySelectorContainer.className = 'relative flex items-center';
-            container.insertAdjacentElement('afterbegin', currencySelectorContainer); // Add it at the beginning of user actions
+            container.insertAdjacentElement('afterbegin', currencySelectorContainer);
         }
 
         currencySelectorContainer.innerHTML = `
@@ -195,13 +195,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const selector = document.getElementById('currency-selector');
         if (selector) {
-            selector.value = getUserCurrency(); // Set initial value from module
+            selector.value = getUserCurrency();
             selector.addEventListener('change', async (e) => {
                 const newCurrency = e.target.value;
                 try {
                     await updateUserCurrency(newCurrency);
                     showToast(`Currency changed to ${newCurrency}`, 'success');
-                    // **MODIFICATION**: Dispatch event instead of reloading
                     document.dispatchEvent(new CustomEvent('currencyChanged', { detail: { currency: newCurrency } }));
                 } catch (error) {
                     showToast('Could not save currency preference.', 'error');
@@ -264,7 +263,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
-        // Sidebar toggle logic for mobile
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebar-toggle');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -320,22 +318,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initCurrency(user ? user.uid : null);
 
         if (user) {
-            // --- ADD THIS NEW CODE ---
-        // Check if the user is new by looking at their creation time.
-        // This is a reliable way to identify a first-time login.
-        const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
-
-        if (isNewUser) {
-            // Give the page a moment to load before starting the tour
-            setTimeout(() => {
-                initAndStartTour(user);
-            }, 1500); // 1.5-second delay
-        }
-        // --- END OF NEW CODE ---
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 userData = userDoc.data();
             }
+
+            // --- MERGED TOUR TRIGGER ---
+            const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
+            if (isNewUser || sessionStorage.getItem('tour_step')) {
+                if (!userData || !userData.hasCompletedTour) {
+                    setTimeout(() => {
+                        if (window.initAndStartTour) {
+                            window.initAndStartTour(user);
+                        } else {
+                            console.error("Tour function not available. Make sure tour.js is loaded.");
+                        }
+                    }, 1500);
+                }
+            }
+            // --- END OF TOUR TRIGGER ---
         }
 
         document.dispatchEvent(new CustomEvent('authReady', { detail: { user, userData } }));
@@ -549,6 +550,10 @@ async function showTermsModal() {
         try {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             await userCredential.user.sendEmailVerification();
+            // Close the registration and terms modals after success
+            closeModal(document.getElementById('registerModal'));
+            termsModal.remove();
+            showToast('Registration successful! Please check your email to verify your account.', 'success');
         } catch (err) {
             if (errorMessageEl) {
                 errorMessageEl.textContent = err.message;
@@ -557,7 +562,10 @@ async function showTermsModal() {
                 showToast(err.message, "error");
             }
         } finally {
-            termsModal.remove();
+            // This ensures the modal is removed even if there's an error
+            if (document.body.contains(termsModal)) {
+                 termsModal.remove();
+            }
         }
     });
 }
