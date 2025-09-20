@@ -320,6 +320,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         await initCurrency(user ? user.uid : null);
 
         if (user) {
+            // --- ADD THIS NEW CODE ---
+        // Check if the user is new by looking at their creation time.
+        // This is a reliable way to identify a first-time login.
+        const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
+
+        if (isNewUser) {
+            // Give the page a moment to load before starting the tour
+            setTimeout(() => {
+                initAndStartTour(user);
+            }, 1500); // 1.5-second delay
+        }
+        // --- END OF NEW CODE ---
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 userData = userDoc.data();

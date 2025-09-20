@@ -371,7 +371,9 @@ async function handleBulkDeleteClick() {
 async function handleBulkListFormSubmit(e) {
     e.preventDefault();
     UI.setButtonLoading(e.submitter, true);
-    // Implementation from previous correct response
+    // This function appears to be a stub, the main logic is in handleFinalizeBulkList
+    console.log("Bulk list form submitted, but logic is in handleFinalizeBulkList.");
+    UI.setButtonLoading(e.submitter, false);
 }
 
 function handleBulkApplyPercentage() {
@@ -385,45 +387,95 @@ function handleBulkApplyPercentage() {
     });
 }
 
+/**
+ * REWRITTEN & CORRECTED: Finalizes the bulk listing process.
+ * Creates new documents in the top-level 'marketplaceListings' collection
+ * and updates the original cards in the user's collection.
+ * Uses a Firestore batch write for atomicity and prioritizes user profile data.
+ */
 async function handleFinalizeBulkList(e) {
     UI.setButtonLoading(e.target, true);
+    const db = firebase.firestore();
+    const batch = db.batch();
+
     try {
-        const updates = [];
-        document.querySelectorAll('#bulk-review-list > div').forEach(item => {
+        // Fetch current user's profile data once for all listings
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (!userDoc.exists) {
+            throw new Error("Could not find your user profile data.");
+        }
+        const userData = userDoc.data();
+        
+        // --- FIX IMPLEMENTED HERE ---
+        // Prioritize the displayName from the user's Firestore document.
+        const sellerData = {
+            uid: currentUser.uid,
+            displayName: userData.displayName || currentUser.displayName, // Use Firestore data first
+            photoURL: userData.photoURL || currentUser.photoURL,
+            country: userData.country || 'Unknown'
+        };
+        // --- END OF FIX ---
+
+        let listingsCount = 0;
+        const itemsToList = document.querySelectorAll('#bulk-review-list > div');
+
+        for (const item of itemsToList) {
             const cardId = item.dataset.id;
+            const card = Collection.getCardById(cardId);
+            if (!card) {
+                console.warn(`Card with ID ${cardId} not found in local collection. Skipping.`);
+                continue;
+            }
+
             const marketPrice = parseFloat(item.dataset.marketPrice);
             const fixedPriceInput = item.querySelector('.bulk-review-fixed-input');
             const percentageInput = item.querySelector('.bulk-review-percent-input');
-            let salePrice = null;
+            let price = null;
 
-            if (fixedPriceInput.value) {
-                salePrice = parseFloat(fixedPriceInput.value);
-            } else if (percentageInput.value && marketPrice > 0) {
-                salePrice = (marketPrice * parseFloat(percentageInput.value)) / 100;
+            if (fixedPriceInput && fixedPriceInput.value) {
+                price = parseFloat(fixedPriceInput.value);
+            } else if (percentageInput && percentageInput.value && marketPrice > 0) {
+                price = (marketPrice * parseFloat(percentageInput.value)) / 100;
             }
 
-            if (salePrice !== null) {
-                updates.push({
-                    id: cardId,
-                    data: {
-                        forSale: true,
-                        salePrice: parseFloat(salePrice.toFixed(2))
-                    }
+            if (price !== null && !isNaN(price) && price > 0) {
+                const listingData = {
+                    cardData: { ...card },
+                    price: parseFloat(price.toFixed(2)),
+                    condition: card.condition || 'Not Specified',
+                    isFoil: card.isFoil || false,
+                    listedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    sellerData: sellerData,
+                    originalCollectionCardId: card.id
+                };
+                delete listingData.cardData.id;
+
+                const newListingRef = db.collection('marketplaceListings').doc();
+                batch.set(newListingRef, listingData);
+
+                const userCardRef = db.collection('users').doc(currentUser.uid).collection('collection').doc(card.id);
+                batch.update(userCardRef, {
+                    isForSale: true,
+                    listingId: newListingRef.id
                 });
-            }
-        });
 
-        if (updates.length > 0) {
-            await Collection.batchUpdateSaleStatus(updates);
-            UI.showToast(`${updates.length} cards have been listed for sale.`, 'success');
+                listingsCount++;
+            }
+        }
+
+        if (listingsCount > 0) {
+            await batch.commit();
+            UI.showToast(`${listingsCount} cards have been successfully listed for sale.`, 'success');
             UI.closeModal(document.getElementById('bulk-review-modal'));
+            await Collection.loadCollection(currentUser.uid);
             applyAndRender({});
+            handleBulkEditToggle();
         } else {
-            UI.showToast('No valid prices were set.', 'info');
+            UI.showToast('No cards were listed. Please ensure you set a valid price for at least one card.', 'info');
         }
     } catch (error) {
         console.error('Bulk list finalization failed:', error);
-        UI.showToast('There was an error listing your cards.', 'error');
+        UI.showToast('There was an error listing your cards. Please try again.', 'error');
     } finally {
         UI.setButtonLoading(e.target, false);
     }

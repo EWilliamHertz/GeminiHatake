@@ -1,3 +1,48 @@
+/* General body styling */
+body {
+    background-color: #f0f2f5;
+    color: #1c1e21;
+    font-family: 'Inter', sans-serif;
+    overscroll-behavior-y: none; /* Prevents pull-to-refresh gestures on mobile */
+}
+
+/* Scrollbar styling for webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Add a smooth scroll behavior to the root element */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Ensure the main content area is allowed to scroll */
+main {
+    overflow-y: auto; /* Changed from 'hidden' to 'auto' */
+}
+
+/* Responsive design adjustments */
+@media (max-width: 768px) {
+    /* Styles for mobile devices */
+    body {
+        -webkit-text-size-adjust: 100%; /* Prevents iOS font scaling */
+    }
+}
+
 /* --- Skeleton Loader Styles --- */
 @keyframes pulse {
     50% {
@@ -20,7 +65,6 @@
 #scroll-to-top-btn:hover {
     transform: scale(1.1);
 }
-/* Add these styles to the end of your existing css/style.css file */
 
 /* --- Playtest Modal --- */
 .playtest-btn {
@@ -137,9 +181,6 @@
 }
 
 /* --- Full Page Messenger --- */
-#conversations-list .conversation-item {
-    @apply flex items-center p-3 cursor-pointer hover:bg-gray-100 border-b border-gray-200;
-}
 #conversations-list .conversation-item.active {
     @apply bg-blue-50;
 }
@@ -153,43 +194,10 @@
 #messages-container .message.received {
     @apply justify-start;
 }
-#messages-container .message-bubble {
-    @apply p-3 rounded-lg max-w-xs;
-}
-#messages-container .message.sent .message-bubble {
-    @apply bg-blue-600 text-white;
-}
-#messages-container .message.received .message-bubble {
-    @apply bg-gray-200 text-gray-800;
-}
 
 /* Base Styles */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #f0f2f5; /* Light gray background similar to social media platforms */
-    color: #333; /* Default text color */
-}
-
 .dark body {
     color: #d1d5db; /* A light gray for better readability in dark mode */
-}
-
-
-/* Custom scrollbar for better aesthetics */
-::-webkit-scrollbar {
-    width: 8px;
-}
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-    cursor: pointer;
 }
 
 /* Header Styles */
@@ -587,7 +595,6 @@ body {
     color: #dc2626; /* red-700 */
 }
 
-
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .header-content {
@@ -642,7 +649,6 @@ body {
         font-size: 1.5rem;
     }
 }
-/* Add to your existing style.css */
 
 .card-link {
     position: relative;
@@ -671,32 +677,6 @@ body {
     width: 200px;
 }
 
-.modal-overlay.open {
-    display: flex;
-}
-/* Product Card Styles (for shop.html) */
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem; /* gap-6 */
-}
-
-.product-card {
-    background-color: #ffffff;
-    border-radius: 0.75rem; /* rounded-lg */
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #e2e8f0; /* gray-200 */
-}
-
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
-}
-
 .product-card .product-image-container {
     width: 100%;
     padding-top: 100%; /* 1:1 Aspect Ratio */
@@ -714,20 +694,6 @@ body {
     border-bottom: 1px solid #e2e8f0;
 }
 
-.product-info {
-    padding: 1.25rem;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.product-info h3 {
-    color: #1a202c; /* gray-800 */
-    font-size: 1.25rem; /* text-xl */
-    font-weight: 700; /* font-bold */
-    margin-bottom: 0.5rem;
-}
-
 .product-info .price {
     font-size: 1.5rem; /* text-2xl */
     font-weight: 800; /* font-extrabold */
@@ -742,12 +708,6 @@ body {
     margin-bottom: auto; /* Pushes actions to the bottom */
 }
 
-.product-actions {
-    display: flex;
-    gap: 0.5rem; /* space-x-2 */
-    margin-top: 1.25rem;
-}
-
 .product-actions button {
     flex: 1;
     padding: 0.6rem 1rem;
@@ -758,11 +718,6 @@ body {
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
-}
-
-.product-actions .add-to-cart-btn {
-    background-color: #2563eb; /* blue-600 */
-    color: white;
 }
 
 .product-actions .add-to-cart-btn:hover {
@@ -782,94 +737,23 @@ body {
 }
 
 /* Product Detail Modal Specific Styles */
-.product-detail-modal .modal-content {
-    max-width: 900px;
-}
-.product-detail-modal .modal-body {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem; /* gap-8 */
-}
 @media (min-width: 768px) {
     .product-detail-modal .modal-body {
         flex-direction: row;
     }
 }
-.product-detail-modal .product-image-gallery {
-    flex: 1;
-    min-width: 300px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.product-detail-modal .product-image-gallery img#modal-main-image {
-    width: 100%;
-    max-height: 400px;
-    object-fit: contain;
-    border-radius: 0.5rem; /* rounded-lg */
-    margin-bottom: 1rem;
-    background-color: #f8fafc; /* gray-50 for transparent images */
-    border: 1px solid #e2e8f0;
-}
-.product-detail-modal .thumbnail-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem; /* gap-2 */
-    justify-content: center;
-}
-.product-detail-modal .thumbnail-strip img {
-    width: 70px;
-    height: 70px;
-    object-fit: cover;
-    border: 2px solid transparent;
-    border-radius: 0.375rem; /* rounded-md */
-    cursor: pointer;
-    transition: border-color 0.2s ease, transform 0.2s ease;
-}
-.product-detail-modal .thumbnail-strip img:hover,
-.product-detail-modal .thumbnail-strip img.active {
-    border-color: #3b82f6; /* blue-500 */
-    transform: scale(1.05);
-}
 .product-detail-modal .product-details-content {
     flex: 1.5;
-    min-width: 300px;
-}
-.product-detail-modal .product-details-content h2 {
-    color: #1a202c; /* gray-800 */
-    font-size: 1.875rem; /* text-3xl */
-    font-weight: 700; /* font-bold */
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-}
-.product-detail-modal .modal-product-price {
-    font-size: 1.5rem; /* text-2xl */
-    font-weight: 800; /* font-extrabold */
-    color: #2563eb; /* blue-600 */
-    margin-bottom: 1rem;
 }
 .product-detail-modal .product-details-content p {
-    margin-bottom: 0.5rem;
-    color: #4a5568; /* gray-700 */
     line-height: 1.6;
 }
-.product-detail-modal .product-details-content strong {
-    color: #1a202c; /* gray-800 */
-}
 .product-detail-modal .product-details-content h4 {
-    color: #1a202c; /* gray-800 */
     margin-top: 1.5rem;
     margin-bottom: 0.75rem;
     font-size: 1.125rem; /* text-lg */
-    font-weight: 700; /* font-bold */
     border-bottom: 1px solid #e2e8f0;
     padding-bottom: 0.5rem;
-}
-.product-detail-modal .product-details-content ul {
-    list-style: disc;
-    margin-left: 1.25rem; /* pl-5 */
-    padding-left: 0;
-    color: #4a5568; /* gray-700 */
 }
 .product-detail-modal .product-details-content ul li {
     margin-bottom: 0.5rem;
@@ -892,69 +776,33 @@ body {
 }
 
 /* Cart Modal Specific Styles */
-#cart-modal .modal-content {
-    max-width: 600px;
-}
-
 #cart-items-container .cart-item {
-    display: flex;
-    align-items: center;
     gap: 1rem;
     padding: 1rem 0;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-#cart-items-container .cart-item:last-child {
-    border-bottom: none;
 }
 
 #cart-items-container .cart-item img {
     width: 80px;
     height: 80px;
-    object-fit: cover;
-    border-radius: 0.375rem;
-}
-
-#cart-items-container .cart-item-details {
-    flex-grow: 1;
 }
 
 #cart-items-container .cart-item-details h4 {
-    font-weight: 600;
-    color: #1a202c;
     margin: 0 0 0.25rem 0;
 }
 
-#cart-items-container .cart-item-details p {
-    font-size: 0.875rem;
-    color: #4a5568;
-    margin: 0;
-}
-
 #cart-items-container .cart-item-actions {
-    display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0.5rem;
-}
-
-#cart-items-container .cart-item-actions .item-price {
-    font-weight: 700;
-    color: #2563eb;
 }
 
 #cart-items-container .cart-item-actions button.remove-item-btn {
-    background: none;
-    border: none;
-    color: #ef4444; /* red-500 */
-    cursor: pointer;
     font-size: 0.8rem;
-    transition: color 0.2s ease;
 }
 
 #cart-items-container .cart-item-actions button.remove-item-btn:hover {
     color: #dc2626; /* red-700 */
 }
+
 /* --- NEW: Messenger Widget Redesign --- */
 #messenger-widget-container.minimized #messenger-widget {
     display: none;
@@ -994,104 +842,7 @@ body {
     @apply text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400;
 }
 
-
-/* --- Profile Page Tabs --- */
-.profile-tab-button {
-    @apply whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300;
-}
-.profile-tab-button.active {
-    @apply text-blue-600 border-blue-600;
-}
-
-/* --- Badge Styles --- */
-.badge-item {
-    @apply flex flex-col items-center justify-center text-center p-3 bg-gray-100 dark:bg-gray-700 rounded-lg w-24 h-24 transition-transform duration-200 hover:scale-105;
-    position: relative;
-    cursor: help; /* Indicates more info on hover */
-}
-
-.badge-icon {
-    @apply text-3xl mb-1;
-}
-
-.badge-name {
-    @apply text-xs font-semibold text-gray-700 dark:text-gray-200;
-}
-
-/* Add these new rules to the end of your css/style.css file */
-
-/* --- NEW: Chat Bubble and Message Styling --- */
-#messages-container {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.message-group {
-    max-width: 75%;
-    display: flex;
-    flex-direction: column;
-}
-
-.message-group.items-end {
-    align-self: flex-end;
-}
-
-.message-group.items-start {
-    align-self: flex-start;
-}
-
-.message-bubble {
-    padding: 0.75rem 1rem;
-    border-radius: 1.25rem; /* rounded-xl */
-    line-height: 1.5;
-}
-
-.message-group.items-end .message-bubble {
-    background-color: #2563eb; /* Tailwind blue-600 */
-    color: white;
-    border-bottom-right-radius: 0.375rem; /* rounded-md */
-}
-
-.message-group.items-start .message-bubble {
-    background-color: #e5e7eb; /* Tailwind gray-200 */
-    color: #1f2937; /* Tailwind gray-800 */
-    border-bottom-left-radius: 0.375rem; /* rounded-md */
-}
-
-.dark .message-group.items-start .message-bubble {
-    background-color: #374151; /* Tailwind gray-700 */
-    color: #f3f4f6; /* Tailwind gray-100 */
-}
-
-.message-timestamp {
-    font-size: 0.75rem; /* text-xs */
-    color: #6b7280; /* Tailwind gray-500 */
-    padding: 0 0.25rem;
-    margin-top: 0.25rem;
-}
-
-.dark .message-timestamp {
-    color: #9ca3af; /* Tailwind gray-400 */
-}
-
-/* Active conversation highlight */
-.conversation-item.bg-blue-50 {
-    background-color: #EFF6FF;
-}
-.dark .conversation-item.dark\:bg-blue-900\/50 {
-    background-color: rgba(30, 58, 138, 0.5);
-}
 /* --- NEW STYLES FOR UI/UX REVAMP --- */
-
-/* --- Skeleton Loader Styles --- */
-@keyframes pulse {
-    50% {
-        opacity: .5;
-    }
-}
-
 /* --- Toast Notification Styles --- */
 .toast {
     padding: 1rem 1.5rem;
@@ -1180,162 +931,23 @@ body {
     border-color: #4b5563; /* gray-600 */
 }
 
-
-/* --- Modal Input and Button Styles --- */
-.input-style {
-    @apply px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-}
-
-.separator {
-    @apply relative text-center text-gray-500 dark:text-gray-400 my-4;
-}
-
-.separator::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #e5e7eb;
-    z-index: 1;
-}
-
-.dark .separator::before {
-    background: #4b5563;
-}
-
-.separator {
-    background: white;
-    padding: 0 1rem;
-    position: relative;
-    z-index: 2;
-}
-
-.dark .separator {
-    background: #1f2937;
-}
-
-.modal-close-btn {
-    @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold cursor-pointer;
-    background: none;
-    border: none;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-close-btn:hover {
-    @apply bg-gray-100 dark:bg-gray-700 rounded-full;
-}
-
-
-/* --- Modal Input and Button Styles --- */
-.input-style {
-    @apply px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-}
-
-.separator {
-    @apply relative text-center text-gray-500 dark:text-gray-400 my-4;
-}
-
-.separator::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: #e5e7eb;
-    z-index: 1;
-}
-
-.dark .separator::before {
-    background: #4b5563;
-}
-
-.separator {
-    background: white;
-    padding: 0 1rem;
-    position: relative;
-    z-index: 2;
-}
-
-.dark .separator {
-    background: #1f2937;
-}
-
-.modal-close-btn {
-    @apply absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl font-bold cursor-pointer;
-    background: none;
-    border: none;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-close-btn:hover {
-    @apply bg-gray-100 dark:bg-gray-700 rounded-full;
-}
-
 /* === Modal and Toast Styling === */
-
 /* Modal Overlay */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    display: none; /* Hidden by default */
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
     backdrop-filter: blur(4px);
 }
 
-.modal-overlay.open {
-    display: flex;
-}
-
 /* Modal Content */
-.modal-content {
-    background-color: #ffffff;
-    padding: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 420px;
-    position: relative;
-    transform: scale(0.95);
-    opacity: 0;
-    transition: all 0.2s ease-in-out;
-}
-
 .dark .modal-content {
     background-color: #1f2937; /* gray-800 */
 }
 
-.modal-overlay.open .modal-content {
-    transform: scale(1);
-    opacity: 1;
-}
-
 /* Modal Close Button */
 .modal-close-btn {
-    position: absolute;
     top: 10px;
     right: 15px;
     font-size: 1.8rem;
     color: #9ca3af; /* gray-400 */
-    background: none;
-    border: none;
-    cursor: pointer;
 }
 .dark .modal-close-btn {
     color: #6b7280; /* gray-500 */
@@ -1376,33 +988,12 @@ body {
 
 /* Primary and Secondary Buttons */
 .btn-primary {
-    display: flex;
-    justify-content: center;
-    padding: 0.75rem 1rem;
-    border: 1px solid transparent;
     font-size: 0.875rem;
     font-weight: 500;
-    border-radius: 0.5rem;
-    color: #ffffff;
-    background-color: #2563eb; /* blue-600 */
-    transition: background-color 0.2s;
 }
-.btn-primary:hover {
-    background-color: #1d4ed8; /* blue-700 */
-}
-
 .btn-secondary {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db; /* gray-300 */
     font-size: 0.875rem;
     font-weight: 500;
-    border-radius: 0.5rem;
-    background-color: #ffffff;
-    color: #374151; /* gray-700 */
-    transition: background-color 0.2s;
 }
 .dark .btn-secondary {
     border-color: #4b5563; /* gray-600 */
@@ -1420,13 +1011,9 @@ body {
     font-size: 0.75rem;
 }
 
-
 /* Separator */
 .separator {
-    position: relative;
-    text-align: center;
     margin: 1.25rem 0;
-    color: #6b7280; /* gray-500 */
     font-size: 0.75rem;
 }
 .separator::before, .separator::after {
@@ -1445,10 +1032,7 @@ body {
 
 /* Dropdown Item */
 .dropdown-item {
-    display: block;
-    padding: 0.5rem 1rem;
     font-size: 0.875rem;
-    color: #374151; /* gray-700 */
 }
 .dark .dropdown-item {
     color: #d1d5db; /* gray-300 */
@@ -1473,27 +1057,16 @@ body {
 
 /* Toast Styling */
 .toast {
-    display: flex;
-    align-items: center;
     padding: 12px 16px;
     border-radius: 8px;
-    color: white;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    opacity: 0;
-    transform: translateX(100%);
-    transition: all 0.4s ease-in-out;
-}
-.toast.show {
-    opacity: 1;
-    transform: translateX(0);
 }
 .toast-icon {
     margin-right: 10px;
     font-size: 1.2em;
 }
-.toast-info { background-color: #3b82f6; }
 .toast-success { background-color: #10b981; }
-.toast-error { background-color: #ef4444; }
+
 /* Modal styles */
 .modal {
     display: none; /* Hidden by default */
@@ -1507,19 +1080,6 @@ body {
     background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
 }
 
-.modal-content {
-    background-color: #fefefe;
-    color: #333; /* Text color for light mode */
-    margin: 15% auto; /* 15% from the top and centered */
-    padding: 20px;
-    border: 1px solid #888;
-    width: 80%; /* Could be more or less, depending on screen size */
-    max-width: 400px;
-    border-radius: 8px;
-    position: relative;
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-}
-
 /* Styles for modal in dark mode */
 body.dark-mode .modal-content {
     background-color: #333;
@@ -1527,25 +1087,10 @@ body.dark-mode .modal-content {
     border-color: #555;
 }
 
-.close-button {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: #000;
-    text-decoration: none;
-    cursor: pointer;
-}
-
 body.dark-mode .close-button:hover,
 body.dark-mode .close-button:focus {
     color: #fff;
 }
-
 
 .modal-switch {
     text-align: center;
@@ -1599,11 +1144,6 @@ body.dark-mode .close-button:focus {
 }
 
 /* --- Messenger Widget Layout --- */
-#messenger-widget-body {
-    display: flex;
-    flex-direction: column;
-}
-
 #widget-chat-view {
     display: flex;
     flex-direction: column;
@@ -1629,7 +1169,6 @@ body.dark-mode .close-button:focus {
     align-items: center;
     justify-content: center;
 }
-
 
 /* --- Mobile Messaging Styles --- */
 @media (max-width: 640px) {
