@@ -66,7 +66,7 @@ function initArticlesListPage(user) {
 
     if (user) {
         user.getIdTokenResult().then(idTokenResult => {
-            if (idTokenResult.claims.admin && writeNewArticleBtn) {
+            if ((idTokenResult.claims.admin || idTokenResult.claims.content_creator) && writeNewArticleBtn) {
                  writeNewArticleBtn.classList.remove('hidden');
             }
         });

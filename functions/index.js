@@ -1326,3 +1326,54 @@ exports.createGameFromMatch = functions.https.onCall(async (data, context) => {
     return { gameId: gameRef.id };
 });
 
+
+/**
+ * Sets custom user claims for role management (admin or content_creator).
+ * Only admins can call this function.
+ */
+exports.setUserRole = functions.https.onCall(async (data, context) => {
+    // Ensure the user calling the function is an admin
+    if (!context.auth || context.auth.token.admin !== true) {
+        throw new functions.https.HttpsError('permission-denied', 'Only admins can set user roles.');
+    }
+
+    const { uid, role, value } = data;
+    
+    if (!uid || !role || typeof value !== 'boolean') {
+        throw new functions.https.HttpsError('invalid-argument', 'UID, role, and value (boolean) are required.');
+    }
+
+    // Validate role
+    if (role !== 'admin' && role !== 'content_creator') {
+        throw new functions.https.HttpsError('invalid-argument', 'Role must be either "admin" or "content_creator".');
+    }
+
+    try {
+        // Get current custom claims
+        const user = await admin.auth().getUser(uid);
+        const currentClaims = user.customClaims || {};
+        
+        // Update the specific role
+        const newClaims = { ...currentClaims, [role]: value };
+        
+        // Set the custom claim for the user
+        await admin.auth().setCustomUserClaims(uid, newClaims);
+        
+        // Also update the user document in Firestore for easier querying
+        const userRef = db.collection('users').doc(uid);
+        const updateData = {};
+        
+        if (role === 'admin') {
+            updateData.isAdmin = value;
+        } else if (role === 'content_creator') {
+            updateData.isContentCreator = value;
+        }
+        
+        await userRef.update(updateData);
+        
+        return { success: `User ${uid} has been updated with ${role}: ${value}.` };
+    } catch (error) {
+        console.error('Error setting user role:', error);
+        throw new functions.https.HttpsError('internal', error.message);
+    }
+});

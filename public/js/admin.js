@@ -109,7 +109,38 @@ document.addEventListener('authReady', (e) => {
     };
 
     const renderUsersTab = () => {
-        document.getElementById('tab-content-users').innerHTML = `<h2 class="text-2xl font-bold mb-4">User Management</h2><div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow"><table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">User</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Joined</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th><th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th></tr></thead><tbody id="users-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody></table></div>`;
+        document.getElementById('tab-content-users').innerHTML = `
+            <h2 class="text-2xl font-bold mb-4">User Management</h2>
+            
+            <!-- User Role Management Section -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
+                <h3 class="text-xl font-bold mb-4">User Role Management</h3>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                    <input type="text" id="user-email-input" placeholder="Enter user email" class="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                    <select id="role-select" class="p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        <option value="content_creator">Content Creator</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button id="set-role-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Set Role</button>
+                </div>
+                <p id="role-status" class="mt-4 text-green-500"></p>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">User</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Email</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Joined</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                </table>
+            </div>`;
     };
 
     const renderContentTab = () => {
@@ -460,6 +491,56 @@ document.addEventListener('authReady', (e) => {
         elements.productForm.addEventListener('submit', handleProductFormSubmit);
         document.getElementById('tab-content-platform').addEventListener('submit', e => {
             if (e.target.id === 'broadcast-form') handleBroadcastSubmit(e);
+        });
+
+        // Role management event listener
+        document.addEventListener('click', async (e) => {
+            if (e.target.id === 'set-role-btn') {
+                const userEmailInput = document.getElementById('user-email-input');
+                const roleSelect = document.getElementById('role-select');
+                const roleStatus = document.getElementById('role-status');
+                
+                const email = userEmailInput.value.trim();
+                const role = roleSelect.value;
+
+                if (!email || !role) {
+                    roleStatus.textContent = "Please enter a user email and select a role.";
+                    roleStatus.className = "mt-4 text-red-500";
+                    return;
+                }
+
+                roleStatus.textContent = "Processing...";
+                roleStatus.className = "mt-4 text-blue-500";
+
+                try {
+                    // Find user by email in Firestore
+                    const userQuery = await db.collection('users').where('email', '==', email).get();
+                    if (userQuery.empty) {
+                        roleStatus.textContent = "User not found.";
+                        roleStatus.className = "mt-4 text-red-500";
+                        return;
+                    }
+
+                    const userToUpdate = userQuery.docs[0];
+                    const setUserRole = functions.httpsCallable('setUserRole');
+                    const result = await setUserRole({ uid: userToUpdate.id, role: role, value: true });
+
+                    if (result.data.success) {
+                        roleStatus.textContent = result.data.success;
+                        roleStatus.className = "mt-4 text-green-500";
+                        userEmailInput.value = '';
+                        // Refresh users list to show updated roles
+                        loadUsers();
+                    } else {
+                        roleStatus.textContent = `Error: ${result.data.error}`;
+                        roleStatus.className = "mt-4 text-red-500";
+                    }
+                } catch (error) {
+                    console.error('Error setting user role:', error);
+                    roleStatus.textContent = `Error: ${error.message}`;
+                    roleStatus.className = "mt-4 text-red-500";
+                }
+            }
         });
     };
 

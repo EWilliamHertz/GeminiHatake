@@ -94,8 +94,8 @@ service cloud.firestore {
     
     match /articles/{articleId} {
       allow read: if resource.data.status == 'published';
-     allow create: if isSignedIn();
-      allow update, delete: if isUser(resource.data.authorId) || isAdmin();
+      allow create: if isSignedIn() && (isAdmin() || isContentCreator());
+      allow update, delete: if isUser(resource.data.authorId) || isAdmin() || isContentCreator();
     }
 
     match /groups/{groupId} {
