@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draft Demo - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <style>
+        .card-hover {
+            transition: all 0.2s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        .draft-timer {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-gray-800 shadow-lg flex-shrink-0">
+            <div class="px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">
+                            <i class="fas fa-magic mr-2 text-purple-400"></i>Draft Demo - Local Testing
+                        </h1>
+                        <p class="text-gray-400 mt-1">Test the draft system with bots on localhost</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-sm text-gray-400">
+                            Pack <span id="pack-number" class="font-semibold text-blue-400">1</span> • 
+                            Pick <span id="pick-number" class="font-semibold text-green-400">1</span> • 
+                            <span id="timer-display" class="draft-timer font-semibold text-yellow-400">30s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden p-6 flex">
+            <!-- Left Panel - Draft Setup -->
+            <div id="setup-panel" class="w-1/3 pr-6">
+                <div class="bg-gray-800 rounded-lg p-6 h-full">
+                    <h2 class="text-xl font-bold mb-4 text-white">Draft Setup</h2>
+                    
+                    <!-- Set Selection -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Select Set:</label>
+                        <select id="set-selector" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2">
+                            <option value="MKM">Murders at Karlov Manor</option>
+                            <option value="LCI">The Lost Caverns of Ixalan</option>
+                            <option value="WOE">Wilds of Eldraine</option>
+                            <option value="LTR">The Lord of the Rings</option>
+                        </select>
+                    </div>
+
+                    <!-- Player Setup -->
+                    <div class="mb-4">
+                        <h3 class="font-semibold mb-2 text-white">Players (<span id="player-count">1</span>/8)</h3>
+                        <div id="player-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                            <div class="flex items-center space-x-2 p-2 bg-gray-700 rounded">
+                                <img src="https://via.placeholder.com/32x32/4f46e5/fff?text=You" class="w-8 h-8 rounded-full">
+                                <span class="text-white">You (Host)</span>
+                                <i class="fas fa-crown text-yellow-400 ml-auto"></i>
+                            </div>
+                        </div>
+                        
+                        <!-- Bot Controls -->
+                        <div class="space-y-2">
+                            <button id="add-bot-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors">
+                                <i class="fas fa-robot mr-2"></i>Add Bot
+                            </button>
+                            <button id="fill-with-bots-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition-colors">
+                                <i class="fas fa-fill mr-2"></i>Fill with Bots (8 total)
+                            </button>
+                            <button id="start-draft-btn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50" disabled>
+                                <i class="fas fa-play mr-2"></i>Start Draft
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Draft Status -->
+                    <div id="draft-status" class="mt-6 p-3 bg-gray-700 rounded-lg">
+                        <h4 class="font-semibold text-white mb-2">Status</h4>
+                        <p id="status-text" class="text-gray-300 text-sm">Set up your draft and add players</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Draft Area -->
+            <div class="flex-1 flex flex-col">
+                <!-- Current Pack -->
+                <div id="current-pack-container" class="flex-grow mb-4">
+                    <div class="bg-gray-800 rounded-lg p-4 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="font-bold text-lg text-white">
+                                <i class="fas fa-cards-blank mr-2 text-blue-400"></i>
+                                Current Pack - Pick a Card
+                            </h2>
+                            <div class="text-sm text-gray-400">
+                                <span id="cards-remaining">15</span> cards remaining
+                            </div>
+                        </div>
+                        
+                        <div id="current-pack-cards" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 flex-grow overflow-y-auto p-2">
+                            <div class="col-span-full flex items-center justify-center h-64">
+                                <div class="text-center">
+                                    <i class="fas fa-play text-4xl text-green-400 mb-4"></i>
+                                    <p class="text-gray-400">Start a draft to begin picking cards</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Picked Cards -->
+                <div id="picked-cards-footer" class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-bold text-lg text-white">
+                            <i class="fas fa-collection mr-2 text-green-400"></i>
+                            Your Picks (<span id="picked-count">0</span>)
+                        </h2>
+                        <div class="text-sm text-gray-400">
+                            Total: <span id="total-picks">0</span>/42
+                        </div>
+                    </div>
+                    
+                    <div id="picked-cards-container" class="flex space-x-2 overflow-x-auto pb-2" style="height: 100px;">
+                        <div class="flex items-center justify-center w-full text-gray-500">
+                            <div class="text-center">
+                                <i class="fas fa-cards-blank text-2xl mb-2"></i>
+                                <p class="text-sm">Your drafted cards will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Draft Complete Modal -->
+    <div id="draft-complete-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+            <div class="text-center">
+                <i class="fas fa-trophy text-6xl text-yellow-400 mb-4"></i>
+                <h2 class="text-2xl font-bold text-white mb-4">Draft Complete!</h2>
+                <p class="text-gray-300 mb-6">You've successfully drafted all your cards!</p>
+                <div class="space-y-3">
+                    <button id="view-results-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-eye mr-2"></i>View Results
+                    </button>
+                    <button id="new-draft-btn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Start New Draft
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/draft-bots.js"></script>
+    <script src="js/local-draft.js"></script>
+    
+    <script>
+        // Demo-specific initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create a demo user
+            const demoUser = {
+                id: 'demo_user',
+                name: 'You',
+                photoURL: 'https://via.placeholder.com/40x40/4f46e5/fff?text=You',
+                isBot: false
+            };
+
+            // Initialize event listeners
+            document.getElementById('add-bot-btn').addEventListener('click', () => {
+                try {
+                    const bot = localDraft.addBot();
+                    updateStatus(`Added bot: ${bot.name}`);
+                    updateStartButton();
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            });
+
+            document.getElementById('fill-with-bots-btn').addEventListener('click', () => {
+                localDraft.fillWithBots();
+                updateStatus('Filled lobby with bots');
+                updateStartButton();
+            });
+
+            document.getElementById('start-draft-btn').addEventListener('click', async () => {
+                const setCode = document.getElementById('set-selector').value;
+                if (!localDraft.currentDraft) {
+                    localDraft.createDraft(setCode, demoUser);
+                }
+                
+                try {
+                    await localDraft.startDraft();
+                    updateStatus('Draft started! Make your picks.');
+                    document.getElementById('setup-panel').style.display = 'none';
+                } catch (error) {
+                    updateStatus(`Error: ${error.message}`);
+                }
+            });
+
+            document.getElementById('new-draft-btn').addEventListener('click', () => {
+                location.reload();
+            });
+
+            document.getElementById('view-results-btn').addEventListener('click', () => {
+                console.log('Draft Results:', localDraft.playerPicks);
+                alert('Check the browser console for detailed results!');
+            });
+
+            // Initialize with demo user
+            const setCode = document.getElementById('set-selector').value;
+            localDraft.createDraft(setCode, demoUser);
+            updateStatus('Draft lobby created. Add bots to start!');
+
+            function updateStartButton() {
+                const startBtn = document.getElementById('start-draft-btn');
+                const canStart = localDraft.players.length >= 2;
+                startBtn.disabled = !canStart;
+                
+                if (canStart) {
+                    startBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Start Draft';
+                } else {
+                    startBtn.innerHTML = '<i class="fas fa-users mr-2"></i>Need More Players';
+                }
+            }
+
+            function updateStatus(message) {
+                document.getElementById('status-text').textContent = message;
+            }
+
+            // Update UI periodically
+            setInterval(() => {
+                if (localDraft.isActive) {
+                    localDraft.updateUI();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

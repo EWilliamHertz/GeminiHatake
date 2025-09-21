@@ -82,6 +82,22 @@
                                         <i class="fas fa-users mr-2"></i>Players (<span id="player-count">0</span>/8)
                                     </h3>
                                     <ul id="player-list" class="space-y-3"></ul>
+                                    
+                                    <!-- Bot Controls -->
+                                    <div id="bot-controls" class="hidden mt-4 p-3 bg-gray-600 rounded-lg">
+                                        <h4 class="text-sm font-semibold text-white mb-2 flex items-center">
+                                            <i class="fas fa-robot mr-2 text-purple-400"></i>Bot Players
+                                        </h4>
+                                        <div class="flex gap-2">
+                                            <button id="add-bot-btn" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm py-1 px-3 rounded transition-colors">
+                                                <i class="fas fa-plus mr-1"></i>Add Bot
+                                            </button>
+                                            <button id="fill-with-bots-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-1 px-3 rounded transition-colors">
+                                                <i class="fas fa-fill mr-1"></i>Fill (8)
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
                                     <button id="start-draft-btn" class="hidden w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50">
                                         <i class="fas fa-play mr-2"></i>Start Draft
                                     </button>
@@ -126,6 +142,8 @@
     
     <!-- Custom Scripts -->
     <script src="js/auth.js"></script>
+    <script src="js/draft-bots.js"></script>
+    <script src="js/local-draft.js"></script>
     <script src="js/draft.js" type="module"></script>
 </body>
 </html>
