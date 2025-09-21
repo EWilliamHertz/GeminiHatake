@@ -43,7 +43,7 @@ transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
   </style>
   <link href="/manifest.json" rel="manifest"/>
  </head>
- <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
   <div class="flex h-screen">
    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
    </div>
@@ -225,7 +225,7 @@ transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
       </div>
      </div>
     </div>
-    <div>
+    <main class="flex-1 overflow-y-auto p-6">
      <div class="tab-content" id="content-builder">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
        <div>
@@ -464,7 +464,7 @@ Example:
        </div>
       </div>
      </div>
-    </div>
+    </main>
     <div class="modal-overlay hidden" id="import-deck-modal">
      <div class="modal-content w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg">
       <button class="close-button" id="close-import-modal">
