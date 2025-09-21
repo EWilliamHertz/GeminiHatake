@@ -4,6 +4,7 @@
  * This script manages all sections of the settings page.
  * It uses a centralized currency module to handle currency preferences,
  * which are saved via a dedicated button in the "Account" section.
+ * - FIX: Synchronizes the messenger widget setting between Firestore and localStorage.
  */
 
 // Import the centralized currency module
@@ -172,9 +173,16 @@ document.addEventListener('authReady', (e) => {
             }
             priceSourceSelect.value = data.priceSource || 'eur';
             dateFormatSelect.value = data.dateFormat || 'dmy';
+            
+            // Messenger Widget Setting
             if (messengerWidgetToggle) {
-                messengerWidgetToggle.checked = data.messengerWidgetVisible !== false; // Default to true
+                // Sync Firestore setting to localStorage, then read from localStorage
+                // This ensures consistency for messenger.js which reads from localStorage on page load.
+                const isWidgetEnabledInDB = data.messengerWidgetEnabled === true;
+                localStorage.setItem('messengerWidgetEnabled', isWidgetEnabledInDB);
+                messengerWidgetToggle.checked = isWidgetEnabledInDB;
             }
+
 
             // Shipping
             if (data.shippingProfile) {
@@ -341,15 +349,27 @@ document.addEventListener('authReady', (e) => {
         saveDisplayBtn.disabled = true;
         saveDisplayBtn.textContent = 'Saving...';
         try {
+            const isWidgetEnabled = messengerWidgetToggle.checked;
+            
+            // Save to localStorage for immediate use by messenger.js on next page load
+            localStorage.setItem('messengerWidgetEnabled', isWidgetEnabled);
+            
+            // Save to Firestore for persistence across devices/sessions
             await db.collection('users').doc(user.uid).set({
                 dateFormat: dateFormatSelect.value,
-                messengerWidgetVisible: messengerWidgetToggle.checked,
+                messengerWidgetEnabled: isWidgetEnabled, // Use a consistent key
             }, { merge: true });
-            (window.showToast || alert)('Display settings saved successfully!', 'success');
+            
+            (window.showToast || alert)('Display settings saved! Page will reload to apply changes.', 'success');
+
+            // Reload the page to either initialize or destroy the widget
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+
         } catch (error) {
             console.error("Error saving display settings:", error);
             (window.showToast || alert)("Could not save display settings. " + error.message, "error");
-        } finally {
             saveDisplayBtn.disabled = false;
             saveDisplayBtn.textContent = 'Save Display Settings';
         }

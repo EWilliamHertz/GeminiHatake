@@ -185,8 +185,12 @@
     window.initializeMessengerWidget = ({ detail: { user } }) => {
         if (isInitialized || document.getElementById('messenger-widget-container')) return;
         
-        const isVisible = localStorage.getItem('messengerWidget-visible') !== 'false';
-        if (!isVisible) return;
+        // The widget is now OFF by default. It will only appear if the user has
+        // explicitly enabled it in their settings.
+        const isEnabled = localStorage.getItem('messengerWidgetEnabled') === 'true';
+        if (!isEnabled) {
+            return; // Do not initialize the widget
+        }
         
         createMessengerWidgetHTML();
         isInitialized = true;
