@@ -2,12 +2,10 @@
  * HatakeSocial - Complete Settings Page Script with Currency Integration
  *
  * This script manages all sections of the settings page.
- * It uses a centralized currency module to handle currency preferences,
- * which are saved via a dedicated button in the "Account" section.
- * - FIX: Synchronizes the messenger widget setting between Firestore and localStorage.
+ * It uses a centralized currency module to handle currency preferences.
+ * It saves the user's preferred card price source (EU/US) for MTG.
  */
 
-// Import the centralized currency module
 import { initCurrency, updateUserCurrency, getUserCurrency } from './modules/currency.js';
 
 document.addEventListener('authReady', (e) => {
@@ -166,12 +164,16 @@ document.addEventListener('authReady', (e) => {
                 bankAccountInput.value = data.payoutDetails.bankAccount || '';
             }
 
-            // Account & Display
+            // Account Section
             accountEmailEl.textContent = user.email;
             if (primaryCurrencySelect) {
                 primaryCurrencySelect.value = data.primaryCurrency || getUserCurrency();
             }
-            priceSourceSelect.value = data.priceSource || 'eur';
+            if (priceSourceSelect) {
+                // Set the dropdown to the user's saved preference, defaulting to 'scryfall' (EU)
+                priceSourceSelect.value = data.priceSource || 'scryfall';
+            }
+            
             dateFormatSelect.value = data.dateFormat || 'dmy';
             
             // Messenger Widget Setting
@@ -182,7 +184,6 @@ document.addEventListener('authReady', (e) => {
                 localStorage.setItem('messengerWidgetEnabled', isWidgetEnabledInDB);
                 messengerWidgetToggle.checked = isWidgetEnabledInDB;
             }
-
 
             // Shipping
             if (data.shippingProfile) {
@@ -197,7 +198,6 @@ document.addEventListener('authReady', (e) => {
             };
             document.addEventListener('currencyChange', updateShippingCurrency);
             updateShippingCurrency();
-
 
             loadMfaStatus();
 
@@ -328,13 +328,19 @@ document.addEventListener('authReady', (e) => {
         saveAccountBtn.textContent = 'Saving...';
         try {
             const newCurrency = primaryCurrencySelect.value;
-            const newPriceSource = priceSourceSelect.value;
-            // Use the centralized function to update currency
-            await updateUserCurrency(newCurrency); 
-            // Update other non-currency fields
+            const newPriceSource = priceSourceSelect.value; // Will be 'scryfall' or 'scrydex'
+
+            // 1. Save the price source to localStorage for immediate use by api.js
+            localStorage.setItem('priceProvider', newPriceSource);
+            
+            // 2. Use the centralized function to update currency
+            await updateUserCurrency(newCurrency);
+            
+            // 3. Update the price source in Firestore for persistence across devices
             await db.collection('users').doc(user.uid).update({
                 priceSource: newPriceSource
             });
+            
             (window.showToast || alert)('Account settings saved successfully!', 'success');
         } catch (error) {
             console.error("Error saving account settings:", error);
@@ -349,27 +355,23 @@ document.addEventListener('authReady', (e) => {
         saveDisplayBtn.disabled = true;
         saveDisplayBtn.textContent = 'Saving...';
         try {
-            const isWidgetEnabled = messengerWidgetToggle.checked;
-            
-            // Save to localStorage for immediate use by messenger.js on next page load
-            localStorage.setItem('messengerWidgetEnabled', isWidgetEnabled);
-            
-            // Save to Firestore for persistence across devices/sessions
-            await db.collection('users').doc(user.uid).set({
-                dateFormat: dateFormatSelect.value,
-                messengerWidgetEnabled: isWidgetEnabled, // Use a consistent key
-            }, { merge: true });
-            
-            (window.showToast || alert)('Display settings saved! Page will reload to apply changes.', 'success');
+            const newDateFormat = dateFormatSelect.value;
+            const isMessengerEnabled = messengerWidgetToggle.checked;
 
-            // Reload the page to either initialize or destroy the widget
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            // Update Firestore
+            await db.collection('users').doc(user.uid).update({
+                dateFormat: newDateFormat,
+                messengerWidgetEnabled: isMessengerEnabled
+            });
 
+            // Update localStorage for immediate effect
+            localStorage.setItem('messengerWidgetEnabled', isMessengerEnabled);
+
+            (window.showToast || alert)('Display settings saved successfully!', 'success');
         } catch (error) {
             console.error("Error saving display settings:", error);
             (window.showToast || alert)("Could not save display settings. " + error.message, "error");
+        } finally {
             saveDisplayBtn.disabled = false;
             saveDisplayBtn.textContent = 'Save Display Settings';
         }
@@ -417,7 +419,7 @@ document.addEventListener('authReady', (e) => {
             (window.showToast || alert)("Could not save shipping settings. " + error.message, "error");
         } finally {
             saveShippingBtn.disabled = false;
-            saveShippingBtn.textContent = 'Save Shipping Profile';
+            saveShippingBtn.textContent = 'Save Shipping Settings';
         }
     });
 
@@ -432,39 +434,40 @@ document.addEventListener('authReady', (e) => {
     });
 
     deleteAccountBtn?.addEventListener('click', async () => {
-        if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+        if (confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+            const password = prompt('Please enter your password to confirm account deletion:');
+            if (!password) return;
             try {
-                // It's good practice to delete user data before deleting the user auth record.
-                await db.collection('users').doc(user.uid).delete(); 
+                const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
+                await user.reauthenticateWithCredential(credential);
+                await db.collection('users').doc(user.uid).delete();
                 await user.delete();
-                (window.showToast || alert)('Account deleted successfully.', 'success');
+                (window.showToast || alert)('Your account has been deleted.', 'info');
                 window.location.href = 'index.html';
             } catch (error) {
                 console.error("Error deleting account:", error);
-                (window.showToast || alert)("Could not delete account. You may need to log in again to perform this action. " + error.message, "error");
+                (window.showToast || alert)("Could not delete account. " + error.message, "error");
             }
         }
     });
 
-    // --- PWA Section Functions ---
+    // --- PWA Functions ---
     const initializePwaSection = () => {
         let deferredPrompt;
-        const installedClasses = ['bg-green-100', 'text-green-800', 'dark:bg-green-900', 'dark:text-green-200'];
-        const notInstalledClasses = ['bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900', 'dark:text-yellow-200'];
-        
-        const setInstallStatus = (isInstalled) => {
+        const setInstallStatus = (installed) => {
             if (installStatus) {
-                installStatus.textContent = isInstalled ? 'Installed' : 'Not Installed';
-                installStatus.classList.remove(...installedClasses, ...notInstalledClasses);
-                installStatus.classList.add(...(isInstalled ? installedClasses : notInstalledClasses));
+                installStatus.textContent = installed ? 'Installed' : 'Not Installed';
+                installStatus.classList.remove('bg-green-100', 'text-green-800', 'dark:bg-green-900', 'dark:text-green-200', 'bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900', 'dark:text-yellow-200');
+                if (installed) {
+                    installStatus.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900', 'dark:text-green-200');
+                } else {
+                    installStatus.classList.add('bg-yellow-100', 'text-yellow-800', 'dark:bg-yellow-900', 'dark:text-yellow-200');
+                }
             }
             if (installAppBtn) {
-                installAppBtn.style.display = isInstalled ? 'none' : 'block';
+                installAppBtn.style.display = installed ? 'none' : 'block';
             }
         };
-
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        setInstallStatus(isStandalone);
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -484,21 +487,19 @@ document.addEventListener('authReady', (e) => {
         });
 
         shareAppBtn?.addEventListener('click', async () => {
-            const shareData = {
-                title: 'HatakeSocial - Ultimate TCG Social Platform',
-                text: 'Join the ultimate TCG social platform for Magic, Pokemon, & Yu-Gi-Oh players!',
-                url: window.location.origin
-            };
-            try {
-                if (navigator.share) {
-                    await navigator.share(shareData);
-                } else {
-                    throw new Error('Web Share API not supported');
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'HatakeSocial',
+                        text: 'Join the ultimate trading card community!',
+                        url: window.location.origin
+                    });
+                } catch (error) {
+                    console.log('Error sharing:', error);
                 }
-            } catch (err) {
-                navigator.clipboard.writeText(shareData.url)
-                    .then(() => (window.showToast || alert)('App URL copied to clipboard!', 'success'))
-                    .catch(() => prompt('Copy this URL:', shareData.url));
+            } else {
+                navigator.clipboard.writeText(window.location.origin);
+                (window.showToast || alert)('App URL copied to clipboard!', 'success');
             }
         });
 

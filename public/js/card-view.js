@@ -1,18 +1,16 @@
 /**
- * HatakeSocial - Card View Page Script (v10 - Definitive Fix)
+ * HatakeSocial - Multi-Game Card View Page Script
  *
- * This script is a complete, working version for the card-view.html page.
- * - FIX: The main data source is now the 'marketplaceListings' collection in Firestore, preventing incorrect API calls.
- * - - FIX: The script now identifies the card's game (MTG or Pokémon) from the Firestore document.
- * - - FIX: 'updatePageWithCardData' is now game-aware. It will display relevant details for Pokémon (HP, types, abilities, attacks) and MTG (mana cost, oracle text).
- * - - FIX: The card image is now correctly sourced from the nested card data within the Firestore listing, fixing the missing image for Pokémon.
- * - - FIX: The logic to find similar listings is corrected to find all versions of a card by its unique API ID, not just by name.
+ * This script powers the card-view.html page, displaying detailed information
+ * for multiple TCGs by fetching data from Firestore marketplace listings.
+ * It merges previous functionalities with new features like live price history
+ * from ScryDex and a dynamic rulings section.
  */
 
-// Import currency module for price conversion
 import * as Currency from './modules/currency.js';
 
 document.addEventListener('DOMContentLoaded', (e) => {
+    // This assumes your auth.js dispatches a 'authReady' event with user details
     const user = e.detail.user;
     const container = document.getElementById('card-view-container');
     if (!container) return;
@@ -28,15 +26,15 @@ document.addEventListener('DOMContentLoaded', (e) => {
     // Initialize Firebase
     const db = firebase.firestore();
 
-    // Initialize currency system with SEK as default (Hatake website preference)
+    // Initialize currency system with SEK as default
     Currency.initCurrency('SEK');
 
     // --- DOM Elements ---
     const cardImageEl = document.getElementById('card-image');
     const cardDetailsEl = document.getElementById('card-details');
+    const cardRulingsEl = document.getElementById('card-rulings'); // New element for rulings
     const listingsContainer = document.getElementById('listings-table-container');
     const chartCtx = document.getElementById('price-chart').getContext('2d');
-    const filterControls = document.getElementById('filter-controls');
 
     // --- State ---
     let allListings = [];
@@ -45,36 +43,9 @@ document.addEventListener('DOMContentLoaded', (e) => {
     // --- Helper Functions ---
     const getCardImageUrl = (cardData, size = 'large') => {
         if (cardData?.customImageUrl) return cardData.customImageUrl;
-        // This logic has been standardized by our utils.js file for both games
         if (cardData?.image_uris) return cardData.image_uris[size] || cardData.image_uris.normal;
-        // Fallback for any legacy change
         if (cardData?.images) return cardData.images[size] || cardData.images.large;
         return 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
-    };
-
-    // Updated formatPrice function to use currency conversion
-    const formatPrice = (price, isFromApi = false) => {
-        const numericPrice = parseFloat(price);
-        if (isNaN(numericPrice)) return 'N/A';
-        
-        // If price is from external API (like Scryfall), it's in USD
-        if (isFromApi) {
-            return Currency.convertAndFormat(numericPrice);
-        } else {
-            // If price is from marketplace listings, it's in SEK
-            return Currency.convertFromSekAndFormat(numericPrice);
-        }
-    };
-
-    const getShippingRegion = (sellerCountry, buyerCountry) => {
-        const europeanCountries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden"];
-        const northAmericaCountries = ["United States", "Canada", "Mexico"];
-        
-        if (sellerCountry || buyerCountry) return 'restOfWorld';
-        if (sellerCountry.toLowerCase() === buyerCountry.toLowerCase()) return 'domestic';
-        if (europeanCountries.includes(sellerCountry) && europeanCountries.includes(buyerCountry)) return 'europe';
-        if (northAmericaCountries.includes(sellerCountry) && northAmericaCountries.includes(buyerCountry)) return 'northAmerica';
-        return 'restOfWorld';
     };
 
     /**
@@ -86,92 +57,129 @@ document.addEventListener('DOMContentLoaded', (e) => {
             if (!listingDoc.exists) throw new Error('This marketplace listing does not exist.');
 
             const listingData = listingDoc.data();
-            const cardData = listingData.cardData;
+            const cardData = listingData.cardData; // The rich card object is nested here
 
+            // Update all page sections with the fetched data
             updatePageWithCardData(cardData);
+            renderRulings(cardData);
             renderPriceChart(cardData);
-            // Fetch other listings using the unique API ID for accuracy
+            
+            // Fetch other listings for the same card
             await fetchAllListingsForCard(cardData.api_id);
 
-        } catch (error) {
+        } catch (error)
             console.error("Error loading card view:", error);
             container.innerHTML = `<p class="text-center text-red-500 col-span-full p-8 bg-white dark:bg-gray-800 rounded-lg">Error: ${error.message}</p>`;
         }
     };
 
     /**
-     * Updates the page with card details, now aware of both MTG and Pokémon data structures.
+     * Updates the page with game-specific card details.
      */
     const updatePageWithCardData = (cardData) => {
         document.title = `${cardData.name} - HatakeSocial`;
-        cardImageEl.src = getCardImageUrl(cardData, 'large');
+        cardImageEl.src = getCardImageUrl(cardData);
         cardImageEl.alt = cardData.name;
-        let detailsHTML = '';
+        
+        let detailsHTML = `<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${cardData.name}</h1>`;
 
-        if (cardData.game === 'mtg') {
-            const detailsSource = (cardData.card_faces && cardData.card_faces[0]) ? cardData.card_faces[0] : cardData;
-            const manaCost = detailsSource.mana_cost || '';
-            const typeLine = detailsSource.type_line || cardData.type_line || '';
-            const oracleText = detailsSource.oracle_text || '';
-            const power = detailsSource.power || null;
-            const toughness = detailsSource.toughness || null;
-            detailsHTML = `
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">${cardData.name}</h1>
-                <p class="text-lg text-gray-800 dark:text-gray-200">${manaCost}</p>
-                <p class="text-lg text-gray-800 dark:text-gray-200">${typeLine}</p>
-                <div class="text-md text-gray-700 dark:text-gray-300">${oracleText.replace(/\n/g, '<br>')}</div>
-                ${power ? `<p class="text-lg font-bold text-gray-900 dark:text-white">${power} / ${toughness}</p>` : ''}`;
-        } else if (cardData.game === 'pokemon') {
-            const hp = cardData.hp || '';
-            const types = cardData.types?.join(', ') || '';
-            detailsHTML = `
-                <div class="flex justify-between items-start">
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">${cardData.name}</h1>
-                    ${hp ? `<span class="text-lg font-bold text-red-600 dark:text-red-400">HP ${hp}</span>` : ''}
-                </div>
-                ${types ? `<p class="text-md text-gray-700 dark:text-gray-300">Types: ${types}</p>` : ''}`;
+        switch (cardData.game) {
+            case 'mtg':
+                const mtgDetails = cardData.card_faces ? cardData.card_faces[0] : cardData;
+                detailsHTML += `
+                    <p class="text-lg text-gray-700 dark:text-gray-300">${mtgDetails.mana_cost || ''}</p>
+                    <p class="text-md font-semibold text-gray-800 dark:text-gray-200 mt-2">${mtgDetails.type_line || cardData.type_line}</p>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-4 prose dark:prose-invert">${(mtgDetails.oracle_text || '').replace(/\n/g, '<br>')}</div>
+                    ${mtgDetails.power ? `<p class="text-lg font-bold text-gray-900 dark:text-white mt-4">${mtgDetails.power} / ${mtgDetails.toughness}</p>` : ''}
+                    ${mtgDetails.loyalty ? `<p class="text-lg font-bold text-gray-900 dark:text-white mt-4">Loyalty: ${mtgDetails.loyalty}</p>` : ''}`;
+                break;
+            
+            case 'pokemon':
+                detailsHTML += `
+                    <div class="flex justify-between items-start">
+                        <p class="text-md text-gray-700 dark:text-gray-300">Type: ${cardData.types?.join(', ') || 'N/A'}</p>
+                        ${cardData.hp ? `<span class="text-lg font-bold text-red-600 dark:text-red-400">HP ${cardData.hp}</span>` : ''}
+                    </div>`;
+                if (cardData.abilities && cardData.abilities.length > 0) {
+                    detailsHTML += '<div class="mt-4"><h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b dark:border-gray-600 pb-1 mb-2">Abilities</h3>';
+                    cardData.abilities.forEach(ability => {
+                        detailsHTML += `<div class="text-sm mt-2"><strong>${ability.name}:</strong> ${ability.text}</div>`;
+                    });
+                    detailsHTML += '</div>';
+                }
+                if (cardData.attacks && cardData.attacks.length > 0) {
+                    detailsHTML += '<div class="mt-4"><h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b dark:border-gray-600 pb-1 mb-2">Attacks</h3>';
+                    cardData.attacks.forEach(attack => {
+                        detailsHTML += `<div class="text-sm mt-2"><strong>${attack.name}</strong> ${attack.cost ? `[${attack.cost.join('')}]` : ''} ${attack.damage ? `- <strong>${attack.damage}</strong>` : ''}<br><span class="italic">${attack.text || ''}</span></div>`;
+                    });
+                    detailsHTML += '</div>';
+                }
+                break;
 
-            // Add abilities if they exist
-            if (cardData.abilities && cardData.abilities.length > 0) {
-                detailsHTML += '<div class="mt-4"><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Abilities</h3>';
-                cardData.abilities.forEach(ability => {
-                    detailsHTML += `<div class="mt-2"><strong>${ability.name}:</strong> ${ability.text}</div>`;
-                });
-                detailsHTML += '</div>';
-            }
-
-            // Add attacks if they exist
-            if (cardData.attacks && cardData.attacks.length > 0) {
-                detailsHTML += '<div class="mt-4"><h3 class="text-lg font-semibold text-gray-900 dark:text-white">Attacks</h3>';
-                cardData.attacks.forEach(attack => {
-                    const cost = attack.cost ? attack.cost.join(', ') : '';
-                    const damage = attack.damage || '';
-                    detailsHTML += `<div class="mt-2"><strong>${attack.name}</strong> ${cost ? `[${cost}]` : ''} ${damage ? `- ${damage}` : ''}<br>${attack.text || ''}</div>`;
-                });
-                detailsHTML += '</div>';
-            }
+            case 'lorcana':
+            case 'gundam':
+                // Generic display for other TCGs, can be customized further
+                detailsHTML += `
+                    <p class="text-md font-semibold text-gray-800 dark:text-gray-200 mt-2">${cardData.type_line || cardData.types?.join(', ') || ''}</p>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-4">${(cardData.oracle_text || cardData.text || '').replace(/\n/g, '<br>')}</div>
+                `;
+                break;
         }
 
         cardDetailsEl.innerHTML = detailsHTML;
     };
+    
+    /**
+     * Renders the "Rulings" section if the card has any.
+     */
+    const renderRulings = (cardData) => {
+        if (!cardData.rulings || cardData.rulings.length === 0) {
+            cardRulingsEl.classList.add('hidden');
+            return;
+        }
+        
+        cardRulingsEl.classList.remove('hidden');
+        let rulingsHTML = `<h2 class="text-2xl font-bold mb-4 border-b pb-2 dark:border-gray-700">Rulings</h2><div class="space-y-4">`;
+        
+        cardData.rulings.forEach(rule => {
+            rulingsHTML += `
+                <div class="text-sm">
+                    <p class="text-gray-800 dark:text-gray-200">${rule.comment}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">(${new Date(rule.published_at).toLocaleDateString()})</p>
+                </div>
+            `;
+        });
+        
+        rulingsHTML += `</div>`;
+        cardRulingsEl.innerHTML = rulingsHTML;
+    };
 
     /**
-     * Renders the price chart using Chart.js
+     * Renders the price chart using real historical data from ScryDex trends.
      */
     const renderPriceChart = (cardData) => {
-        // Sample price data - in a real implementation, this would come from historical data
-        const priceData = [
-            { date: '2024-01-01', price: 25.99 },
-            { date: '2024-02-01', price: 27.50 },
-            { date: '2024-03-01', price: 24.99 },
-            { date: '2024-04-01', price: 26.75 },
-            { date: '2024-05-01', price: 28.99 }
+        const trends = cardData.prices?.trends;
+        if (!trends) {
+            console.log("No price trend data available for this card.");
+            return;
+        }
+
+        const priceDataPoints = [
+            { label: '180 days ago', value: trends.days_180?.price_change || 0 },
+            { label: '90 days ago', value: trends.days_90?.price_change || 0 },
+            { label: '30 days ago', value: trends.days_30?.price_change || 0 },
+            { label: '14 days ago', value: trends.days_14?.price_change || 0 },
+            { label: '7 days ago', value: trends.days_7?.price_change || 0 },
+            { label: 'Yesterday', value: trends.days_1?.price_change || 0 },
+            { label: 'Today', value: 0 }
         ];
 
-        const labels = priceData.map(data => data.date);
-        // Convert USD prices from API data to user's currency
-        const prices = priceData.map(data => parseFloat(Currency.convertAndFormat(data.price).replace(/[^0-9.-]+/g, "")));
+        const currentPrice = parseFloat(cardData.prices.usd || cardData.prices.low || 0);
+        if (isNaN(currentPrice)) return;
 
+        const labels = priceDataPoints.map(p => p.label);
+        const prices = priceDataPoints.map(p => (currentPrice - p.value).toFixed(2));
+        
         if (priceChart) {
             priceChart.destroy();
         }
@@ -181,29 +189,21 @@ document.addEventListener('DOMContentLoaded', (e) => {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: `${cardData.name} Price History`,
+                    label: `Price History (USD)`,
                     data: prices,
                     borderColor: 'rgb(59, 130, 246)',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.1
+                    tension: 0.1,
+                    fill: true
                 }]
             },
             options: {
                 responsive: true,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Price History'
-                    }
-                },
+                plugins: { title: { display: true, text: 'Price History (from ScryDex)' } },
                 scales: {
                     y: {
                         beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return Currency.formatPrice(value, Currency.getUserCurrency());
-                            }
-                        }
+                        ticks: { callback: (value) => Currency.convertAndFormat(value, 'USD') } // Use currency converter
                     }
                 }
             }
@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     };
 
     /**
-     * Fetches all listings for the same card using the API ID
+     * Fetches all other marketplace listings for the same card.
      */
     const fetchAllListingsForCard = async (apiId) => {
         try {
@@ -220,24 +220,20 @@ document.addEventListener('DOMContentLoaded', (e) => {
                 .orderBy('price')
                 .get();
 
-            allListings = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
+            allListings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderListingsTable();
         } catch (error) {
-            console.error("Error fetching card listings:", error);
-            listingsContainer.innerHTML = '<p class="text-center text-red-500">Error loading listings.</p>';
+            console.error("Error fetching other listings:", error);
+            listingsContainer.innerHTML = '<p class="text-center text-red-500">Error loading other listings.</p>';
         }
     };
 
     /**
-     * Renders the listings table with currency conversion
+     * Renders the table of available marketplace listings.
      */
     const renderListingsTable = () => {
         if (allListings.length === 0) {
-            listingsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No other listings found for this card.</p>';
+            listingsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No other listings found for this card.</p>';
             return;
         }
 
@@ -256,9 +252,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
 
         allListings.forEach(listing => {
-            // Convert SEK prices from marketplace listings to user's currency
             const displayPrice = Currency.convertFromSekAndFormat(listing.price);
-            
             tableHTML += `
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
@@ -266,37 +260,24 @@ document.addEventListener('DOMContentLoaded', (e) => {
                     </td>
                     <td class="px-4 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
                     <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                        <a href="/profile.html?uid=${listing.sellerData.uid}" class="hover:underline">
-                            ${listing.sellerData.displayName}
-                        </a>
+                        <a href="/profile.html?uid=${listing.sellerData.uid}" class="hover:underline">${listing.sellerData.displayName}</a>
                     </td>
                     <td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">${listing.sellerData.country || 'N/A'}</td>
                     <td class="px-4 py-2">
-                        <button onclick="contactSeller('${listing.sellerData.uid}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">
-                            Contact
-                        </button>
+                        <button onclick="contactSeller('${listing.sellerData.uid}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">Contact</button>
                     </td>
                 </tr>`;
         });
 
-        tableHTML += `
-                    </tbody>
-                </table>
-            </div>`;
-
+        tableHTML += `</tbody></table></div>`;
         listingsContainer.innerHTML = tableHTML;
     };
 
-    /**
-     * Contact seller function
-     */
+    // Make contactSeller globally accessible
     window.contactSeller = (sellerUid) => {
-        // Implement contact seller functionality
-        console.log('Contacting seller:', sellerUid);
-        // This could open a modal, redirect to messages, etc.
+        window.location.href = `/messages.html?recipient=${sellerUid}`;
     };
 
-    // Initialize the page
+    // --- Initialize the Page ---
     loadCardData();
 });
-

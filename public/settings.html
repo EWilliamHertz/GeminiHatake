@@ -463,23 +463,16 @@
           This will be the default currency for all prices across the site.
          </p>
         </div>
-        <div class="mb-6">
-         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="price-source-select">
-          Default Pricing Source
-         </label>
-         <select class="mt-1 block w-full md:w-1/2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="price-source-select">
-          <option value="eur">
-           Cardmarket (EUR)
-          </option>
-          <option value="usd">
-           TCGplayer (USD)
-          </option>
-         </select>
-         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          Choose your preferred price source for percentage-based pricing.
-         </p>
-        </div>
-        <div class="mt-8 pt-6 border-t dark:border-gray-700 text-right">
+       <div class="setting-item">
+    <label for="price-source-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Preferred Price Region (for MTG)
+    </label>
+    <select id="price-source-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="scryfall">EU Prices (from Scryfall)</option>
+        <option value="scrydex">US Prices (from ScryDex)</option>
+    </select>
+</div>
+ <div class="mt-8 pt-6 border-t dark:border-gray-700 text-right">
          <button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="save-account-btn">
           Save Changes
          </button>

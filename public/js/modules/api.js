@@ -2,7 +2,8 @@
 
 /**
  * api.js
- * Handles all external API calls (Scryfall, Pokémon TCG via Firebase) and Firestore interactions.
+ * Handles all external API calls (Scryfall, ScryDex via Firebase) and Firestore interactions.
+ * Supports multiple TCGs and user-selectable price regions.
  */
 
 import { debounce } from './utils.js';
@@ -10,24 +11,37 @@ import { debounce } from './utils.js';
 const db = firebase.firestore();
 const storage = firebase.storage();
 const functions = firebase.functions();
-const searchPokemonCloudFunction = functions.httpsCallable('searchPokemon');
+// New, all-purpose cloud function
+const searchScryDexFunction = functions.httpsCallable('searchScryDex');
 
 // --- CARD SEARCH APIS ---
+
+/**
+ * Main search router.
+ * For MTG, it checks the user's preference for EU (Scryfall) or US (ScryDex) prices.
+ * For all other games, it defaults to ScryDex.
+ */
 export async function searchCards(cardName, game) {
-    if (game === 'mtg') {
+    // Read the user's choice from localStorage. Default to 'scryfall' for EU prices.
+    const priceProvider = localStorage.getItem('priceProvider') || 'scryfall';
+
+    // If the game is MTG AND the user wants EU prices, use the direct Scryfall function.
+    if (game === 'mtg' && priceProvider === 'scryfall') {
         return searchScryfall(cardName);
-    } else if (game === 'pokemon') {
-        return searchPokemon(cardName);
     }
-    return [];
+
+    // For ALL other games (Pokemon, Lorcana, Gundam) OR if the user chose US prices for MTG,
+    // use the new, secure ScryDex cloud function.
+    return searchScryDex(cardName, game);
 }
 
+/**
+ * Fetches card data directly from Scryfall for EU pricing.
+ */
 async function searchScryfall(cardName) {
-    // Correctly encode the URL to handle special characters
     const encodedUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints`;
     try {
-        // Added a 100ms delay to respect API rate limits
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100)); // Respect rate limits
         const response = await fetch(encodedUrl);
         if (!response.ok) {
             const errorData = await response.json();
@@ -41,32 +55,25 @@ async function searchScryfall(cardName) {
     }
 }
 
-async function searchPokemon(cardName) {
-    // This is the public URL of your cloud function
-    const functionUrl = 'https://us-central1-hatakesocial-88b5e.cloudfunctions.net/searchPokemon';
+/**
+ * Fetches card data from our secure ScryDex cloud function.
+ * This handles MTG (US prices), Pokemon, Lorcana, and Gundam.
+ */
+async function searchScryDex(cardName, game) {
     try {
-        const response = await fetch(functionUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ data: { cardName: cardName } }) // Match the expected structure
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to fetch Pokémon cards.');
+        // Call the new callable function with the game parameter
+        const result = await searchScryDexFunction({ cardName, game });
+        // The actual card data is now at result.data.data
+        if (result.data && Array.isArray(result.data)) {
+            return result.data.map(card => cleanScryDexData(card, game));
         }
-
-        const result = await response.json();
-        // The data is nested under a 'data' property in the response
-        return result.data.map(card => cleanPokemonData(card));
-
+        return []; // Return empty array if data is not in the expected format
     } catch (error) {
-        console.error("Pokémon search function error:", error);
-        throw new Error(error.message || 'Could not fetch Pokémon cards.');
+        console.error(`ScryDex search function error for ${game}:`, error);
+        throw new Error(error.message || `Could not fetch ${game} cards.`);
     }
 }
+
 /**
  * A debounced version of the searchCards function to limit API calls while typing.
  */
@@ -74,16 +81,24 @@ export const debouncedSearchCards = debounce(searchCards, 300);
 
 
 // --- DATA CLEANING ---
+
+/**
+ * Cleans data from a Scryfall API response.
+ * Now includes EUR prices.
+ */
 function cleanScryfallData(card) {
     const prices = card.prices ? {
         usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
         usd_foil: card.prices.usd_foil ? parseFloat(card.prices.usd_foil) : null,
+        eur: card.prices.eur ? parseFloat(card.prices.eur) : null,
+        eur_foil: card.prices.eur_foil ? parseFloat(card.prices.eur_foil) : null,
     } : {
         usd: null,
-        usd_foil: null
+        usd_foil: null,
+        eur: null,
+        eur_foil: null
     };
 
-    // Handle double-faced cards by taking the first face's image URIs and mana cost
     const image_uris = card.image_uris || (card.card_faces && card.card_faces[0].image_uris) || null;
     const mana_cost = card.mana_cost || (card.card_faces && card.card_faces[0].mana_cost) || null;
 
@@ -94,7 +109,7 @@ function cleanScryfallData(card) {
         set_name: card.set_name,
         rarity: card.rarity,
         image_uris: image_uris,
-        card_faces: card.card_faces || null, // Ensure card_faces is not undefined
+        card_faces: card.card_faces || null,
         prices: prices,
         mana_cost: mana_cost,
         cmc: card.cmc,
@@ -105,23 +120,45 @@ function cleanScryfallData(card) {
     };
 }
 
-function cleanPokemonData(card) {
-    return {
+/**
+ * Cleans data from a ScryDex API response for any game.
+ */
+function cleanScryDexData(card, game) {
+    const cleaned = {
         api_id: card.id,
         name: card.name,
-        set: card.set.id,
-        set_name: card.set.name,
-        rarity: card.rarity || 'Common',
-        image_uris: card.images,
+        set: card.set?.id,
+        set_name: card.set?.name,
+        rarity: card.rarity || 'N/A',
+        image_uris: card.image_uris || card.images,
         prices: {
-            usd: card.tcgplayer?.prices?.holofoil?.market || card.tcgplayer?.prices?.normal?.market || null,
-            usd_foil: card.tcgplayer?.prices?.holofoil?.market || null,
+            usd: card.prices?.low || card.prices?.market || null,
+            usd_foil: card.prices?.foil_low || card.prices?.foil_market || null,
         },
-        types: card.types,
-        hp: card.hp,
-        game: 'pokemon'
+        game: game
     };
+
+    // Add game-specific details
+    switch (game) {
+        case 'mtg':
+            cleaned.mana_cost = card.mana_cost;
+            cleaned.cmc = card.cmc;
+            cleaned.type_line = card.type_line;
+            cleaned.oracle_text = card.oracle_text;
+            cleaned.rulings = card.rulings;
+            cleaned.color_identity = card.color_identity;
+            cleaned.collector_number = card.collector_number;
+            break;
+        case 'pokemon':
+            cleaned.types = card.types;
+            cleaned.hp = card.hp;
+            break;
+        // Add cases for 'lorcana', 'gundam', etc., as you learn their data structure
+    }
+
+    return cleaned;
 }
+
 
 // --- FIRESTORE DATABASE OPERATIONS ---
 const getCollectionRef = (userId) => db.collection('users').doc(userId).collection('collection');

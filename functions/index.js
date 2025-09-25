@@ -6,17 +6,7 @@
 * - MESSAGING FUNCTIONS for real-time user-to-user chat.
 * - CARD & MARKETPLACE FUNCTIONS for collection syncing and secure API searches.
 * - CURRENCY EXCHANGE FUNCTIONS for real-time currency conversion.
-* - Handles user registration with a referral code.
-* - Creates Stripe checkout sessions for the shop with coupon/referral support.
-* - Validates Stripe promotion codes.
-* - Automatically counts user posts.
-* - Handles following users and creating notifications.
-* - Automatically deletes product images from Storage when a product is deleted.
-* - Securely sets admin and content creator custom claims for user roles.
-* - Manages a secure escrow trading system with Escrow.com.
-* - Wishlist and Trade Matching functionality.
-* - Marketplace syncing function.
-* - SECURE POKEMON API SEARCH PROXY to protect the API key.
+* - SECURE MULTI-GAME API SEARCH PROXY to protect API keys.
 */
 
 const functions = require("firebase-functions");
@@ -24,6 +14,7 @@ const admin = require("firebase-admin");
 const stripe = require("stripe")(functions.config().stripe.secret);
 const axios = require("axios");
 const fetch = require("node-fetch");
+const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 // --- CORS CONFIGURATION ---
 const allowedOrigins = [
@@ -49,9 +40,11 @@ const db = admin.firestore();
 const storage = admin.storage();
 
 // --- Escrow.com API Configuration ---
+// Ensure you have configured these in your Firebase environment
+// firebase functions:config:set escrow.key="YOUR_KEY" escrow.user="YOUR_USER"
 const ESCROW_API_KEY = functions.config().escrow.key;
 const ESCROW_API_USER = functions.config().escrow.user;
-const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/"; // Use the production URL
+const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/";
 
 const escrowApi = axios.create({
     baseURL: ESCROW_API_URL,
@@ -60,10 +53,6 @@ const escrowApi = axios.create({
         'Authorization': `Basic ${Buffer.from(`${ESCROW_API_USER}:${ESCROW_API_KEY}`).toString('base64')}`
     }
 });
-
-// =================================================================================================
-// CURRENCY EXCHANGE RATE FUNCTIONS
-// =================================================================================================
 
 // =================================================================================================
 // CURRENCY EXCHANGE RATE FUNCTIONS (ROBUST VERSION)
@@ -79,138 +68,116 @@ exports.getExchangeRates = functions.https.onCall(async (data, context) => {
         const cachedItem = exchangeRateCache.get(baseCurrency);
         if (Date.now() - cachedItem.timestamp < EXCHANGE_RATE_CACHE_DURATION_MS) {
             console.log(`Serving exchange rates for '${baseCurrency}' from cache.`);
-            return { rates: cachedItem.data }; // **FIX**: Return in a structured object
+            return { rates: cachedItem.data };
         }
     }
-
     const API_KEY = functions.config().currencyapi.key;
     if (!API_KEY) {
         console.error('Currency API key is not configured.');
         throw new functions.https.HttpsError('internal', 'Currency API key is not configured.');
     }
-
     const apiUrl = `https://api.freecurrencyapi.com/v1/latest?apikey=${API_KEY}&base_currency=${baseCurrency}`;
-
     try {
         console.log(`Fetching exchange rates for '${baseCurrency}' from external API.`);
         const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`API call failed with status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
         const result = await response.json();
-
-        // **FIX**: The API wraps the rates in a 'data' object. Access it directly.
         if (result && result.data) {
-             exchangeRateCache.set(baseCurrency, {
-                timestamp: Date.now(),
-                data: result.data
-            });
-            return { rates: result.data }; // **FIX**: Return in a structured object
+             exchangeRateCache.set(baseCurrency, { timestamp: Date.now(), data: result.data });
+            return { rates: result.data };
         } else {
             throw new Error("Invalid data structure from currency API.");
         }
-
     } catch (error) {
         console.error("Error fetching exchange rates:", error);
-        // **FIX**: Return null in the data object on failure instead of throwing, client will use fallback.
         return { rates: null };
     }
 });
-
 
 // =================================================================================================
 // SECURE CARD SEARCH FUNCTIONS
 // =================================================================================================
 
-// Create a simple in-memory cache for Pokémon searches
-const pokemonCache = new Map();
-const CACHE_DURATION_MS = 1000 * 60 * 60; // Cache results for 1 hour
+const secretClient = new SecretManagerServiceClient();
+const scrydexCache = new Map();
+const SCRYDEX_CACHE_DURATION_MS = 1000 * 60 * 60; // Cache for 1 hour
 
-/**
- * An HTTP Request function that acts as a secure proxy to the Pokémon TCG API.
- * This version correctly handles CORS for client-side fetch requests.
- */
-exports.searchPokemon = functions.runWith({ minInstances: 1 }).https.onRequest((req, res) => {
-    // Enable CORS for specified origins
-    cors(req, res, async () => {
-        // HTTP POST requests send data in req.body. For callable compatibility, it's often in req.body.data
-        const cardName = req.body.data ? req.body.data.cardName : req.body.cardName;
-
-        if (!cardName) {
-            console.error("Card name not provided in request body.");
-            return res.status(400).json({ error: "The function must be called with a 'cardName' argument." });
-        }
-
-        // Check cache first
-        if (pokemonCache.has(cardName)) {
-            const cachedItem = pokemonCache.get(cardName);
-            if (Date.now() - cachedItem.timestamp < CACHE_DURATION_MS) {
-                console.log(`Serving '${cardName}' from cache.`);
-                return res.status(200).json({ data: cachedItem.data });
-            }
-        }
-
-        // FIXED: Use hardcoded API key instead of functions.config()
-        const POKEMON_API_KEY = "60a08d4a-3a34-43d8-8f41-827b58cfac6d";
-
-        // Improved search URL with better query format
-        const searchUrl = `https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(cardName)}*&pageSize=40&orderBy=-set.releaseDate`;
-
-        try {
-            console.log(`Searching for '${cardName}' via API.`);
-            console.log(`Search URL: ${searchUrl}`);
-            
-            // Add timeout to handle slow API responses
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-            
-            const response = await fetch(searchUrl, {
-                headers: { 
-                    "X-Api-Key": POKEMON_API_KEY,
-                    "Content-Type": "application/json"
-                },
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                const errorBody = await response.text();
-                console.error("Pokemon API Error:", response.status, errorBody);
-                return res.status(500).json({ error: `Failed to fetch from Pokémon TCG API. Status: ${response.status}` });
-            }
-
-            const result = await response.json();
-            const responseData = result.data || [];
-
-            // Cache the results
-            pokemonCache.set(cardName, {
-                timestamp: Date.now(),
-                data: responseData,
-            });
-
-            console.log(`Successfully found ${responseData.length} cards for '${cardName}'`);
-            return res.status(200).json({ data: responseData });
-            
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.error("Pokemon API request timed out");
-                return res.status(504).json({ error: "Request timed out. Please try again." });
-            }
-            console.error("Error in searchPokemon function:", error);
-            return res.status(500).json({ error: "An unexpected error occurred." });
-        }
+async function accessSecret(secretName) {
+    const [version] = await secretClient.accessSecretVersion({
+        name: `projects/hatakesocial-88b5e/secrets/${secretName}/versions/latest`,
     });
+    return version.payload.data.toString();
+}
+
+exports.searchScryDex = functions.https.onCall(async (data, context) => {
+    const { cardName, game } = data;
+    if (!cardName || !game) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardName" and "game" arguments.');
+    }
+
+    // Create a unique cache key for each game and search term
+    const cacheKey = `${game.toLowerCase()}_${cardName.toLowerCase().trim()}`;
+
+    // Check cache first
+    if (scrydexCache.has(cacheKey)) {
+        const cachedItem = scrydexCache.get(cacheKey);
+        if (Date.now() - cachedItem.timestamp < SCRYDEX_CACHE_DURATION_MS) {
+            console.log(`Serving '${cardName}' for game '${game}' from cache.`);
+            return { data: cachedItem.data };
+        }
+    }
+
+    const apiKey = await accessSecret('scrydex-api-key');
+    const teamId = await accessSecret('scrydex-team-id');
+
+    const gameEndpoints = {
+        'mtg': 'magicthegathering/v1',
+        'pokemon': 'pokemon/v1',
+        'lorcana': 'lorcana/v1',
+        'gundam': 'gundam/v1'
+    };
+    const apiPath = gameEndpoints[game];
+    if (!apiPath) {
+        throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
+    }
+
+    const url = `https://api.scrydex.com/${apiPath}/cards/search?q=${encodeURIComponent(cardName)}*`;
+
+    try {
+        console.log(`Searching ScryDex for '${cardName}' in game '${game}'`);
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'X-Api-Key': apiKey, 'X-Team-ID': teamId, 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("ScryDex API Error:", errorData);
+            throw new functions.https.HttpsError('internal', errorData.details || 'Failed to fetch from ScryDx API.');
+        }
+
+        const responseData = await response.json();
+        const cardData = responseData.data || [];
+
+        // Store successful result in cache
+        scrydexCache.set(cacheKey, {
+            timestamp: Date.now(),
+            data: cardData
+        });
+
+        return { data: cardData };
+    } catch (error) {
+        console.error("Cloud Function Error:", error);
+        throw new functions.https.HttpsError('unknown', error.message || 'An unexpected error occurred.');
+    }
 });
+
+
 
 // =================================================================================================
 // ADMIN USER & PLATFORM MANAGEMENT FUNCTIONS
 // =================================================================================================
 
-/**
- * Helper function to verify that the caller is an administrator.
- * @param {object} context - The context object from the callable function.
- */
 const ensureIsAdmin = (context) => {
     if (!context.auth || context.auth.token.admin !== true) {
         throw new functions.https.HttpsError('permission-denied', 'You must be an admin to perform this action.');
@@ -410,6 +377,48 @@ exports.ensureConversationExists = functions.https.onCall(async (data, context) 
 /**
  * Firestore trigger that creates a notification when a new message is created.
  */
+exports.onMessageCreate = functions.firestore
+    .document('conversations/{conversationId}/messages/{messageId}')
+    .onCreate(async (snap, context) => {
+        const messageData = snap.data();
+        const { conversationId } = context.params;
+        const senderId = messageData.senderId;
+
+        try {
+            const conversationDoc = await db.collection('conversations').doc(conversationId).get();
+            if (!conversationDoc.exists) return null;
+
+            const participants = conversationDoc.data().participants;
+            const recipientId = participants.find(uid => uid !== senderId);
+
+            if (!recipientId) return null;
+
+            const senderDoc = await db.collection('users').doc(senderId).get();
+            const senderName = senderDoc.data()?.displayName || 'Someone';
+
+            const notification = {
+                type: 'message',
+                fromId: senderId,
+                fromName: senderName,
+                fromAvatar: senderDoc.data()?.photoURL || null,
+                message: `${senderName} sent you a message: "${messageData.text.substring(0, 50)}${messageData.text.length > 50 ? '...' : ''}"`,
+                link: `messages.html?conversation=${conversationId}`,
+                isRead: false,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            await db.collection('users').doc(recipientId).collection('notifications').add(notification);
+
+        } catch (error) {
+            console.error('Error creating message notification:', error);
+        }
+
+        return null;
+    });
+
+/**
+ * Alternative message notification trigger (onNewMessage)
+ */
 exports.onNewMessage = functions.firestore
     .document('conversations/{conversationId}/messages/{messageId}')
     .onCreate(async (snap, context) => {
@@ -436,7 +445,7 @@ exports.onNewMessage = functions.firestore
     });
 
 // =================================================================================================
-// --- MARKETPLACE SYNC FUNCTION (CORRECTED) ---
+// MARKETPLACE SYNC FUNCTION
 // =================================================================================================
 /**
  * This function triggers whenever a card in a user's collection is created or updated.
@@ -504,6 +513,39 @@ exports.syncCardToMarketplace = functions.firestore
             console.error(`Failed to sync card ${cardId} to marketplace:`, error);
         }
 
+        return null;
+    });
+
+// =================================================================================================
+// PRODUCT MANAGEMENT FUNCTIONS
+// =================================================================================================
+
+/**
+ * Firestore trigger that deletes product images from Storage when a product is deleted.
+ */
+exports.onProductDelete = functions.firestore
+    .document('products/{productId}')
+    .onDelete(async (snap, context) => {
+        const productData = snap.data();
+        const imageUrls = productData.images || [];
+
+        if (imageUrls.length === 0) return null;
+
+        const bucket = storage.bucket();
+        const deletePromises = imageUrls.map(async (imageUrl) => {
+            try {
+                const filePath = imageUrl.split('/o/')[1].split('?')[0];
+                const decodedPath = decodeURIComponent(filePath);
+                const file = bucket.file(decodedPath);
+                await file.delete();
+                console.log(`Deleted image: ${decodedPath}`);
+            } catch (error) {
+                console.error(`Failed to delete image ${imageUrl}:`, error);
+            }
+        });
+
+        await Promise.all(deletePromises);
+        console.log(`Cleaned up ${imageUrls.length} images for deleted product ${context.params.productId}`);
         return null;
     });
 
@@ -938,29 +980,99 @@ exports.onFollow = functions.firestore
                     isRead: false,
                     timestamp: admin.firestore.FieldValue.serverTimestamp()
                 };
+
                 await db.collection('users').doc(followedUserId).collection('notifications').add(notification);
             }
         }
+
         return null;
     });
 
+// =================================================================================================
+// MARKETPLACE SYNCING FUNCTION
+// =================================================================================================
+
 /**
-* A Firestore trigger that cleans up a product's images from Cloud Storage when it's deleted.
-*/
-exports.onProductDelete = functions.firestore
-    .document('products/{productId}')
-    .onDelete(async (snap, context) => {
-        const { productId } = context.params;
-        const bucket = storage.bucket();
-        const directory = `products/${productId}/`;
-        try {
-            await bucket.deleteFiles({ prefix: directory });
-            console.log(`Successfully deleted all images for product ${productId}.`);
-        } catch (error) {
-            console.error(`Failed to delete images for product ${productId}.`, error);
+ * Syncs a user's collection to the marketplace.
+ */
+exports.syncToMarketplace = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to sync to the marketplace.');
+    }
+
+    const userId = context.auth.uid;
+    const { cardIds } = data; // Array of card document IDs to sync
+
+    if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'You must provide an array of card IDs to sync.');
+    }
+
+    try {
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'User not found.');
         }
-        return null;
-    });
+
+        const userData = userDoc.data();
+        const batch = db.batch();
+
+        // Get the cards from the user's collection
+        const cardPromises = cardIds.map(cardId => 
+            db.collection('users').doc(userId).collection('collection').doc(cardId).get()
+        );
+        const cardDocs = await Promise.all(cardPromises);
+
+        cardDocs.forEach((cardDoc, index) => {
+            if (!cardDoc.exists) {
+                console.warn(`Card ${cardIds[index]} not found in user's collection`);
+                return;
+            }
+
+            const cardData = cardDoc.data();
+            
+            // Only sync cards that are marked for sale
+            if (!cardData.forSale || !cardData.price) {
+                console.warn(`Card ${cardIds[index]} is not marked for sale or has no price`);
+                return;
+            }
+
+            // Create marketplace listing
+            const marketplaceRef = db.collection('marketplace').doc();
+            const marketplaceData = {
+                ...cardData,
+                sellerId: userId,
+                sellerName: userData.displayName || 'Unknown Seller',
+                sellerHandle: userData.handle || '',
+                sellerPhotoURL: userData.photoURL || '',
+                originalCardId: cardDoc.id,
+                listedAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'active'
+            };
+
+            batch.set(marketplaceRef, marketplaceData);
+
+            // Update the original card to reference the marketplace listing
+            const originalCardRef = db.collection('users').doc(userId).collection('collection').doc(cardDoc.id);
+            batch.update(originalCardRef, {
+                marketplaceId: marketplaceRef.id,
+                syncedToMarketplace: true
+            });
+        });
+
+        await batch.commit();
+
+        return { 
+            success: true, 
+            message: `Successfully synced ${cardDocs.filter(doc => doc.exists).length} cards to the marketplace.` 
+        };
+
+    } catch (error) {
+        console.error('Error syncing to marketplace:', error);
+        throw new functions.https.HttpsError('internal', 'An error occurred while syncing to the marketplace.');
+    }
+});
 
 /**
 * A callable Cloud Function to set the admin custom claim on a user.
@@ -1005,12 +1117,12 @@ exports.setContentCreatorClaim = functions.https.onCall(async (data, context) =>
 });
 
 // =================================================================================================
-// ESCROW.COM TRADING SYSTEM FUNCTIONS
+// ESCROW TRADING SYSTEM
 // =================================================================================================
 
 exports.createEscrowTransaction = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to create a trade.');
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
     }
 
     const { tradeId, buyerUid, sellerUid, amount, description } = data;
@@ -1147,6 +1259,7 @@ exports.generateImpersonationToken = functions.https.onCall(async (data, context
     );
   }
 });
+
 // =================================================================================================
 // DRAFT, DECK, & GAME FUNCTIONS (FINAL VERSION)
 // =================================================================================================
