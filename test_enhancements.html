@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Enhanced Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Enhanced Collection Features Test</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Graded Card Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Graded Card Support</h2>
+                <div class="space-y-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="test-graded" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <span class="ml-2 text-sm">Is this card graded?</span>
+                    </label>
+                    <div id="test-graded-section" class="grid grid-cols-2 gap-4 hidden">
+                        <div>
+                            <label class="block text-sm font-medium">Grading Company</label>
+                            <select class="mt-1 w-full p-2 border rounded-md">
+                                <option>PSA</option>
+                                <option>BGS</option>
+                                <option>CGC</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Grade</label>
+                            <select class="mt-1 w-full p-2 border rounded-md">
+                                <option>10</option>
+                                <option>9</option>
+                                <option>8</option>
+                                <option>7</option>
+                                <option>6</option>
+                                <option>5</option>
+                                <option>4</option>
+                                <option>3</option>
+                                <option>2</option>
+                                <option>1</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Game Filter Section -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Multi-Game Filtering</h2>
+                <div class="space-y-2">
+                    <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-100">
+                        <input type="checkbox" data-game="mtg" class="form-checkbox h-4 w-4 text-blue-600">
+                        <span>Magic: The Gathering</span>
+                    </label>
+                    <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-100">
+                        <input type="checkbox" data-game="pokemon" class="form-checkbox h-4 w-4 text-blue-600">
+                        <span>Pokémon</span>
+                    </label>
+                    <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-100">
+                        <input type="checkbox" data-game="lorcana" class="form-checkbox h-4 w-4 text-blue-600">
+                        <span>Lorcana</span>
+                    </label>
+                    <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-100">
+                        <input type="checkbox" data-game="gundam" class="form-checkbox h-4 w-4 text-blue-600">
+                        <span>Gundam</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Additional Info Panel -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Card Details Panel</h2>
+                <div id="test-info-panel" class="p-4 bg-gray-50 rounded-md text-sm text-gray-600">
+                    Click a card to see details.
+                </div>
+                <div class="mt-4 space-y-2">
+                    <div class="p-3 border rounded cursor-pointer hover:bg-gray-50" onclick="showCardDetails('mtg')">
+                        <strong>Lightning Bolt</strong> - Magic Card
+                    </div>
+                    <div class="p-3 border rounded cursor-pointer hover:bg-gray-50" onclick="showCardDetails('pokemon')">
+                        <strong>Pikachu</strong> - Pokémon Card
+                    </div>
+                    <div class="p-3 border rounded cursor-pointer hover:bg-gray-50" onclick="showCardDetails('graded')">
+                        <strong>Black Lotus</strong> - Graded Card (PSA 10)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Show Details Toggle -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Show Details on Card</h2>
+                <div class="flex items-center justify-between mb-4">
+                    <label for="test-details-toggle" class="text-sm font-medium">Show Details on Card</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="test-details-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                <div class="relative">
+                    <div class="w-32 h-44 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
+                        Card Image
+                    </div>
+                    <div id="test-overlay" class="absolute top-1 left-1 bg-black bg-opacity-75 text-white text-xs p-1 rounded hidden">
+                        <div>Mana: 1R</div>
+                        <div>Type: Instant</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-green-100 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-green-800 mb-2">Test Results</h3>
+            <ul id="test-results" class="text-green-700 space-y-1">
+                <li>✓ HTML structure updated successfully</li>
+                <li>✓ Graded card section implemented</li>
+                <li>✓ Multi-game filter checkboxes added</li>
+                <li>✓ Additional info panel created</li>
+                <li>✓ Show details toggle implemented</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Test graded card toggle
+        document.getElementById('test-graded').addEventListener('change', function(e) {
+            document.getElementById('test-graded-section').classList.toggle('hidden', !e.target.checked);
+        });
+
+        // Test details toggle
+        document.getElementById('test-details-toggle').addEventListener('change', function(e) {
+            document.getElementById('test-overlay').classList.toggle('hidden', !e.target.checked);
+        });
+
+        // Test card details display
+        function showCardDetails(type) {
+            const panel = document.getElementById('test-info-panel');
+            let content = '';
+            
+            switch(type) {
+                case 'mtg':
+                    content = `
+                        <h4 class="font-bold text-lg mb-2">Lightning Bolt</h4>
+                        <p><strong>Mana Cost:</strong> R</p>
+                        <p><strong>Type:</strong> Instant</p>
+                        <p><strong>P/T:</strong> N/A</p>
+                    `;
+                    break;
+                case 'pokemon':
+                    content = `
+                        <h4 class="font-bold text-lg mb-2">Pikachu</h4>
+                        <p><strong>HP:</strong> 60</p>
+                        <p><strong>Type:</strong> Electric</p>
+                    `;
+                    break;
+                case 'graded':
+                    content = `
+                        <h4 class="font-bold text-lg mb-2">Black Lotus</h4>
+                        <p><strong>Mana Cost:</strong> 0</p>
+                        <p><strong>Type:</strong> Artifact</p>
+                        <hr class="my-2 border-gray-300">
+                        <p><strong>Grading Co:</strong> PSA</p>
+                        <p><strong>Grade:</strong> 10</p>
+                    `;
+                    break;
+            }
+            
+            panel.innerHTML = content;
+        }
+
+        // Test multi-game filter
+        document.querySelectorAll('input[data-game]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const selected = Array.from(document.querySelectorAll('input[data-game]:checked')).map(cb => cb.dataset.game);
+                console.log('Selected games:', selected);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -39,10 +39,10 @@ document.addEventListener('authReady', async ({ detail: { user } }) => {
  * Populates the filter dropdowns and dynamic filter section based on the current state.
  */
 function setupInitialFilters() {
-    const game = Collection.getState().filters.game;
-    const options = Collection.getAvailableFilterOptions(game);
+    const games = Collection.getState().filters.games;
+    const options = Collection.getAvailableFilterOptions(games);
     UI.populateFilters(options.sets, options.rarities, options.types);
-    UI.renderGameSpecificFilters(game, options.types);
+    UI.renderGameSpecificFilters(games, options.types);
 }
 
 /**
@@ -108,7 +108,13 @@ function setupEventListeners() {
     document.querySelector('[data-tab="wishlist"]').addEventListener('click', () => switchTab('wishlist'));
     document.getElementById('view-toggle-grid').addEventListener('click', () => switchView('grid'));
     document.getElementById('view-toggle-list').addEventListener('click', () => switchView('list'));
-    document.querySelectorAll('.tcg-filter-button').forEach(btn => btn.addEventListener('click', () => setTcgFilter(btn.dataset.game)));
+    document.getElementById('game-filter-container').addEventListener('change', (e) => {
+        const selectedGames = Array.from(document.querySelectorAll('#game-filter-container input:checked')).map(cb => cb.dataset.game);
+        applyAndRender({ games: selectedGames, type: '', colors: [] });
+        const options = Collection.getAvailableFilterOptions(selectedGames);
+        UI.populateFilters(options.sets, options.rarities, options.types);
+        UI.renderGameSpecificFilters(selectedGames, options.types);
+    });
 
     // Filter inputs
     document.getElementById('filter-name').addEventListener('input', (e) => applyAndRender({ name: e.target.value }));
@@ -170,6 +176,17 @@ function setupEventListeners() {
             reader.readAsDataURL(file);
         }
     });
+
+    // Graded card checkbox
+    document.getElementById('card-is-graded').addEventListener('change', (e) => {
+        document.getElementById('graded-section').classList.toggle('hidden', !e.target.checked);
+    });
+
+    // Show details toggle
+    document.getElementById('show-details-toggle').addEventListener('change', () => {
+        Collection.toggleShowAdditionalInfo();
+        applyAndRender({});
+    });
 }
 
 /**
@@ -182,7 +199,7 @@ function applyAndRender(filterUpdate) {
     const cardsToRender = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
 
     if (state.activeView === 'grid') {
-        UI.renderGridView(cardsToRender, state.activeTab);
+        UI.renderGridView(cardsToRender, state.activeTab, state.showAdditionalInfo);
     } else {
         UI.renderListView(cardsToRender, state.activeTab);
     }
@@ -278,14 +295,6 @@ function switchView(view) {
     applyAndRender({});
 }
 
-function setTcgFilter(game) {
-    UI.updateTcgFilter(game);
-    applyAndRender({ game, type: '', colors: [] }); // Reset specific filters on game change
-    const options = Collection.getAvailableFilterOptions(game);
-    UI.populateFilters(options.sets, options.rarities, options.types);
-    UI.renderGameSpecificFilters(game, options.types);
-}
-
 function handleCollectionDisplayClick(e) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
     const cardContainer = e.target.closest('.card-container[data-id]');
@@ -312,9 +321,39 @@ function handleCollectionDisplayClick(e) {
             }
         } else {
             const card = Collection.getCardById(cardId);
-            if (card) UI.populateCardModalForEdit(card);
+            if (card) {
+                displayCardDetailsInPanel(card);
+            }
         }
     }
+}
+
+function displayCardDetailsInPanel(card) {
+    const panel = document.getElementById('additional-info-panel');
+    let detailsHtml = `<h4 class="font-bold text-lg mb-2">${card.name}</h4>`;
+
+    switch (card.game) {
+        case 'mtg':
+            detailsHtml += `<p><strong>Mana Cost:</strong> ${card.mana_cost || 'N/A'}</p>`;
+            detailsHtml += `<p><strong>Type:</strong> ${card.type_line || 'N/A'}</p>`;
+            detailsHtml += `<p><strong>P/T:</strong> ${card.power || ''}/${card.toughness || ''}</p>`;
+            break;
+        case 'pokemon':
+            detailsHtml += `<p><strong>HP:</strong> ${card.hp || 'N/A'}</p>`;
+            detailsHtml += `<p><strong>Type:</strong> ${card.types ? card.types.join(', ') : 'N/A'}</p>`;
+            break;
+        default:
+            detailsHtml += `<p>No additional details available for this game.</p>`;
+            break;
+    }
+
+    if (card.is_graded) {
+        detailsHtml += `<hr class="my-2 border-gray-300 dark:border-gray-600">
+                         <p><strong>Grading Co:</strong> ${card.grading_company}</p>
+                         <p><strong>Grade:</strong> ${card.grade}</p>`;
+    }
+
+    panel.innerHTML = detailsHtml;
 }
 
 async function deleteCardAction(cardId) {
@@ -400,102 +439,68 @@ async function handleFinalizeBulkList(e) {
 
     try {
         // Fetch current user's profile data once for all listings
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        if (!userDoc.exists) {
-            throw new Error("Could not find your user profile data.");
-        }
-        const userData = userDoc.data();
-        
-        // --- FIX IMPLEMENTED HERE ---
-        // Prioritize the displayName from the user's Firestore document.
-        const sellerData = {
-            uid: currentUser.uid,
-            displayName: userData.displayName || currentUser.displayName, // Use Firestore data first
-            photoURL: userData.photoURL || currentUser.photoURL,
-            country: userData.country || 'Unknown'
-        };
-        // --- END OF FIX ---
+        const userProfile = await API.getUserProfile(currentUser.uid);
+        if (!userProfile) throw new Error("Could not retrieve user profile.");
 
-        let listingsCount = 0;
-        const itemsToList = document.querySelectorAll('#bulk-review-list > div');
-
-        for (const item of itemsToList) {
+        const updates = [];
+        document.querySelectorAll('.bulk-review-item').forEach(item => {
             const cardId = item.dataset.id;
-            const card = Collection.getCardById(cardId);
-            if (!card) {
-                console.warn(`Card with ID ${cardId} not found in local collection. Skipping.`);
-                continue;
+            const price = parseFloat(item.querySelector('.bulk-review-price-input').value);
+            if (cardId && !isNaN(price) && price > 0) {
+                updates.push({ id: cardId, price });
             }
+        });
 
-            const marketPrice = parseFloat(item.dataset.marketPrice);
-            const fixedPriceInput = item.querySelector('.bulk-review-fixed-input');
-            const percentageInput = item.querySelector('.bulk-review-percent-input');
-            let price = null;
-
-            if (fixedPriceInput && fixedPriceInput.value) {
-                price = parseFloat(fixedPriceInput.value);
-            } else if (percentageInput && percentageInput.value && marketPrice > 0) {
-                price = (marketPrice * parseFloat(percentageInput.value)) / 100;
-            }
-
-            if (price !== null && !isNaN(price) && price > 0) {
-                const listingData = {
-                    cardData: { ...card },
-                    price: parseFloat(price.toFixed(2)),
-                    condition: card.condition || 'Not Specified',
-                    isFoil: card.isFoil || false,
-                    listedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    sellerData: sellerData,
-                    originalCollectionCardId: card.id
-                };
-                delete listingData.cardData.id;
-
-                const newListingRef = db.collection('marketplaceListings').doc();
-                batch.set(newListingRef, listingData);
-
-                const userCardRef = db.collection('users').doc(currentUser.uid).collection('collection').doc(card.id);
-                batch.update(userCardRef, {
-                    isForSale: true,
-                    listingId: newListingRef.id
-                });
-
-                listingsCount++;
-            }
+        if (updates.length === 0) {
+            UI.showToast("No valid prices set. Nothing to list.", "info");
+            return;
         }
 
-        if (listingsCount > 0) {
-            await batch.commit();
-            UI.showToast(`${listingsCount} cards have been successfully listed for sale.`, 'success');
-            UI.closeModal(document.getElementById('bulk-review-modal'));
-            await Collection.loadCollection(currentUser.uid);
-            applyAndRender({});
-            handleBulkEditToggle();
-        } else {
-            UI.showToast('No cards were listed. Please ensure you set a valid price for at least one card.', 'info');
+        for (const { id, price } of updates) {
+            const card = Collection.getCardById(id);
+            if (!card) continue;
+
+            const listingRef = db.collection('marketplaceListings').doc();
+            batch.set(listingRef, {
+                cardData: card,
+                sellerId: currentUser.uid,
+                sellerName: userProfile.username || 'Anonymous',
+                sellerCountry: userProfile.country || 'Unknown',
+                price: price,
+                currency: Currency.getCurrency(),
+                status: 'listed',
+                listedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            const cardRef = db.collection('users').doc(currentUser.uid).collection('collection').doc(id);
+            batch.update(cardRef, { is_listed: true, listingId: listingRef.id });
         }
+
+        await batch.commit();
+        await Collection.batchUpdateSaleStatus(updates.map(u => ({ id: u.id, data: { is_listed: true } })));
+
+        UI.showToast(`${updates.length} cards listed for sale!`, 'success');
+        UI.closeModal(document.getElementById('bulk-review-modal'));
+        applyAndRender({});
+
     } catch (error) {
-        console.error('Bulk list finalization failed:', error);
-        UI.showToast('There was an error listing your cards. Please try again.', 'error');
+        console.error("Error finalizing bulk list:", error);
+        UI.showToast(error.message, 'error');
     } finally {
         UI.setButtonLoading(e.target, false);
     }
 }
 
-
 function handleCardModalClicks(e) {
-    const item = e.target.closest('.pending-card-item');
-    if (item) {
-        const index = parseInt(item.dataset.index, 10);
-        if (e.target.classList.contains('delete-pending-btn')) {
-            Collection.removePendingCard(index);
-            UI.renderPendingCards(Collection.getPendingCards());
-        } else {
-            Collection.swapPendingCard(index);
-            const currentCard = Collection.getCurrentEditingCard();
-            const originalCardData = JSON.parse(document.getElementById('card-modal').dataset.originalCard || '{}');
-            UI.populateCardModalForEdit({ ...originalCardData, ...currentCard });
-            UI.renderPendingCards(Collection.getPendingCards());
-        }
+    if (e.target.classList.contains('remove-pending-btn')) {
+        const index = parseInt(e.target.dataset.index, 10);
+        Collection.removePendingCard(index);
+        UI.renderPendingCards(Collection.getPendingCards());
+    } else if (e.target.classList.contains('swap-pending-btn')) {
+        const index = parseInt(e.target.dataset.index, 10);
+        Collection.swapPendingCard(index);
+        UI.populateCardModalForEdit(Collection.getCurrentEditingCard());
+        UI.renderPendingCards(Collection.getPendingCards());
     }
 }
 
@@ -580,3 +585,4 @@ function clearFilters() {
     UI.updateColorFilterSelection([]);
     applyAndRender({});
 }
+

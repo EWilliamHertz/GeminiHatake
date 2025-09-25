@@ -189,6 +189,12 @@
         </div>
        </div>
       </div>
+      <div id="additional-info-panel-container" class="mb-6">
+        <h3 class="text-lg font-semibold mb-3">Card Details</h3>
+        <div id="additional-info-panel" class="p-4 bg-gray-50 dark:bg-gray-700 rounded-md text-sm text-gray-600 dark:text-gray-400">
+          Click a card to see details.
+        </div>
+      </div>
       <div class="mb-6 flex-1">
        <h3 class="text-lg font-semibold mb-3">
         Filters
@@ -207,6 +213,16 @@
          Clear Filters
         </button>
        </div>
+      </div>
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold mb-3">Display Options</h3>
+        <div class="flex items-center justify-between">
+            <label for="show-details-toggle" class="text-sm font-medium">Show Details on Card</label>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="show-details-toggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+        </div>
       </div>
       <div>
        <h3 class="text-lg font-semibold mb-3">
@@ -242,16 +258,23 @@
           Wishlist
          </button>
         </div>
-        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold" id="tcg-filter-buttons">
-         <button class="tcg-filter-button flex-1 px-4 py-2 rounded-full active" data-game="all">
-          All
-         </button>
-         <button class="tcg-filter-button flex-1 px-4 py-2 rounded-full" data-game="mtg">
-          Magic
-         </button>
-         <button class="tcg-filter-button flex-1 px-4 py-2 rounded-full" data-game="pokemon">
-          Pokémon
-         </button>
+        <div class="flex space-x-2 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold" id="game-filter-container">
+            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+                <input type="checkbox" data-game="mtg" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <span>Magic</span>
+            </label>
+            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+                <input type="checkbox" data-game="pokemon" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <span>Pokémon</span>
+            </label>
+            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+                <input type="checkbox" data-game="lorcana" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <span>Lorcana</span>
+            </label>
+            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+                <input type="checkbox" data-game="gundam" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <span>Gundam</span>
+            </label>
         </div>
         <div class="flex items-center space-x-4">
          <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
@@ -393,111 +416,104 @@
           Language
          </label>
          <select class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-language">
-          <option>
-           English
-          </option>
-          <option>
-           Japanese
-          </option>
-          <option>
-           French
-          </option>
-          <option>
-           German
-          </option>
-          <option>
-           Spanish
-          </option>
-          <option>
-           Italian
-          </option>
-          <option>
-           Portuguese
-          </option>
-          <option>
-           Russian
-          </option>
-          <option>
-           Korean
-          </option>
-          <option>
-           Chinese (Simplified)
-          </option>
-          <option>
-           Chinese (Traditional)
-          </option>
+          <option>English</option>
+          <option>Japanese</option>
+          <option>French</option>
+          <option>German</option>
+          <option>Spanish</option>
+          <option>Italian</option>
+          <option>Portuguese</option>
+          <option>Russian</option>
+          <option>Korean</option>
+          <option>Chinese (Simplified)</option>
+          <option>Chinese (Traditional)</option>
          </select>
         </div>
         <div>
          <label class="block text-sm font-medium" for="card-purchase-price">
-          Purchase Price ($)
+          Purchase Price
          </label>
-         <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-purchase-price" placeholder="0.00" step="0.01" type="number"/>
+         <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-purchase-price" placeholder="Optional" type="number"/>
         </div>
        </div>
-       <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+       <div class="mt-4 space-y-2">
         <label class="flex items-center">
-         <input class="mr-2" id="card-is-foil" type="checkbox"/>
-         Foil
+         <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="card-is-foil" type="checkbox"/>
+         <span class="ml-2 text-sm">
+          Foil
+         </span>
         </label>
         <label class="flex items-center">
-         <input class="mr-2" id="card-is-signed" type="checkbox"/>
-         Signed
+         <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="card-is-signed" type="checkbox"/>
+         <span class="ml-2 text-sm">
+          Signed
+         </span>
         </label>
         <label class="flex items-center">
-         <input class="mr-2" id="card-is-altered" type="checkbox"/>
-         Altered
+         <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="card-is-altered" type="checkbox"/>
+         <span class="ml-2 text-sm">
+          Altered
+         </span>
+        </label>
+        <label class="flex items-center">
+            <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="card-is-graded" type="checkbox"/>
+            <span class="ml-2 text-sm">Is this card graded?</span>
         </label>
        </div>
-       <div class="mt-4">
-        <label class="block text-sm font-medium" for="custom-image-upload">
-         Custom Image (optional)
-        </label>
-        <input accept="image/*" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="custom-image-upload" type="file"/>
-       </div>
-       <div class="mt-4">
-        <label class="flex items-center">
-         <input class="mr-2" id="list-for-sale-toggle" type="checkbox"/>
-         List for Sale
-        </label>
-        <div class="hidden mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-md" id="list-for-sale-section">
-         <div class="mb-2">
-          <span class="text-sm text-gray-600 dark:text-gray-400">
-           Market Price:
-          </span>
-          <span class="font-semibold" id="market-price-display">
-           $0.00
-          </span>
-         </div>
-         <div class="grid grid-cols-2 gap-2">
-          <div>
-           <label class="block text-sm font-medium" for="card-sale-percentage">
-            % of Market
-           </label>
-           <div class="flex items-center">
-            <input class="flex-1 p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-sale-percentage" max="500" min="1" type="number" value="100"/>
-            <span class="ml-1 text-sm">
-             %
-            </span>
-           </div>
-          </div>
-          <div class="flex-1">
-           <label class="block text-sm font-medium" for="card-sale-price">
-            Or set fixed price ($)
-           </label>
-           <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-sale-price" placeholder="0.00" step="0.01" type="number"/>
-          </div>
-         </div>
+       <div id="graded-section" class="mt-4 grid grid-cols-2 gap-4 hidden">
+        <div>
+            <label class="block text-sm font-medium" for="grading-company">Grading Company</label>
+            <select id="grading-company" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <option>PSA</option>
+                <option>BGS</option>
+                <option>CGC</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium" for="grade">Grade</label>
+            <select id="grade" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
+                <option>10</option>
+                <option>9</option>
+                <option>8</option>
+                <option>7</option>
+                <option>6</option>
+                <option>5</option>
+                <option>4</option>
+                <option>3</option>
+                <option>2</option>
+                <option>1</option>
+            </select>
         </div>
        </div>
-       <div class="mt-4 border-t pt-2" id="pending-cards-container">
+       <div class="mt-4">
+        <label class="block text-sm font-medium" for="card-notes">
+         Notes
+        </label>
+        <textarea class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-notes" placeholder="Add any personal notes about this card..." rows="3">
+        </textarea>
+       </div>
+       <div class="mt-4">
+        <label class="block text-sm font-medium">
+         Custom Image
+        </label>
+        <input class="mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" id="custom-image-upload" type="file"/>
+       </div>
+       <div class="mt-4 border-t pt-4 dark:border-gray-700" id="pending-versions-container">
+        <h3 class="text-lg font-semibold mb-2">
+         Other Versions
+        </h3>
+        <div id="pending-versions-list">
+        </div>
+        <button class="mt-2 text-sm text-blue-600 hover:underline" id="add-another-version-btn" type="button">
+         + Add another version (e.g., different language, condition)
+        </button>
        </div>
       </div>
-      <div class="mt-auto pt-4 flex justify-end items-center space-x-3 flex-shrink-0">
-       <button class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500" id="add-another-version-btn" type="button">
-        Add This Version
+      <div class="mt-6 flex justify-end space-x-4 flex-shrink-0">
+       <button class="btn btn-secondary" id="delete-card-btn" type="button">
+        Delete
        </button>
-       <button class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700" id="save-card-btn" type="submit">
+       <button class="btn btn-primary" id="save-card-btn" type="submit">
         Add to Collection
        </button>
       </div>
@@ -788,3 +804,4 @@
   </script>
  </body>
 </html>
+

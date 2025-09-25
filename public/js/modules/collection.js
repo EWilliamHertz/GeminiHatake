@@ -12,10 +12,11 @@ let state = {
     filteredCollection: [],
     activeTab: 'collection',
     activeView: 'grid',
-    filters: { name: '', set: [], rarity: [], colors: [], game: 'all', type: '' },
+    filters: { name: '', set: [], rarity: [], colors: [], games: [], type: '' },
     bulkEdit: { isActive: false, selected: new Set() },
     currentEditingCard: null,
     pendingCards: [],
+    showAdditionalInfo: false, // New state for showing details on card
 };
 
 export const getState = () => state;
@@ -38,7 +39,9 @@ function findMatchingCard(cardData) {
         card.language === cardData.language &&
         card.is_foil === cardData.is_foil &&
         card.is_signed === cardData.is_signed &&
-        card.is_altered === cardData.is_altered
+        card.is_altered === cardData.is_altered &&
+        card.is_graded === cardData.is_graded &&
+        (!cardData.is_graded || (card.grading_company === cardData.grading_company && card.grade === cardData.grade))
     );
 }
 
@@ -118,6 +121,10 @@ export function toggleColorFilter(color) {
         state.filters.colors.push(color); 
     } 
     return state.filters.colors; 
+}
+
+export function toggleShowAdditionalInfo() {
+    state.showAdditionalInfo = !state.showAdditionalInfo;
 }
 
 export async function addMultipleCards(cardVersions, customImageFile) {
@@ -208,15 +215,15 @@ export async function batchDelete(cardIds) {
 export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId) || state.wishlist.find(c => c.id === cardId);
 
 export function applyFilters() {
-    const { name, set, rarity, colors, game, type } = state.filters;
+    const { name, set, rarity, colors, games, type } = state.filters;
 
     const filterLogic = (card) => {
         const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
         const setMatch = set.length === 0 || set.includes(card.set_name);
         const rarityMatch = rarity.length === 0 || rarity.includes(card.rarity);
-        const gameMatch = game === 'all' || (card.game || 'mtg') === game;
+        const gameMatch = games.length === 0 || games.includes(card.game || 'mtg');
 
-        if (game === 'mtg') {
+        if (games.includes('mtg')) {
             const colorIdentity = card.color_identity || [];
             let colorMatch = true;
             if (colors.length > 0) {
@@ -227,7 +234,7 @@ export function applyFilters() {
                 }
             }
             return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
-        } else if (game === 'pokemon') {
+        } else if (games.includes('pokemon')) {
             const typeMatch = !type || (card.types && card.types.includes(type));
             return nameMatch && setMatch && rarityMatch && typeMatch && gameMatch;
         }
@@ -264,9 +271,9 @@ export function calculateWishlistStats() {
     return { totalCards, uniqueCards, totalValue };
 }
 
-export function getAvailableFilterOptions(game) {
+export function getAvailableFilterOptions(games) {
     const sourceList = state.activeTab === 'collection' ? state.fullCollection : state.fullWishlist;
-    const filteredList = sourceList.filter(c => game === 'all' || (c.game || 'mtg') === game);
+    const filteredList = sourceList.filter(c => games.length === 0 || games.includes(c.game || 'mtg'));
 
     const sets = [...new Set(filteredList.map(c => c.set_name))].sort();
     
@@ -284,9 +291,10 @@ export function getAvailableFilterOptions(game) {
     }
 
     let types = [];
-    if (game === 'pokemon') {
+    if (games.includes('pokemon')) {
         types = [...new Set(filteredList.flatMap(c => c.types || []))].sort();
     }
     
     return { sets, rarities, types };
 }
+
