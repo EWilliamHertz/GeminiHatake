@@ -92,27 +92,29 @@ export function transformPokemonCard(pokemonCard) {
     };
 }
 
-// --- START: CORRECTED IMAGE URL LOGIC ---
 /**
  * Gets a reliable image URL from a card object, supporting both old and new data structures.
  * @param {object} card - The card object.
  * @returns {string} The URL for the card image.
  */
 export function getCardImageUrl(card) {
-    if (card.customImageUrl) {
+    if (card && card.customImageUrl) {
         return card.customImageUrl;
     }
-    // Check for the standardized `image_uris` object first (works for MTG and new Pokémon searches)
-    if (card.image_uris) {
-        return card.image_uris.normal || card.image_uris.large || card.image_uris.small;
+    // The cleanScryDexData function now creates the 'image_uris.normal' property. This is the new standard path.
+    if (card && card.image_uris && card.image_uris.normal) {
+        return card.image_uris.normal;
     }
-    // Fallback for older Pokémon cards already saved in the database
-    if (card.images) {
-        return card.images.large || card.images.small;
+    // Fallback for Scryfall multi-faced cards which have a different structure
+    if (card && card.card_faces && card.card_faces[0].image_uris && card.card_faces[0].image_uris.normal) {
+        return card.card_faces[0].image_uris.normal;
     }
-    return 'https://placehold.co/223x310?text=No+Image';
+    // Final fallback for any other legacy data structures
+    if (card && card.image_uris) {
+        return card.image_uris;
+    }
+    return 'images/placeholder.png'; // A default placeholder image
 }
-// --- END: CORRECTED IMAGE URL LOGIC ---
 
 
 /**

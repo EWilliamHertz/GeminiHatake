@@ -48,7 +48,7 @@ export function createCurrencySelector(containerId, userId) {
     selector.addEventListener('change', (e) => {
         Currency.updateUserCurrency(userId, e.target.value);
     });
-    
+
     container.appendChild(selector);
 }
 
@@ -141,7 +141,7 @@ export function renderListView(cards, activeTab) {
         const saleStatus = (card.forSale && typeof card.salePrice === 'number')
             ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.salePrice)})</span>`
             : 'In Collection';
-        
+
         return `
             <tr class="card-container border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600/50 ${isSelected ? 'bg-blue-100 dark:bg-blue-900/50' : ''}" data-id="${card.id}">
                 ${isBulkMode ? `<td class="p-3"><input type="checkbox" class="bulk-select-checkbox h-4 w-4" data-id="${card.id}" ${isSelected ? 'checked' : ''}></td>` : ''}
@@ -166,36 +166,48 @@ export function renderListView(cards, activeTab) {
     display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
 }
 
+/**
+ * FINAL CORRECTED VERSION: Renders search results by correctly accessing data
+ * from the cleaned card object provided by api.js and utils.js.
+ */
 export function renderSearchResults(results) {
-    const container = getElement('search-results-container');
+    const container = document.getElementById('search-results-container');
+    if (!container) return;
+
     if (typeof results === 'string') {
-        container.innerHTML = `<p class="text-center text-gray-500">${results}</p>`;
+        container.innerHTML = `<p class="text-gray-400">${results}</p>`;
         return;
     }
-    if (!results || results.length === 0) {
-        container.innerHTML = `<p class="text-center text-gray-500">No cards found.</p>`;
+    if (!Array.isArray(results) || results.length === 0) {
+        container.innerHTML = '<p class="text-gray-400">No cards found.</p>';
         return;
     }
+
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = Currency.convertAndFormat(card.prices);
-        const collectorInfo = card.game === 'mtg' && card.collector_number ? ` | #${card.collector_number}` : '';
-        const cardDataString = encodeURIComponent(JSON.stringify(card)).replace(/'/g, "%27");        
+        // Use the dedicated currency formatter for consistency. Access 'usd' directly.
+        const price = Currency.convertAndFormat(card.prices?.usd);
+        const collectorInfo = card.collector_number ? ` (#${card.collector_number})` : '';
+        // Sanitize the JSON string for use in an HTML attribute
+        const cardDataString = encodeURIComponent(JSON.stringify(card));
+
         return `
-            <div class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer search-result-item" data-card='${cardDataString}'>
-                <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md pointer-events-none">
+            <div class="search-result-item flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${cardDataString}'>
+                <img src="${imageUrl}" alt="${card.name}" class="w-16 h-22 object-contain mr-4 rounded-md pointer-events-none" onerror="this.src='images/placeholder.png';">
                 <div class="flex-grow pointer-events-none">
                     <p class="font-semibold">${card.name}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">${card.set_name} (${card.set.toUpperCase()}${collectorInfo})</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${card.set_name}${collectorInfo}</p>
                 </div>
                 <div class="text-right pointer-events-none">
-                    <p class="font-mono">${price}</p>
+                    <p class="font-mono font-bold text-green-500">${price}</p>
                     <p class="text-sm capitalize text-gray-500">${card.rarity}</p>
                 </div>
             </div>`;
     }).join('');
+
     container.innerHTML = resultsHTML;
 }
+
 
 export function renderPendingCards(pendingCards) {
     const container = getElement('pending-cards-container');
@@ -263,7 +275,7 @@ export function renderCsvReviewModal(data) {
     const tableBody = document.getElementById('csv-review-table-body');
     if (!tableBody) return;
     tableBody.innerHTML = '';
-    
+
     data.forEach((card, index) => {
         const row = document.createElement('tr');
         row.dataset.index = index;
@@ -500,7 +512,7 @@ export function updateColorFilterSelection(selectedColors) {
 export function updateBulkEditUI(isActive) {
     const bulkEditBtn = getElement('bulk-edit-btn');
     const bulkToolbar = getElement('bulk-edit-toolbar');
-    
+
     bulkEditBtn.innerHTML = isActive ? '<i class="fas fa-times w-6"></i> Cancel' : '<i class="fas fa-edit w-6"></i> Bulk Edit';
     bulkToolbar.classList.toggle('hidden', !isActive);
 }
@@ -543,7 +555,7 @@ export function populateCardModalForAdd(cardData) {
     getElement('card-is-altered').checked = false;
     getElement('card-purchase-price').value = '';
     getElement('save-card-btn').textContent = 'Add to Collection';
-    getElement('market-price-display').textContent = Currency.convertAndFormat(cardData.prices);
+    getElement('market-price-display').textContent = Currency.convertAndFormat(cardData.prices.usd);
     getElement('list-for-sale-toggle').checked = false;
     getElement('list-for-sale-section').classList.add('hidden');
     openModal(getElement('card-modal'));
@@ -563,7 +575,7 @@ export function populateCardModalForEdit(card) {
     getElement('card-is-altered').checked = card.is_altered || false;
     getElement('card-purchase-price').value = card.purchase_price || '';
     getElement('save-card-btn').textContent = 'Save Changes';
-    getElement('market-price-display').textContent = Currency.convertAndFormat(card.prices);
+    getElement('market-price-display').textContent = Currency.convertAndFormat(card.prices.usd);
     getElement('list-for-sale-toggle').checked = card.forSale || false;
     getElement('list-for-sale-section').classList.toggle('hidden', !card.forSale);
     getElement('card-sale-price').value = card.salePrice || '';

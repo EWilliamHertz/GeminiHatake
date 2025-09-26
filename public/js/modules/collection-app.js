@@ -2,6 +2,7 @@
  * collection-app.js
  * Main application logic for the collection page.
  * - Includes live currency updates and card hover previews.
+ * - NEW: Automatically re-searches when the game selection is changed in the search modal.
  */
 import * as Collection from './collection.js';
 import * as UI from './ui.js';
@@ -50,7 +51,13 @@ function setupInitialFilters() {
  */
 function setupEventListeners() {
     // Modal controls
-    document.getElementById('add-card-btn').addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+    document.getElementById('add-card-btn').addEventListener('click', () => {
+        UI.openModal(document.getElementById('search-modal'));
+        // Clear previous results and set default state
+        UI.renderSearchResults('');
+        document.getElementById('card-search-input').value = '';
+        document.getElementById('game-selector').selectedIndex = 0;
+    });
     document.getElementById('csv-import-btn').addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
     document.body.addEventListener('click', (e) => {
         if (e.target.id === 'close-search-modal') UI.closeModal(document.getElementById('search-modal'));
@@ -99,6 +106,8 @@ function setupEventListeners() {
 
     // Card search and forms
     document.getElementById('card-search-input').addEventListener('input', handleSearchInput);
+    // NEW: Re-triggers search when the game is changed
+    document.getElementById('game-selector').addEventListener('change', handleSearchInput);
     document.getElementById('search-results-container').addEventListener('click', handleSearchResultClick);
     document.getElementById('card-form').addEventListener('submit', handleCardFormSubmit);
     document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
@@ -256,8 +265,14 @@ function handleAddAnotherVersion(e) {
 let searchTimeout;
 function handleSearchInput(e) {
     clearTimeout(searchTimeout);
-    const query = e.target.value;
+    const query = document.getElementById('card-search-input').value;
     const game = document.getElementById('game-selector').value;
+
+    if (!game) {
+        UI.renderSearchResults('Please select a game.');
+        return;
+    }
+
     if (query.length < 3) {
         UI.renderSearchResults('Enter at least 3 characters.');
         return;
@@ -266,9 +281,14 @@ function handleSearchInput(e) {
     searchTimeout = setTimeout(async () => {
         try {
             const results = await API.searchCards(query, game);
-            UI.renderSearchResults(results);
+            if (results.length === 0) {
+                 UI.renderSearchResults('No cards found matching your search.');
+            } else {
+                UI.renderSearchResults(results);
+            }
         } catch (error) {
-            UI.renderSearchResults('Could not fetch card data.');
+            console.error("[App] Search failed:", error);
+            UI.renderSearchResults(`Error: ${error.message}`);
         }
     }, 300);
 }
@@ -585,4 +605,3 @@ function clearFilters() {
     UI.updateColorFilterSelection([]);
     applyAndRender({});
 }
-

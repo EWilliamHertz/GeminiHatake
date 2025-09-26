@@ -1,3 +1,139 @@
+Beneath here is two original files, utils.js and api.js, and after them I will add snippets of new code from the documentation of ScryDex to properly fetch sets, card images, names, prices etcetera.
+this is utils.js:
+/**
+ * utils.js
+ * Contains helper and utility functions for data transformation and formatting.
+ */
+
+/**
+ * Creates a debounced function that delays invoking `func` until after `wait` milliseconds have elapsed
+ * since the last time the debounced function was invoked.
+ * @param {Function} func The function to debounce.
+ * @param {number} wait The number of milliseconds to delay.
+ * @returns {Function} Returns the new debounced function.
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Transforms a Scryfall card object into the app's standard format.
+ * @param {object} scryfallCard - The raw card object from the Scryfall API.
+ * @returns {object} A standardized card object.
+ */
+export function transformScryfallCard(scryfallCard) {
+    return {
+        api_id: scryfallCard.id,
+        name: scryfallCard.name,
+        set: scryfallCard.set,
+        set_name: scryfallCard.set_name,
+        rarity: scryfallCard.rarity,
+        image_uris: scryfallCard.image_uris,
+        prices: {
+            usd: scryfallCard.prices?.usd || null,
+            usd_foil: scryfallCard.prices?.usd_foil || null,
+        },
+        purchasePrice: 0,
+        collector_number: scryfallCard.collector_number,
+        color_identity: scryfallCard.color_identity,
+        type_line: scryfallCard.type_line,
+        game: 'mtg',
+    };
+}
+
+
+/**
+ * Transforms a Pokémon TCG API card object into the app's standard format.
+ * This function is now robust and safely handles missing data.
+ * @param {object} pokemonCard - The raw card object from the Pokémon TCG API.
+ * @returns {object} A standardized card object.
+ */
+export function transformPokemonCard(pokemonCard) {
+    const prices = pokemonCard.tcgplayer?.prices || {};
+    const normalPrice = prices?.normal?.market
+        || prices?.unlimited?.market
+        || prices?.holofoil?.market
+        || null;
+    const foilPrice = prices?.holofoil?.market
+        || prices?.reverseHolofoil?.market
+        || prices?.["1stEditionHolofoil"]?.market
+        || null;
+
+    const image_uris = {
+        small: pokemonCard.images?.small || '',
+        normal: pokemonCard.images?.large || '',
+        large: pokemonCard.images?.large || '',
+        art_crop: pokemonCard.images?.large || '',
+    };
+
+    return {
+        api_id: pokemonCard.id,
+        name: pokemonCard.name,
+        set: pokemonCard.set.id,
+        set_name: pokemonCard.set.name,
+        rarity: pokemonCard.rarity || 'Common',
+        image_uris: image_uris,
+        // Keep the original images object for backward compatibility with saved cards
+        images: pokemonCard.images,
+        prices: {
+            usd: normalPrice,
+            usd_foil: foilPrice,
+        },
+        purchasePrice: 0,
+        collector_number: pokemonCard.number,
+        type_line: pokemonCard.supertype + (pokemonCard.subtypes ? ` - ${pokemonCard.subtypes.join(' ')}` : ''),
+        game: 'pokemon',
+    };
+}
+
+// --- START: CORRECTED IMAGE URL LOGIC ---
+/**
+ * Gets a reliable image URL from a card object, supporting both old and new data structures.
+ * @param {object} card - The card object.
+ * @returns {string} The URL for the card image.
+ */
+export function getCardImageUrl(card) {
+    if (card.customImageUrl) {
+        return card.customImageUrl;
+    }
+    // Handles both Scryfall (direct properties) and ScryDex (nested) image objects
+    if (card.image_uris && card.image_uris.normal) {
+        return card.image_uris.normal;
+    }
+    // Fallback for older data structures or direct image links
+    if (card.image_uris) {
+        return card.image_uris;
+    }
+    return 'images/placeholder.png'; // Default placeholder
+}
+// --- END: CORRECTED IMAGE URL LOGIC ---
+
+
+/**
+ * Formats a price string.
+ * @param {number|string|null} price - The price to format.
+ * @param {string} currency - The currency code (e.g., 'USD').
+ * @returns {string} The formatted price string (e.g., '$1.23').
+ */
+export function formatPrice(price, currency = 'USD') {
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice)) {
+        return 'N/A';
+    }
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+    }).format(numericPrice);
+}
+this is api.js:
 // public/js/modules/api.js
 
 /**
@@ -158,35 +294,33 @@ function cleanScryfallData(card) {
 }
 
 /**
- * REWRITTEN: Cleans data from a ScryDex API response based on official documentation.
- * This fixes all known issues with names, sets, images, and prices.
+ * Cleans data from a ScryDex API response based on official documentation.
  */
 function cleanScryDexData(card, game) {
     try {
+        const prices = {
+            usd: parseFloat(card.prices?.usd?.market) || null,
+            usd_foil: parseFloat(card.prices?.usd_foil?.market) || null,
+        };
+
+        const image_uris = {
+            small: card.images?.small || null,
+            normal: card.images?.normal || null,
+            large: card.images?.large || null,
+        };
+
         const cleaned = {
             api_id: card.id,
-            // FIX: Lorcana uses 'Name' (capitalized), others use 'name'.
-            name: card.Name || card.name || 'Unknown Card',
-            // FIX: Set name is nested in a 'set' object for ALL games.
+            name: card.name || 'Unknown Card',
             set: card.set?.id || 'unknown',
             set_name: card.set?.name || 'Unknown Set',
             rarity: card.rarity || 'Common',
-            // FIX: Correctly map the 'images' object to the 'image_uris' structure the app expects.
-            image_uris: {
-                small: card.images?.small || null,
-                normal: card.images?.normal || null,
-                large: card.images?.large || null,
-            },
-            // FIX: Correctly parse the nested price data for all games.
-            prices: {
-                usd: parseFloat(card.prices?.usd?.market) || null,
-                usd_foil: parseFloat(card.prices?.usd_foil?.market) || null,
-            },
+            image_uris: image_uris,
+            prices: prices,
             collector_number: card.collector_number || '',
             game: game
         };
 
-        // Add game-specific details from the documentation
         switch (game) {
             case 'mtg':
                 cleaned.mana_cost = card.mana_cost || '';
@@ -200,22 +334,40 @@ function cleanScryDexData(card, game) {
                 cleaned.hp = card.hp || null;
                 cleaned.supertype = card.supertype || '';
                 cleaned.subtypes = card.subtypes || [];
-                // All other pokemon fields are optional and not used in the main display
+                cleaned.abilities = card.abilities || [];
+                cleaned.attacks = card.attacks || [];
+                cleaned.weaknesses = card.weaknesses || [];
+                cleaned.resistances = card.resistances || [];
+                cleaned.retreat_cost = card.retreat_cost || [];
+                cleaned.artist = card.artist || '';
+                cleaned.flavor_text = card.flavor_text || '';
                 break;
             case 'lorcana':
+                cleaned.name = card.Name || 'Unknown Card';
                 cleaned.cost = card.Cost || 0;
                 cleaned.type = card.Type || '';
                 cleaned.color = card.Color || '';
                 cleaned.inkable = card.Inkable || false;
+                cleaned.body_text = card.Body_Text || '';
+                cleaned.flavor_text = card.Flavor_Text || '';
+                cleaned.artist = card.Artist || '';
                 cleaned.strength = card.Strength || null;
                 cleaned.willpower = card.Willpower || null;
                 cleaned.lore = card.Lore || null;
                 break;
             case 'gundam':
                 cleaned.code = card.code || '';
+                cleaned.level = card.level || 0;
                 cleaned.cost = card.cost || 0;
                 cleaned.color = card.color || '';
                 cleaned.card_type = card.card_type || '';
+                cleaned.effect = card.effect || '';
+                cleaned.zone = card.zone || '';
+                cleaned.trait = card.trait || '';
+                cleaned.link = card.link || '';
+                cleaned.ap = card.ap || null;
+                cleaned.hp = card.hp || null;
+                cleaned.source_title = card.source_title || '';
                 break;
         }
         return cleaned;
