@@ -1,0 +1,789 @@
+These are the original files: 
+marketplace.html:
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Marketplace - HatakeSocial
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <link href="/manifest.json" rel="manifest"/>
+ </head>
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
+  <div class="flex h-screen">
+   <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
+   </div>
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+     <a class="flex flex-col items-center space-y-1" href="app.html">
+      <img alt="HatakeSocial Logo" class="h-16" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       TCG Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+      <i class="fas fa-blog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Hatake Blog
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
+    </nav>
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700" id="auth-container-sidebar">
+    </div>
+   </aside>
+   <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+     </div>
+     <div class="relative flex-grow max-w-xl mx-4">
+      <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+      </i>
+      <input class="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+     </div>
+    </header>
+    <main class="flex-1 overflow-y-auto">
+     <div class="flex flex-1 flex-col lg:flex-row gap-6 p-6">
+      <aside class="w-full lg:w-1/4 xl:w-1/5 bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 h-fit">
+       <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-gray-100">
+        Filters
+       </h2>
+       <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1" for="gameFilter">
+         Game
+        </label>
+        <select class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" id="gameFilter">
+         <option value="all">
+          All Games
+         </option>
+         <option value="Magic: The Gathering">
+          Magic: The Gathering
+         </option>
+         <option value="Pokémon">
+          Pokémon
+         </option>
+        </select>
+       </div>
+       <button class="text-blue-600 dark:text-blue-400 hover:underline mb-4 text-sm w-full text-left" id="toggleAdvancedFilters">
+        Show Advanced Filters
+        <i class="fas fa-chevron-down ml-1 transition-transform inline-block">
+        </i>
+       </button>
+       <div class="hidden space-y-4" id="advancedFilters">
+        <div>
+         <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1" for="setFilter">
+          Set/Edition
+         </label>
+         <select class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" id="setFilter">
+          <option value="all">
+           All Sets
+          </option>
+         </select>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+          Price Range
+         </label>
+         <div class="flex space-x-2">
+          <input class="w-1/2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none" id="minPrice" placeholder="Min" type="number"/>
+          <input class="w-1/2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none" id="maxPrice" placeholder="Max" type="number"/>
+         </div>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+          Condition
+         </label>
+         <div class="space-y-2 text-sm text-gray-800 dark:text-gray-300" id="conditionFilters">
+          <div class="flex items-center">
+           <input class="h-4 w-4 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded text-blue-600 focus:ring-blue-500 mr-2" type="checkbox" value="Near Mint"/>
+           <label>
+            Near Mint
+           </label>
+          </div>
+          <div class="flex items-center">
+           <input class="h-4 w-4 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded text-blue-600 focus:ring-blue-500 mr-2" type="checkbox" value="Lightly Played"/>
+           <label>
+            Lightly Played
+           </label>
+          </div>
+          <div class="flex items-center">
+           <input class="h-4 w-4 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded text-blue-600 focus:ring-blue-500 mr-2" type="checkbox" value="Moderately Played"/>
+           <label>
+            Moderately Played
+           </label>
+          </div>
+          <div class="flex items-center">
+           <input class="h-4 w-4 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded text-blue-600 focus:ring-blue-500 mr-2" type="checkbox" value="Heavily Played"/>
+           <label>
+            Heavily Played
+           </label>
+          </div>
+          <div class="flex items-center">
+           <input class="h-4 w-4 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded text-blue-600 focus:ring-blue-500 mr-2" type="checkbox" value="Damaged"/>
+           <label>
+            Damaged
+           </label>
+          </div>
+         </div>
+        </div>
+        <div>
+         <div class="flex items-center text-sm text-gray-800 dark:text-gray-300">
+          <input class="h-4 w-4 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 rounded text-blue-600 focus:ring-blue-500 mr-2" id="foilFilter" type="checkbox"/>
+          <label for="foilFilter">
+           Foil Only
+          </label>
+         </div>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1" for="locationFilter">
+          Seller Location (Country)
+         </label>
+         <input class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" id="locationFilter" placeholder="e.g., USA, Japan" type="text"/>
+        </div>
+       </div>
+      </aside>
+      <div class="flex-1">
+       <div class="flex justify-between items-center mb-4">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">
+         Marketplace
+        </h1>
+        <div class="flex items-center space-x-4">
+         <select class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" id="sortOptions">
+          <option value="newly-listed">
+           Newly Listed
+          </option>
+          <option value="price-asc">
+           Price: Low to High
+          </option>
+          <option value="price-desc">
+           Price: High to Low
+          </option>
+         </select>
+         <div class="flex items-center bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1">
+          <button class="px-3 py-1 rounded bg-blue-600 text-white" id="gridViewBtn" title="Grid View">
+           <i class="fas fa-th-large">
+           </i>
+          </button>
+          <button class="px-3 py-1 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600" id="listViewBtn" title="List View">
+           <i class="fas fa-list">
+           </i>
+          </button>
+         </div>
+        </div>
+       </div>
+       <div class="h-full" id="listingsContainer">
+        <div class="text-center p-10">
+         <i class="fas fa-spinner fa-spin text-4xl text-blue-500">
+         </i>
+         <p class="mt-2 text-gray-600 dark:text-gray-400">
+          Loading Listings...
+         </p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </main>
+   </div>
+  </div>
+  <div class="fixed z-[1005] pointer-events-none hidden rounded-xl shadow-lg border-4 border-gray-400" id="card-preview-tooltip">
+   <div class="flex" id="card-preview-image-container">
+   </div>
+  </div>
+  <script src="https://js.stripe.com/v3/">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js" type="text/javascript">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
+  </script>
+  <script src="js/auth.js">
+  </script>
+  <script src="js/notifications.js">
+  </script>
+  <script src="js/cart.js">
+  </script>
+  <script src="js/darkmode.js">
+  </script>
+  <script src="js/messenger.js">
+  </script>
+  <script src="js/marketplace.js" type="module">
+  </script>
+  <script>
+   const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        });
+    }
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        });
+    }
+  </script>
+  <script>
+   // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch(function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+        });
+    }
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Login
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="loginForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+     <p class="text-red-500 text-sm hidden" id="login-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Login
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Sign in with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Register
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="registerForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+     <p class="text-red-500 text-sm hidden" id="register-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Register
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Register with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
+    <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+     <h2 class="text-xl font-bold">
+      Your Cart
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
+      ×
+     </button>
+    </div>
+    <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+     <p class="text-center text-gray-500 dark:text-gray-400">
+      Your cart is empty.
+     </p>
+    </div>
+    <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+     <div class="flex justify-between items-center font-bold text-lg">
+      <span>
+       Subtotal
+      </span>
+      <span id="cart-subtotal">
+       $0.00
+      </span>
+     </div>
+     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      Shipping &amp; taxes calculated at checkout.
+     </p>
+     <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
+      Proceed to Checkout
+     </button>
+    </div>
+   </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js">
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
+  <script src="/js/tour.js" type="module">
+  </script>
+ </body>
+</html>
+
+
+marketplace.js:
+/**
+ * HatakeSocial - Marketplace Page Logic (FULLY RESTORED & FIXED)
+ *
+ * Fetches, filters, and displays card listings from all users.
+ * Uses the centralized currency module for all price conversions and display.
+ * Includes the restored card hover-preview functionality and corrected card view links.
+ */
+
+// --- CORRECTED IMPORT PATH ---
+import { convertAndFormat } from './modules/currency.js';
+
+// --- STATE MANAGEMENT ---
+let allListings = [];
+let filteredListings = [];
+let currentView = 'grid';
+
+// --- DOM ELEMENT REFERENCES ---
+const listingsContainer = document.getElementById('listingsContainer');
+const mainSearchInput = document.getElementById('main-search-bar');
+const gameFilter = document.getElementById('gameFilter');
+const setFilter = document.getElementById('setFilter');
+const minPriceInput = document.getElementById('minPrice');
+const maxPriceInput = document.getElementById('maxPrice');
+const conditionFiltersContainer = document.getElementById('conditionFilters');
+const foilFilter = document.getElementById('foilFilter');
+const locationFilter = document.getElementById('locationFilter');
+const sortOptions = document.getElementById('sortOptions');
+const gridViewBtn = document.getElementById('gridViewBtn');
+const listViewBtn = document.getElementById('listViewBtn');
+const toggleAdvancedFiltersBtn = document.getElementById('toggleAdvancedFilters');
+const advancedFiltersContainer = document.getElementById('advancedFilters');
+const tooltip = document.getElementById('card-preview-tooltip');
+
+
+// --- UTILITY FUNCTIONS ---
+const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+};
+
+// --- DATA FETCHING ---
+async function fetchMarketplaceData() {
+    listingsContainer.innerHTML = `
+        <div class="col-span-full text-center p-10">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">Loading Listings...</p>
+        </div>`;
+
+    try {
+        const db = firebase.firestore();
+        // Correctly query the 'marketplaceListings' collection.
+        const listingsRef = db.collection('marketplaceListings');
+        const querySnapshot = await listingsRef.orderBy('listedAt', 'desc').get();
+
+        allListings = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        filteredListings = [...allListings];
+
+        if (allListings.length === 0) {
+            listingsContainer.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-10">The marketplace is currently empty.</p>`;
+        } else {
+            populateSetFilter();
+            renderListings();
+        }
+
+    } catch (error) {
+        console.error("Error fetching marketplace listings:", error);
+        listingsContainer.innerHTML = `<p class="text-center text-red-500 py-10">Could not load listings. Please try again later.</p>`;
+    }
+}
+
+// --- RENDERING LOGIC ---
+function renderListings() {
+    listingsContainer.innerHTML = '';
+    if (filteredListings.length === 0) {
+        listingsContainer.innerHTML = `<p class="col-span-full text-center text-gray-500 dark:text-gray-400 py-10">No cards found. Try adjusting your filters.</p>`;
+        return;
+    }
+    if (currentView === 'grid') {
+        renderGridView();
+    } else {
+        renderListView();
+    }
+}
+
+function renderGridView() {
+    listingsContainer.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4';
+    const fragment = document.createDocumentFragment();
+
+    filteredListings.forEach(listing => {
+        const cardData = listing.cardData;
+        const sellerData = listing.sellerData;
+        const imageUrl = cardData.image_uris?.normal || 'https://placehold.co/223x310?text=No+Image';
+        const displayPrice = convertAndFormat(listing.price);
+
+        const cardElement = document.createElement('div');
+        cardElement.className = 'card-container group relative rounded-lg overflow-hidden cursor-pointer transform hover:scale-105 transition-transform duration-200 shadow-lg bg-white dark:bg-gray-800 flex flex-col';
+        cardElement.dataset.imageUrl = imageUrl;
+        // Corrected link to match card-view.js expectations
+        cardElement.onclick = () => window.location.href = `card-view.html?id=${listing.id}`;
+
+        cardElement.innerHTML = `
+            <div class="relative">
+                <img src="${imageUrl}" alt="${cardData.name}" class="w-full h-auto object-cover">
+                <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${displayPrice}</div>
+            </div>
+            <div class="p-2 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-sm truncate">${cardData.name}</h3>
+                    <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1 mt-1">
+                        <p><strong>Condition:</strong> ${listing.condition}</p>
+                        ${listing.isFoil ? '<p class="text-blue-400 font-semibold">Foil</p>' : ''}
+                    </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex items-center space-x-2">
+                    <img src="${sellerData.photoURL}" alt="${sellerData.displayName}" class="w-6 h-6 rounded-full">
+                    <span class="text-xs font-semibold truncate">${sellerData.displayName}</span>
+                    <span class="text-xs" title="${sellerData.country}"><i class="fas fa-globe-americas"></i></span>
+                </div>
+            </div>
+        `;
+        fragment.appendChild(cardElement);
+    });
+    listingsContainer.appendChild(fragment);
+}
+
+function renderListView() {
+    listingsContainer.className = 'overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700';
+    let tableHTML = `
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Card Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Set</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Condition</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Seller</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
+
+    filteredListings.forEach(listing => {
+        const cardData = listing.cardData;
+        const sellerData = listing.sellerData;
+        const displayPrice = convertAndFormat(listing.price);
+        const imageUrl = cardData.image_uris?.small || 'https://placehold.co/32';
+
+        tableHTML += `
+            <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='card-view.html?id=${listing.id}'">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-8"><img class="h-10 w-8 rounded object-cover card-preview-trigger" src="${imageUrl}" alt=""></div>
+                        <div class="ml-4"><div class="text-sm font-medium text-gray-900 dark:text-white">${cardData.name} ${listing.isFoil ? '<i class="fas fa-star text-yellow-400 text-xs ml-1" title="Foil"></i>' : ''}</div></div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${cardData.set_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${listing.condition}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <a href="/profile.html?uid=${sellerData.uid}" onclick="event.stopPropagation()" class="flex items-center space-x-2 group">
+                        <img class="h-8 w-8 rounded-full" src="${sellerData.photoURL}" alt="">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900 dark:text-white group-hover:underline">${sellerData.displayName}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${sellerData.country}</div>
+                        </div>
+                    </a>
+                </td>
+            </tr>`;
+    });
+
+    tableHTML += `</tbody></table>`;
+    listingsContainer.innerHTML = tableHTML;
+}
+
+
+// --- FILTERING AND SORTING LOGIC ---
+function applyFiltersAndSort() {
+    let listings = [...allListings];
+
+    const searchTerm = mainSearchInput.value.toLowerCase();
+    const selectedGameValue = gameFilter.value;
+    let gameToFilter = selectedGameValue;
+    if (selectedGameValue === 'Magic: The Gathering') {
+        gameToFilter = 'mtg';
+    } else if (selectedGameValue === 'Pokémon') {
+        gameToFilter = 'pokemon';
+    }
+    const selectedSet = setFilter.value;
+    const minPrice = parseFloat(minPriceInput.value);
+    const maxPrice = parseFloat(maxPriceInput.value);
+    const selectedConditions = Array.from(conditionFiltersContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+    const showFoilOnly = foilFilter.checked;
+    const sellerLocation = locationFilter.value.toLowerCase();
+
+    if (searchTerm) listings = listings.filter(l => l.cardData.name.toLowerCase().includes(searchTerm));
+    if (gameToFilter !== 'all') listings = listings.filter(l => l.cardData.game === gameToFilter);
+
+    populateSetFilter(listings);
+
+    if (selectedSet !== 'all') listings = listings.filter(l => l.cardData.set_name === selectedSet);
+    if (!isNaN(minPrice)) listings = listings.filter(l => l.price >= minPrice);
+    if (!isNaN(maxPrice)) listings = listings.filter(l => l.price <= maxPrice);
+    if (selectedConditions.length > 0) listings = listings.filter(l => selectedConditions.includes(l.condition));
+    if (showFoilOnly) listings = listings.filter(l => l.isFoil);
+    if (sellerLocation) listings = listings.filter(l => l.sellerData.country && l.sellerData.country.toLowerCase().includes(sellerLocation));
+
+    const sortBy = sortOptions.value;
+    switch (sortBy) {
+        case 'price-asc':
+            listings.sort((a, b) => a.price - b.price);
+            break;
+        case 'price-desc':
+            listings.sort((a, b) => b.price - a.price);
+            break;
+        case 'newly-listed':
+        default:
+             listings.sort((a, b) => (b.listedAt?.seconds || 0) - (a.listedAt?.seconds || 0));
+    }
+
+    filteredListings = listings;
+    renderListings();
+}
+
+function populateSetFilter(listings = allListings) {
+    const currentSetValue = setFilter.value;
+    const setNames = [...new Set(listings.map(l => l.cardData.set_name))].sort();
+
+    setFilter.innerHTML = '<option value="all">All Sets</option>';
+    setNames.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        option.textContent = setName;
+        setFilter.appendChild(option);
+    });
+
+    if (setNames.includes(currentSetValue)) {
+        setFilter.value = currentSetValue;
+    }
+}
+
+// --- EVENT LISTENERS ---
+document.addEventListener('authReady', ({ detail: { user } }) => {
+    if (!user) {
+        listingsContainer.innerHTML = `<div class="col-span-full text-center p-8"><h2 class="text-xl font-bold">Please log in to view the marketplace.</h2></div>`;
+        return;
+    }
+
+    fetchMarketplaceData();
+
+    mainSearchInput.addEventListener('input', debounce(applyFiltersAndSort, 300));
+    gameFilter.addEventListener('change', applyFiltersAndSort);
+    setFilter.addEventListener('change', applyFiltersAndSort);
+    minPriceInput.addEventListener('input', debounce(applyFiltersAndSort, 500));
+    maxPriceInput.addEventListener('input', debounce(applyFiltersAndSort, 500));
+    foilFilter.addEventListener('change', applyFiltersAndSort);
+    locationFilter.addEventListener('input', debounce(applyFiltersAndSort, 300));
+    sortOptions.addEventListener('change', applyFiltersAndSort);
+    conditionFiltersContainer.addEventListener('change', applyFiltersAndSort);
+
+    gridViewBtn.addEventListener('click', () => {
+        currentView = 'grid';
+        gridViewBtn.classList.add('bg-blue-600', 'text-white');
+        listViewBtn.classList.remove('bg-blue-600', 'text-white');
+        renderListings();
+    });
+
+    listViewBtn.addEventListener('click', () => {
+        currentView = 'list';
+        listViewBtn.classList.add('bg-blue-600', 'text-white');
+        gridViewBtn.classList.remove('bg-blue-600', 'text-white');
+        renderListings();
+    });
+
+    toggleAdvancedFiltersBtn.addEventListener('click', () => {
+        advancedFiltersContainer.classList.toggle('hidden');
+        const isHidden = advancedFiltersContainer.classList.contains('hidden');
+        toggleAdvancedFiltersBtn.innerHTML = isHidden
+            ? 'Show Advanced Filters <i class="fas fa-chevron-down ml-1"></i>'
+            : 'Hide Advanced Filters <i class="fas fa-chevron-up ml-1"></i>';
+    });
+
+    const handleMouseOver = (e) => {
+        const cardElement = e.target.closest('.card-container');
+        const listCardElement = e.target.closest('.card-preview-trigger');
+        let imageUrl = null;
+        if (cardElement && cardElement.dataset.imageUrl) {
+            imageUrl = cardElement.dataset.imageUrl;
+        } else if (listCardElement) {
+            imageUrl = listCardElement.src.replace('small', 'large');
+        }
+        if (imageUrl && tooltip) {
+            let img = tooltip.querySelector('img');
+            if (!img) {
+                tooltip.innerHTML = '<img alt="Card Preview" class="w-full rounded-lg" src=""/>';
+                img = tooltip.querySelector('img');
+            }
+            img.src = imageUrl;
+            tooltip.classList.remove('hidden');
+        }
+    };
+
+    listingsContainer.addEventListener('mouseover', handleMouseOver);
+    listingsContainer.addEventListener('mouseout', () => {
+        if (tooltip) tooltip.classList.add('hidden');
+    });
+    listingsContainer.addEventListener('mousemove', (e) => {
+        if (tooltip && !tooltip.classList.contains('hidden')) {
+            const mouseX = e.clientX, mouseY = e.clientY;
+            const tooltipWidth = 240;
+            const aspectRatio = 3.5 / 2.5;
+            const tooltipHeight = tooltipWidth * aspectRatio;
+            let left = mouseX + 20;
+            let top = mouseY + 20;
+
+            if (left + tooltipWidth > window.innerWidth - 15) left = mouseX - tooltipWidth - 20;
+            if (top + tooltipHeight > window.innerHeight - 15) top = window.innerHeight - tooltipHeight - 15;
+            if (left < 15) left = 15;
+            if (top < 15) top = 15;
+
+            tooltip.style.width = `${tooltipWidth}px`;
+            tooltip.style.height = `auto`;
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+        }
+    });
+
+    document.addEventListener('currencyChanged', renderListings);
+});
+
+
+why did they get decreased with hundreds of line of text?
