@@ -127,10 +127,10 @@ function cleanScryDexData(card, game) {
     const cleaned = {
         api_id: card.id,
         name: card.name,
-        set: card.set?.id,
-        set_name: card.set?.name,
+        set: card.set?.id || card.Set_ID,
+        set_name: card.set?.name || card.Set_Name,
         rarity: card.rarity || 'N/A',
-        image_uris: card.image_uris || card.images,
+        image_uris: card.image_uris || card.images || (card.Image ? { normal: card.Image } : null),
         prices: {
             usd: card.prices?.low || card.prices?.market || null,
             usd_foil: card.prices?.foil_low || card.prices?.foil_market || null,
@@ -152,8 +152,45 @@ function cleanScryDexData(card, game) {
         case 'pokemon':
             cleaned.types = card.types;
             cleaned.hp = card.hp;
+            cleaned.supertype = card.supertype;
+            cleaned.subtypes = card.subtypes;
+            cleaned.abilities = card.abilities;
+            cleaned.attacks = card.attacks;
+            cleaned.weaknesses = card.weaknesses;
+            cleaned.resistances = card.resistances;
+            cleaned.retreat_cost = card.retreatCost;
+            cleaned.artist = card.artist;
+            cleaned.flavor_text = card.flavorText;
             break;
-        // Add cases for 'lorcana', 'gundam', etc., as you learn their data structure
+        case 'lorcana':
+            // Override name for Lorcana since it uses capital Name
+            cleaned.name = card.Name || card.name;
+            cleaned.cost = card.Cost;
+            cleaned.type = card.Type;
+            cleaned.color = card.Color;
+            cleaned.inkable = card.Inkable;
+            cleaned.body_text = card.Body_Text;
+            cleaned.flavor_text = card.Flavor_Text;
+            cleaned.artist = card.Artist;
+            cleaned.classifications = card.Classifications;
+            cleaned.strength = card.Strength;
+            cleaned.willpower = card.Willpower;
+            cleaned.lore = card.Lore;
+            break;
+        case 'gundam':
+            cleaned.code = card.code;
+            cleaned.level = card.level;
+            cleaned.cost = card.cost;
+            cleaned.color = card.color;
+            cleaned.card_type = card.cardType;
+            cleaned.effect = card.effect;
+            cleaned.zone = card.zone;
+            cleaned.trait = card.trait;
+            cleaned.link = card.link;
+            cleaned.ap = card.ap;
+            cleaned.hp = card.hp;
+            cleaned.source_title = card.sourceTitle;
+            break;
     }
 
     return cleaned;
