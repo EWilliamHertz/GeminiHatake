@@ -1,10 +1,14 @@
 /**
- * HatakeSocial - Deck Page Script (v34.1 - Final Fixes)
+ * HatakeSocial - Deck Page Script (v35.0 - ScryDex Integration)
  *
- * - FIX: Updated the group query to use the correct 'participants' field.
- * - FIX: Updated the playtest deck pile with the correct direct image link for the card back.
- * - Other recent features remain intact.
+ * - UPDATED: Integrated centralized searchCards function from api.js module
+ * - UPDATED: Added support for all four TCGs (Magic: The Gathering, Pokémon, Lorcana, Gundam)
+ * - UPDATED: Dynamic deck validation rules for each TCG
+ * - UPDATED: Adaptive UI elements for different game types
  */
+
+// Import the centralized searchCards function
+import { searchCards, debouncedSearchCards } from './modules/api.js';
 
 // This variable will hold the deck data while the user is on the deck-view tab.
 let currentDeckInView = null;
@@ -20,6 +24,72 @@ function getCardImageUrl(cardData, size = 'normal') {
     }
     return 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
 }
+
+// TCG-specific configurations
+const TCG_CONFIGS = {
+    "Magic: The Gathering": {
+        apiKey: "mtg",
+        formats: ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
+        deckSizes: {
+            "Standard": { min: 60, max: null },
+            "Modern": { min: 60, max: null },
+            "Commander": { min: 100, max: 100 },
+            "Pauper": { min: 60, max: null },
+            "Legacy": { min: 60, max: null },
+            "Vintage": { min: 60, max: null },
+            "Oldschool": { min: 60, max: null }
+        },
+        cardLimits: {
+            "Standard": 4,
+            "Modern": 4,
+            "Commander": 1,
+            "Pauper": 4,
+            "Legacy": 4,
+            "Vintage": 4,
+            "Oldschool": 4
+        },
+        showManaCurve: true,
+        showColorIdentity: true
+    },
+    "Pokémon": {
+        apiKey: "pokemon",
+        formats: ["Standard", "Expanded"],
+        deckSizes: {
+            "Standard": { min: 60, max: 60 },
+            "Expanded": { min: 60, max: 60 }
+        },
+        cardLimits: {
+            "Standard": 4,
+            "Expanded": 4
+        },
+        showManaCurve: false,
+        showEnergyTypes: true
+    },
+    "Lorcana": {
+        apiKey: "lorcana",
+        formats: ["Standard"],
+        deckSizes: {
+            "Standard": { min: 60, max: 60 }
+        },
+        cardLimits: {
+            "Standard": 4
+        },
+        showManaCurve: false,
+        showInkTypes: true
+    },
+    "Gundam": {
+        apiKey: "gundam",
+        formats: ["Standard"],
+        deckSizes: {
+            "Standard": { min: 50, max: 50 }
+        },
+        cardLimits: {
+            "Standard": 3
+        },
+        showManaCurve: false,
+        showPilotTypes: true
+    }
+};
 
 document.addEventListener('authReady', (e) => {
     const user = e.detail.user;
@@ -152,14 +222,26 @@ document.addEventListener('authReady', (e) => {
         const categorizedCards = {};
         let totalPrice = 0;
         deck.cards.forEach(card => {
-            const mainType = card.type_line.split(' // ')[0];
+            const mainType = card.type_line ? card.type_line.split(' // ')[0] : '';
             let category = 'Other';
-            if (mainType.includes('Creature')) category = 'Creatures';
-            else if (mainType.includes('Planeswalker')) category = 'Planeswalkers';
-            else if (mainType.includes('Instant') || mainType.includes('Sorcery')) category = 'Spells';
-            else if (mainType.includes('Artifact')) category = 'Artifacts';
-            else if (mainType.includes('Enchantment')) category = 'Enchantments';
-            else if (mainType.includes('Land')) category = 'Lands';
+            
+            // TCG-specific categorization
+            if (deck.tcg === 'Magic: The Gathering') {
+                if (mainType.includes('Creature')) category = 'Creatures';
+                else if (mainType.includes('Planeswalker')) category = 'Planeswalkers';
+                else if (mainType.includes('Instant') || mainType.includes('Sorcery')) category = 'Spells';
+                else if (mainType.includes('Artifact')) category = 'Artifacts';
+                else if (mainType.includes('Enchantment')) category = 'Enchantments';
+                else if (mainType.includes('Land')) category = 'Lands';
+            } else if (deck.tcg === 'Pokémon') {
+                if (card.types && card.types.includes('Pokémon')) category = 'Pokémon';
+                else if (card.types && card.types.includes('Trainer')) category = 'Trainer Cards';
+                else if (card.types && card.types.includes('Energy')) category = 'Energy Cards';
+            } else {
+                // Generic categorization for Lorcana and Gundam
+                category = card.types ? card.types[0] : 'Other';
+            }
+            
             if (!categorizedCards[category]) categorizedCards[category] = [];
             categorizedCards[category].push(card);
             totalPrice += (parseFloat(card.prices?.usd || 0) * card.quantity);
@@ -189,45 +271,50 @@ document.addEventListener('authReady', (e) => {
         });
         displayLegality(deck);
         loadRatingsAndComments(deckId);
-        if (manaCurveChart) {
-            manaCurveChart.destroy();
-        }
-        const manaCosts = deck.cards.flatMap(card => Array(card.quantity).fill(card.cmc || 0));
-        const manaCurveData = Array(8).fill(0);
-        manaCosts.forEach(cmc => {
-            if (cmc >= 7) {
-                manaCurveData[7]++;
-            } else {
-                manaCurveData[cmc]++;
+        
+        // Show mana curve only for Magic: The Gathering
+        const tcgConfig = TCG_CONFIGS[deck.tcg];
+        if (tcgConfig && tcgConfig.showManaCurve) {
+            if (manaCurveChart) {
+                manaCurveChart.destroy();
             }
-        });
+            const manaCosts = deck.cards.flatMap(card => Array(card.quantity).fill(card.cmc || 0));
+            const manaCurveData = Array(8).fill(0);
+            manaCosts.forEach(cmc => {
+                if (cmc >= 7) {
+                    manaCurveData[7]++;
+                } else {
+                    manaCurveData[cmc]++;
+                }
+            });
 
-        const ctx = document.getElementById('mana-curve-chart').getContext('2d');
-        manaCurveChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['0', '1', '2', '3', '4', '5', '6', '7+'],
-                datasets: [{
-                    label: 'Number of Cards',
-                    data: manaCurveData,
-                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1,
-                            precision: 0
+            const ctx = document.getElementById('mana-curve-chart').getContext('2d');
+            manaCurveChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['0', '1', '2', '3', '4', '5', '6', '7+'],
+                    datasets: [{
+                        label: 'Number of Cards',
+                        data: manaCurveData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
     };
     
     const switchTab = (tabId) => {
@@ -399,54 +486,55 @@ document.addEventListener('authReady', (e) => {
     };
     
     const validateDeck = (cards, format, tcg) => {
-        const formats = {
-            "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
-            "Pokémon": ["Standard", "Expanded"],
-            "Flesh and Blood": ["Classic Constructed", "Blitz"],
-            "Yu-Gi-Oh!": ["Advanced", "Traditional"]
-        };
-
-        if (tcg !== "Magic: The Gathering") {
+        const tcgConfig = TCG_CONFIGS[tcg];
+        if (!tcgConfig) {
             return { isValid: true, errors: [] };
         }
+
         let errors = [];
         let mainDeckCount = 0;
         cards.forEach(card => {
             mainDeckCount += card.quantity;
-            if (card.legalities && card.legalities[format.toLowerCase()] !== 'legal') {
+            
+            // Check card legalities for Magic: The Gathering
+            if (tcg === "Magic: The Gathering" && card.legalities && card.legalities[format.toLowerCase()] !== 'legal') {
                  errors.push(`- ${card.name} is not legal in ${format}.`);
             }
         });
         
-        switch (format) {
-            case 'Standard':
-            case 'Modern':
-            case 'Legacy':
-            case 'Vintage':
-            case 'Pauper':
-                if (mainDeckCount < 60) errors.push('- Main deck must have at least 60 cards.');
-                cards.forEach(card => {
-                    if (card.quantity > 4 && !card.type_line.includes('Basic Land')) {
-                        errors.push(`- Too many copies of ${card.name} (max 4).`);
-                    }
-                });
-                break;
-            case 'Commander':
-                if (mainDeckCount !== 100) errors.push('- Commander decks must have exactly 100 cards.');
-                cards.forEach(card => {
-                    if (card.quantity > 1 && !card.type_line.includes('Basic Land')) {
-                        errors.push(`- Too many copies of ${card.name} (max 1 for Commander).`);
-                    }
-                });
-                if (cards.length > 0) {
-                     if (!cards[0].type_line.includes('Legendary Creature')) {
-                          errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
-                     }
-                } else {
-                    errors.push('- Deck must contain a Commander.');
-                }
-                break;
+        // Check deck size requirements
+        const deckSize = tcgConfig.deckSizes[format];
+        if (deckSize) {
+            if (deckSize.min && mainDeckCount < deckSize.min) {
+                errors.push(`- Deck must have at least ${deckSize.min} cards.`);
+            }
+            if (deckSize.max && mainDeckCount > deckSize.max) {
+                errors.push(`- Deck must have exactly ${deckSize.max} cards.`);
+            }
         }
+        
+        // Check card quantity limits
+        const cardLimit = tcgConfig.cardLimits[format];
+        if (cardLimit) {
+            cards.forEach(card => {
+                const isBasicLand = tcg === "Magic: The Gathering" && card.type_line && card.type_line.includes('Basic Land');
+                if (card.quantity > cardLimit && !isBasicLand) {
+                    errors.push(`- Too many copies of ${card.name} (max ${cardLimit}).`);
+                }
+            });
+        }
+        
+        // Special rules for Commander format
+        if (tcg === "Magic: The Gathering" && format === 'Commander') {
+            if (cards.length > 0) {
+                 if (!cards[0].type_line || !cards[0].type_line.includes('Legendary Creature')) {
+                      errors.push('- The first card in the list must be a Legendary Creature to be a valid Commander.');
+                 }
+            } else {
+                errors.push('- Deck must contain a Commander.');
+            }
+        }
+        
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -963,12 +1051,15 @@ document.addEventListener('authReady', (e) => {
         buildDeckBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
         const deckPublicCheckbox = document.getElementById('deck-public-checkbox');
         const isPublic = deckPublicCheckbox.checked;
+        const selectedTcg = document.getElementById('deck-tcg-select').value;
+        const tcgConfig = TCG_CONFIGS[selectedTcg];
+        
         const deckData = {
             name: document.getElementById('deck-name-input').value,
             name_lower: document.getElementById('deck-name-input').value.toLowerCase(),
             bio: document.getElementById('deck-bio-input').value,
             primer: document.getElementById('deck-primer-input').value.trim(),
-            tcg: document.getElementById('deck-tcg-select').value,
+            tcg: selectedTcg,
             format: document.getElementById('deck-format-select').value,
             authorId: user.uid,
             authorName: user.displayName || 'Anonymous',
@@ -976,19 +1067,32 @@ document.addEventListener('authReady', (e) => {
             isPublic: isPublic,
             cards: []
         };
+        
         const lines = document.getElementById('decklist-input').value.split('\n').filter(line => line.trim() !== '');
         const cardPromises = lines.map(line => {
             const match = line.match(/^(\d+)\s+(.*)/);
             if (!match) return null;
             const cardName = match[2].trim().replace(/\s\/\/.*$/, '');
-            return fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName)}`)
-                .then(res => res.ok ? res.json() : null)
-                .then(cardData => cardData ? { ...cardData, quantity: parseInt(match[1], 10) } : null);
+            const quantity = parseInt(match[1], 10);
+            
+            // Use the centralized searchCards function
+            return searchCards(cardName, tcgConfig ? tcgConfig.apiKey : 'mtg')
+                .then(results => {
+                    if (results && results.length > 0) {
+                        return { ...results[0], quantity: quantity };
+                    }
+                    return null;
+                })
+                .catch(error => {
+                    console.error(`Error searching for card ${cardName}:`, error);
+                    return null;
+                });
         }).filter(p => p);
-        deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
         
-        const editingId = document.getElementById('editing-deck-id').value;
         try {
+            deckData.cards = (await Promise.all(cardPromises)).filter(c => c);
+            
+            const editingId = document.getElementById('editing-deck-id').value;
             const userDeckRef = editingId 
                 ? db.collection('users').doc(user.uid).collection('decks').doc(editingId)
                 : db.collection('users').doc(user.uid).collection('decks').doc();
@@ -1021,16 +1125,13 @@ document.addEventListener('authReady', (e) => {
         const deckTcgSelect = document.getElementById('deck-tcg-select');
         const deckFormatSelect = document.getElementById('deck-format-select');
         const deckFormatSelectContainer = document.getElementById('deck-format-select-container');
-        const formats = {
-            "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
-            "Pokémon": ["Standard", "Expanded"],
-            "Flesh and Blood": ["Classic Constructed", "Blitz"],
-            "Yu-Gi-Oh!": ["Advanced", "Traditional"]
-        };
+        
         const selectedTcg = deckTcgSelect.value;
-        if (formats[selectedTcg]) {
+        const tcgConfig = TCG_CONFIGS[selectedTcg];
+        
+        if (tcgConfig && tcgConfig.formats) {
             deckFormatSelect.innerHTML = '<option value="" disabled selected>Select a Format</option>';
-            formats[selectedTcg].forEach(format => {
+            tcgConfig.formats.forEach(format => {
                 deckFormatSelect.innerHTML += `<option value="${format}">${format}</option>`;
             });
             deckFormatSelectContainer.classList.remove('hidden');
@@ -1041,20 +1142,16 @@ document.addEventListener('authReady', (e) => {
     
     document.getElementById('tcg-filter-buttons').addEventListener('click', (e) => {
         if (e.target.classList.contains('tcg-filter-btn')) {
-            const formats = {
-                "Magic: The Gathering": ["Standard", "Modern", "Commander", "Pauper", "Legacy", "Vintage", "Oldschool"],
-                "Pokémon": ["Standard", "Expanded"],
-                "Flesh and Blood": ["Classic Constructed", "Blitz"],
-                "Yu-Gi-Oh!": ["Advanced", "Traditional"]
-            };
             document.getElementById('tcg-filter-buttons').querySelectorAll('.tcg-filter-btn').forEach(btn => btn.classList.remove('filter-btn-active'));
             e.target.classList.add('filter-btn-active');
             const selectedTcg = e.target.dataset.tcg;
             const formatFilterButtons = document.getElementById('format-filter-buttons');
             const formatFilterContainer = document.getElementById('format-filter-container');
             formatFilterButtons.innerHTML = '<button class="format-filter-btn filter-btn-active" data-format="all">All Formats</button>';
-            if (selectedTcg !== 'all' && formats[selectedTcg]) {
-                formats[selectedTcg].forEach(format => {
+            
+            const tcgConfig = TCG_CONFIGS[selectedTcg];
+            if (selectedTcg !== 'all' && tcgConfig && tcgConfig.formats) {
+                tcgConfig.formats.forEach(format => {
                     formatFilterButtons.innerHTML += `<button class="format-filter-btn" data-format="${format}">${format}</button>`;
                 });
                 formatFilterContainer.classList.remove('hidden');
