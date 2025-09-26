@@ -178,5 +178,10 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow read, update, delete: if isAdmin();
     }
+
+    // --- MARKETPLACE ---
+    match /marketplace/{listingId} {
+      allow read: if true;
+    }
   }
 }

@@ -1,8 +1,6 @@
-// public/js/modules/api.js
-
 /**
- * api.js
- * Fixed version with improved ScryDex integration and error handling.
+ * api_fixed.js
+ * Fixed version of the API module with improved ScryDex integration and error handling.
  * Handles all external API calls (Scryfall, ScryDex via Firebase) and Firestore interactions.
  * Supports multiple TCGs and user-selectable price regions.
  */
@@ -144,45 +142,49 @@ async function searchScryDex(cardName, game) {
  */
 export const debouncedSearchCards = debounce(searchCards, 300);
 
-
 // --- DATA CLEANING ---
 
 /**
  * Cleans data from a Scryfall API response.
- * Now includes EUR prices.
+ * Now includes EUR prices and better error handling.
  */
 function cleanScryfallData(card) {
-    const prices = card.prices ? {
-        usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
-        usd_foil: card.prices.usd_foil ? parseFloat(card.prices.usd_foil) : null,
-        eur: card.prices.eur ? parseFloat(card.prices.eur) : null,
-        eur_foil: card.prices.eur_foil ? parseFloat(card.prices.eur_foil) : null,
-    } : {
-        usd: null,
-        usd_foil: null,
-        eur: null,
-        eur_foil: null
-    };
+    try {
+        const prices = card.prices ? {
+            usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
+            usd_foil: card.prices.usd_foil ? parseFloat(card.prices.usd_foil) : null,
+            eur: card.prices.eur ? parseFloat(card.prices.eur) : null,
+            eur_foil: card.prices.eur_foil ? parseFloat(card.prices.eur_foil) : null,
+        } : {
+            usd: null,
+            usd_foil: null,
+            eur: null,
+            eur_foil: null
+        };
 
-    const image_uris = card.image_uris || (card.card_faces && card.card_faces[0].image_uris) || null;
-    const mana_cost = card.mana_cost || (card.card_faces && card.card_faces[0].mana_cost) || null;
+        const image_uris = card.image_uris || (card.card_faces && card.card_faces[0].image_uris) || null;
+        const mana_cost = card.mana_cost || (card.card_faces && card.card_faces[0].mana_cost) || null;
 
-    return {
-        api_id: card.id,
-        name: card.name,
-        set: card.set,
-        set_name: card.set_name,
-        rarity: card.rarity,
-        image_uris: image_uris,
-        card_faces: card.card_faces || null,
-        prices: prices,
-        mana_cost: mana_cost,
-        cmc: card.cmc,
-        type_line: card.type_line,
-        color_identity: card.color_identity,
-        collector_number: card.collector_number,
-        game: 'mtg'
-    };
+        return {
+            api_id: card.id,
+            name: card.name,
+            set: card.set,
+            set_name: card.set_name,
+            rarity: card.rarity,
+            image_uris: image_uris,
+            card_faces: card.card_faces || null,
+            prices: prices,
+            mana_cost: mana_cost,
+            cmc: card.cmc,
+            type_line: card.type_line,
+            color_identity: card.color_identity,
+            collector_number: card.collector_number,
+            game: 'mtg'
+        };
+    } catch (error) {
+        console.error('[API] Error cleaning Scryfall data:', error, card);
+        throw new Error('Failed to process card data from Scryfall');
+    }
 }
 
 /**
@@ -279,54 +281,82 @@ function cleanScryDexData(card, game) {
     }
 }
 
-
 // --- FIRESTORE DATABASE OPERATIONS ---
-const getCollectionRef = (userId) => db.collection('users').doc(userId).collection('collection');
-const getWishlistRef = (userId) => db.collection('users').doc(userId).collection('wishlist');
 
-export async function getCollection(userId) {
-    const snapshot = await getCollectionRef(userId).orderBy('addedAt', 'desc').get();
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+export async function saveCard(userId, cardData, customImageFile = null) {
+    try {
+        let imageUrl = null;
+        if (customImageFile) {
+            const storageRef = storage.ref(`users/${userId}/cards/${Date.now()}_${customImageFile.name}`);
+            const snapshot = await storageRef.put(customImageFile);
+            imageUrl = await snapshot.ref.getDownloadURL();
+        }
+
+        const docRef = await db.collection('users').doc(userId).collection('cards').add({
+            ...cardData,
+            customImageUrl: imageUrl,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        return docRef.id;
+    } catch (error) {
+        console.error('[API] Error saving card:', error);
+        throw new Error('Failed to save card to database');
+    }
 }
-export async function getWishlist(userId) {
-    const snapshot = await getWishlistRef(userId).orderBy('addedAt', 'desc').get();
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+
+export async function updateCard(userId, cardId, cardData, customImageFile = null) {
+    try {
+        let imageUrl = null;
+        if (customImageFile) {
+            const storageRef = storage.ref(`users/${userId}/cards/${Date.now()}_${customImageFile.name}`);
+            const snapshot = await storageRef.put(customImageFile);
+            imageUrl = await snapshot.ref.getDownloadURL();
+        }
+
+        const updateData = {
+            ...cardData,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (imageUrl) {
+            updateData.customImageUrl = imageUrl;
+        }
+
+        await db.collection('users').doc(userId).collection('cards').doc(cardId).update(updateData);
+        return cardId;
+    } catch (error) {
+        console.error('[API] Error updating card:', error);
+        throw new Error('Failed to update card in database');
+    }
 }
-export async function addCardToCollection(userId, cardData) {
-    const docRef = await getCollectionRef(userId).add(cardData);
-    return docRef.id;
+
+export async function deleteCard(userId, cardId) {
+    try {
+        await db.collection('users').doc(userId).collection('cards').doc(cardId).delete();
+    } catch (error) {
+        console.error('[API] Error deleting card:', error);
+        throw new Error('Failed to delete card from database');
+    }
 }
-export async function updateCardInCollection(userId, cardId, updates) {
-    await getCollectionRef(userId).doc(cardId).update(updates);
+
+export async function loadUserCards(userId) {
+    try {
+        const snapshot = await db.collection('users').doc(userId).collection('cards').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error('[API] Error loading user cards:', error);
+        throw new Error('Failed to load cards from database');
+    }
 }
-export async function deleteCardFromCollection(userId, cardId) {
-    await getCollectionRef(userId).doc(cardId).delete();
-}
-export async function batchDeleteCards(userId, cardIds) {
-    const batch = db.batch();
-    const collectionRef = getCollectionRef(userId);
-    cardIds.forEach(id => {
-        batch.delete(collectionRef.doc(id));
-    });
-    await batch.commit();
-}
-export async function batchUpdateCards(userId, updates) {
-    const batch = db.batch();
-    const collectionRef = getCollectionRef(userId);
-    updates.forEach(update => {
-        batch.update(collectionRef.doc(update.id), update.data);
-    });
-    await batch.commit();
-}
-export async function uploadCustomImage(userId, cardId, file) {
-    const filePath = `users/${userId}/collection_images/${cardId}/${file.name}`;
-    const fileRef = storage.ref(filePath);
-    const snapshot = await fileRef.put(file);
-    return snapshot.ref.getDownloadURL();
+
+export async function loadUserWishlist(userId) {
+    try {
+        const snapshot = await db.collection('users').doc(userId).collection('wishlist').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error('[API] Error loading user wishlist:', error);
+        throw new Error('Failed to load wishlist from database');
+    }
 }

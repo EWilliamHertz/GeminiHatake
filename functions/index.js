@@ -1033,8 +1033,8 @@ exports.syncToMarketplace = functions.https.onCall(async (data, context) => {
             const cardData = cardDoc.data();
             
             // Only sync cards that are marked for sale
-            if (!cardData.forSale || !cardData.price) {
-                console.warn(`Card ${cardIds[index]} is not marked for sale or has no price`);
+            if (!cardData.forSale || cardData.salePrice === undefined || cardData.salePrice === null) {
+                console.warn(`Card ${cardIds[index]} is not marked for sale or has no salePrice`);
                 return;
             }
 
@@ -1047,6 +1047,7 @@ exports.syncToMarketplace = functions.https.onCall(async (data, context) => {
                 sellerHandle: userData.handle || '',
                 sellerPhotoURL: userData.photoURL || '',
                 originalCardId: cardDoc.id,
+                price: cardData.salePrice,
                 listedAt: admin.firestore.FieldValue.serverTimestamp(),
                 status: 'active'
             };
@@ -1378,7 +1379,7 @@ exports.startDraft = functions.https.onCall(async (data, context) => {
             pickedCards: [],
             sideboard: [],
             mainDeck: [],
-            currentPack: response.data.cards.map(c => ({...c, id: c.id || admin.firestore.FieldValue.serverTimestamp().toMillis().toString()}))
+            currentPack: (response.data.cards || []).map(c => ({...c, id: c.id || admin.firestore.FieldValue.serverTimestamp().toMillis().toString()}))
         });
     });
 
