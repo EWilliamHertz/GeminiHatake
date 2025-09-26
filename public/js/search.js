@@ -1,7 +1,8 @@
 /**
- * HatakeSocial - Enhanced Search Page Script (Integrated with existing APIs)
- * * Features:
- * - Uses existing API modules from js/modules/api.js
+ * HatakeSocial - Enhanced Search Page Script (ScryDex Integration)
+ * Features:
+ * - Uses centralized searchCards function from js/modules/api.js
+ * - Support for all four TCGs (Magic: The Gathering, Pokémon, Lorcana, Gundam)
  * - Debounced search with 300ms delay
  * - Real-time autocomplete suggestions
  * - Search history and saved searches
@@ -12,8 +13,8 @@
  * - Mobile-responsive design
  */
 
-// Import existing API functions
-import { searchMagicCards, searchPokemonCards } from './modules/api.js';
+// Import centralized API functions
+import { searchCards, debouncedSearchCards } from './modules/api.js';
 
 document.addEventListener('authReady', () => {
     const db = firebase.firestore();
@@ -25,6 +26,26 @@ document.addEventListener('authReady', () => {
         RESULTS_PER_PAGE: 50,
         MAX_SUGGESTIONS: 10,
         MAX_SEARCH_HISTORY: 10
+    };
+
+    // TCG Configuration
+    const TCG_CONFIGS = {
+        "Magic: The Gathering": {
+            apiKey: "mtg",
+            autocompleteUrl: "https://api.scryfall.com/cards/autocomplete"
+        },
+        "Pokémon": {
+            apiKey: "pokemon",
+            autocompleteUrl: null // No autocomplete API available
+        },
+        "Lorcana": {
+            apiKey: "lorcana",
+            autocompleteUrl: null
+        },
+        "Gundam": {
+            apiKey: "gundam",
+            autocompleteUrl: null
+        }
     };
 
     // --- DOM Elements ---
@@ -43,6 +64,8 @@ document.addEventListener('authReady', () => {
     const forSaleFilter = document.getElementById('filter-for-sale');
     const mtgFilters = document.getElementById('mtg-filters');
     const pokemonFilters = document.getElementById('pokemon-filters');
+    const lorcanaFilters = document.getElementById('lorcana-filters');
+    const gundamFilters = document.getElementById('gundam-filters');
     
     // Pagination Elements
     const paginationContainer = document.getElementById('pagination-container');
@@ -166,16 +189,22 @@ document.addEventListener('authReady', () => {
         try {
             let suggestions = [];
             
-            // Get MTG suggestions from Scryfall
+            // Get suggestions based on selected TCG
+            const selectedTcg = tcgFilter ? tcgFilter.value : 'Magic: The Gathering';
+            const tcgConfig = TCG_CONFIGS[selectedTcg];
+            
             if (categoryFilter.value === 'all' || categoryFilter.value === 'cards') {
-                try {
-                    const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        suggestions = suggestions.concat(data.data.slice(0, 5));
+                // Only MTG has autocomplete API available
+                if (tcgConfig && tcgConfig.autocompleteUrl) {
+                    try {
+                        const response = await fetch(`${tcgConfig.autocompleteUrl}?q=${encodeURIComponent(query)}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            suggestions = suggestions.concat(data.data.slice(0, 5));
+                        }
+                    } catch (error) {
+                        console.warn(`${selectedTcg} autocomplete error:`, error);
                     }
-                } catch (error) {
-                    console.warn('Scryfall autocomplete error:', error);
                 }
             }
 
@@ -265,26 +294,59 @@ document.addEventListener('authReady', () => {
         try {
             let apiResults = [];
             
-            if (filters.tcg === 'mtg') {
-                apiResults = await searchMagicCards(term);
-            } else if (filters.tcg === 'pokemon') {
-                apiResults = await searchPokemonCards(term);
+            // Use centralized searchCards function
+            const selectedTcg = filters.tcg || 'Magic: The Gathering';
+            const tcgConfig = TCG_CONFIGS[selectedTcg];
+            
+            if (tcgConfig) {
+                apiResults = await searchCards(term, tcgConfig.apiKey);
             }
 
             // Apply additional filters
             if (filters.priceMin || filters.priceMax) {
                 apiResults = apiResults.filter(card => {
-                    const price = parseFloat(card.priceUsd) || 0;
+                    const price = parseFloat(card.prices?.usd) || 0;
                     if (filters.priceMin && price < parseFloat(filters.priceMin)) return false;
                     if (filters.priceMax && price > parseFloat(filters.priceMax)) return false;
                     return true;
                 });
             }
 
+            // Apply TCG-specific filters
+            if (selectedTcg === 'Magic: The Gathering') {
+                if (filters.mtgColors && filters.mtgColors.length > 0) {
+                    apiResults = apiResults.filter(card => {
+                        if (!card.color_identity) return false;
+                        return filters.mtgColors.some(color => card.color_identity.includes(color));
+                    });
+                }
+                if (filters.mtgType) {
+                    apiResults = apiResults.filter(card => 
+                        card.type_line && card.type_line.toLowerCase().includes(filters.mtgType.toLowerCase())
+                    );
+                }
+                if (filters.mtgRarity) {
+                    apiResults = apiResults.filter(card => 
+                        card.rarity && card.rarity.toLowerCase() === filters.mtgRarity.toLowerCase()
+                    );
+                }
+            } else if (selectedTcg === 'Pokémon') {
+                if (filters.pokemonType) {
+                    apiResults = apiResults.filter(card => 
+                        card.types && card.types.includes(filters.pokemonType)
+                    );
+                }
+                if (filters.pokemonRarity) {
+                    apiResults = apiResults.filter(card => 
+                        card.rarity && card.rarity.toLowerCase() === filters.pokemonRarity.toLowerCase()
+                    );
+                }
+            }
+
             // Get for-sale information from Firestore
             const forSaleMap = new Map();
             if (apiResults.length > 0) {
-                const cardIds = apiResults.map(c => c.id);
+                const cardIds = apiResults.map(c => c.api_id || c.id);
                 const batches = [];
                 for (let i = 0; i < cardIds.length; i += 10) {
                     batches.push(cardIds.slice(i, i + 10));
@@ -309,7 +371,7 @@ document.addEventListener('authReady', () => {
 
             // Apply for-sale filter if needed
             const finalCards = filters.forSale ? 
-                apiResults.filter(card => forSaleMap.has(card.id)) : 
+                apiResults.filter(card => forSaleMap.has(card.api_id || card.id)) : 
                 apiResults;
 
             totalResults = finalCards.length;
@@ -325,19 +387,24 @@ document.addEventListener('authReady', () => {
         if (cards.length === 0) return '<p class="text-gray-500 dark:text-gray-400">No cards found.</p>';
         
         const cardElements = cards.map(card => {
-            const forSaleCount = forSaleMap.get(card.id) || 0;
+            const cardId = card.api_id || card.id;
+            const forSaleCount = forSaleMap.get(cardId) || 0;
             const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
             const priceDisplay = price > 0 ? `$${price.toFixed(2)}` : 'N/A';
+            const imageUrl = card.image_uris ? 
+                (card.image_uris.normal || card.image_uris.large || card.image_uris.small) : 
+                'https://placehold.co/223x310/cccccc/969696?text=No+Image';
             
             if (currentView === 'list') {
                 return `
                     <div class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
-                        <img src="${sanitizeHTML(card.imageUrl)}" alt="${sanitizeHTML(card.name)}" class="w-16 h-22 rounded-md object-cover mr-4">
+                        <img src="${sanitizeHTML(imageUrl)}" alt="${sanitizeHTML(card.name)}" class="w-16 h-22 rounded-md object-cover mr-4">
                         <div class="flex-1">
                             <h3 class="font-bold text-gray-800 dark:text-white">${sanitizeHTML(card.name)}</h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">${sanitizeHTML(card.setName)} • ${sanitizeHTML(card.rarity)}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${sanitizeHTML(card.set_name || card.set)} • ${sanitizeHTML(card.rarity)}</p>
                             <p class="text-sm font-semibold text-green-600 dark:text-green-400">${priceDisplay}</p>
                             ${forSaleCount > 0 ? `<p class="text-xs text-blue-500">${forSaleCount} for sale</p>` : ''}
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Game: ${sanitizeHTML(card.game || 'Unknown')}</p>
                         </div>
                         <div class="flex flex-col space-y-2">
                             <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
@@ -358,89 +425,202 @@ document.addEventListener('authReady', () => {
                 return `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
                         <div class="aspect-[0.71] relative">
-                            <img src="${sanitizeHTML(card.imageUrl)}" alt="${sanitizeHTML(card.name)}" class="w-full h-full object-cover">
+                            <img src="${sanitizeHTML(imageUrl)}" alt="${sanitizeHTML(card.name)}" class="w-full h-full object-cover">
                             <div class="absolute top-2 right-2">
                                 <button class="w-8 h-8 bg-white dark:bg-gray-800 rounded-full shadow-md flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <i class="fas fa-heart text-gray-400 hover:text-red-500"></i>
                                 </button>
                             </div>
+                            ${forSaleCount > 0 ? `
+                                <div class="absolute top-2 left-2">
+                                    <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${forSaleCount} for sale</span>
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="p-3">
                             <h3 class="font-semibold text-sm truncate text-gray-800 dark:text-white mb-1">${sanitizeHTML(card.name)}</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">${sanitizeHTML(card.setName)}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">${sanitizeHTML(card.set_name || card.set)}</p>
                             <p class="text-sm font-bold text-green-600 dark:text-green-400 mb-2">${priceDisplay}</p>
-                            ${forSaleCount > 0 ? `
-                                <p class="text-xs text-blue-500 font-semibold mb-2">${forSaleCount} for sale</p>
-                            ` : `
-                                <p class="text-xs text-gray-500 mb-2">Check Listings</p>
-                            `}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${sanitizeHTML(card.game || 'Unknown')}</p>
                             <div class="flex space-x-1">
                                 <button class="flex-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
-                                    Add
+                                    <i class="fas fa-plus"></i>
                                 </button>
                                 <button class="flex-1 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
-                                    Wish
+                                    <i class="fas fa-star"></i>
                                 </button>
+                                ${forSaleCount > 0 ? `
+                                    <button class="flex-1 px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
                 `;
             }
         }).join('');
-        
-        const containerClass = currentView === 'list' ? 'space-y-4' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4';
+
+        const containerClass = currentView === 'grid' ? 
+            'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4' : 
+            'space-y-4';
+
         return `<div class="${containerClass}">${cardElements}</div>`;
+    };
+
+    const renderUserResults = (users) => {
+        if (users.length === 0) return '<p class="text-gray-500 dark:text-gray-400">No users found.</p>';
+        
+        return users.map(user => `
+            <div class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
+                <img src="${sanitizeHTML(user.photoURL || 'https://i.imgur.com/B06rBhI.png')}" alt="${sanitizeHTML(user.displayName)}" class="w-12 h-12 rounded-full mr-4">
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800 dark:text-white">${sanitizeHTML(user.displayName)}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">@${sanitizeHTML(user.handle || user.uid)}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${sanitizeHTML(user.city || '')} ${sanitizeHTML(user.country || '')}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                        View Profile
+                    </button>
+                    <button class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                        Follow
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const renderArticleResults = (articles) => {
+        if (articles.length === 0) return '<p class="text-gray-500 dark:text-gray-400">No articles found.</p>';
+        
+        return articles.map(article => `
+            <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
+                <h3 class="font-bold text-gray-800 dark:text-white mb-2">${sanitizeHTML(article.title)}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${sanitizeHTML(article.excerpt || '')}</p>
+                <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                    <span>By ${sanitizeHTML(article.authorName)}</span>
+                    <span>${article.publishedAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
+                </div>
+                <div class="mt-2">
+                    <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                        Read Article
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const renderProductResults = (products) => {
+        if (products.length === 0) return '<p class="text-gray-500 dark:text-gray-400">No products found.</p>';
+        
+        return products.map(product => `
+            <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
+                <h3 class="font-bold text-gray-800 dark:text-white mb-2">${sanitizeHTML(product.name)}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${sanitizeHTML(product.description || '')}</p>
+                <p class="text-lg font-bold text-green-600 dark:text-green-400 mb-2">$${parseFloat(product.price || 0).toFixed(2)}</p>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                        View Product
+                    </button>
+                    <button class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        `).join('');
     };
 
     // --- Main Search Function ---
     const runSearch = async () => {
-        if (!currentQuery) {
-            resultsArea.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 text-lg">Please enter a search term in the bar above.</p>';
+        if (!currentQuery.trim()) {
+            resultsArea.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 text-lg">Please enter a search term.</p>';
             return;
         }
 
         toggleLoading(true);
-        
+        addToSearchHistory(currentQuery);
+
         try {
-            const category = categoryFilter.value;
             const filters = {
-                tcg: tcgFilter.value,
-                forSale: forSaleFilter.checked,
-                priceMin: document.getElementById('price-min')?.value,
-                priceMax: document.getElementById('price-max')?.value
+                tcg: tcgFilter ? tcgFilter.value : 'Magic: The Gathering',
+                forSale: forSaleFilter ? forSaleFilter.checked : false,
+                priceMin: document.getElementById('filter-price-min')?.value,
+                priceMax: document.getElementById('filter-price-max')?.value,
+                // MTG specific filters
+                mtgColors: Array.from(document.querySelectorAll('input[name="mtg-colors"]:checked')).map(cb => cb.value),
+                mtgType: document.getElementById('filter-mtg-type')?.value,
+                mtgRarity: document.getElementById('filter-mtg-rarity')?.value,
+                // Pokémon specific filters
+                pokemonType: document.getElementById('filter-pokemon-type')?.value,
+                pokemonRarity: document.getElementById('filter-pokemon-rarity')?.value
             };
+
+            let results = '';
+            const category = categoryFilter ? categoryFilter.value : 'all';
+
+            switch (category) {
+                case 'cards':
+                    const { cards, forSaleMap } = await performCardSearch(currentQuery, filters);
+                    currentResults = cards;
+                    results = renderCardResults(cards, forSaleMap);
+                    break;
+                case 'users':
+                    const users = await performUserSearch(currentQuery);
+                    currentResults = users;
+                    results = renderUserResults(users);
+                    break;
+                case 'articles':
+                    const articles = await performArticleSearch(currentQuery);
+                    currentResults = articles;
+                    results = renderArticleResults(articles);
+                    break;
+                case 'products':
+                    const products = await performProductSearch(currentQuery);
+                    currentResults = products;
+                    results = renderProductResults(products);
+                    break;
+                default: // 'all'
+                    const [cardData, users2, articles2, products2] = await Promise.all([
+                        performCardSearch(currentQuery, filters),
+                        performUserSearch(currentQuery),
+                        performArticleSearch(currentQuery),
+                        performProductSearch(currentQuery)
+                    ]);
+                    
+                    results = `
+                        <div class="space-y-8">
+                            <div>
+                                <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Cards (${cardData.cards.length})</h2>
+                                ${renderCardResults(cardData.cards.slice(0, 12), cardData.forSaleMap)}
+                                ${cardData.cards.length > 12 ? '<p class="text-center mt-4"><button class="text-blue-600 hover:underline">View all cards</button></p>' : ''}
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Users (${users2.length})</h2>
+                                ${renderUserResults(users2.slice(0, 5))}
+                                ${users2.length > 5 ? '<p class="text-center mt-4"><button class="text-blue-600 hover:underline">View all users</button></p>' : ''}
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Articles (${articles2.length})</h2>
+                                ${renderArticleResults(articles2.slice(0, 5))}
+                                ${articles2.length > 5 ? '<p class="text-center mt-4"><button class="text-blue-600 hover:underline">View all articles</button></p>' : ''}
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Products (${products2.length})</h2>
+                                ${renderProductResults(products2.slice(0, 5))}
+                                ${products2.length > 5 ? '<p class="text-center mt-4"><button class="text-blue-600 hover:underline">View all products</button></p>' : ''}
+                            </div>
+                        </div>
+                    `;
+                    break;
+            }
+
+            resultsArea.innerHTML = results || '<p class="text-center text-gray-500 dark:text-gray-400">No results found.</p>';
             
-            let cardsHTML = '';
-            currentResults = [];
-
-            if (category === 'all' || category === 'cards') {
-                const cardResults = await performCardSearch(currentQuery, filters);
-                cardsHTML = `
-                    <div class="mb-8">
-                        <h2 class="text-2xl font-semibold mb-4 border-b dark:border-gray-600 pb-2">Cards</h2>
-                        <div>${renderCardResults(cardResults.cards, cardResults.forSaleMap)}</div>
-                    </div>
-                `;
-                currentResults = cardResults.cards.map(r => ({
-                    ...r, 
-                    type: 'card',
-                    forSaleCount: cardResults.forSaleMap.get(r.id) || 0
-                }));
-            }
-
-            if (cardsHTML.trim() === '') {
-                resultsArea.innerHTML = `
-                    <div class="text-center p-8">
-                        <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">No results found</h3>
-                        <p class="text-gray-600 dark:text-gray-400">Try a different search term or adjust your filters.</p>
-                    </div>
-                `;
-            } else {
-                resultsArea.innerHTML = cardsHTML;
-            }
-
-            addToSearchHistory(currentQuery);
+            // Update results info
+            const start = (currentPage - 1) * CONFIG.RESULTS_PER_PAGE + 1;
+            const end = Math.min(currentPage * CONFIG.RESULTS_PER_PAGE, totalResults);
+            updateResultsInfo(start, end, totalResults);
 
         } catch (error) {
             console.error('Search error:', error);
@@ -454,52 +634,78 @@ document.addEventListener('authReady', () => {
     const setupEventListeners = () => {
         // Search input with debouncing
         if (headerSearchBar) {
-            headerSearchBar.addEventListener('input', debounce((e) => {
-                const query = e.target.value.trim();
-                if (query !== currentQuery) {
-                    currentQuery = query;
-                    if (searchQueryDisplay) searchQueryDisplay.textContent = query;
-                    if (query.length >= 2) {
-                        showSuggestions(query);
-                        runSearch();
-                    } else {
-                        if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
-                        if (query.length === 0) {
-                            resultsArea.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 text-lg">Please enter a search term in the bar above.</p>';
-                        }
-                    }
+            const debouncedSearch = debounce(() => {
+                if (headerSearchBar.value !== currentQuery) {
+                    performSearch(headerSearchBar.value);
                 }
-            }, CONFIG.SEARCH_DELAY));
-        }
+            }, CONFIG.SEARCH_DELAY);
 
-        // Hide suggestions when clicking outside
-        document.addEventListener('click', (e) => {
-            if (headerSearchBar && suggestionsContainer && 
-                !headerSearchBar.contains(e.target) && !suggestionsContainer.contains(e.target)) {
-                suggestionsContainer.classList.add('hidden');
-            }
-        });
+            const debouncedSuggestions = debounce((query) => {
+                showSuggestions(query);
+            }, 200);
+
+            headerSearchBar.addEventListener('input', (e) => {
+                const query = e.target.value;
+                if (query.length >= 2) {
+                    debouncedSuggestions(query);
+                } else {
+                    if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+                }
+                debouncedSearch();
+            });
+
+            headerSearchBar.addEventListener('focus', () => {
+                if (headerSearchBar.value.length >= 2) {
+                    showSuggestions(headerSearchBar.value);
+                }
+            });
+
+            headerSearchBar.addEventListener('blur', () => {
+                // Delay hiding suggestions to allow clicking
+                setTimeout(() => {
+                    if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+                }, 200);
+            });
+        }
 
         // Filter changes
         if (filterForm) {
-            const allFilterInputs = filterForm.querySelectorAll('input, select');
-            allFilterInputs.forEach(input => {
-                input.addEventListener('change', debounce(runSearch, CONFIG.SEARCH_DELAY));
-            });
+            filterForm.addEventListener('change', runSearch);
         }
 
-        // Category filter visibility
-        if (categoryFilter && cardFiltersContainer) {
+        // Category filter
+        if (categoryFilter) {
             categoryFilter.addEventListener('change', (e) => {
-                cardFiltersContainer.classList.toggle('hidden', e.target.value !== 'cards');
+                const isCards = e.target.value === 'cards' || e.target.value === 'all';
+                if (cardFiltersContainer) {
+                    cardFiltersContainer.classList.toggle('hidden', !isCards);
+                }
+                runSearch();
             });
         }
 
-        // TCG filter visibility
-        if (tcgFilter && mtgFilters && pokemonFilters) {
+        // TCG filter
+        if (tcgFilter) {
             tcgFilter.addEventListener('change', (e) => {
-                mtgFilters.classList.toggle('hidden', e.target.value !== 'mtg');
-                pokemonFilters.classList.toggle('hidden', e.target.value !== 'pokemon');
+                // Hide all TCG-specific filters
+                if (mtgFilters) mtgFilters.classList.add('hidden');
+                if (pokemonFilters) pokemonFilters.classList.add('hidden');
+                if (lorcanaFilters) lorcanaFilters.classList.add('hidden');
+                if (gundamFilters) gundamFilters.classList.add('hidden');
+                
+                // Show relevant filters
+                const selectedTcg = e.target.value;
+                if (selectedTcg === 'Magic: The Gathering' && mtgFilters) {
+                    mtgFilters.classList.remove('hidden');
+                } else if (selectedTcg === 'Pokémon' && pokemonFilters) {
+                    pokemonFilters.classList.remove('hidden');
+                } else if (selectedTcg === 'Lorcana' && lorcanaFilters) {
+                    lorcanaFilters.classList.remove('hidden');
+                } else if (selectedTcg === 'Gundam' && gundamFilters) {
+                    gundamFilters.classList.remove('hidden');
+                }
+                
+                runSearch();
             });
         }
 
