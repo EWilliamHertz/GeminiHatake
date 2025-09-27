@@ -395,6 +395,8 @@ document.addEventListener('authReady', () => {
                 (card.image_uris.normal || card.image_uris.large || card.image_uris.small) : 
                 'https://placehold.co/223x310/cccccc/969696?text=No+Image';
             
+            const cardJsonString = JSON.stringify(card).replace(/'/g, "\\'");
+
             if (currentView === 'list') {
                 return `
                     <div class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
@@ -407,7 +409,7 @@ document.addEventListener('authReady', () => {
                             <p class="text-xs text-gray-500 dark:text-gray-400">Game: ${sanitizeHTML(card.game || 'Unknown')}</p>
                         </div>
                         <div class="flex flex-col space-y-2">
-                            <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                            <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700" onclick='openAddCardModalFromSearch(\`${cardJsonString}\`)'>
                                 Add to Collection
                             </button>
                             <button class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
@@ -443,7 +445,7 @@ document.addEventListener('authReady', () => {
                             <p class="text-sm font-bold text-green-600 dark:text-green-400 mb-2">${priceDisplay}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${sanitizeHTML(card.game || 'Unknown')}</p>
                             <div class="flex space-x-1">
-                                <button class="flex-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                                <button class="flex-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700" onclick='openAddCardModalFromSearch(\`${cardJsonString}\`)'>
                                     <i class="fas fa-plus"></i>
                                 </button>
                                 <button class="flex-1 px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
@@ -773,6 +775,19 @@ document.addEventListener('authReady', () => {
     };
 
     window.selectSuggestion = selectSuggestion;
+    
+    window.openAddCardModalFromSearch = (cardDataString) => {
+        try {
+            const cardData = JSON.parse(cardDataString);
+            if (typeof openAddCardModal === 'function') {
+                openAddCardModal(cardData);
+            } else {
+                console.error('openAddCardModal function not found. Make sure it is loaded and globally available.');
+            }
+        } catch (error) {
+            console.error('Error parsing card data for modal:', error);
+        }
+    };
 
     // --- Initialization ---
     const initialize = () => {

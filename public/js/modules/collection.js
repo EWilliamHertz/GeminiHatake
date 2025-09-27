@@ -20,7 +20,17 @@ let state = {
 };
 
 export const getState = () => state;
-export function setCurrentEditingCard(cardData) { state.currentEditingCard = cardData; }
+export function setCurrentEditingCard(cardData) {
+    state.currentEditingCard = cardData;
+    // Dispatch a custom event that the UI can listen for to open the edit modal.
+    // The UI code (e.g., in collection-app.js) should have a listener for this event.
+    // Example listener:
+    // document.addEventListener('showEditCardModal', (e) => {
+    //   const cardToEdit = e.detail;
+    //   openEditCardModal(cardToEdit); // Assuming openEditCardModal is available
+    // });
+    document.dispatchEvent(new CustomEvent('showEditCardModal', { detail: cardData }));
+}
 export function getCurrentEditingCard() { return state.currentEditingCard; }
 export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
 export function getPendingCards() { return state.pendingCards; }
@@ -255,7 +265,7 @@ export function calculateCollectionStats() {
     const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);
     const uniqueCards = new Set(collectionToCount.map(card => card.api_id)).size;
     const totalValue = collectionToCount.reduce((sum, card) => {
-        const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
+        const price = (card.prices && (card.prices.usd || Object.values(card.prices)[0])) ? parseFloat(card.prices.usd || Object.values(card.prices)[0]) : 0;
         return sum + (price * (card.quantity || 1));
     }, 0);
     return { totalCards, uniqueCards, totalValue };
@@ -265,7 +275,7 @@ export function calculateWishlistStats() {
     const totalCards = state.wishlist.length;
     const uniqueCards = state.wishlist.length;
     const totalValue = state.wishlist.reduce((sum, card) => {
-        const price = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
+        const price = (card.prices && (card.prices.usd || Object.values(card.prices)[0])) ? parseFloat(card.prices.usd || Object.values(card.prices)[0]) : 0;
         return sum + price;
     }, 0);
     return { totalCards, uniqueCards, totalValue };
@@ -297,4 +307,3 @@ export function getAvailableFilterOptions(games) {
     
     return { sets, rarities, types };
 }
-

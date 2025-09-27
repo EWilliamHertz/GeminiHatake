@@ -111,6 +111,8 @@ function setupEventListeners() {
     document.getElementById('search-results-container').addEventListener('click', handleSearchResultClick);
     document.getElementById('card-form').addEventListener('submit', handleCardFormSubmit);
     document.getElementById('add-another-version-btn').addEventListener('click', handleAddAnotherVersion);
+    document.getElementById('delete-card-btn').addEventListener('click', handleDeleteCard);
+
 
     // Main view controls (Tabs, Grid/List, TCG type)
     document.querySelector('[data-tab="collection"]').addEventListener('click', () => switchTab('collection'));
@@ -190,12 +192,6 @@ function setupEventListeners() {
     document.getElementById('card-is-graded').addEventListener('change', (e) => {
         document.getElementById('graded-section').classList.toggle('hidden', !e.target.checked);
     });
-
-    // Show details toggle
-    document.getElementById('show-details-toggle').addEventListener('change', () => {
-        Collection.toggleShowAdditionalInfo();
-        applyAndRender({});
-    });
 }
 
 /**
@@ -246,6 +242,23 @@ async function handleCardFormSubmit(e) {
         UI.setButtonLoading(e.submitter, false);
     }
 }
+
+async function handleDeleteCard() {
+    const cardId = document.getElementById('card-modal-id').value;
+    const card = Collection.getCardById(cardId);
+    if (card && confirm(`Are you sure you want to delete "${card.name}"? This cannot be undone.`)) {
+        try {
+            await Collection.deleteCard(cardId);
+            UI.showToast("Card deleted.", "success");
+            UI.closeModal(document.getElementById('card-modal'));
+            applyAndRender({});
+            setupInitialFilters();
+        } catch (error) {
+            UI.showToast("Error deleting card.", "error");
+        }
+    }
+}
+
 
 function handleAddAnotherVersion(e) {
     UI.setButtonLoading(e.target, true);
@@ -339,41 +352,8 @@ function handleCollectionDisplayClick(e) {
             else if (button.dataset.action === 'delete') {
                 if (confirm(`Delete "${card.name}"?`)) deleteCardAction(cardId);
             }
-        } else {
-            const card = Collection.getCardById(cardId);
-            if (card) {
-                displayCardDetailsInPanel(card);
-            }
         }
     }
-}
-
-function displayCardDetailsInPanel(card) {
-    const panel = document.getElementById('additional-info-panel');
-    let detailsHtml = `<h4 class="font-bold text-lg mb-2">${card.name}</h4>`;
-
-    switch (card.game) {
-        case 'mtg':
-            detailsHtml += `<p><strong>Mana Cost:</strong> ${card.mana_cost || 'N/A'}</p>`;
-            detailsHtml += `<p><strong>Type:</strong> ${card.type_line || 'N/A'}</p>`;
-            detailsHtml += `<p><strong>P/T:</strong> ${card.power || ''}/${card.toughness || ''}</p>`;
-            break;
-        case 'pokemon':
-            detailsHtml += `<p><strong>HP:</strong> ${card.hp || 'N/A'}</p>`;
-            detailsHtml += `<p><strong>Type:</strong> ${card.types ? card.types.join(', ') : 'N/A'}</p>`;
-            break;
-        default:
-            detailsHtml += `<p>No additional details available for this game.</p>`;
-            break;
-    }
-
-    if (card.is_graded) {
-        detailsHtml += `<hr class="my-2 border-gray-300 dark:border-gray-600">
-                         <p><strong>Grading Co:</strong> ${card.grading_company}</p>
-                         <p><strong>Grade:</strong> ${card.grade}</p>`;
-    }
-
-    panel.innerHTML = detailsHtml;
 }
 
 async function deleteCardAction(cardId) {
@@ -465,7 +445,7 @@ async function handleFinalizeBulkList(e) {
         const updates = [];
         document.querySelectorAll('.bulk-review-item').forEach(item => {
             const cardId = item.dataset.id;
-            const price = parseFloat(item.querySelector('.bulk-review-price-input').value);
+            const price = parseFloat(item.querySelector('.bulk-review-fixed-input').value);
             if (cardId && !isNaN(price) && price > 0) {
                 updates.push({ id: cardId, price });
             }

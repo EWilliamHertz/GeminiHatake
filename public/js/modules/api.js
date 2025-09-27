@@ -1,5 +1,3 @@
-// public/js/modules/api.js
-
 /**
  * api.js
  * Final, stable version with corrected ScryDex integration and error handling.
@@ -276,4 +274,8 @@ export async function uploadCustomImage(userId, cardId, file) {
     const fileRef = storage.ref(filePath);
     const snapshot = await fileRef.put(file);
     return snapshot.ref.getDownloadURL();
+}
+export async function getUserProfile(userId) {
+    const userDoc = await db.collection('users').doc(userId).get();
+    return userDoc.exists ? userDoc.data() : null;
 }

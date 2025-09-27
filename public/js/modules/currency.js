@@ -132,16 +132,25 @@ export function formatPrice(amount) {
 
 /**
  * Converts a price to the user's selected currency and formats it.
- * @param {object|number} priceInput Price data (e.g., {usd: 10.50}) or a raw number assumed to be in USD.
+ * @param {object|number|string} priceInput Price data (e.g., {usd: 10.50}) or a raw number assumed to be in USD.
  */
 export function convertAndFormat(priceInput) {
     const targetCurrency = getUserCurrency();
     let sourcePriceUSD = 0;
 
-    if (typeof priceInput === 'object' && priceInput !== null && priceInput.usd) {
-        sourcePriceUSD = parseFloat(priceInput.usd);
+    if (typeof priceInput === 'object' && priceInput !== null) {
+        if (priceInput.usd) {
+            sourcePriceUSD = parseFloat(priceInput.usd);
+        } else {
+            const firstPrice = Object.values(priceInput)[0];
+            if (firstPrice) {
+                sourcePriceUSD = parseFloat(firstPrice);
+            }
+        }
     } else if (typeof priceInput === 'number') {
         sourcePriceUSD = priceInput;
+    } else if (typeof priceInput === 'string') {
+        sourcePriceUSD = parseFloat(priceInput);
     } else if (priceInput === null || priceInput === undefined) {
         return 'N/A';
     }
@@ -150,7 +159,7 @@ export function convertAndFormat(priceInput) {
         return 'N/A';
     }
 
-    const rate = exchangeRates[targetCurrency] || 1.0; // Fallback to 1.0 if rate not found
+    const rate = exchangeRates[targetCurrency] || 1.0;
     const finalPrice = sourcePriceUSD * rate;
 
     return formatPrice(finalPrice);

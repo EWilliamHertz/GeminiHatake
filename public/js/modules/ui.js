@@ -27,7 +27,7 @@ export const showToast = (message, type = 'info') => {
 
 // --- CURRENCY & PRICE DISPLAY ---
 
-export function createCurrencySelector(containerId, userId) {
+export function createCurrencySelector(containerId) {
     const container = document.getElementById(containerId);
     if (!container || container.querySelector('#currency-selector')) return;
 
@@ -46,7 +46,7 @@ export function createCurrencySelector(containerId, userId) {
     });
 
     selector.addEventListener('change', (e) => {
-        Currency.updateUserCurrency(userId, e.target.value);
+        Currency.updateUserCurrency(e.target.value);
     });
 
     container.appendChild(selector);
@@ -166,10 +166,6 @@ export function renderListView(cards, activeTab) {
     display.innerHTML = `<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">${tableHeader}<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">${tableBody}</tbody></table>`;
 }
 
-/**
- * FINAL CORRECTED VERSION: Renders search results by correctly accessing data
- * from the cleaned card object provided by api.js and utils.js.
- */
 export function renderSearchResults(results) {
     const container = document.getElementById('search-results-container');
     if (!container) return;
@@ -185,10 +181,8 @@ export function renderSearchResults(results) {
 
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        // Use the dedicated currency formatter for consistency.
-        const price = Currency.convertAndFormat(Object.values(card.prices)[0]);
+        const price = Currency.convertAndFormat(card.prices);
         const collectorInfo = card.collector_number ? ` (#${card.collector_number})` : '';
-        // Sanitize the JSON string for use in an HTML attribute
         const cardDataString = encodeURIComponent(JSON.stringify(card));
 
         return `
@@ -209,28 +203,39 @@ export function renderSearchResults(results) {
 }
 
 
+
 export function renderPendingCards(pendingCards) {
-    const container = getElement('pending-cards-container');
+    const container = getElement('pending-versions-list');
+    if (!container) return;
+
     if (!pendingCards || pendingCards.length === 0) {
         container.innerHTML = '';
         return;
     }
+
     const cardsHTML = pendingCards.map((card, index) => {
         const details = [
-            `${card.quantity || 1}x`,
+            `Qty: ${card.quantity || 1}`,
             card.condition || 'N/A',
             card.language || 'N/A',
-            card.is_foil ? 'Foil' : null
+            card.is_foil ? 'Foil' : null,
+            card.is_signed ? 'Signed' : null,
+            card.is_altered ? 'Altered' : null,
         ].filter(Boolean).join(', ');
 
-        return `<div class="pending-card-item flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm mb-1" data-index="${index}">
-                    <p class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer flex-grow">${details}</p>
-                    <button type="button" class="delete-pending-btn text-red-500 hover:text-red-700 font-bold text-lg px-2">&times;</button>
-                </div>`;
+        return `
+            <div class="pending-card-item flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm mb-1" data-index="${index}">
+                <p class="font-semibold text-gray-800 dark:text-gray-200 cursor-pointer flex-grow" title="${details}">${details}</p>
+                <div>
+                    <button type="button" class="swap-pending-btn text-blue-500 hover:text-blue-700 px-2" title="Edit this version"><i class="fas fa-pencil-alt"></i></button>
+                    <button type="button" class="remove-pending-btn text-red-500 hover:text-red-700 font-bold text-lg px-2" title="Remove this version">&times;</button>
+                </div>
+            </div>`;
     }).join('');
 
-    container.innerHTML = `<h4 class="text-sm font-bold mb-2">Pending Copies to Add:</h4>` + cardsHTML;
+    container.innerHTML = cardsHTML;
 }
+
 
 export function renderBulkReviewModal(cardIds) {
     const listContainer = getElement('bulk-review-list');
@@ -240,7 +245,7 @@ export function renderBulkReviewModal(cardIds) {
         const card = Collection.getCardById(cardId);
         if (!card) return;
 
-        const marketPrice = Object.values(card.prices)[0] || 0;
+        const marketPrice = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
         const displayMarketPrice = Currency.convertAndFormat(marketPrice);
 
         const reviewItem = document.createElement('div');
@@ -544,29 +549,36 @@ export function closeModal(modal) {
 
 export function populateCardModalForAdd(cardData) {
     Collection.clearPendingCards();
+    Collection.setCurrentEditingCard(null);
+    document.getElementById('card-form').reset();
+
     getElement('card-modal-id').value = '';
+    getElement('card-api-id').value = cardData.api_id || cardData.id;
     getElement('card-modal-title').textContent = 'Add New Card';
+    getElement('card-modal-subtitle').textContent = `${cardData.name} - ${cardData.set_name}`;
     getElement('card-modal-image').src = getCardImageUrl(cardData);
-    getElement('card-quantity').value = 1;
-    getElement('card-condition').value = 'Near Mint';
-    getElement('card-language').value = 'English';
-    getElement('card-is-foil').checked = false;
-    getElement('card-is-signed').checked = false;
-    getElement('card-is-altered').checked = false;
-    getElement('card-purchase-price').value = '';
     getElement('save-card-btn').textContent = 'Add to Collection';
-    getElement('market-price-display').textContent = Currency.convertAndFormat(Object.values(cardData.prices)[0]);
-    getElement('list-for-sale-toggle').checked = false;
-    getElement('list-for-sale-section').classList.add('hidden');
+    getElement('delete-card-btn').classList.add('hidden');
+    getElement('pending-versions-container').classList.remove('hidden');
+    getElement('add-another-version-btn').classList.remove('hidden');
+    
+    getElement('graded-section').classList.add('hidden');
+
     openModal(getElement('card-modal'));
     getElement('card-modal').dataset.card = JSON.stringify(cardData);
 }
 
 export function populateCardModalForEdit(card) {
     Collection.clearPendingCards();
+    Collection.setCurrentEditingCard(card);
+    document.getElementById('card-form').reset();
+
     getElement('card-modal-id').value = card.id;
+    getElement('card-api-id').value = card.api_id;
     getElement('card-modal-title').textContent = 'Edit Card';
-    getElement('card-modal-image').src = getCardImageUrl(card);
+    getElement('card-modal-subtitle').textContent = `${card.name} - ${card.set_name}`;
+    getElement('card-modal-image').src = card.customImageUrl || getCardImageUrl(card);
+
     getElement('card-quantity').value = card.quantity || 1;
     getElement('card-condition').value = card.condition || 'Near Mint';
     getElement('card-language').value = card.language || 'English';
@@ -574,11 +586,22 @@ export function populateCardModalForEdit(card) {
     getElement('card-is-signed').checked = card.is_signed || false;
     getElement('card-is-altered').checked = card.is_altered || false;
     getElement('card-purchase-price').value = card.purchase_price || '';
+    getElement('card-notes').value = card.notes || '';
+
+    const isGraded = card.is_graded || false;
+    getElement('card-is-graded').checked = isGraded;
+    const gradedSection = getElement('graded-section');
+    gradedSection.classList.toggle('hidden', !isGraded);
+    if (isGraded) {
+        getElement('grading-company').value = card.grading_company || 'PSA';
+        getElement('grade').value = card.grade || '10';
+    }
+
     getElement('save-card-btn').textContent = 'Save Changes';
-    getElement('market-price-display').textContent = Currency.convertAndFormat(Object.values(card.prices)[0]);
-    getElement('list-for-sale-toggle').checked = card.forSale || false;
-    getElement('list-for-sale-section').classList.toggle('hidden', !card.forSale);
-    getElement('card-sale-price').value = card.salePrice || '';
+    getElement('delete-card-btn').classList.remove('hidden');
+    getElement('pending-versions-container').classList.add('hidden');
+    getElement('add-another-version-btn').classList.add('hidden');
+
     openModal(getElement('card-modal'));
     getElement('card-modal').dataset.card = JSON.stringify(card);
 }
@@ -586,44 +609,51 @@ export function populateCardModalForEdit(card) {
 export function getCardFormData() {
     const modal = getElement('card-modal');
     const cardData = JSON.parse(modal.dataset.card || '{}');
-    const forSale = getElement('list-for-sale-toggle').checked;
-    let salePrice = null;
-    if (forSale) {
-        const fixedPrice = parseFloat(getElement('card-sale-price').value);
-        if (!isNaN(fixedPrice)) {
-            salePrice = fixedPrice;
-        } else {
-            const percentage = parseFloat(getElement('card-sale-percentage').value) / 100;
-            const marketPrice = Object.values(cardData.prices)[0] || 0;
-            if (!isNaN(percentage) && marketPrice > 0) {
-                salePrice = parseFloat((marketPrice * percentage).toFixed(2));
-            }
+    const id = getElement('card-modal-id').value;
+    const isGraded = getElement('card-is-graded').checked;
+
+    const data = {
+        name: cardData.name,
+        set_name: cardData.set_name,
+        api_id: cardData.api_id || getElement('card-api-id').value,
+        image_uris: cardData.image_uris,
+        prices: cardData.prices,
+        rarity: cardData.rarity,
+        game: cardData.game,
+        collector_number: cardData.collector_number,
+        type_line: cardData.type_line || null, // Ensure type_line is null if undefined
+        color_identity: cardData.color_identity || [],
+        quantity: parseInt(getElement('card-quantity').value, 10) || 1,
+        condition: getElement('card-condition').value,
+        language: getElement('card-language').value,
+        is_foil: getElement('card-is-foil').checked,
+        is_signed: getElement('card-is-signed').checked,
+        is_altered: getElement('card-is-altered').checked,
+        is_graded: isGraded,
+        purchase_price: parseFloat(getElement('card-purchase-price').value) || null,
+        notes: getElement('card-notes').value,
+        grading_company: isGraded ? getElement('grading-company').value : null,
+        grade: isGraded ? getElement('grade').value : null,
+    };
+
+    if (!id) {
+        data.addedAt = new Date();
+    }
+
+    // Remove undefined fields before returning
+    for (const key in data) {
+        if (data[key] === undefined) {
+            delete data[key];
         }
     }
+
     return {
-        id: getElement('card-modal-id').value,
-        data: {
-            name: cardData.name,
-            set_name: cardData.set_name,
-            api_id: cardData.api_id, // Corrected from cardData.id
-            image_uris: cardData.image_uris,
-            prices: cardData.prices,
-            rarity: cardData.rarity,
-            game: cardData.game,
-            quantity: parseInt(getElement('card-quantity').value, 10),
-            condition: getElement('card-condition').value,
-            language: getElement('card-language').value,
-            is_foil: getElement('card-is-foil').checked,
-            is_signed: getElement('card-is-signed').checked,
-            is_altered: getElement('card-is-altered').checked,
-            purchase_price: parseFloat(getElement('card-purchase-price').value) || 0,
-            addedAt: new Date(),
-            forSale: forSale,
-            salePrice: salePrice,
-        },
+        id: id,
+        data: data,
         customImageFile: getElement('custom-image-upload').files[0] || null
     };
 }
+
 
 export function resetCardFormForNewVersion() {
     getElement('card-quantity').value = 1;
@@ -633,7 +663,11 @@ export function resetCardFormForNewVersion() {
     getElement('card-is-signed').checked = false;
     getElement('card-is-altered').checked = false;
     getElement('card-purchase-price').value = '';
+    getElement('card-notes').value = '';
+    getElement('card-is-graded').checked = false;
+    getElement('graded-section').classList.add('hidden');
 }
+
 
 export function toggleBulkPriceInputs(selectedValue) {
     document.getElementById('bulk-price-percentage-group').classList.toggle('hidden', selectedValue !== 'percentage');
