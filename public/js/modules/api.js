@@ -161,14 +161,6 @@ function cleanScryfallData(card) {
  * REWRITTEN: Cleans data from a ScryDex API response based on official documentation.
  * This fixes all known issues with names, sets, images, and prices.
  */
-/**
- * REWRITTEN: Cleans data from a ScryDex API response based on official documentation.
- * This fixes all known issues with names, sets, images, and prices.
- */
-/**
- * REWRITTEN: Cleans data from a ScryDex API response based on official documentation.
- * This fixes all known issues with names, sets, images, and prices.
- */
 function cleanScryDexData(card, game) {
     try {
         const cleaned = {

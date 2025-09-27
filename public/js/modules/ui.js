@@ -185,8 +185,8 @@ export function renderSearchResults(results) {
 
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        // Use the dedicated currency formatter for consistency. Access 'usd' directly.
-        const price = Currency.convertAndFormat(card.prices?.usd);
+        // Use the dedicated currency formatter for consistency.
+        const price = Currency.convertAndFormat(Object.values(card.prices)[0]);
         const collectorInfo = card.collector_number ? ` (#${card.collector_number})` : '';
         // Sanitize the JSON string for use in an HTML attribute
         const cardDataString = encodeURIComponent(JSON.stringify(card));
@@ -240,7 +240,7 @@ export function renderBulkReviewModal(cardIds) {
         const card = Collection.getCardById(cardId);
         if (!card) return;
 
-        const marketPrice = card.prices?.usd || 0;
+        const marketPrice = Object.values(card.prices)[0] || 0;
         const displayMarketPrice = Currency.convertAndFormat(marketPrice);
 
         const reviewItem = document.createElement('div');
@@ -555,7 +555,7 @@ export function populateCardModalForAdd(cardData) {
     getElement('card-is-altered').checked = false;
     getElement('card-purchase-price').value = '';
     getElement('save-card-btn').textContent = 'Add to Collection';
-    getElement('market-price-display').textContent = Currency.convertAndFormat(cardData.prices.usd);
+    getElement('market-price-display').textContent = Currency.convertAndFormat(Object.values(cardData.prices)[0]);
     getElement('list-for-sale-toggle').checked = false;
     getElement('list-for-sale-section').classList.add('hidden');
     openModal(getElement('card-modal'));
@@ -575,7 +575,7 @@ export function populateCardModalForEdit(card) {
     getElement('card-is-altered').checked = card.is_altered || false;
     getElement('card-purchase-price').value = card.purchase_price || '';
     getElement('save-card-btn').textContent = 'Save Changes';
-    getElement('market-price-display').textContent = Currency.convertAndFormat(card.prices.usd);
+    getElement('market-price-display').textContent = Currency.convertAndFormat(Object.values(card.prices)[0]);
     getElement('list-for-sale-toggle').checked = card.forSale || false;
     getElement('list-for-sale-section').classList.toggle('hidden', !card.forSale);
     getElement('card-sale-price').value = card.salePrice || '';
@@ -594,7 +594,7 @@ export function getCardFormData() {
             salePrice = fixedPrice;
         } else {
             const percentage = parseFloat(getElement('card-sale-percentage').value) / 100;
-            const marketPrice = cardData.prices?.usd || 0;
+            const marketPrice = Object.values(cardData.prices)[0] || 0;
             if (!isNaN(percentage) && marketPrice > 0) {
                 salePrice = parseFloat((marketPrice * percentage).toFixed(2));
             }
