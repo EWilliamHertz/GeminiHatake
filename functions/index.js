@@ -15,6 +15,7 @@ const stripe = require("stripe")(functions.config().stripe.secret);
 const axios = require("axios");
 const fetch = require("node-fetch");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
+const secretClient = new SecretManagerServiceClient();
 
 // --- CORS CONFIGURATION ---
 const allowedOrigins = [
@@ -95,90 +96,166 @@ exports.getExchangeRates = functions.https.onCall(async (data, context) => {
 });
 
 // =================================================================================================
-// SECURE CARD SEARCH FUNCTIONS (FINAL ROBUST VERSION)
+// SECURE CARD SEARCH FUNCTIONS
 // =================================================================================================
 
 const scrydexCache = new Map();
 const SCRYDEX_CACHE_DURATION_MS = 1000 * 60 * 60; // Cache for 1 hour
 
+async function accessSecret(secretName) {
+    const [version] = await secretClient.accessSecretVersion({
+        name: `projects/hatakesocial-88b5e/secrets/${secretName}/versions/latest`,
+    });
+    return version.payload.data.toString();
+}
+
 /**
- * Performs a card search or fetches a single card using the ScryDex API.
+ * Performs a card search using the ScryDex API.
  */
 exports.searchScryDex = functions.https.onCall(async (data, context) => {
-    console.log("[searchScryDex] Function invoked with data:", data);
+    console.log("--- ScryDex search function invoked ---");
 
-    const secretClient = new SecretManagerServiceClient();
-
-    const { cardName, cardId, game } = data;
-    if (!game) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "game" argument.');
-    }
-    if (!cardName && !cardId) {
-        throw new functions.https.HttpsError('invalid-argument', 'Requires either "cardName" or "cardId".');
+    const { cardName, game } = data;
+    if (!cardName || !game) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardName" and "game" arguments.');
     }
 
-    const isSearchById = !!cardId;
-    const cacheKey = isSearchById ? `${game}_id_${cardId}` : `${game}_name_${(cardName || '').toLowerCase().trim()}`;
+    const cacheKey = `${game.toLowerCase()}_${cardName.toLowerCase().trim()}`;
 
     if (scrydexCache.has(cacheKey)) {
         const cachedItem = scrydexCache.get(cacheKey);
         if (Date.now() - cachedItem.timestamp < SCRYDEX_CACHE_DURATION_MS) {
-            console.log(`[searchScryDex] Serving from cache for key: ${cacheKey}`);
+            console.log(`Serving '${cardName}' for game '${game}' from cache.`);
             return { data: cachedItem.data };
         }
     }
 
     let apiKey, teamId;
     try {
-        const [apiKeyVersion] = await secretClient.accessSecretVersion({
-            name: `projects/hatakesocial-88b5e/secrets/scrydex-api-key/versions/latest`,
-        });
-        apiKey = apiKeyVersion.payload.data.toString();
-
-        const [teamIdVersion] = await secretClient.accessSecretVersion({
-            name: `projects/hatakesocial-88b5e/secrets/scrydex-team-id/versions/latest`,
-        });
-        teamId = teamIdVersion.payload.data.toString();
-
-    } catch (error) {
-        console.error("[searchScryDex] FATAL: Failed to access secrets.", error);
+        apiKey = await accessSecret('scrydex-api-key');
+        teamId = await accessSecret('scrydex-team-id');
+    } catch (secretError) {
+        console.error("FATAL: Could not access secrets.", secretError);
         throw new functions.https.HttpsError('internal', 'Server configuration error: could not access API credentials.');
     }
 
-    const gameEndpoints = { 'mtg': 'magicthegathering/v1', 'pokemon': 'pokemon/v1', 'lorcana': 'lorcana/v1', 'gundam': 'gundam/v1' };
+    const gameEndpoints = {
+        'mtg': 'magicthegathering/v1',
+        'pokemon': 'pokemon/v1',
+        'lorcana': 'lorcana/v1',
+        'gundam': 'gundam/v1'
+    };
     const apiPath = gameEndpoints[game];
-    if (!apiPath) throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
+    if (!apiPath) {
+        throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
+    }
 
-    const url = isSearchById
-        ? `https://api.scrydex.com/${apiPath}/cards/${cardId}?include=prices,images`
-        : `https://api.scrydex.com/${apiPath}/cards?q=${encodeURIComponent(cardName)}&include=prices,images`;
+    const url = `https://api.scrydex.com/${apiPath}/cards?q=${encodeURIComponent(cardName)}&include=prices`;
 
     const options = {
         method: 'GET',
-        headers: { 'X-Api-Key': apiKey, 'X-Team-ID': teamId, 'Content-Type': 'application/json' }
+        headers: {
+            'X-Api-Key': apiKey,
+            'X-Team-ID': teamId,
+            'Content-Type': 'application/json'
+        }
     };
 
     try {
-        console.log(`[searchScryDex] Making API call to ScryDex: ${url}`);
+        console.log(`Searching ScryDex with URL: ${url}`);
         const response = await fetch(url, options);
-        const responseData = await response.json();
 
         if (!response.ok) {
-            console.error(`[searchScryDex] ScryDex API Error: Status ${response.status}. Body:`, responseData);
+            let errorBody = 'Could not read error body from ScryDex.';
+            try {
+                errorBody = await response.text();
+            } catch (e) { /* ignore */ }
+            console.error(`ScryDex API Error: Status ${response.status}. Body: ${errorBody}`);
             throw new functions.https.HttpsError('internal', `Failed to fetch from ScryDex API. Status: ${response.status}`);
         }
-        
+
+        const responseData = await response.json();
         const cardData = responseData.data || [];
-        scrydexCache.set(cacheKey, { timestamp: Date.now(), data: cardData });
-        console.log(`[searchScryDex] Successfully fetched data for key: ${cacheKey}. Found ${Array.isArray(cardData) ? cardData.length : 1} items.`);
+
+        scrydexCache.set(cacheKey, {
+            timestamp: Date.now(),
+            data: cardData
+        });
+
+        console.log(`Successfully found ${cardData.length} cards for '${cardName}'.`);
         return { data: cardData };
 
     } catch (error) {
-        console.error("[searchScryDex] Cloud Function error during API call:", error);
-        if (error instanceof functions.https.HttpsError) throw error;
-        throw new functions.https.HttpsError('unknown', 'An unexpected error occurred during the API call.');
+        console.error("Cloud Function fetch/processing error:", error);
+        const message = error.message || 'An unexpected error occurred.';
+        throw new functions.https.HttpsError('unknown', message);
     }
 });
+
+
+/**
+ * Fetches a single card by its ID from the ScryDex API.
+ */
+exports.getScryDexCard = functions.https.onCall(async (data, context) => {
+    console.log("--- ScryDex getCard function invoked ---");
+    const { cardId, game } = data;
+    if (!cardId || !game) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardId" and "game" arguments.');
+    }
+
+    let apiKey, teamId;
+    try {
+        apiKey = await accessSecret('scrydex-api-key');
+        teamId = await accessSecret('scrydex-team-id');
+    } catch (secretError) {
+        console.error("FATAL: Could not access secrets.", secretError);
+        throw new functions.https.HttpsError('internal', 'Server configuration error.');
+    }
+
+    const gameEndpoints = {
+        'mtg': 'magicthegathering/v1',
+        'pokemon': 'pokemon/v1',
+        'lorcana': 'lorcana/v1',
+        'gundam': 'gundam/v1'
+    };
+    const apiPath = gameEndpoints[game];
+    if (!apiPath) {
+        throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
+    }
+
+    const url = `https://api.scrydex.com/${apiPath}/cards/${cardId}?include=prices`;
+
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-Api-Key': apiKey,
+            'X-Team-ID': teamId,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    try {
+        console.log(`Fetching card from ScryDex with URL: ${url}`);
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            let errorBody = 'Could not read error body.';
+            try {
+                errorBody = await response.text();
+            } catch (e) { /* ignore */ }
+            console.error(`ScryDex API Error: Status ${response.status}. Body: ${errorBody}`);
+            throw new functions.https.HttpsError('internal', `Failed to fetch from ScryDex. Status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        return { data: responseData.data };
+
+    } catch (error) {
+        console.error("Cloud Function fetch/processing error:", error);
+        throw new functions.https.HttpsError('unknown', error.message || 'An unexpected error occurred.');
+    }
+});
+
 
 
 
