@@ -112,6 +112,9 @@ async function accessSecret(secretName) {
 /**
  * Performs a card search using the ScryDex API.
  */
+/**
+ * Performs a card search using the ScryDex API.
+ */
 exports.searchScryDex = functions.https.onCall(async (data, context) => {
     console.log("--- ScryDex search function invoked ---");
 
@@ -191,7 +194,6 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('unknown', message);
     }
 });
-
 
 /**
  * Fetches a single card by its ID from the ScryDex API.
