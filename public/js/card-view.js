@@ -1,73 +1,52 @@
 /**
  * HatakeSocial - Multi-Game Card View Page Script
- *
- * This script powers the card-view.html page, displaying detailed information
- * for multiple TCGs by fetching data from Firestore marketplace listings.
- * It merges previous functionalities with new features like live price history
- * from ScryDex and a dynamic rulings section.
  */
 
 import * as Currency from './modules/currency.js';
+import { getCardDetails } from './modules/api.js';
 
-document.addEventListener('DOMContentLoaded', (e) => {
-    // This assumes your auth.js dispatches a 'authReady' event with user details
-    const user = e.detail.user;
-    const container = document.getElementById('card-view-container');
-    if (!container) return;
-
+document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const listingId = urlParams.get('id');
+    const cardId = urlParams.get('id');
+    const game = urlParams.get('game');
+    const container = document.getElementById('card-view-container');
 
-    if (!listingId) {
-        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No marketplace listing ID specified in the URL.</p>';
+    if (!cardId || !game) {
+        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No card ID or game specified in the URL. Please provide them as query parameters (e.g., ?id=base1-4&game=pokemon).</p>';
         return;
     }
 
-    // Initialize Firebase
     const db = firebase.firestore();
-
-    // Initialize currency system with SEK as default
     Currency.initCurrency('SEK');
 
     // --- DOM Elements ---
     const cardImageEl = document.getElementById('card-image');
     const cardDetailsEl = document.getElementById('card-details');
-    const cardRulingsEl = document.getElementById('card-rulings'); // New element for rulings
+    const cardRulingsEl = document.getElementById('card-rulings');
     const listingsContainer = document.getElementById('listings-table-container');
-    const chartCtx = document.getElementById('price-chart').getContext('2d');
+    const chartCtx = document.getElementById('price-chart')?.getContext('2d');
 
-    // --- State ---
     let allListings = [];
     let priceChart = null;
 
-    // --- Helper Functions ---
-    const getCardImageUrl = (cardData, size = 'large') => {
-        if (cardData?.customImageUrl) return cardData.customImageUrl;
-        if (cardData?.image_uris) return cardData.image_uris[size] || cardData.image_uris.normal;
-        if (cardData?.images) return cardData.images[size] || cardData.images.large;
-        return 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
-    };
-
     /**
-     * Main function to load all data, starting from the Firestore listing.
+     * Main function to load all data.
      */
     const loadCardData = async () => {
         try {
-            const listingDoc = await db.collection('marketplaceListings').doc(listingId).get();
-            if (!listingDoc.exists) throw new Error('This marketplace listing does not exist.');
+            const cardData = await getCardDetails(cardId, game);
+            if (!cardData) {
+                throw new Error('Card data could not be fetched from the API.');
+            }
 
-            const listingData = listingDoc.data();
-            const cardData = listingData.cardData; // The rich card object is nested here
-
-            // Update all page sections with the fetched data
             updatePageWithCardData(cardData);
             renderRulings(cardData);
-            renderPriceChart(cardData);
-            
-            // Fetch other listings for the same card
+            if (chartCtx) {
+                renderPriceChart(cardData);
+            }
             await fetchAllListingsForCard(cardData.api_id);
 
-        } catch (error)
+        } catch (error) {
             console.error("Error loading card view:", error);
             container.innerHTML = `<p class="text-center text-red-500 col-span-full p-8 bg-white dark:bg-gray-800 rounded-lg">Error: ${error.message}</p>`;
         }
@@ -78,9 +57,9 @@ document.addEventListener('DOMContentLoaded', (e) => {
      */
     const updatePageWithCardData = (cardData) => {
         document.title = `${cardData.name} - HatakeSocial`;
-        cardImageEl.src = getCardImageUrl(cardData);
+        cardImageEl.src = cardData.image_uris.large || 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
         cardImageEl.alt = cardData.name;
-        
+
         let detailsHTML = `<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${cardData.name}</h1>`;
 
         switch (cardData.game) {
@@ -118,10 +97,9 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
             case 'lorcana':
             case 'gundam':
-                // Generic display for other TCGs, can be customized further
                 detailsHTML += `
-                    <p class="text-md font-semibold text-gray-800 dark:text-gray-200 mt-2">${cardData.type_line || cardData.types?.join(', ') || ''}</p>
-                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-4">${(cardData.oracle_text || cardData.text || '').replace(/\n/g, '<br>')}</div>
+                    <p class="text-md font-semibold text-gray-800 dark:text-gray-200 mt-2">${cardData.type || ''}</p>
+                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-4">${(cardData.text || '').replace(/\n/g, '<br>')}</div>
                 `;
                 break;
         }
@@ -130,7 +108,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     };
     
     /**
-     * Renders the "Rulings" section if the card has any.
+     * Renders the "Rulings" section.
      */
     const renderRulings = (cardData) => {
         if (!cardData.rulings || cardData.rulings.length === 0) {
@@ -155,14 +133,18 @@ document.addEventListener('DOMContentLoaded', (e) => {
     };
 
     /**
-     * Renders the price chart using real historical data from ScryDex trends.
+     * Renders the price chart using historical data.
      */
     const renderPriceChart = (cardData) => {
-        const trends = cardData.prices?.trends;
+        // Access the first raw price's trends
+        const trends = cardData.prices?.raw?.[0]?.trends;
         if (!trends) {
             console.log("No price trend data available for this card.");
             return;
         }
+
+        const currentPrice = parseFloat(cardData.prices.raw?.[0]?.market || 0);
+        if (isNaN(currentPrice)) return;
 
         const priceDataPoints = [
             { label: '180 days ago', value: trends.days_180?.price_change || 0 },
@@ -172,10 +154,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             { label: '7 days ago', value: trends.days_7?.price_change || 0 },
             { label: 'Yesterday', value: trends.days_1?.price_change || 0 },
             { label: 'Today', value: 0 }
-        ];
-
-        const currentPrice = parseFloat(cardData.prices.usd || cardData.prices.low || 0);
-        if (isNaN(currentPrice)) return;
+        ].reverse(); // Reverse to show oldest to newest
 
         const labels = priceDataPoints.map(p => p.label);
         const prices = priceDataPoints.map(p => (currentPrice - p.value).toFixed(2));
@@ -199,11 +178,12 @@ document.addEventListener('DOMContentLoaded', (e) => {
             },
             options: {
                 responsive: true,
-                plugins: { title: { display: true, text: 'Price History (from ScryDex)' } },
+                maintainAspectRatio: false,
+                plugins: { title: { display: false } },
                 scales: {
                     y: {
                         beginAtZero: false,
-                        ticks: { callback: (value) => Currency.convertAndFormat(value, 'USD') } // Use currency converter
+                        ticks: { callback: (value) => Currency.convertAndFormat(value, 'USD') }
                     }
                 }
             }
@@ -233,7 +213,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
      */
     const renderListingsTable = () => {
         if (allListings.length === 0) {
-            listingsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No other listings found for this card.</p>';
+            listingsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No marketplace listings found for this card.</p>';
             return;
         }
 

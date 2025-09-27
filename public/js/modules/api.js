@@ -26,8 +26,8 @@ const searchScryDexFunction = functions.httpsCallable('searchScryDex');
 export async function searchCards(cardName, game) {
     console.log(`[API] Searching for "${cardName}" in game: ${game}`);
 
-    if (!cardName || cardName.trim().length < 3) {
-        throw new Error('Card name must be at least 3 characters long.');
+    if (!cardName || cardName.trim().length < 2) {
+        throw new Error('Card name must be at least 2 characters long.');
     }
 
     const priceProvider = localStorage.getItem('priceProvider') || 'scryfall';
@@ -165,24 +165,24 @@ function cleanScryDexData(card, game) {
     try {
         const cleaned = {
             api_id: card.id,
-            // FIX: Lorcana uses 'Name' (capitalized), others use 'name'.
             name: card.Name || card.name || 'Unknown Card',
-            // FIX: Set name is nested in a 'set' object for ALL games.
-            set: card.set?.id || 'unknown',
-            set_name: card.set?.name || 'Unknown Set',
+            set: card.expansion?.id || 'unknown',
+            set_name: card.expansion?.name || 'Unknown Set',
             rarity: card.rarity || 'Common',
-            // FIX: Correctly map the 'images' object to the 'image_uris' structure the app expects.
             image_uris: {
-                small: card.images?.small || null,
-                normal: card.images?.normal || null,
-                large: card.images?.large || null,
+                small: card.images?.[0]?.small || null,
+                normal: card.images?.[0]?.medium || null,
+                large: card.images?.[0]?.large || null,
             },
-            // FIX: Correctly parse the nested price data for all games.
-            prices: {
-                usd: parseFloat(card.prices?.usd?.market) || null,
-                usd_foil: parseFloat(card.prices?.usd_foil?.market) || null,
-            },
-            collector_number: card.collector_number || '',
+            prices: card.variants?.reduce((acc, variant) => {
+                if (variant.prices) {
+                    variant.prices.forEach(price => {
+                        acc[`${variant.name}_${price.type}`] = price.market;
+                    });
+                }
+                return acc;
+            }, {}),
+            collector_number: card.number || '',
             game: game
         };
 
@@ -200,7 +200,6 @@ function cleanScryDexData(card, game) {
                 cleaned.hp = card.hp || null;
                 cleaned.supertype = card.supertype || '';
                 cleaned.subtypes = card.subtypes || [];
-                // All other pokemon fields are optional and not used in the main display
                 break;
             case 'lorcana':
                 cleaned.cost = card.Cost || 0;
