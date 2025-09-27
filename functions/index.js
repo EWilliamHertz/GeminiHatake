@@ -112,9 +112,6 @@ async function accessSecret(secretName) {
 /**
  * Performs a card search using the ScryDex API.
  */
-/**
- * Performs a card search using the ScryDex API.
- */
 exports.searchScryDex = functions.https.onCall(async (data, context) => {
     console.log("--- ScryDex search function invoked ---");
 
@@ -258,7 +255,79 @@ exports.getScryDexCard = functions.https.onCall(async (data, context) => {
     }
 });
 
+/**
+ * NEW: Fetches price history for a card from the ScryDex API.
+ */
+exports.getScryDexHistory = functions.https.onCall(async (data, context) => {
+    console.log("--- ScryDex getHistory function invoked ---");
+    const { cardId, game } = data;
+    if (!cardId || !game) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardId" and "game" arguments.');
+    }
 
+    let apiKey, teamId;
+    try {
+        apiKey = await accessSecret('scrydex-api-key');
+        teamId = await accessSecret('scrydex-team-id');
+    } catch (secretError) {
+        console.error("FATAL: Could not access secrets.", secretError);
+        throw new functions.https.HttpsError('internal', 'Server configuration error.');
+    }
+
+    const gameEndpoints = {
+        'mtg': 'magicthegathering/v1',
+        'pokemon': 'pokemon/v1',
+        'lorcana': 'lorcana/v1',
+        'gundam': 'gundam/v1'
+    };
+    const apiPath = gameEndpoints[game];
+    if (!apiPath) {
+        throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
+    }
+
+    // This URL is the most likely point of failure. Please verify it against the official ScryDex documentation.
+    const url = `https://api.scrydex.com/${apiPath}/cards/${cardId}/history`;
+
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-Api-Key': apiKey,
+            'X-Team-ID': teamId,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    try {
+        console.log(`Fetching price history from ScryDex with URL: ${url}`);
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            // FIX: Gracefully handle 404 Not Found errors, as some cards may not have price history.
+            if (response.status === 404) {
+                console.warn(`[ScryDex] No price history found for card ${cardId} (404 Not Found). Returning empty array.`);
+                return { data: [] }; // Return empty array, not an error, to prevent the client from crashing.
+            }
+            // For all other errors, throw an exception so we know something is wrong.
+            let errorBody = 'Could not read error body.';
+            try { errorBody = await response.text(); } catch (e) { /* ignore */ }
+            console.error(`ScryDex History API Error: Status ${response.status}. Body: ${errorBody}`);
+            throw new functions.https.HttpsError('internal', `Failed to fetch history from ScryDex. Status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        // Assuming ScryDex returns data in the format { success: true, history: [['YYYY-MM-DD', price], ...] }
+        if (responseData && responseData.success && Array.isArray(responseData.history)) {
+             return { data: responseData.history };
+        } else {
+            console.error("Invalid history data format from ScryDex:", responseData);
+            return { data: [] }; // Return empty array on unexpected format
+        }
+
+    } catch (error) {
+        console.error("Cloud Function fetch/processing error for history:", error);
+        throw new functions.https.HttpsError('unknown', error.message || 'An unexpected error occurred while fetching history.');
+    }
+});
 
 
 // =================================================================================================
@@ -1578,3 +1647,4 @@ exports.setUserRole = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
+

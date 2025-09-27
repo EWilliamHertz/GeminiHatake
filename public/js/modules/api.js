@@ -13,6 +13,7 @@ const functions = firebase.functions();
 
 // ScryDex cloud function
 const searchScryDexFunction = functions.httpsCallable('searchScryDex');
+const getScryDexHistoryFunction = functions.httpsCallable('getScryDexHistory');
 
 // --- CARD SEARCH APIS ---
 
@@ -119,6 +120,27 @@ async function searchScryDex(cardName, game) {
  * A debounced version of the searchCards function to limit API calls while typing.
  */
 export const debouncedSearchCards = debounce(searchCards, 300);
+
+/**
+ * NEW: Fetches price history by calling the new cloud function.
+ */
+export async function getScryDexHistory(card) {
+    try {
+        const result = await getScryDexHistoryFunction({ cardId: card.api_id, game: card.game });
+        if (result && result.data && Array.isArray(result.data)) {
+            // The cloud function returns [['YYYY-MM-DD', price], ...], we need to format it
+            return result.data.map(entry => ({
+                date: entry[0],
+                price: parseFloat(entry[1])
+            }));
+        }
+        return [];
+    } catch (error) {
+        console.error(`[API] ScryDex history function error for ${card.name}:`, error);
+        // We return an empty array so a single failed card doesn't break the whole dashboard
+        return []; 
+    }
+}
 
 
 // --- DATA CLEANING ---

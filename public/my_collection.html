@@ -20,6 +20,7 @@
             ]
         };
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="/manifest.json" rel="manifest"/>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
@@ -228,6 +229,11 @@
          </i>
          Import from CSV
         </button>
+        <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="analyze-value-btn">
+         <i class="fas fa-chart-line w-6">
+         </i>
+         Analyze Value
+        </button>
        </div>
       </div>
      </div>
@@ -243,22 +249,30 @@
          </button>
         </div>
         <div class="flex space-x-2 bg-gray-200 dark:bg-gray-700 p-1 rounded-full text-sm font-semibold" id="game-filter-container">
-            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
-                <input type="checkbox" data-game="mtg" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                <span>Magic</span>
-            </label>
-            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
-                <input type="checkbox" data-game="pokemon" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                <span>Pokémon</span>
-            </label>
-            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
-                <input type="checkbox" data-game="lorcana" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                <span>Lorcana</span>
-            </label>
-            <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
-                <input type="checkbox" data-game="gundam" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                <span>Gundam</span>
-            </label>
+         <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+          <input type="checkbox" data-game="mtg" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+          <span>
+           Magic
+          </span>
+         </label>
+         <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+          <input type="checkbox" data-game="pokemon" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+          <span>
+           Pokémon
+          </span>
+         </label>
+         <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+          <input type="checkbox" data-game="lorcana" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+          <span>
+           Lorcana
+          </span>
+         </label>
+         <label class="flex items-center space-x-2 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600">
+          <input type="checkbox" data-game="gundam" class="form-checkbox h-4 w-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+          <span>
+           Gundam
+          </span>
+         </label>
         </div>
         <div class="flex items-center space-x-4">
          <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
@@ -304,6 +318,45 @@
         <p>
          Loading your collection...
         </p>
+       </div>
+      </div>
+      <div class="hidden flex-1 flex-col overflow-hidden" id="analytics-dashboard">
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+         <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+          Current Value
+         </h4>
+         <p class="text-2xl font-semibold" id="analytics-current-value">
+          $0.00
+         </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+         <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+          24-Hour Change
+         </h4>
+         <p class="text-2xl font-semibold" id="analytics-24h-change">
+          $0.00
+         </p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+         <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+          All-Time High
+         </h4>
+         <p class="text-2xl font-semibold" id="analytics-all-time-high">
+          $0.00
+         </p>
+        </div>
+       </div>
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex-1">
+        <canvas id="value-chart">
+        </canvas>
+       </div>
+       <div class="mt-4">
+        <h3 class="text-lg font-semibold mb-2">
+         Top Movers
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="top-movers-container">
+        </div>
        </div>
       </div>
      </div>
@@ -406,17 +459,39 @@
           Language
          </label>
          <select class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-language">
-          <option>English</option>
-          <option>Japanese</option>
-          <option>French</option>
-          <option>German</option>
-          <option>Spanish</option>
-          <option>Italian</option>
-          <option>Portuguese</option>
-          <option>Russian</option>
-          <option>Korean</option>
-          <option>Chinese (Simplified)</option>
-          <option>Chinese (Traditional)</option>
+          <option>
+           English
+          </option>
+          <option>
+           Japanese
+          </option>
+          <option>
+           French
+          </option>
+          <option>
+           German
+          </option>
+          <option>
+           Spanish
+          </option>
+          <option>
+           Italian
+          </option>
+          <option>
+           Portuguese
+          </option>
+          <option>
+           Russian
+          </option>
+          <option>
+           Korean
+          </option>
+          <option>
+           Chinese (Simplified)
+          </option>
+          <option>
+           Chinese (Traditional)
+          </option>
          </select>
         </div>
         <div>
@@ -446,33 +521,65 @@
          </span>
         </label>
         <label class="flex items-center">
-            <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="card-is-graded" type="checkbox"/>
-            <span class="ml-2 text-sm">Is this card graded?</span>
+         <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="card-is-graded" type="checkbox"/>
+         <span class="ml-2 text-sm">
+          Is this card graded?
+         </span>
         </label>
        </div>
-       <div id="graded-section" class="mt-4 grid grid-cols-2 gap-4 hidden">
+       <div class="mt-4 grid grid-cols-2 gap-4 hidden" id="graded-section">
         <div>
-            <label class="block text-sm font-medium" for="grading-company">Grading Company</label>
-            <select id="grading-company" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <option>PSA</option>
-                <option>BGS</option>
-                <option>CGC</option>
-            </select>
+         <label class="block text-sm font-medium" for="grading-company">
+          Grading Company
+         </label>
+         <select class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="grading-company">
+          <option>
+           PSA
+          </option>
+          <option>
+           BGS
+          </option>
+          <option>
+           CGC
+          </option>
+         </select>
         </div>
         <div>
-            <label class="block text-sm font-medium" for="grade">Grade</label>
-            <select id="grade" class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">
-                <option>10</option>
-                <option>9</option>
-                <option>8</option>
-                <option>7</option>
-                <option>6</option>
-                <option>5</option>
-                <option>4</option>
-                <option>3</option>
-                <option>2</option>
-                <option>1</option>
-            </select>
+         <label class="block text-sm font-medium" for="grade">
+          Grade
+         </label>
+         <select class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="grade">
+          <option>
+           10
+          </option>
+          <option>
+           9
+          </option>
+          <option>
+           8
+          </option>
+          <option>
+           7
+          </option>
+          <option>
+           6
+          </option>
+          <option>
+           5
+          </option>
+          <option>
+           4
+          </option>
+          <option>
+           3
+          </option>
+          <option>
+           2
+          </option>
+          <option>
+           1
+          </option>
+         </select>
         </div>
        </div>
        <div class="mt-4">
@@ -747,6 +854,22 @@
      <button class="btn btn-success w-full" id="finalize-csv-import-btn">
       Finalize Import
      </button>
+    </div>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1006]" id="card-history-modal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl">
+    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+     <h2 class="text-xl font-bold" id="card-history-modal-title">
+      Price History
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-card-history-modal">
+      ×
+     </button>
+    </div>
+    <div class="p-6">
+     <canvas id="card-history-chart" style="height: 400px;">
+     </canvas>
     </div>
    </div>
   </div>

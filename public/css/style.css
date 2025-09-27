@@ -2065,3 +2065,16 @@ body.dark-mode .close-button:focus {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
 }
+.card-actions button {
+    transition: all 0.2s ease-in-out;
+}
+
+.card-actions button:hover {
+    transform: scale(1.1);
+    color: #3b82f6; /* Tailwind's blue-500 */
+}
+
+/* Ensure top mover cards have a minimum height */
+.top-mover-card {
+    min-height: 80px; 
+}
