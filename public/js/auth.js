@@ -1,8 +1,9 @@
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v33 - Final Fix)
-* - Corrects a variable redeclaration error that caused the page to remain grey after login.
-* - Ensures login/register buttons for logged-out users are always displayed correctly.
-* - Integrates the interactive guided tour for new user onboarding.
+* HatakeSocial - Merged Authentication & Global UI Script (v34 - Critical Fix)
+* - FIX: Resolves "Cannot use import statement outside a module" by restructuring script loading.
+* - FIX: Ensures Firebase is initialized correctly, preventing the "No Firebase App" error.
+* - INTEGRATE: Merges darkmode.js functionality directly into auth.js for unified startup logic.
+* - Ensures login/register buttons and global UI elements function correctly.
 */
 
 // --- Firebase Initialization (Stable & Global) ---
@@ -24,6 +25,57 @@ window.auth = firebase.auth();
 window.db = firebase.firestore();
 window.functions = firebase.functions();
 window.storage = firebase.storage();
+
+
+// --- Dark Mode Functionality (Integrated) ---
+const DarkMode = {
+    init: function() {
+        // Apply theme on initial load
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Add a toggle button if it doesn't exist
+        this.addToggleButton();
+
+        // Listen for clicks on the toggle button
+        const toggle = document.getElementById('dark-mode-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.theme = isDark ? 'dark' : 'light';
+                this.updateIcon(isDark);
+            });
+        }
+    },
+    addToggleButton: function() {
+        let toggle = document.getElementById('dark-mode-toggle');
+        if (!toggle) {
+            toggle = document.createElement('button');
+            toggle.id = 'dark-mode-toggle';
+            toggle.className = 'text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2';
+            // Insert it into the user actions container, or fallback to body
+            const userActions = document.getElementById('user-actions');
+            if (userActions) {
+                 userActions.insertAdjacentElement('afterbegin', toggle);
+            } else {
+                 toggle.style.position = 'fixed';
+                 toggle.style.top = '1rem';
+                 toggle.style.right = '1rem';
+                 document.body.appendChild(toggle);
+            }
+        }
+        this.updateIcon(document.documentElement.classList.contains('dark'));
+    },
+    updateIcon: function(isDark) {
+        const toggle = document.getElementById('dark-mode-toggle');
+        if(toggle) {
+             toggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+    }
+};
 
 // --- Global Toast Notification Function ---
 const showToast = (message, type = 'info') => {
@@ -156,10 +208,10 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 };
 
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Import the currency module
-    const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
-
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Dark Mode immediately
+    DarkMode.init();
+    
     document.body.style.opacity = '0'; // Hide body until ready
 
     const auth = window.auth;
@@ -168,47 +220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
-
-    // --- CURRENCY SELECTOR LOGIC ---
-    const setupCurrencySelector = () => {
-        const container = document.getElementById('user-actions');
-        if (!container) return;
-
-        let currencySelectorContainer = document.getElementById('currency-selector-container');
-        if (!currencySelectorContainer) {
-            currencySelectorContainer = document.createElement('div');
-            currencySelectorContainer.id = 'currency-selector-container';
-            currencySelectorContainer.className = 'relative flex items-center';
-            container.insertAdjacentElement('afterbegin', currencySelectorContainer);
-        }
-
-        currencySelectorContainer.innerHTML = `
-            <select id="currency-selector" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="USD">USD</option>
-                <option value="SEK">SEK</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="NOK">NOK</option>
-                <option value="DKK">DKK</option>
-            </select>
-        `;
-
-        const selector = document.getElementById('currency-selector');
-        if (selector) {
-            selector.value = getUserCurrency();
-            selector.addEventListener('change', async (e) => {
-                const newCurrency = e.target.value;
-                try {
-                    await updateUserCurrency(newCurrency);
-                    showToast(`Currency changed to ${newCurrency}`, 'success');
-                    document.dispatchEvent(new CustomEvent('currencyChanged', { detail: { currency: newCurrency } }));
-                } catch (error) {
-                    showToast('Could not save currency preference.', 'error');
-                    console.error('Error updating currency:', error);
-                }
-            });
-        }
-    };
 
     const setupHeaderSearch = () => {
         const searchBar = document.getElementById('main-search-bar');
@@ -315,8 +326,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             verificationTimer = null;
         }
 
-        await initCurrency(user ? user.uid : null);
-
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
@@ -405,7 +414,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (userActions) {
                 userActions.innerHTML = `
-                    <div id="currency-selector-container"></div>
                     <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
                         <i class="fas fa-shopping-cart"></i>
                         <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
@@ -431,7 +439,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
                         </div>
                     </div>`;
-                setupCurrencySelector();
                 document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
                 document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
                 document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
@@ -474,8 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
                 <button id="header-register-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button>`;
             if (userActions) {
-                userActions.innerHTML = `<div id="currency-selector-container"></div> ${loginButtonsHTML}`;
-                setupCurrencySelector();
+                userActions.innerHTML = `${loginButtonsHTML}`;
                 document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
                 document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
             }

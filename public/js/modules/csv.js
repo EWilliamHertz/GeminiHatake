@@ -174,7 +174,7 @@ export async function finalizeImport() {
     UI.setButtonLoading(importButton, false, "Import Finished");
     importButton.disabled = true;
 
-    UI.showToast(`${successCount} cards imported successfully. ${errorCount} cards failed.`, errorCount > 0 ? 'error' : 'success');
+    UI.showToast(`${successCount} cards imported successfully. ${errorCount > 0 ? 'error' : 'success'}`, errorCount > 0 ? 'warning' : 'success');
     
     setTimeout(() => {
         UI.closeModal(document.getElementById('csv-review-modal'));

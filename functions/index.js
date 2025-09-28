@@ -72,16 +72,23 @@ exports.getExchangeRates = functions.https.onCall(async (data, context) => {
             return { rates: cachedItem.data };
         }
     }
-    const API_KEY = functions.config().currencyapi.key;
+    
+    // FIX: Check for the API key and provide a clear error message if it's missing.
+    const API_KEY = functions.config().currencyapi?.key;
     if (!API_KEY) {
-        console.error('Currency API key is not configured.');
-        throw new functions.https.HttpsError('internal', 'Currency API key is not configured.');
+        console.error('FATAL: Currency API key is not configured. Run "firebase functions:config:set currencyapi.key=\'YOUR_KEY\'"');
+        // Return a default object to prevent the client from crashing.
+        return { rates: { USD: 1.0 } };
     }
+
     const apiUrl = `https://api.freecurrencyapi.com/v1/latest?apikey=${API_KEY}&base_currency=${baseCurrency}`;
     try {
         console.log(`Fetching exchange rates for '${baseCurrency}' from external API.`);
         const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+        if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`API call failed with status: ${response.status} - ${errorBody}`);
+        }
         const result = await response.json();
         if (result && result.data) {
              exchangeRateCache.set(baseCurrency, { timestamp: Date.now(), data: result.data });
@@ -91,7 +98,8 @@ exports.getExchangeRates = functions.https.onCall(async (data, context) => {
         }
     } catch (error) {
         console.error("Error fetching exchange rates:", error);
-        return { rates: null };
+        // FIX: Return a default object on any error to ensure the client remains functional.
+        return { rates: { USD: 1.0 } };
     }
 });
 
@@ -1647,4 +1655,3 @@ exports.setUserRole = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
-

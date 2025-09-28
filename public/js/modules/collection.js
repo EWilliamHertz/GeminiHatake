@@ -1,8 +1,11 @@
 /**
  * collection.js
  * Manages the application's state for the TCG collection.
+ * - FIX: Correctly identifies matching cards to prevent incorrect quantity updates.
  */
 import * as API from './api.js';
+import { getNormalizedPriceUSD } from './currency.js';
+
 
 let state = {
     currentUser: null,
@@ -22,13 +25,6 @@ let state = {
 export const getState = () => state;
 export function setCurrentEditingCard(cardData) {
     state.currentEditingCard = cardData;
-    // Dispatch a custom event that the UI can listen for to open the edit modal.
-    // The UI code (e.g., in collection-app.js) should have a listener for this event.
-    // Example listener:
-    // document.addEventListener('showEditCardModal', (e) => {
-    //   const cardToEdit = e.detail;
-    //   openEditCardModal(cardToEdit); // Assuming openEditCardModal is available
-    // });
     document.dispatchEvent(new CustomEvent('showEditCardModal', { detail: cardData }));
 }
 export function getCurrentEditingCard() { return state.currentEditingCard; }
@@ -141,17 +137,19 @@ export async function addMultipleCards(cardVersions, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
     
     for (const cardData of cardVersions) {
-        // Ensure api_id is a valid string
         if (!cardData.api_id || typeof cardData.api_id !== 'string') {
             console.error("Invalid api_id for card:", cardData);
-            continue; // Skip this card
+            continue;
         }
 
         const matchingCard = findMatchingCard(cardData);
         if (matchingCard) {
             const newQuantity = (matchingCard.quantity || 1) + (cardData.quantity || 1);
             await API.updateCardInCollection(state.currentUser.uid, matchingCard.id, { quantity: newQuantity });
-            matchingCard.quantity = newQuantity;
+            const cardIndex = state.fullCollection.findIndex(c => c.id === matchingCard.id);
+            if(cardIndex !== -1) {
+                state.fullCollection[cardIndex].quantity = newQuantity;
+            }
         } else {
             const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
             let finalCardData = { ...cardData, id: cardId };
@@ -264,20 +262,24 @@ export function calculateCollectionStats() {
     const collectionToCount = state.filteredCollection;
     const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);
     const uniqueCards = new Set(collectionToCount.map(card => card.api_id)).size;
+    
     const totalValue = collectionToCount.reduce((sum, card) => {
-        const price = (card.prices && (card.prices.usd || Object.values(card.prices)[0])) ? parseFloat(card.prices.usd || Object.values(card.prices)[0]) : 0;
-        return sum + (price * (card.quantity || 1));
+        const priceUSD = getNormalizedPriceUSD(card.prices);
+        return sum + (priceUSD * (card.quantity || 1));
     }, 0);
+
     return { totalCards, uniqueCards, totalValue };
 }
 
 export function calculateWishlistStats() {
     const totalCards = state.wishlist.length;
     const uniqueCards = state.wishlist.length;
+    
     const totalValue = state.wishlist.reduce((sum, card) => {
-        const price = (card.prices && (card.prices.usd || Object.values(card.prices)[0])) ? parseFloat(card.prices.usd || Object.values(card.prices)[0]) : 0;
-        return sum + price;
+        const priceUSD = getNormalizedPriceUSD(card.prices);
+        return sum + priceUSD;
     }, 0);
+    
     return { totalCards, uniqueCards, totalValue };
 }
 

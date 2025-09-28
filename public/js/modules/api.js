@@ -254,15 +254,26 @@ function cleanScryDexData(card, game) {
     }
 }
 // --- FIRESTORE DATABASE OPERATIONS ---
-const getCollectionRef = (userId) => db.collection('users').doc(userId).collection('collection');
-const getWishlistRef = (userId) => db.collection('users').doc(userId).collection('wishlist');
+const getCollectionRef = (userId, collectionName = 'collection') => {
+    // This guard prevents crashes if userId is not a valid string.
+    if (!userId || typeof userId !== 'string') {
+        throw new Error("Invalid or missing User ID provided for Firestore operation.");
+    }
+    return db.collection('users').doc(userId).collection(collectionName);
+};
 
 export async function getCollection(userId) {
+    // Gracefully handle cases where no user is logged in.
+    if (!userId) {
+        console.warn("[API] getCollection called without a valid userId.");
+        return [];
+    }
     const snapshot = await getCollectionRef(userId).orderBy('addedAt', 'desc').get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 export async function getWishlist(userId) {
-    const snapshot = await getWishlistRef(userId).orderBy('addedAt', 'desc').get();
+    if (!userId) return [];
+    const snapshot = await getCollectionRef(userId, 'wishlist').orderBy('addedAt', 'desc').get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 export async function addCardToCollection(userId, cardData) {
@@ -298,6 +309,7 @@ export async function uploadCustomImage(userId, cardId, file) {
     return snapshot.ref.getDownloadURL();
 }
 export async function getUserProfile(userId) {
+    if (!userId) return null;
     const userDoc = await db.collection('users').doc(userId).get();
     return userDoc.exists ? userDoc.data() : null;
 }

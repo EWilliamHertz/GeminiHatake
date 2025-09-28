@@ -1,166 +1,138 @@
 /**
- * HatakeSocial - Centralized Currency Module with Live API Data
- *
- * This module handles all currency-related logic, fetching live exchange rates
- * from freecurrencyapi.com, caching them, converting between currencies,
- * and formatting prices for display across the entire application.
+ * currency.js
+ * Handles fetching, caching, and applying currency exchange rates.
+ * - FIX: Now gracefully handles failures from the backend, defaulting to USD instead of crashing.
  */
 
-// --- CONFIGURATION ---
-// IMPORTANT: Replace this with your actual API key from https://app.freecurrencyapi.com/dashboard
-const API_KEY = 'fca_live_ISCJ9fqb6skS8PcFfoU0u5PLRgBlb1pNahlYMY4f'; // <-- PASTE YOUR FREE CURRENCY API KEY HERE
-const API_URL = `https://api.freecurrencyapi.com/v1/latest?apikey=${API_KEY}&base_currency=USD`;
-const CACHE_DURATION_HOURS = 6;
+const functions = firebase.functions();
+let exchangeRates = null;
+let lastFetchTimestamp = 0;
+const CACHE_DURATION_MS = 1000 * 60 * 60 * 6; // Cache for 6 hours
+let userCurrency = localStorage.getItem('userCurrency') || 'USD';
 
-const db = firebase.firestore();
-
-let currentUserCurrency = 'USD';
-let exchangeRates = {};
-
-// --- Fallback rates in case the API fails ---
-const fallbackRates = {
-    'USD': 1.0, 'SEK': 10.58, 'EUR': 0.93, 'GBP': 0.79, 'NOK': 10.60, 'DKK': 6.95
-};
 
 /**
- * Fetches the latest exchange rates from the API or retrieves them from cache.
+ * Fetches exchange rates from the backend cloud function and caches them.
+ * @param {string} base - The base currency (e.g., 'USD').
  */
-async function loadExchangeRates() {
-    const cachedData = localStorage.getItem('exchangeRates');
-    const now = new Date().getTime();
-
-    if (cachedData) {
-        const { timestamp, rates } = JSON.parse(cachedData);
-        if (now - timestamp < CACHE_DURATION_HOURS * 60 * 60 * 1000) {
-            exchangeRates = rates;
-            console.log("Using cached exchange rates.");
-            return;
-        }
+export async function initCurrency(base = 'USD') {
+    const now = Date.now();
+    if (exchangeRates && (now - lastFetchTimestamp < CACHE_DURATION_MS)) {
+        console.log("Using cached exchange rates.");
+        return;
     }
 
     try {
-        if (!API_KEY || API_KEY.includes('PASTE YOUR')) {
-            throw new Error("API Key is not set. Using fallback rates.");
-        }
-        console.log("Fetching live exchange rates from API...");
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-        const data = await response.json();
+        console.log(`Fetching exchange rates with base ${base}...`);
+        const getRates = functions.httpsCallable('getExchangeRates');
+        const result = await getRates({ base });
 
-        exchangeRates = data.data;
-        localStorage.setItem('exchangeRates', JSON.stringify({ timestamp: now, rates: exchangeRates }));
-        console.log("Successfully fetched and cached new exchange rates.");
-    } catch (error) {
-        console.error("Failed to fetch live exchange rates, using fallback rates.", error);
-        exchangeRates = fallbackRates;
-    }
-}
-
-/**
- * Initializes the currency system. Should be called once when the user state is known.
- * @param {string|null} userId The UID of the currently logged-in user, or null if logged out.
- */
-export async function initCurrency(userId) {
-    await loadExchangeRates();
-    if (userId) {
-        const userDocRef = db.collection('users').doc(userId);
-        const userDoc = await userDocRef.get();
-        if (userDoc.exists) {
-            currentUserCurrency = userDoc.data().primaryCurrency || 'USD';
+        // CRITICAL FIX: The data from a callable function is in result.data
+        if (result.data && result.data.rates && Object.keys(result.data.rates).length > 0) {
+            exchangeRates = result.data.rates;
+            exchangeRates[base] = 1.0;
+            lastFetchTimestamp = now;
+            console.log("Exchange rates loaded successfully.", exchangeRates);
         } else {
-            currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
+            // This case handles a valid response structure but empty rates object
+            throw new Error("Received empty or invalid rates object from backend.");
         }
-
-        // Listen for realtime updates from Firestore
-        userDocRef.onSnapshot((doc) => {
-            if (doc.exists) {
-                const newCurrency = doc.data().primaryCurrency || 'USD';
-                if (newCurrency !== currentUserCurrency) {
-                    currentUserCurrency = newCurrency;
-                    localStorage.setItem('userCurrency', currentUserCurrency);
-                    document.dispatchEvent(new CustomEvent('currencyChanged', {
-                        detail: { currency: newCurrency }
-                    }));
-                }
-            }
-        });
-
-    } else {
-        // For logged-out users, just use local storage
-        currentUserCurrency = localStorage.getItem('userCurrency') || 'USD';
+    } catch (error) {
+        console.error("Could not fetch exchange rates:", error);
+        // FIX: Graceful fallback. Set a default to prevent the app from crashing.
+        // The app will now function but will only show prices in USD.
+        exchangeRates = { USD: 1.0 };
+        showToast("Could not fetch currency rates. Prices will be shown in USD.", "error");
     }
-    localStorage.setItem('userCurrency', currentUserCurrency);
 }
 
 /**
- * Updates the user's preferred currency in both Firestore (if logged in) and local storage.
- * @param {string} newCurrency The new currency code (e.g., 'SEK').
+ * Converts a card's prices object to a single normalized USD value.
+ * @param {object} prices - The prices object from the card data (e.g., { usd: '10.00', jpy: '1500.00' }).
+ * @returns {number} - The price in USD.
  */
-export function updateUserCurrency(newCurrency) {
-    if (!newCurrency) return Promise.reject("Invalid currency");
+export function getNormalizedPriceUSD(prices) {
+    if (!prices || typeof prices !== 'object') return 0;
 
-    // Update local state immediately for responsiveness
-    currentUserCurrency = newCurrency;
-    localStorage.setItem('userCurrency', newCurrency);
-    document.dispatchEvent(new CustomEvent('currencyChanged', {
-        detail: { currency: newCurrency }
-    }));
+    if (prices.usd) return parseFloat(prices.usd) || 0;
 
-    // Update Firestore if the user is logged in
-    const user = firebase.auth().currentUser;
-    if (user) {
-       return db.collection('users').doc(user.uid).update({ primaryCurrency: newCurrency });
+    // This check is now safer because exchangeRates will never be null after initCurrency runs.
+    if (!exchangeRates) {
+        console.warn("Exchange rates not initialized, cannot convert price.");
+        return 0;
     }
 
-    return Promise.resolve(); // Return a resolved promise for logged-out users
+    if (prices.jpy && exchangeRates.JPY) {
+        return (parseFloat(prices.jpy) / exchangeRates.JPY) || 0;
+    }
+    
+    if (prices.eur && exchangeRates.EUR) {
+        return (parseFloat(prices.eur) / exchangeRates.EUR) || 0;
+    }
+    
+    return 0;
+}
+
+/**
+ * Formats a price value into a display string for the target currency.
+ * Accepts either a raw prices object or a pre-calculated USD value.
+ * @param {object|number} priceData - The prices object or a number in USD.
+ * @returns {string} - The formatted price string (e.g., "105.50 kr" or "$10.00").
+ */
+export function convertAndFormat(priceData) {
+    const targetCurrency = getUserCurrency();
+    let priceUSD = 0;
+
+    if (typeof priceData === 'number') {
+        priceUSD = priceData;
+    } else if (typeof priceData === 'object' && priceData !== null) {
+        priceUSD = getNormalizedPriceUSD(priceData);
+    }
+
+    if (typeof priceUSD !== 'number' || isNaN(priceUSD)) {
+        priceUSD = 0;
+    }
+
+    let finalPrice = priceUSD;
+    let currencyInfo = { symbol: '$', code: 'USD' };
+
+    const currencyMap = {
+        'SEK': { symbol: 'kr' }, 'EUR': { symbol: '€' },
+        'JPY': { symbol: '¥' }, 'GBP': { symbol: '£' },
+        'NOK': { symbol: 'kr' }, 'DKK': { symbol: 'kr' },
+        'USD': { symbol: '$' }
+    };
+    
+    if (targetCurrency !== 'USD' && exchangeRates && exchangeRates[targetCurrency.toUpperCase()]) {
+        finalPrice = priceUSD * exchangeRates[targetCurrency.toUpperCase()];
+        currencyInfo = currencyMap[targetCurrency.toUpperCase()] || { symbol: targetCurrency };
+    }
+    
+    const formattedPrice = finalPrice.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    return `${formattedPrice} ${currencyInfo.symbol}`;
 }
 
 export function getUserCurrency() {
-    return localStorage.getItem('userCurrency') || currentUserCurrency;
+    return userCurrency;
 }
 
-export function formatPrice(amount) {
-    const currency = getUserCurrency();
-    const numberAmount = Number(amount) || 0;
-    try {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency, currencyDisplay: 'symbol' }).format(numberAmount);
-    } catch (e) {
-        // Fallback to USD if the currency code is invalid
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(numberAmount);
-    }
-}
-
-/**
- * Converts a price to the user's selected currency and formats it.
- * @param {object|number|string} priceInput Price data (e.g., {usd: 10.50}) or a raw number assumed to be in USD.
- */
-export function convertAndFormat(priceInput) {
-    const targetCurrency = getUserCurrency();
-    let sourcePriceUSD = 0;
-
-    if (typeof priceInput === 'object' && priceInput !== null) {
-        if (priceInput.usd) {
-            sourcePriceUSD = parseFloat(priceInput.usd);
-        } else {
-            const firstPrice = Object.values(priceInput)[0];
-            if (firstPrice) {
-                sourcePriceUSD = parseFloat(firstPrice);
-            }
+export async function updateUserCurrency(newCurrency) {
+    userCurrency = newCurrency;
+    localStorage.setItem('userCurrency', newCurrency);
+    document.dispatchEvent(new CustomEvent('currencyChanged', { detail: { currency: newCurrency } }));
+    
+    const user = firebase.auth().currentUser;
+    if (user) {
+        try {
+            await firebase.firestore().collection('users').doc(user.uid).update({
+                preferredCurrency: newCurrency
+            });
+        } catch (error) {
+            console.error("Failed to save currency preference to Firestore:", error);
         }
-    } else if (typeof priceInput === 'number') {
-        sourcePriceUSD = priceInput;
-    } else if (typeof priceInput === 'string') {
-        sourcePriceUSD = parseFloat(priceInput);
-    } else if (priceInput === null || priceInput === undefined) {
-        return 'N/A';
     }
-
-    if (isNaN(sourcePriceUSD)) {
-        return 'N/A';
-    }
-
-    const rate = exchangeRates[targetCurrency] || 1.0;
-    const finalPrice = sourcePriceUSD * rate;
-
-    return formatPrice(finalPrice);
 }

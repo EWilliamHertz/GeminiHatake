@@ -1,20 +1,7 @@
 /**
  * collection-app.js
  * Main application logic for the collection page.
- * - Integrates with the new currency.js module for live API-based conversions.
- * - Includes analytics dashboard functionality.
- * - FIX: Correctly handles filtering on the analytics page.
- * - FIX: Prevents duplicate entries in "Top Movers".
- * - FIX: Ensures game filter toggles are always functional.
- * - UPDATE: Re-implements the Set filter as a searchable, multi-select dropdown.
- * - FIX: Made analytics data consistent by using seeded random data generation.
- * - FIX: Correctly implemented event listeners for multi-select dropdown.
- * - UPDATE: Integrated a live ScryDex API call via the api.js module.
- * - FIX: Resolved page freeze by refactoring event listener setup.
- * - FIX: Restored "Bulk Edit" functionality.
- * - FIX: Resolved card saving error by handling 'undefined' fields.
- * - FIX: Restored prices in manual card search results.
- * - UPDATE: Reverted "Bulk List for Sale" modal to the detailed review version.
+ * - FIX: Prevents initialization crash by ensuring a user is logged in before loading collection data.
  */
 import * as Collection from './collection.js';
 import * as API from './api.js';
@@ -632,16 +619,27 @@ function setupEventListeners() {
 }
 
 document.addEventListener('authReady', async ({ detail: { user } }) => {
-    if (user) currentUser = user;
-    try {
-        await Currency.initCurrency(user ? user.uid : null);
-        await Collection.loadCollection(user ? user.uid : null);
-        setupEventListeners();
-        applyAndRender({});
-        UI.createCurrencySelector('user-actions');
-    } catch (error) {
-        console.error("Initialization failed:", error);
-        UI.showToast("Could not load collection data.", "error");
+    // FIX: This is the main fix. Only proceed if the user is actually logged in.
+    if (user) {
+        currentUser = user;
+        try {
+            // CRITICAL FIX: Call initCurrency with a valid currency string, not an object or uid.
+            await Currency.initCurrency('USD');
+            await Collection.loadCollection(user.uid);
+            setupEventListeners();
+            applyAndRender({});
+            UI.createCurrencySelector('user-actions');
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            UI.showToast("Could not load collection data.", "error");
+        }
+    } else {
+        // Handle the logged-out state gracefully
+        currentUser = null;
+        const collectionContainer = document.getElementById('collection-display');
+        if (collectionContainer) {
+            collectionContainer.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><p>Please log in to manage your collection.</p></div>';
+        }
     }
 });
 
@@ -724,6 +722,7 @@ async function handleCardFormSubmit(e) {
             await Collection.updateCard(id, data, customImageFile);
             UI.showToast("Card updated!", "success");
         } else {
+            data.addedAt = new Date();
             await Collection.addMultipleCards([data], customImageFile);
             UI.showToast("Card added!", "success");
         }
@@ -941,4 +940,3 @@ async function handleFinalizeBulkList(e) {
         UI.setButtonLoading(button, false, "Finalize and List Selected Cards");
     }
 }
-
