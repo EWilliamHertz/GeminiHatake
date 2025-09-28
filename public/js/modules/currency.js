@@ -2,6 +2,7 @@
  * currency.js
  * Handles fetching, caching, and applying currency exchange rates.
  * - FIX: Now gracefully handles failures from the backend, defaulting to USD instead of crashing.
+ * - FIX: Updated getNormalizedPriceUSD to handle ScryDex price structure with variant-based keys.
  */
 
 const functions = firebase.functions();
@@ -48,12 +49,14 @@ export async function initCurrency(base = 'USD') {
 
 /**
  * Converts a card's prices object to a single normalized USD value.
- * @param {object} prices - The prices object from the card data (e.g., { usd: '10.00', jpy: '1500.00' }).
+ * FIXED: Now handles both Scryfall format (usd, eur, jpy) and ScryDex format (variant_condition keys).
+ * @param {object} prices - The prices object from the card data (e.g., { usd: '10.00', jpy: '1500.00' } or { normal_NM: 5.99, reverseHolofoil_NM: 12.50 }).
  * @returns {number} - The price in USD.
  */
 export function getNormalizedPriceUSD(prices) {
     if (!prices || typeof prices !== 'object') return 0;
 
+    // Handle Scryfall format (MTG cards)
     if (prices.usd) return parseFloat(prices.usd) || 0;
 
     // This check is now safer because exchangeRates will never be null after initCurrency runs.
@@ -68,6 +71,34 @@ export function getNormalizedPriceUSD(prices) {
     
     if (prices.eur && exchangeRates.EUR) {
         return (parseFloat(prices.eur) / exchangeRates.EUR) || 0;
+    }
+    
+    // NEW: Handle ScryDex format (Pokemon, Lorcana, Gundam cards)
+    // ScryDex returns prices with keys like 'normal_NM', 'reverseHolofoil_NM', etc.
+    const priceKeys = Object.keys(prices);
+    if (priceKeys.length > 0) {
+        // Priority order for ScryDex variants (prefer normal over special variants)
+        const priorityOrder = [
+            'normal_NM', 'normal_LP', 'normal_MP', 'normal_HP', 'normal_DMG',
+            'reverseHolofoil_NM', 'reverseHolofoil_LP', 'reverseHolofoil_MP', 'reverseHolofoil_HP', 'reverseHolofoil_DMG',
+            'holofoil_NM', 'holofoil_LP', 'holofoil_MP', 'holofoil_HP', 'holofoil_DMG',
+            'firstEdition_NM', 'firstEdition_LP', 'firstEdition_MP', 'firstEdition_HP', 'firstEdition_DMG'
+        ];
+        
+        // Find the first available price in priority order
+        for (const priorityKey of priorityOrder) {
+            if (prices[priorityKey] && typeof prices[priorityKey] === 'number') {
+                return prices[priorityKey];
+            }
+        }
+        
+        // If no priority match, use the first available numeric price
+        for (const key of priceKeys) {
+            const price = prices[key];
+            if (typeof price === 'number' && price > 0) {
+                return price;
+            }
+        }
     }
     
     return 0;

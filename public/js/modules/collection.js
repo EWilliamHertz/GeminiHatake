@@ -2,6 +2,7 @@
  * collection.js
  * Manages the application's state for the TCG collection.
  * - FIX: Correctly identifies matching cards to prevent incorrect quantity updates.
+ * - FIX: Improved state management for currentEditingCard to prevent cross-contamination.
  */
 import * as API from './api.js';
 import { getNormalizedPriceUSD } from './currency.js';
@@ -23,14 +24,36 @@ let state = {
 };
 
 export const getState = () => state;
+
 export function setCurrentEditingCard(cardData) {
-    state.currentEditingCard = cardData;
-    document.dispatchEvent(new CustomEvent('showEditCardModal', { detail: cardData }));
+    // CRITICAL FIX: Properly handle null/undefined values and deep clone to prevent reference issues
+    if (cardData === null || cardData === undefined) {
+        state.currentEditingCard = null;
+    } else {
+        // Deep clone to prevent reference issues between different card additions
+        state.currentEditingCard = JSON.parse(JSON.stringify(cardData));
+    }
+    
+    if (cardData) {
+        document.dispatchEvent(new CustomEvent('showEditCardModal', { detail: cardData }));
+    }
 }
-export function getCurrentEditingCard() { return state.currentEditingCard; }
-export function addPendingCard(cardData) { state.pendingCards.push(cardData); }
-export function getPendingCards() { return state.pendingCards; }
-export function clearPendingCards() { state.pendingCards = []; }
+
+export function getCurrentEditingCard() { 
+    return state.currentEditingCard; 
+}
+
+export function addPendingCard(cardData) { 
+    state.pendingCards.push(cardData); 
+}
+
+export function getPendingCards() { 
+    return state.pendingCards; 
+}
+
+export function clearPendingCards() { 
+    state.pendingCards = []; 
+}
 
 export function removePendingCard(index) {
     if (index > -1 && index < state.pendingCards.length) {
@@ -142,17 +165,35 @@ export async function addMultipleCards(cardVersions, customImageFile) {
             continue;
         }
 
-        const matchingCard = findMatchingCard(cardData);
+        // CRITICAL FIX: Ensure we're using the correct card data for matching
+        // Create a clean copy of the card data to avoid reference issues
+        const cleanCardData = {
+            api_id: cardData.api_id,
+            condition: cardData.condition || 'NM',
+            language: cardData.language || 'English',
+            is_foil: cardData.is_foil || false,
+            is_signed: cardData.is_signed || false,
+            is_altered: cardData.is_altered || false,
+            is_graded: cardData.is_graded || false,
+            grading_company: cardData.grading_company || null,
+            grade: cardData.grade || null,
+            quantity: cardData.quantity || 1
+        };
+
+        const matchingCard = findMatchingCard(cleanCardData);
         if (matchingCard) {
-            const newQuantity = (matchingCard.quantity || 1) + (cardData.quantity || 1);
+            const newQuantity = (matchingCard.quantity || 1) + (cleanCardData.quantity || 1);
             await API.updateCardInCollection(state.currentUser.uid, matchingCard.id, { quantity: newQuantity });
             const cardIndex = state.fullCollection.findIndex(c => c.id === matchingCard.id);
             if(cardIndex !== -1) {
                 state.fullCollection[cardIndex].quantity = newQuantity;
             }
         } else {
-            const cardId = await API.addCardToCollection(state.currentUser.uid, cardData);
-            let finalCardData = { ...cardData, id: cardId };
+            // Merge the clean card data with the original card data for complete information
+            const completeCardData = { ...cardData, ...cleanCardData };
+            const cardId = await API.addCardToCollection(state.currentUser.uid, completeCardData);
+            let finalCardData = { ...completeCardData, id: cardId };
+            
             if (customImageFile) {
                 const imageUrl = await API.uploadCustomImage(state.currentUser.uid, cardId, customImageFile);
                 finalCardData.customImageUrl = imageUrl;
