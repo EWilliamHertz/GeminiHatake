@@ -15,14 +15,13 @@
     <link href="/manifest.json" rel="manifest"/>
 
     <style>
-        /* Your original marketplace CSS is preserved here */
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
 
-        .header-marketplace { /* Renamed to avoid conflicts */
+        .header-marketplace {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -36,14 +35,7 @@
             gap: 20px;
         }
         
-        /* ... (The rest of your marketplace CSS goes here) ... */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body.marketplace-body { /* Scoped body styles */
+        body.marketplace-body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -403,7 +395,7 @@
                 </a>
             </div>
           <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
       <i class="fas fa-home w-6 text-center">
       </i>
       <span class="ml-3">
@@ -445,7 +437,7 @@
        Events
       </span>
      </a>
-     <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="my_collection.html">
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
       <i class="fas fa-layer-group w-6 text-center">
       </i>
       <span class="ml-3">
@@ -466,7 +458,7 @@
        Shop
       </span>
      </a>
-     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+     <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="marketplace.html">
       <i class="fas fa-store w-6 text-center">
       </i>
       <span class="ml-3">
@@ -536,8 +528,8 @@
                             </button>
                         </div>
                         <div class="user-actions">
-                            <button class="btn btn-primary" id="sellCardBtn">
-                                <i class="fas fa-plus"></i> Sell Card
+                            <button class="btn btn-primary" id="add-from-collection-btn">
+                                <i class="fas fa-plus"></i> List from Collection
                             </button>
                         </div>
                     </div>
@@ -606,29 +598,20 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title" id="modalTitle">Card Details</h2>
-                <button class="close-btn" id="closeModal">&times;</button>
+                <button class="close-btn" data-modal-close="cardModal">&times;</button>
             </div>
             <div id="modalBody"></div>
         </div>
     </div>
 
-    <div class="modal" id="sellModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">List a Card for Sale</h2>
-                <button class="close-btn" id="closeSellModal">&times;</button>
+    <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1001]" id="add-from-collection-modal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col" style="height: 80vh;">
+            <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Select a Card from Your Collection to List</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" data-modal-close="add-from-collection-modal">×</button>
             </div>
-            <div id="sellModalBody">
-                <form id="sellCardForm">
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Card Name *</label><input type="text" class="filter-input" id="sellCardName" required placeholder="Enter card name..."></div>
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Game *</label><select class="filter-select" id="sellGame" required><option value="">Select Game</option><option value="pokemon">Pokémon</option><option value="magic">Magic: The Gathering</option><option value="yugioh">Yu-Gi-Oh!</option><option value="lorcana">Disney Lorcana</option><option value="gundam">Gundam</option></select></div>
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Set/Expansion</label><input type="text" class="filter-input" id="sellSet" placeholder="Enter set name..."></div>
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Condition *</label><select class="filter-select" id="sellCondition" required><option value="">Select Condition</option><option value="mint">Mint</option><option value="near-mint">Near Mint</option><option value="lightly-played">Lightly Played</option><option value="moderately-played">Moderately Played</option><option value="heavily-played">Heavily Played</option><option value="damaged">Damaged</option></select></div>
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Price (USD) *</label><input type="number" class="filter-input" id="sellPrice" required min="0" step="0.01" placeholder="0.00"></div>
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Image URL</label><input type="url" class="filter-input" id="sellImageURL" placeholder="https://example.com/image.png"></div>
-                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Description</label><textarea class="filter-input" id="sellDescription" rows="4" placeholder="Additional details about the card..."></textarea></div>
-                    <div class="card-actions"><button type="button" class="btn btn-secondary" id="cancelSell">Cancel</button><button type="submit" class="btn btn-primary">List Card</button></div>
-                </form>
+            <div class="p-6 flex-grow overflow-y-auto" id="collection-selection-container">
+                <p class="text-center text-gray-500">Loading your collection...</p>
             </div>
         </div>
     </div>
@@ -641,25 +624,27 @@
 
     <script type="module" src="js/auth.js"></script> 
     <script src="js/messenger.js"></script>
-    <script src="js/marketplace.js"></script>
+    <script src="js/marketplace.js" type="module"></script>
 
     <script>
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-                sidebarOverlay.classList.toggle('hidden');
-            });
-        }
-        if (sidebarOverlay) {
-            sidebarOverlay.addEventListener('click', () => {
-                sidebar.classList.add('-translate-x-full');
-                sidebarOverlay.classList.add('hidden');
-            });
-        }
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                });
+            }
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
+                });
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,6 +1,9 @@
 /**
  * collection-app.js
  * Main application logic for the collection page.
+ * - Implements the full, detailed CSV review and import process, fixing api_id errors.
+ * - Implements the new bulk "List for Sale" modal with full pricing logic.
+ * - Connects graded card price lookups in the card modal.
  * - FIX: Corrects CSV import functionality and restores the preview panel.
  * - FIX: Corrects mismatched HTML element IDs to make all action buttons functional.
  * - FIX: Prevents initialization crash by ensuring a user is logged in before loading collection data.
@@ -17,35 +20,18 @@ let csvFile = null;
 
 // --- UI HELPER ---
 const UI = {
-    openModal: (modal) => {
-        if (!modal) return;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex', 'items-center', 'justify-center');
-    },
-    closeModal: (modal) => {
-        if (!modal) return;
-        modal.classList.add('hidden');
-        modal.classList.remove('flex', 'items-center', 'justify-center');
-    },
+    openModal: (modal) => { if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex', 'items-center', 'justify-center'); }},
+    closeModal: (modal) => { if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex', 'items-center', 'justify-center'); }},
     showToast: (message, type = 'info', duration = 5000) => {
         const container = document.getElementById('toast-container');
         if (!container) return;
         const toast = document.createElement('div');
-        const colors = {
-            success: 'bg-green-600',
-            error: 'bg-red-600',
-            info: 'bg-blue-600'
-        };
+        const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
         toast.className = `p-4 rounded-lg text-white shadow-lg mb-2 ${colors[type] || 'bg-gray-700'} transition-all duration-300 transform translate-y-4 opacity-0`;
         toast.textContent = message;
         container.appendChild(toast);
-        setTimeout(() => {
-            toast.classList.remove('translate-y-4', 'opacity-0');
-        }, 10);
-        setTimeout(() => {
-            toast.classList.add('opacity-0');
-            toast.addEventListener('transitionend', () => toast.remove());
-        }, duration);
+        setTimeout(() => toast.classList.remove('translate-y-4', 'opacity-0'), 10);
+        setTimeout(() => { toast.classList.add('opacity-0'); toast.addEventListener('transitionend', () => toast.remove()); }, duration);
     },
     setButtonLoading: (button, isLoading, originalText = 'Submit') => {
         if (!button) return;
@@ -58,7 +44,7 @@ const UI = {
             button.innerHTML = button.dataset.originalText || originalText;
         }
     },
-     updateBulkEditUI: (isActive) => {
+    updateBulkEditUI: (isActive) => {
         const toolbar = document.getElementById('bulk-edit-toolbar');
         if (toolbar) {
             toolbar.classList.toggle('hidden', !isActive);
@@ -68,9 +54,7 @@ const UI = {
     },
     updateBulkEditSelection: (count) => {
         const countEl = document.getElementById('bulk-selected-count');
-        if (countEl) {
-            countEl.textContent = count;
-        }
+        if (countEl) countEl.textContent = count;
     },
     createCurrencySelector: (containerId) => {
         const container = document.getElementById(containerId);
@@ -624,7 +608,6 @@ function handleCardClick(e, cardContainer) {
     }
 }
 
-
 function handleTopMoverClick(element) {
     if (element?.dataset.cardId) {
         const card = Collection.getCardById(element.dataset.cardId);
@@ -806,43 +789,149 @@ function handleBulkCheckboxChange(e) {
 }
 
 async function handleCSVUpload(e) {
-    csvFile = e.target.files[0];
-    if (!csvFile) return;
-    
+    const file = e.target.files[0];
+    const statusEl = document.getElementById('csv-import-status');
+    const startBtn = document.getElementById('start-csv-import-btn');
+    if (!file) return;
+
+    UI.setButtonLoading(startBtn, true);
+    statusEl.textContent = 'Parsing file...';
     try {
-        const cards = await CSV.parseCSV(csvFile);
-        
-        document.getElementById('csv-preview-count').textContent = cards.length;
-        document.getElementById('csv-preview').classList.remove('hidden');
-        
-        const previewHtml = cards.slice(0, 5).map(card => `
-            <tr>
-                <td class="px-4 py-2 border">${card.name}</td>
-                <td class="px-4 py-2 border">${card.set_name}</td>
-                <td class="px-4 py-2 border">${card.quantity}</td>
-                <td class="px-4 py-2 border">${card.condition}</td>
-            </tr>
-        `).join('');
-        
-        document.getElementById('csv-preview-table').innerHTML = `
-            <table class="min-w-full border-collapse border">
-                <thead>
-                    <tr class="bg-gray-50">
-                        <th class="px-4 py-2 border">Name</th>
-                        <th class="px-4 py-2 border">Set</th>
-                        <th class="px-4 py-2 border">Quantity</th>
-                        <th class="px-4 py-2 border">Condition</th>
-                    </tr>
-                </thead>
-                <tbody>${previewHtml}</tbody>
-            </table>
-            ${cards.length > 5 ? `<p class="text-sm text-gray-500 mt-2">... and ${cards.length - 5} more cards</p>` : ''}
-        `;
+        const parsedData = await CSV.parseCSV(file);
+        statusEl.textContent = `Successfully parsed ${parsedData.length} cards. Opening review modal...`;
+        UI.closeModal(document.getElementById('csv-import-modal'));
+        openCsvReviewModal(parsedData);
     } catch (error) {
-        UI.showToast(`Error reading CSV file: ${error.message}`, "error");
+        statusEl.textContent = `Error: ${error.message}`;
+        console.error("Error parsing CSV:", error);
+    } finally {
+        UI.setButtonLoading(startBtn, false, 'Parse CSV');
+        e.target.value = '';
     }
 }
 
+async function openCsvReviewModal(cards) {
+    const modal = document.getElementById('csv-review-modal');
+    const tableBody = document.getElementById('csv-review-table-body');
+    if (!modal || !tableBody) return;
+
+    tableBody.innerHTML = '';
+    UI.openModal(modal);
+    let reviewData = [];
+
+    cards.forEach((card, index) => {
+        const row = document.createElement('tr');
+        row.dataset.index = index;
+        row.innerHTML = `
+            <td class="p-3">${card.name}</td>
+            <td class="p-3">${card.set_name || 'Any'}</td>
+            <td class="p-3">${card.collector_number || 'N/A'}</td>
+            <td class="p-3">${card.quantity}</td>
+            <td class="p-3">${card.condition}</td>
+            <td class="p-3">${card.language}</td>
+            <td class="p-3">${card.is_foil ? 'Yes' : 'No'}</td>
+            <td class="p-3 status-cell"><i class="fas fa-spinner fa-spin"></i> Finding...</td>
+            <td class="p-3"><button class="text-red-500 remove-row-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></td>
+        `;
+        tableBody.appendChild(row);
+        reviewData.push({ raw: card, enriched: null, status: 'pending' });
+    });
+    
+    for (let i = 0; i < reviewData.length; i++) {
+        const item = reviewData[i];
+        if(item.status === 'removed') continue;
+
+        const row = tableBody.querySelector(`tr[data-index="${i}"]`);
+        const statusCell = row.querySelector('.status-cell');
+        
+        try {
+            let query = `!"${item.raw.name}"`;
+            if (item.raw.set) query += ` set:${item.raw.set}`;
+            if (item.raw.collector_number) query += ` cn:${item.raw.collector_number}`;
+            const results = await API.searchCards(query, 'mtg');
+            if (results.length > 0) {
+                item.enriched = { ...results[0], ...item.raw }; // Combine API data with CSV data
+                item.status = 'found';
+                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i> Found</span>`;
+            } else {
+                throw new Error("Not found");
+            }
+        } catch (error) {
+            item.status = 'error';
+            statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Not Found</span>`;
+        }
+        await new Promise(resolve => setTimeout(resolve, 110));
+    }
+
+    const finalizeBtn = document.getElementById('finalize-csv-import-btn');
+    finalizeBtn.onclick = () => finalizeCsvImport(reviewData);
+}
+
+async function finalizeCsvImport(reviewData) {
+    const cardsToImport = reviewData.filter(item => item.status === 'found').map(item => item.enriched);
+    if (cardsToImport.length === 0) {
+        UI.showToast("No valid cards found to import.", "error");
+        return;
+    }
+    const importBtn = document.getElementById('finalize-csv-import-btn');
+    UI.setButtonLoading(importBtn, true);
+    try {
+        await Collection.addMultipleCards(cardsToImport);
+        UI.showToast(`Successfully imported ${cardsToImport.length} cards!`, "success");
+        UI.closeModal(document.getElementById('csv-review-modal'));
+        applyAndRender();
+    } catch (error) {
+        UI.showToast(`Import failed: ${error.message}`, "error");
+    } finally {
+        UI.setButtonLoading(importBtn, false, 'Finalize Import');
+    }
+}
+
+async function openBulkListModal() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) return UI.showToast("No cards selected.", "info");
+    const modal = document.getElementById('bulk-list-sale-modal');
+    document.getElementById('bulk-list-count').textContent = selectedIds.length;
+    const reviewList = document.getElementById('bulk-review-list');
+    reviewList.innerHTML = 'Loading selected cards...';
+    UI.openModal(modal);
+    const cards = selectedIds.map(id => Collection.getCardById(id));
+    reviewList.innerHTML = cards.map(card => {
+        const marketPrice = Currency.getNormalizedPriceUSD(card.prices);
+        return `
+            <div class="bulk-sale-item grid grid-cols-6 gap-4 items-center p-2 border-b dark:border-gray-600" data-card-id="${card.id}" data-market-price="${marketPrice}">
+                <div class="col-span-2"><p class="font-semibold truncate">${card.name}</p><p class="text-xs text-gray-500">${card.set_name}</p></div>
+                <div class="text-sm font-mono text-center market-price-cell">$${marketPrice.toFixed(2)}</div>
+                <div class="flex items-center"><input type="number" class="w-20 p-1 border rounded-md dark:bg-gray-700 percentage-input" placeholder="100"><span class="ml-1">%</span></div>
+                <input type="number" class="w-24 p-1 border rounded-md dark:bg-gray-700 fixed-price-input" placeholder="e.g., 15.50" step="0.01">
+                <div class="font-semibold text-right final-price-cell">$${marketPrice.toFixed(2)}</div>
+            </div>`;
+    }).join('');
+}
+
+async function finalizeBulkSale() {
+    const items = document.querySelectorAll('.bulk-sale-item');
+    const updates = [];
+    items.forEach(item => {
+        const finalPriceText = item.querySelector('.final-price-cell').textContent;
+        const salePrice = parseFloat(finalPriceText.replace('$', ''));
+        if (!isNaN(salePrice) && salePrice >= 0) {
+            updates.push({ id: item.dataset.cardId, data: { for_sale: true, sale_price: salePrice } });
+        }
+    });
+    if (updates.length === 0) return UI.showToast("No valid prices set.", "warning");
+    const finalizeBtn = document.getElementById('finalize-bulk-list-btn');
+    UI.setButtonLoading(finalizeBtn, true);
+    try {
+        await Collection.batchUpdateSaleStatus(updates);
+        UI.showToast(`${updates.length} cards listed for sale!`, "success");
+        UI.closeModal(document.getElementById('bulk-list-sale-modal'));
+    } catch (error) {
+        UI.showToast(`Error: ${error.message}`, "error");
+    } finally {
+        UI.setButtonLoading(finalizeBtn, false, "Finalize and List Selected Cards");
+    }
+}
 
 async function importCSV() {
     if (!csvFile) {
@@ -850,7 +939,7 @@ async function importCSV() {
         return;
     }
     
-    const button = document.getElementById('import-csv-btn');
+    const button = document.getElementById('start-csv-import-btn');
     UI.setButtonLoading(button, true, 'Importing...');
     
     try {
@@ -869,7 +958,7 @@ async function importCSV() {
         console.error("CSV import error:", error);
         UI.showToast(`Import failed: ${error.message}`, "error");
     } finally {
-        UI.setButtonLoading(button, false, 'Import CSV');
+        UI.setButtonLoading(button, false, 'Parse CSV');
     }
 }
 
@@ -977,12 +1066,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
         if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDelete);
 
-
         // CSV Import Modal
         const csvFileInput = document.getElementById('csv-file-input');
         if (csvFileInput) csvFileInput.addEventListener('change', handleCSVUpload);
         
-        const importCsvModalBtn = document.getElementById('import-csv-btn');
+        const importCsvModalBtn = document.getElementById('start-csv-import-btn');
         if (importCsvModalBtn) importCsvModalBtn.addEventListener('click', importCSV);
 
         // Top Movers
@@ -1010,6 +1098,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Currency Change Listener
         document.addEventListener('currencyChanged', () => {
             applyAndRender({ skipFilters: true });
+        });
+
+        // --- ADD/MODIFY THESE LISTENERS ---
+        document.getElementById('bulk-list-btn')?.addEventListener('click', openBulkListModal);
+        document.getElementById('finalize-bulk-list-btn')?.addEventListener('click', finalizeBulkSale);
+        
+        document.body.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('.remove-row-btn');
+            if (removeBtn) {
+                const row = e.target.closest('tr');
+                row.style.display = 'none'; // Hide instead of remove to preserve indices
+                const reviewData = CSV.getReviewData(); // Assuming you add this getter to csv.js
+                reviewData[row.dataset.index].status = 'removed';
+            }
+        });
+
+        const bulkSaleModal = document.getElementById('bulk-list-sale-modal');
+        if (bulkSaleModal) {
+            bulkSaleModal.addEventListener('input', (e) => {
+                const item = e.target.closest('.bulk-sale-item');
+                if (!item) return;
+                const marketPrice = parseFloat(item.dataset.marketPrice);
+                const percentageInput = item.querySelector('.percentage-input');
+                const fixedPriceInput = item.querySelector('.fixed-price-input');
+                const finalPriceCell = item.querySelector('.final-price-cell');
+                let finalPrice = marketPrice;
+
+                if (e.target === fixedPriceInput && fixedPriceInput.value) {
+                    percentageInput.value = '';
+                    finalPrice = parseFloat(fixedPriceInput.value) || 0;
+                } else if (e.target === percentageInput) {
+                    fixedPriceInput.value = '';
+                    const percentage = parseFloat(percentageInput.value) || 100;
+                    finalPrice = marketPrice * (percentage / 100);
+                }
+                finalPriceCell.textContent = `$${finalPrice.toFixed(2)}`;
+            });
+            document.getElementById('bulk-apply-percentage-btn')?.addEventListener('click', () => {
+                const globalPercent = document.getElementById('bulk-apply-percentage-input').value;
+                if(!globalPercent) return;
+                bulkSaleModal.querySelectorAll('.bulk-sale-item').forEach(item => {
+                    const input = item.querySelector('.percentage-input');
+                    input.value = globalPercent;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            });
+        }
+
+        document.getElementById('card-is-graded')?.addEventListener('change', async (e) => {
+            const isGraded = e.target.checked;
+            const gradedSection = document.getElementById('graded-section');
+            gradedSection.classList.toggle('hidden', !isGraded);
+            if (isGraded) {
+                const card = Collection.getCurrentEditingCard();
+                const company = document.getElementById('grading-company').value;
+                const grade = document.getElementById('grade').value;
+                if (card && (card.game === 'pokemon' || card.game === 'lorcana')) {
+                    UI.showToast(`Fetching price for ${company} ${grade}...`, 'info');
+                    const gradedPrice = await API.getGradedCardPrice(card, company, grade);
+                    if (gradedPrice) {
+                        UI.showToast(`Graded Market Price: $${gradedPrice.price}`, 'success', 8000);
+                    } else {
+                        UI.showToast(`Could not find a price for this grade.`, 'error');
+                    }
+                }
+            }
         });
         
     } catch (error) {

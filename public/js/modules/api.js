@@ -3,6 +3,7 @@
  * Final, stable version with corrected ScryDex integration and error handling.
  * Handles all external API calls (Scryfall, ScryDex via Firebase) and Firestore interactions.
  * Supports multiple TCGs and user-selectable price regions.
+ * NEW: Includes function for fetching graded card prices.
  */
 
 import { debounce } from './utils.js';
@@ -14,6 +15,7 @@ const functions = firebase.functions();
 // ScryDex cloud function
 const searchScryDexFunction = functions.httpsCallable('searchScryDex');
 const getScryDexHistoryFunction = functions.httpsCallable('getScryDexHistory');
+const getGradedPriceFunction = functions.httpsCallable('getGradedPrice'); // New function for graded prices
 
 // --- CARD SEARCH APIS ---
 
@@ -138,7 +140,36 @@ export async function getScryDexHistory(card) {
     } catch (error) {
         console.error(`[API] ScryDex history function error for ${card.name}:`, error);
         // We return an empty array so a single failed card doesn't break the whole dashboard
-        return []; 
+        return [];
+    }
+}
+
+/**
+ * NEW: Fetches prices for graded cards (Lorcana and Pokemon)
+ */
+export async function getGradedCardPrice(card, gradingCompany, grade) {
+    if (card.game !== 'lorcana' && card.game !== 'pokemon') {
+        console.warn(`[API] Graded price lookup not supported for ${card.game}`);
+        return null;
+    }
+    try {
+        console.log(`[API] Fetching graded price for ${card.name} (${card.game}), Grade: ${gradingCompany} ${grade}`);
+        const result = await getGradedPriceFunction({
+            cardId: card.api_id,
+            game: card.game,
+            grade: `${gradingCompany} ${grade}`
+        });
+
+        if (result && result.data && result.data.marketPrice) {
+            return {
+                price: result.data.marketPrice,
+                last_updated: new Date().toISOString()
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error(`[API] Graded price function error for ${card.name}:`, error);
+        return null;
     }
 }
 
