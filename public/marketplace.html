@@ -3,285 +3,301 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Marketplace - HatakeSocial</title>
+    <title>Marketplace - Hatake</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    <link href="css/style.css" rel="stylesheet"/>
+    <link href="/css/style.css" rel="stylesheet"/>
     <script>
-        tailwind.config = { 
+        tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-gray': '#1a202c',
-                        'custom-gray-light': '#2d3748',
-                    }
+            plugins: [
+                function ({ addVariant }) {
+                    addVariant('has-[:checked]', '&:has(:checked)')
                 }
-            }
+            ]
         };
     </script>
-    <link href="/manifest.json" rel="manifest"/>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-    <div class="flex h-screen">
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
-        
+<body class="bg-gray-100 dark:bg-custom-gray-dark text-gray-900 dark:text-gray-200">
+
+    <!-- App Shell -->
+    <div id="app-shell" class="flex h-screen">
         <!-- Sidebar -->
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-                <a class="flex flex-col items-center space-y-1" href="app.html">
-                    <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
-                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-                </a>
-            </div>
-            
+        <aside id="sidebar-placeholder" class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out">
+             <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+                 <a class="flex flex-col items-center space-y-1" href="app.html">
+                  <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+                  <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+                   HatakeSocial
+                  </span>
+                 </a>
+                </div>
             <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
-                    <i class="fas fa-home w-6 text-center"></i>
-                    <span class="ml-3">Feed</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
-                    <i class="fas fa-comments w-6 text-center"></i>
-                    <span class="ml-3">Messages</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
-                    <i class="fas fa-users w-6 text-center"></i>
-                    <span class="ml-3">Community</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
-                    <i class="fas fa-newspaper w-6 text-center"></i>
-                    <span class="ml-3">TCG Articles</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
-                    <i class="fas fa-blog w-6 text-center"></i>
-                    <span class="ml-3">Hatake Blog</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
-                    <i class="fas fa-calendar-alt w-6 text-center"></i>
-                    <span class="ml-3">Events</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
-                    <i class="fas fa-layer-group w-6 text-center"></i>
-                    <span class="ml-3">My Collection</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
-                    <i class="fas fa-book-open w-6 text-center"></i>
-                    <span class="ml-3">Deck Builder</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
-                    <i class="fas fa-shopping-cart w-6 text-center"></i>
-                    <span class="ml-3">Shop</span>
-                </a>
-                <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="marketplace.html">
-                    <i class="fas fa-store w-6 text-center"></i>
-                    <span class="ml-3">Marketplace</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
-                    <i class="fas fa-exchange-alt w-6 text-center"></i>
-                    <span class="ml-3">Trades</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
-                    <i class="fas fa-user w-6 text-center"></i>
-                    <span class="ml-3">Profile</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
-                    <i class="fas fa-cog w-6 text-center"></i>
-                    <span class="ml-3">Settings</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
-                    <i class="fas fa-info-circle w-6 text-center"></i>
-                    <span class="ml-3">About Us</span>
-                </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+                  <i class="fas fa-home w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Feed
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+                  <i class="fas fa-comments w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Messages
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+                  <i class="fas fa-users w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Community
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+                  <i class="fas fa-newspaper w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   TCG Articles
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+                  <i class="fas fa-blog w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Hatake Blog
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+                  <i class="fas fa-calendar-alt w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Events
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+                  <i class="fas fa-layer-group w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   My Collection
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+                  <i class="fas fa-book-open w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Deck Builder
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+                  <i class="fas fa-shopping-cart w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Shop
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="marketplace.html">
+                  <i class="fas fa-store w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Marketplace
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+                  <i class="fas fa-exchange-alt w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Trades
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+                  <i class="fas fa-user w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Profile
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+                  <i class="fas fa-cog w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   Settings
+                  </span>
+                 </a>
+                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+                  <i class="fas fa-info-circle w-6 text-center">
+                  </i>
+                  <span class="ml-3">
+                   About Us
+                  </span>
+                 </a>
             </nav>
-            
             <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
                 <div id="auth-container-sidebar"></div>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
+        <!-- Main Content Wrapper -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
-            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <div class="flex items-center">
-                    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-5" id="user-actions">
-                    <!-- This container is dynamically filled by auth.js -->
-                </div>
+            <header id="header-placeholder" class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                 <div class="flex items-center">
+                  <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+                   <i class="fas fa-bars text-xl">
+                   </i>
+                  </button>
+                  <div class="relative">
+                   <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                   </i>
+                   <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+                  </div>
+                 </div>
+                 <div class="flex items-center space-x-5" id="user-actions">
+                 </div>
             </header>
+            
+            <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                <div class="max-w-7xl mx-auto">
+                    <!-- Page Header -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Marketplace</h1>
+                        <button id="create-listing-btn" class="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                            <i class="fas fa-plus-circle mr-2"></i>Create Listing
+                        </button>
+                    </div>
 
-            <!-- Marketplace Main Content -->
-            <main class="flex-1 overflow-y-auto p-6">
-                <div class="flex flex-col lg:flex-row gap-6">
-                    <!-- Filters Sidebar -->
-                    <aside class="w-full lg:w-1/4 xl:w-1/5">
-                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md sticky top-6">
-                            <h2 class="text-xl font-bold mb-4">Filters</h2>
-                            
-                            <!-- Search Filter -->
-                            <div class="mb-4">
-                                <label for="search-input" class="sr-only">Search</label>
-                                <input type="text" id="search-input" placeholder="Search by card name..." class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-
-                            <!-- Game Filter -->
-                            <div class="pt-4 border-t dark:border-gray-700">
-                                <h3 class="font-semibold mb-2">Game</h3>
-                                <div id="game-filter-container" class="space-y-2">
-                                    <!-- Game checkboxes will be injected here -->
-                                </div>
-                            </div>
-
-                            <!-- Graded Filter -->
-                            <div class="pt-4 border-t dark:border-gray-700">
-                                <label class="flex items-center space-x-2 text-sm font-medium cursor-pointer">
-                                    <input type="checkbox" id="filter-graded" class="rounded">
-                                    <span>Show Graded Cards Only</span>
-                                </label>
-                            </div>
-
-                            <!-- Rarity Filter -->
-                            <div class="pt-4 border-t dark:border-gray-700">
-                                <h3 class="font-semibold mb-2">Rarity</h3>
-                                <div id="rarity-filter-container" class="space-y-2">
-                                    <!-- Rarity checkboxes will be injected here -->
-                                </div>
-                            </div>
-
-                            <!-- Game-Specific Filters -->
-                            <div id="game-specific-filters" class="space-y-4"></div>
-                        </div>
-                    </aside>
-
-                    <!-- Listings -->
-                    <section class="w-full lg:w-3/4 xl:w-4/5">
-                        <!-- Sorting Dropdown -->
-                        <div class="mb-4 flex justify-end">
-                            <select id="sort-order" class="p-2 rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none">
-                                <option value="price-asc">Price: Low to High</option>
-                                <option value="price-desc">Price: High to Low</option>
-                                <option value="date-desc">Date: Newest</option>
-                                <option value="date-asc">Date: Oldest</option>
-                            </select>
-                        </div>
+                    <!-- Filters and Listings Layout -->
+                    <div class="flex flex-col lg:flex-row gap-8">
                         
-                        <div id="listings-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <!-- Listings will be injected here -->
+                        <!-- Filter Column -->
+                        <div class="w-full lg:w-1/4 xl:w-1/5">
+                            <div class="bg-white dark:bg-custom-gray p-4 rounded-lg shadow-lg sticky top-24">
+                                <h2 class="text-xl font-bold mb-4 border-b pb-2 dark:border-gray-700">Filters</h2>
+                                
+                                <div class="mb-4">
+                                    <label for="search-input" class="block text-sm font-medium mb-1">Search by Name</label>
+                                    <input type="text" id="search-input" placeholder="Enter card name..." class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500">
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="sort-order" class="block text-sm font-medium mb-1">Sort By</label>
+                                    <select id="sort-order" class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+                                        <option value="date-desc">Newest First</option>
+                                        <option value="date-asc">Oldest First</option>
+                                        <option value="price-desc">Price: High to Low</option>
+                                        <option value="price-asc">Price: Low to High</option>
+                                    </select>
+                                </div>
+
+                                <div class="space-y-2 mb-4" id="game-filter-container">
+                                    <h3 class="font-semibold">Game</h3>
+                                </div>
+                                
+                                <div class="pt-4 border-t dark:border-gray-700">
+                                    <h3 class="font-semibold mb-2">Rarity</h3>
+                                    <div class="space-y-2" id="rarity-filter-container"></div>
+                                </div>
+                                
+                                <div class="pt-4 border-t dark:border-gray-700">
+                                    <label class="flex items-center space-x-2 font-medium">
+                                        <input type="checkbox" id="filter-graded" class="rounded">
+                                        <span>Graded Cards Only</span>
+                                    </label>
+                                </div>
+
+                                <div id="game-specific-filters"></div>
+                            </div>
                         </div>
-                        
-                        <div id="no-results" class="hidden text-center py-10">
-                            <p class="text-lg">No listings found matching your criteria.</p>
+
+                        <!-- Listings Grid -->
+                        <div class="w-full lg:w-3/4 xl:w-4/5">
+                            <div id="listings-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                            <div id="no-results" class="hidden text-center py-16">
+                                <i class="fas fa-search fa-3x text-gray-400 mb-4"></i>
+                                <h3 class="text-xl font-semibold">No Listings Found</h3>
+                                <p class="text-gray-500">Try adjusting your search or filter criteria.</p>
+                            </div>
                         </div>
-                    </section>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
-
-    <!-- Toast Container -->
-    <div class="fixed bottom-5 right-5 z-50" id="toast-container"></div>
-
-    <!-- Cart Modal -->
-    <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
-            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                <h2 class="text-xl font-bold">Your Cart</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">×</button>
+    
+    <!-- Messenger Widget -->
+    <div id="messenger-widget-container"></div>
+    
+    <!-- Create Listing Modal -->
+    <div id="create-listing-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-custom-gray-dark rounded-lg shadow-2xl p-8 w-full max-w-lg m-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Create New Listing</h2>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-3xl leading-none">&times;</button>
             </div>
-            <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
-                <p class="text-center text-gray-500 dark:text-gray-400">Your cart is empty.</p>
-            </div>
-            <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <div class="flex justify-between items-center font-bold text-lg">
-                    <span>Subtotal</span>
-                    <span id="cart-subtotal">$0.00</span>
+            <form id="create-listing-form" class="space-y-4">
+                <div>
+                    <label for="card-name" class="block text-sm font-medium mb-1">Card Name</label>
+                    <input type="text" id="card-name" required class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
                 </div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Shipping & taxes calculated at checkout.</p>
-                <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">Proceed to Checkout</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- START: Login and Register Modals -->
-    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Login</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
-            </div>
-            <form class="mt-4 space-y-4" id="loginForm">
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
-                <p class="text-red-500 text-sm hidden" id="login-error-message"></p>
-                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button>
-                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                    Sign in with Google
-                </button>
+                <div>
+                    <label for="game-select" class="block text-sm font-medium mb-1">Game</label>
+                    <select id="game-select" required class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></select>
+                </div>
+                <div>
+                    <label for="price" class="block text-sm font-medium mb-1">Price ($)</label>
+                    <input type="number" id="price" min="0" step="0.01" required class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium mb-1">Description</label>
+                    <textarea id="description" rows="3" class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></textarea>
+                </div>
+                <div>
+                    <label for="image-url" class="block text-sm font-medium mb-1">Image URL (Optional)</label>
+                    <input type="url" id="image-url" placeholder="https://..." class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
+                </div>
+                <div class="flex justify-end pt-4">
+                    <button type="button" id="cancel-btn" class="mr-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Create Listing</button>
+                </div>
             </form>
         </div>
     </div>
-    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Register</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
-            </div>
-            <form class="mt-4 space-y-4" id="registerForm">
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-                <p class="text-red-500 text-sm hidden" id="register-error-message"></p>
-                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button>
-                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-                    Register with Google
-                </button>
-            </form>
-        </div>
-    </div>
-    <!-- END: Login and Register Modals -->
 
-    <!-- Firebase and App Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-analytics-compat.js"></script>
-    <script src="js/auth.js" type="module"></script>
-    <script src="js/marketplace.js" type="module"></script>
-    <script src="js/cart.js" type="module"></script>
-    <script src="js/darkmode.js"></script>
+    <!-- Firebase SDK -->
+    <script src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
+    <script src="/__/firebase/10.12.2/firebase-auth-compat.js"></script>
+    <script src="/__/firebase/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="/__/firebase/10.12.2/firebase-functions-compat.js"></script>
+    <script src="/__/firebase/init.js"></script>
 
-    <!-- Sidebar Toggle Script -->
+    <!-- App Scripts -->
+    <script src="/js/auth.js" type="module"></script>
+    <script src="/js/app.js" type="module"></script>
+    <script src="/js/marketplace.js" type="module"></script>
+    <script src="/js/messenger.js" type="module"></script>
+    <script src="/js/darkmode.js"></script>
     <script>
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar-placeholder');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarOverlay = document.createElement('div');
+            sidebarOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden';
+            document.body.appendChild(sidebarOverlay);
 
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-                sidebarOverlay.classList.toggle('hidden');
-            });
-        }
-
-        if (sidebarOverlay) {
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                });
+            }
+            
             sidebarOverlay.addEventListener('click', () => {
                 sidebar.classList.add('-translate-x-full');
                 sidebarOverlay.classList.add('hidden');
             });
-        }
+        });
     </script>
+
 </body>
 </html>
+

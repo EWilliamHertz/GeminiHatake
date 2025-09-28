@@ -5,7 +5,6 @@
  */
 import * as Collection from './collection.js';
 import * as API from './api.js';
-import * as UI from './ui.js';
 
 let parsedCsvData = [];
 
@@ -117,7 +116,7 @@ export function parseCSV(file) {
     });
 }
 
-export async function finalizeImport() {
+export async function finalizeImport(UI) {
     const importButton = document.getElementById('finalize-csv-import-btn');
     if (!parsedCsvData || parsedCsvData.length === 0) {
         UI.showToast("No cards to import.", "info");
@@ -125,7 +124,7 @@ export async function finalizeImport() {
     }
 
     UI.setButtonLoading(importButton, true, "Importing...");
-    UI.toggleCsvImportProgress(true);
+    if (UI.toggleCsvImportProgress) UI.toggleCsvImportProgress(true);
 
     const totalCards = parsedCsvData.length;
     let successCount = 0;
@@ -135,7 +134,7 @@ export async function finalizeImport() {
         const card = parsedCsvData[i];
         if (!card) continue;
 
-        UI.updateCsvReviewRowStatus(i, 'loading');
+        if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'loading');
         
         try {
             await new Promise(resolve => setTimeout(resolve, 110)); // Rate limiting for Scryfall API
@@ -152,35 +151,37 @@ export async function finalizeImport() {
                     is_foil: card.is_foil,
                     condition: card.condition,
                     language: card.language,
-                    addedAt: new Date() // Changed from toISOString() to a Date object
+                    addedAt: new Date()
                 };
                 
                 await Collection.addMultipleCards([cardData]);
                 successCount++;
-                UI.updateCsvReviewRowStatus(i, 'success', 'Imported');
+                if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'success', 'Imported');
             } else {
                 throw new Error("Not found");
             }
         } catch (error) {
             errorCount++;
             console.error(`Error processing ${card.name}:`, error);
-            UI.updateCsvReviewRowStatus(i, 'error', error.message || 'Failed');
+            if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'error', error.message || 'Failed');
         }
 
         const progress = Math.round(((i + 1) / totalCards) * 100);
-        UI.updateCsvImportProgress(i + 1, totalCards, progress);
+        if (UI.updateCsvImportProgress) UI.updateCsvImportProgress(i + 1, totalCards, progress);
     }
 
     UI.setButtonLoading(importButton, false, "Import Finished");
     importButton.disabled = true;
 
-    UI.showToast(`${successCount} cards imported successfully. ${errorCount > 0 ? 'error' : 'success'}`, errorCount > 0 ? 'warning' : 'success');
+    UI.showToast(`${successCount} cards imported successfully. ${errorCount > 0 ? `${errorCount} failed.` : ''}`, errorCount > 0 ? 'warning' : 'success');
     
     setTimeout(() => {
-        UI.closeModal(document.getElementById('csv-review-modal'));
+        const modal = document.getElementById('csv-review-modal');
+        if (modal) UI.closeModal(modal);
         document.dispatchEvent(new CustomEvent('collectionUpdated'));
     }, 3000);
 }
+
 
 export function updateReviewedCard(index, field, value) {
     if (parsedCsvData[index]) {

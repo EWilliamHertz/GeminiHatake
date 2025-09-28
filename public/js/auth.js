@@ -1,9 +1,8 @@
 /**
-* HatakeSocial - Merged Authentication & Global UI Script (v34 - Critical Fix)
-* - FIX: Resolves "Cannot use import statement outside a module" by restructuring script loading.
-* - FIX: Ensures Firebase is initialized correctly, preventing the "No Firebase App" error.
-* - INTEGRATE: Merges darkmode.js functionality directly into auth.js for unified startup logic.
-* - Ensures login/register buttons and global UI elements function correctly.
+* HatakeSocial - Merged Authentication & Global UI Script (v35 - UI Consistency Fix)
+* - FIX: Ensures the Dark Mode toggle and Currency Selector are always visible, regardless of login state.
+* - RE-INTEGRATE: Restores the currency selector functionality from the previous version.
+* - RESTRUCTURE: Initializes UI components after authentication state is confirmed to prevent elements from being overwritten.
 */
 
 // --- Firebase Initialization (Stable & Global) ---
@@ -56,15 +55,10 @@ const DarkMode = {
             toggle = document.createElement('button');
             toggle.id = 'dark-mode-toggle';
             toggle.className = 'text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2';
-            // Insert it into the user actions container, or fallback to body
+            // Insert it into the user actions container
             const userActions = document.getElementById('user-actions');
             if (userActions) {
                  userActions.insertAdjacentElement('afterbegin', toggle);
-            } else {
-                 toggle.style.position = 'fixed';
-                 toggle.style.top = '1rem';
-                 toggle.style.right = '1rem';
-                 document.body.appendChild(toggle);
             }
         }
         this.updateIcon(document.documentElement.classList.contains('dark'));
@@ -208,10 +202,10 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 };
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Dark Mode immediately
-    DarkMode.init();
-    
+document.addEventListener('DOMContentLoaded', async () => {
+     // Import the currency module
+    const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
+
     document.body.style.opacity = '0'; // Hide body until ready
 
     const auth = window.auth;
@@ -220,6 +214,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     const loginModal = document.getElementById('loginModal');
     const registerModal = document.getElementById('registerModal');
+    
+    // --- CURRENCY SELECTOR LOGIC ---
+    const setupCurrencySelector = () => {
+        const container = document.getElementById('user-actions');
+        if (!container) return;
+
+        let currencySelectorContainer = document.getElementById('currency-selector-container');
+        if (!currencySelectorContainer) {
+            currencySelectorContainer = document.createElement('div');
+            currencySelectorContainer.id = 'currency-selector-container';
+            currencySelectorContainer.className = 'relative flex items-center';
+            // Add it right after the dark mode toggle
+            const darkModeButton = document.getElementById('dark-mode-toggle');
+            if (darkModeButton) {
+                darkModeButton.insertAdjacentElement('afterend', currencySelectorContainer);
+            } else {
+                container.insertAdjacentElement('afterbegin', currencySelectorContainer);
+            }
+        }
+
+        currencySelectorContainer.innerHTML = `
+            <select id="currency-selector" class="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="USD">USD</option>
+                <option value="SEK">SEK</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="NOK">NOK</option>
+                <option value="DKK">DKK</option>
+            </select>
+        `;
+
+        const selector = document.getElementById('currency-selector');
+        if (selector) {
+            selector.value = getUserCurrency();
+            selector.addEventListener('change', async (e) => {
+                const newCurrency = e.target.value;
+                try {
+                    await updateUserCurrency(newCurrency);
+                    showToast(`Currency changed to ${newCurrency}`, 'success');
+                    document.dispatchEvent(new CustomEvent('currencyChanged', { detail: { currency: newCurrency } }));
+                } catch (error) {
+                    showToast('Could not save currency preference.', 'error');
+                    console.error('Error updating currency:', error);
+                }
+            });
+        }
+    };
+
 
     const setupHeaderSearch = () => {
         const searchBar = document.getElementById('main-search-bar');
@@ -325,6 +367,9 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(verificationTimer);
             verificationTimer = null;
         }
+        
+        await initCurrency(user ? user.uid : null);
+
 
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
@@ -439,6 +484,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
                         </div>
                     </div>`;
+                
+                DarkMode.init(); // Initialize dark mode button
+                setupCurrencySelector(); // Initialize currency selector
+
                 document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
                 document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
                 document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
@@ -482,6 +531,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button id="header-register-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button>`;
             if (userActions) {
                 userActions.innerHTML = `${loginButtonsHTML}`;
+                DarkMode.init(); // Initialize dark mode button
+                setupCurrencySelector(); // Initialize currency selector
                 document.getElementById('header-login-btn').addEventListener('click', () => openModal(loginModal));
                 document.getElementById('header-register-btn').addEventListener('click', () => openModal(registerModal));
             }

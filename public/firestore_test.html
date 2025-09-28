@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Marketplace Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-2xl">
+        <h1 class="text-2xl font-bold mb-2 text-center text-gray-800">Firestore Connection Test</h1>
+        <p class="text-gray-600 mb-6 text-center">This page will test writing and reading from the `marketplaceListings` collection.</p>
+
+        <!-- Action Buttons -->
+        <div class="flex space-x-4 mb-6">
+            <button id="addTestDataBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">1. Add Test Data</button>
+            <button id="fetchListingsBtn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">2. Fetch Listings</button>
+        </div>
+
+        <!-- Status & Results -->
+        <div id="status" class="bg-gray-50 p-4 rounded-lg border">
+             <h2 class="font-semibold text-lg mb-2 text-gray-700">Status & Results</h2>
+             <div id="results" class="text-sm text-gray-800 whitespace-pre-wrap font-mono">
+                Awaiting action...
+             </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // IMPORTANT: These Firebase SDK imports are required for the test to run.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- Firebase Configuration ---
+        // This configuration will be provided by the environment.
+        // Do NOT replace it with your actual keys.
+        const firebaseConfig =  typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config)
+            : { apiKey: "AIza...", authDomain: "...", projectId: "..." };
+
+        const addTestDataBtn = document.getElementById('addTestDataBtn');
+        const fetchListingsBtn = document.getElementById('fetchListingsBtn');
+        const resultsDiv = document.getElementById('results');
+
+        let db;
+        let auth;
+        let userId = null;
+
+        // --- Helper function to log messages to the screen ---
+        function logMessage(message, isError = false) {
+            console[isError ? 'error' : 'log'](message);
+            resultsDiv.innerHTML = `<span class="${isError ? 'text-red-500' : 'text-black'}">${message}</span>`;
+        }
+
+        // --- Main execution ---
+        try {
+            logMessage("Initializing Firebase...");
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            logMessage("Firebase initialized. Waiting for authentication...");
+
+            // Authenticate the user to test security rules
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    logMessage(`Authentication successful.\nUser ID: ${userId}\nReady for testing.`);
+                } else {
+                    // If no user, sign in anonymously for testing purposes
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                }
+            });
+
+        } catch (error) {
+            logMessage(`Firebase initialization failed: ${error.message}`, true);
+        }
+        
+        // --- Function to add a test document ---
+        async function addTestData() {
+            if (!db || !userId) {
+                logMessage("Firestore or Auth not ready.", true);
+                return;
+            }
+            logMessage("Attempting to add a test document to 'marketplaceListings'...");
+            
+            try {
+                // We use setDoc with a specific ID to avoid creating multiple test documents
+                const testDocRef = doc(db, "marketplaceListings", "test-item-01");
+                const testData = {
+                    name: "Test Item",
+                    price: Math.floor(Math.random() * 100) + 1,
+                    sellerId: userId, // Use the current user's ID
+                    createdAt: new Date()
+                };
+
+                await setDoc(testDocRef, testData);
+                logMessage("✅ Success!\nTest document 'test-item-01' was written to the database.");
+            } catch (error) {
+                logMessage(`❌ Error writing to Firestore:\n${error.message}\n\nCheck your security rules for 'create'/'update' permissions.`, true);
+            }
+        }
+
+        // --- Function to fetch all listings ---
+        async function fetchListings() {
+            if (!db) {
+                logMessage("Firestore not ready.", true);
+                return;
+            }
+            logMessage("Attempting to fetch all documents from 'marketplaceListings'...");
+            
+            try {
+                // This is a simple collection query, exactly what your 'list' rule should allow.
+                const querySnapshot = await getDocs(collection(db, "marketplaceListings"));
+                
+                if (querySnapshot.empty) {
+                     logMessage("⚠️ Query successful, but the 'marketplaceListings' collection is empty.\nClick 'Add Test Data' first.", false);
+                     return;
+                }
+
+                const listings = [];
+                querySnapshot.forEach(doc => {
+                    listings.push({ id: doc.id, ...doc.data() });
+                });
+
+                logMessage(`✅ Success! Fetched ${listings.length} listings:\n\n${JSON.stringify(listings, null, 2)}`);
+
+            } catch (error) {
+                logMessage(`❌ Error fetching listings:\n${error.message}\n\nThis is the same error you are seeing. It points to a problem with your security rules ('list' permission) or your Firestore setup.`, true);
+            }
+        }
+
+        addTestDataBtn.addEventListener('click', addTestData);
+        fetchListingsBtn.addEventListener('click', fetchListings);
+
+    </script>
+</body>
+</html>
