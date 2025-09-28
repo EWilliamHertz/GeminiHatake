@@ -1,303 +1,665 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Marketplace - Hatake</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HatakeSocial - Trading Card Marketplace</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    <link href="/css/style.css" rel="stylesheet"/>
+    
+    <link href="css/style.css" rel="stylesheet"/>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            plugins: [
-                function ({ addVariant }) {
-                    addVariant('has-[:checked]', '&:has(:checked)')
-                }
-            ]
-        };
+        tailwind.config = { darkMode: 'class' };
     </script>
-</head>
-<body class="bg-gray-100 dark:bg-custom-gray-dark text-gray-900 dark:text-gray-200">
+    <link href="/manifest.json" rel="manifest"/>
 
-    <!-- App Shell -->
-    <div id="app-shell" class="flex h-screen">
-        <!-- Sidebar -->
-        <aside id="sidebar-placeholder" class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out">
-             <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-                 <a class="flex flex-col items-center space-y-1" href="app.html">
-                  <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
-                  <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
-                   HatakeSocial
-                  </span>
-                 </a>
-                </div>
-            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
-                  <i class="fas fa-home w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Feed
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
-                  <i class="fas fa-comments w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Messages
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
-                  <i class="fas fa-users w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Community
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
-                  <i class="fas fa-newspaper w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   TCG Articles
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
-                  <i class="fas fa-blog w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Hatake Blog
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
-                  <i class="fas fa-calendar-alt w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Events
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
-                  <i class="fas fa-layer-group w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   My Collection
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
-                  <i class="fas fa-book-open w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Deck Builder
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
-                  <i class="fas fa-shopping-cart w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Shop
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="marketplace.html">
-                  <i class="fas fa-store w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Marketplace
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
-                  <i class="fas fa-exchange-alt w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Trades
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
-                  <i class="fas fa-user w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Profile
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
-                  <i class="fas fa-cog w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   Settings
-                  </span>
-                 </a>
-                 <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
-                  <i class="fas fa-info-circle w-6 text-center">
-                  </i>
-                  <span class="ml-3">
-                   About Us
-                  </span>
-                 </a>
-            </nav>
+    <style>
+        /* Your original marketplace CSS is preserved here */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header-marketplace { /* Renamed to avoid conflicts */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        /* ... (The rest of your marketplace CSS goes here) ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body.marketplace-body { /* Scoped body styles */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .search-container {
+            flex: 1;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .filters {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .filter-select, .filter-input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .price-range {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .price-input {
+            width: 100px;
+        }
+
+        .marketplace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .card-item {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #999;
+        }
+
+        .card-info {
+            padding: 20px;
+        }
+
+        .card-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .card-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-game {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-condition {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .card-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 40px;
+        }
+
+        .page-btn {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn:hover, .page-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .no-results i {
+            font-size: 4rem;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .stats-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+    <div class="flex h-screen">
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+        
+        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+                <a class="flex flex-col items-center space-y-1" href="app.html">
+                    <img alt="HatakeSocial Logo" class="h-16" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+                </a>
+            </div>
+          <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       TCG Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+      <i class="fas fa-blog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Hatake Blog
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
+    </nav>
+    
             <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
                 <div id="auth-container-sidebar"></div>
             </div>
         </aside>
 
-        <!-- Main Content Wrapper -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Header -->
-            <header id="header-placeholder" class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                 <div class="flex items-center">
-                  <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
-                   <i class="fas fa-bars text-xl">
-                   </i>
-                  </button>
-                  <div class="relative">
-                   <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                   </i>
-                   <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-                  </div>
-                 </div>
-                 <div class="flex items-center space-x-5" id="user-actions">
-                 </div>
-            </header>
-            
-            <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
-                <div class="max-w-7xl mx-auto">
-                    <!-- Page Header -->
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Marketplace</h1>
-                        <button id="create-listing-btn" class="mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">
-                            <i class="fas fa-plus-circle mr-2"></i>Create Listing
-                        </button>
+           <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+     <div class="flex items-center">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+       <i class="fas fa-bars text-xl">
+       </i>
+      </button>
+      <div class="relative">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+       </i>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+      </div>
+     </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+     </div>
+    </header>
+
+            <main class="flex-1 overflow-y-auto p-6 marketplace-body">
+                <div class="container">
+                    
+                    <div class="header-marketplace">
+                        <div class="search-container">
+                            <input type="text" class="search-input" id="searchInput" placeholder="Search for cards, sets, or players...">
+                            <button class="search-btn" id="searchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-primary" id="sellCardBtn">
+                                <i class="fas fa-plus"></i> Sell Card
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Filters and Listings Layout -->
-                    <div class="flex flex-col lg:flex-row gap-8">
-                        
-                        <!-- Filter Column -->
-                        <div class="w-full lg:w-1/4 xl:w-1/5">
-                            <div class="bg-white dark:bg-custom-gray p-4 rounded-lg shadow-lg sticky top-24">
-                                <h2 class="text-xl font-bold mb-4 border-b pb-2 dark:border-gray-700">Filters</h2>
-                                
-                                <div class="mb-4">
-                                    <label for="search-input" class="block text-sm font-medium mb-1">Search by Name</label>
-                                    <input type="text" id="search-input" placeholder="Enter card name..." class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500">
-                                </div>
+                    <div class="stats-container">
+                        <div class="stats-grid">
+                            <div class="stat-item"><div class="stat-number" id="totalListings">0</div><div class="stat-label">Total Listings</div></div>
+                            <div class="stat-item"><div class="stat-number" id="activeTraders">0</div><div class="stat-label">Active Traders</div></div>
+                            <div class="stat-item"><div class="stat-number" id="completedTrades">0</div><div class="stat-label">Completed Trades</div></div>
+                            <div class="stat-item"><div class="stat-number" id="totalValue">$0</div><div class="stat-label">Total Market Value</div></div>
+                        </div>
+                    </div>
 
-                                <div class="mb-4">
-                                    <label for="sort-order" class="block text-sm font-medium mb-1">Sort By</label>
-                                    <select id="sort-order" class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
-                                        <option value="date-desc">Newest First</option>
-                                        <option value="date-asc">Oldest First</option>
-                                        <option value="price-desc">Price: High to Low</option>
-                                        <option value="price-asc">Price: Low to High</option>
-                                    </select>
-                                </div>
-
-                                <div class="space-y-2 mb-4" id="game-filter-container">
-                                    <h3 class="font-semibold">Game</h3>
-                                </div>
-                                
-                                <div class="pt-4 border-t dark:border-gray-700">
-                                    <h3 class="font-semibold mb-2">Rarity</h3>
-                                    <div class="space-y-2" id="rarity-filter-container"></div>
-                                </div>
-                                
-                                <div class="pt-4 border-t dark:border-gray-700">
-                                    <label class="flex items-center space-x-2 font-medium">
-                                        <input type="checkbox" id="filter-graded" class="rounded">
-                                        <span>Graded Cards Only</span>
-                                    </label>
-                                </div>
-
-                                <div id="game-specific-filters"></div>
+                    <div class="filters">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label class="filter-label">Game</label>
+                                <select class="filter-select" id="gameFilter">
+                                    <option value="">All Games</option><option value="pokemon">Pokémon</option><option value="magic">Magic: The Gathering</option><option value="yugioh">Yu-Gi-Oh!</option><option value="lorcana">Disney Lorcana</option><option value="gundam">Gundam</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Condition</label>
+                                <select class="filter-select" id="conditionFilter">
+                                    <option value="">All Conditions</option><option value="mint">Mint</option><option value="near-mint">Near Mint</option><option value="lightly-played">Lightly Played</option><option value="moderately-played">Moderately Played</option><option value="heavily-played">Heavily Played</option><option value="damaged">Damaged</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label">Sort By</label>
+                                <select class="filter-select" id="sortFilter">
+                                    <option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option><option value="name">Name A-Z</option>
+                                </select>
                             </div>
                         </div>
-
-                        <!-- Listings Grid -->
-                        <div class="w-full lg:w-3/4 xl:w-4/5">
-                            <div id="listings-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
-                            <div id="no-results" class="hidden text-center py-16">
-                                <i class="fas fa-search fa-3x text-gray-400 mb-4"></i>
-                                <h3 class="text-xl font-semibold">No Listings Found</h3>
-                                <p class="text-gray-500">Try adjusting your search or filter criteria.</p>
+                        <div class="filter-row">
+                             <div class="filter-group">
+                                <label class="filter-label">Price Range</label>
+                                <div class="price-range">
+                                    <input type="number" class="filter-input price-input" id="minPrice" placeholder="Min $" min="0" step="0.01">
+                                    <span>to</span>
+                                    <input type="number" class="filter-input price-input" id="maxPrice" placeholder="Max $" min="0" step="0.01">
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <div id="marketplaceContainer">
+                        <div class="loading" id="loadingIndicator">
+                            <i class="fas fa-spinner fa-spin"></i> Loading marketplace...
+                        </div>
+                        <div class="marketplace-grid" id="marketplaceGrid" style="display: none;"></div>
+                        <div class="no-results" id="noResults" style="display: none;">
+                            <i class="fas fa-search"></i>
+                            <h3>No cards found</h3>
+                            <p>Try adjusting your search criteria or filters.</p>
+                        </div>
+                    </div>
+
+                    <div class="pagination" id="pagination" style="display: none;"></div>
                 </div>
             </main>
         </div>
     </div>
-    
-    <!-- Messenger Widget -->
-    <div id="messenger-widget-container"></div>
-    
-    <!-- Create Listing Modal -->
-    <div id="create-listing-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-white dark:bg-custom-gray-dark rounded-lg shadow-2xl p-8 w-full max-w-lg m-4" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Create New Listing</h2>
-                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-3xl leading-none">&times;</button>
+
+    <div class="modal" id="cardModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Card Details</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
             </div>
-            <form id="create-listing-form" class="space-y-4">
-                <div>
-                    <label for="card-name" class="block text-sm font-medium mb-1">Card Name</label>
-                    <input type="text" id="card-name" required class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
-                </div>
-                <div>
-                    <label for="game-select" class="block text-sm font-medium mb-1">Game</label>
-                    <select id="game-select" required class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></select>
-                </div>
-                <div>
-                    <label for="price" class="block text-sm font-medium mb-1">Price ($)</label>
-                    <input type="number" id="price" min="0" step="0.01" required class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
-                </div>
-                <div>
-                    <label for="description" class="block text-sm font-medium mb-1">Description</label>
-                    <textarea id="description" rows="3" class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></textarea>
-                </div>
-                <div>
-                    <label for="image-url" class="block text-sm font-medium mb-1">Image URL (Optional)</label>
-                    <input type="url" id="image-url" placeholder="https://..." class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">
-                </div>
-                <div class="flex justify-end pt-4">
-                    <button type="button" id="cancel-btn" class="mr-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Create Listing</button>
-                </div>
-            </form>
+            <div id="modalBody"></div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
-    <script src="/__/firebase/10.12.2/firebase-auth-compat.js"></script>
-    <script src="/__/firebase/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="/__/firebase/10.12.2/firebase-functions-compat.js"></script>
-    <script src="/__/firebase/init.js"></script>
+    <div class="modal" id="sellModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">List a Card for Sale</h2>
+                <button class="close-btn" id="closeSellModal">&times;</button>
+            </div>
+            <div id="sellModalBody">
+                <form id="sellCardForm">
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Card Name *</label><input type="text" class="filter-input" id="sellCardName" required placeholder="Enter card name..."></div>
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Game *</label><select class="filter-select" id="sellGame" required><option value="">Select Game</option><option value="pokemon">Pokémon</option><option value="magic">Magic: The Gathering</option><option value="yugioh">Yu-Gi-Oh!</option><option value="lorcana">Disney Lorcana</option><option value="gundam">Gundam</option></select></div>
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Set/Expansion</label><input type="text" class="filter-input" id="sellSet" placeholder="Enter set name..."></div>
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Condition *</label><select class="filter-select" id="sellCondition" required><option value="">Select Condition</option><option value="mint">Mint</option><option value="near-mint">Near Mint</option><option value="lightly-played">Lightly Played</option><option value="moderately-played">Moderately Played</option><option value="heavily-played">Heavily Played</option><option value="damaged">Damaged</option></select></div>
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Price (USD) *</label><input type="number" class="filter-input" id="sellPrice" required min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Image URL</label><input type="url" class="filter-input" id="sellImageURL" placeholder="https://example.com/image.png"></div>
+                    <div class="filter-group" style="margin-bottom: 20px;"><label class="filter-label">Description</label><textarea class="filter-input" id="sellDescription" rows="4" placeholder="Additional details about the card..."></textarea></div>
+                    <div class="card-actions"><button type="button" class="btn btn-secondary" id="cancelSell">Cancel</button><button type="submit" class="btn btn-primary">List Card</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
 
-    <!-- App Scripts -->
-    <script src="/js/auth.js" type="module"></script>
-    <script src="/js/app.js" type="module"></script>
-    <script src="/js/marketplace.js" type="module"></script>
-    <script src="/js/messenger.js" type="module"></script>
-    <script src="/js/darkmode.js"></script>
+    <script type="module" src="js/auth.js"></script> 
+    <script src="js/messenger.js"></script>
+    <script src="js/marketplace.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar-placeholder');
-            const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebarOverlay = document.createElement('div');
-            sidebarOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden';
-            document.body.appendChild(sidebarOverlay);
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', () => {
-                    sidebar.classList.toggle('-translate-x-full');
-                    sidebarOverlay.classList.toggle('hidden');
-                });
-            }
-            
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            });
+        }
+        if (sidebarOverlay) {
             sidebarOverlay.addEventListener('click', () => {
                 sidebar.classList.add('-translate-x-full');
                 sidebarOverlay.classList.add('hidden');
             });
-        });
+        }
     </script>
-
 </body>
 </html>
-

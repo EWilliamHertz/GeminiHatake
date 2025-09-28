@@ -1,338 +1,372 @@
-// This file is unchanged from the previous version as the logic was already correct.
-// The primary issue was in the HTML file's setup.
-
-import {
-    getFirestore, collection, addDoc, getDocs, query, where, orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-const db = getFirestore();
-const auth = getAuth();
-let currentUser = null;
-
-// --- DOM Elements ---
-const listingsContainer = document.getElementById('listings-container');
-const noResultsDiv = document.getElementById('no-results');
-const searchInput = document.getElementById('search-input');
-const sortOrderSelect = document.getElementById('sort-order') || document.getElementById('sort-by');
-const gameFilterContainer = document.getElementById('game-filter-container');
-const rarityFilterContainer = document.getElementById('rarity-filter-container');
-const gradedFilterCheckbox = document.getElementById('filter-graded');
-const gameSpecificFiltersContainer = document.getElementById('game-specific-filters');
-const createListingBtn = document.getElementById('create-listing-btn');
-const createListingModal = document.getElementById('create-listing-modal');
-const closeModalBtn = document.getElementById('close-modal-btn');
-const cancelBtn = document.getElementById('cancel-btn');
-const createListingForm = document.getElementById('create-listing-form');
-
-// --- Configuration ---
-const supportedGames = {
-    'mtg': 'Magic: The Gathering',
-    'pokemon': 'Pokémon',
-    'lorcana': 'Lorcana',
-    'gundam': 'Gundam'
-};
-const rarities = ['common', 'uncommon', 'rare', 'mythic', 'promo'];
-
-// --- State ---
-let activeFilters = {
-    searchText: '',
-    games: [],
-    rarities: [],
-    isGraded: false,
-    mtgColors: [],
-    pokemonTypes: []
-};
-
-// --- Initialization ---
-const init = () => {
-    onAuthStateChanged(auth, user => {
-        currentUser = user;
-        setupUI();
-        addEventListeners();
-        fetchListings();
-    });
-};
-
-// --- UI Setup ---
-const setupUI = () => {
-    if (gameFilterContainer) {
-        // Clear previous content but keep the title
-        gameFilterContainer.innerHTML = '<h3 class="font-semibold">Game</h3>';
-        for (const [id, name] of Object.entries(supportedGames)) {
-            gameFilterContainer.innerHTML += `
-                <label class="flex items-center space-x-2 text-sm font-medium">
-                    <input type="checkbox" class="game-filter rounded" value="${id}">
-                    <span>${name}</span>
-                </label>
-            `;
-        }
-    }
-
-    if (rarityFilterContainer) {
-        rarityFilterContainer.innerHTML = '';
-        rarities.forEach(rarity => {
-            rarityFilterContainer.innerHTML += `
-                <label class="flex items-center space-x-2 text-sm font-medium">
-                    <input type="checkbox" class="rarity-filter rounded" value="${rarity}">
-                    <span class="capitalize">${rarity}</span>
-                </label>
-            `;
-        });
-    }
-
-    const gameSelect = document.getElementById('game-select');
-    if (gameSelect) {
-        gameSelect.innerHTML = '<option value="" disabled selected>Select a game</option>';
-        for (const [id, name] of Object.entries(supportedGames)) {
-            gameSelect.innerHTML += `<option value="${id}">${name}</option>`;
-        }
-    }
-};
-
-// --- Event Handling ---
-const addEventListeners = () => {
-    let searchTimeout;
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                activeFilters.searchText = searchInput.value.toLowerCase();
-                fetchListings();
-            }, 300);
-        });
-    }
-
-    if (sortOrderSelect) sortOrderSelect.addEventListener('change', fetchListings);
-    
-    if (gradedFilterCheckbox) {
-        gradedFilterCheckbox.addEventListener('change', () => {
-            activeFilters.isGraded = gradedFilterCheckbox.checked;
-            fetchListings();
-        });
-    }
-
-    if (gameFilterContainer) {
-        gameFilterContainer.addEventListener('change', e => {
-            if (e.target.classList.contains('game-filter')) {
-                activeFilters.games = Array.from(gameFilterContainer.querySelectorAll('.game-filter:checked')).map(el => el.value);
-                renderGameSpecificFilters();
-                fetchListings();
+/**
+ * marketplace.js
+ * Connects to Firebase to power a real-time Trading Card Marketplace.
+ * Features: Firestore data fetching, authentication checks, real-time search, filtering, and pagination.
+ */
+class MarketplaceApp {
+    constructor() {
+        this.currentPage = 1;
+        this.itemsPerPage = 12;
+        this.allCards = [];
+        this.filteredCards = [];
+        this.searchTimeout = null;
+        this.currentUser = null;
+        this.userProfile = null;
+        
+        // Initialize Firebase services
+        this.db = firebase.firestore();
+        this.auth = firebase.auth();
+        
+        // Wait for auth state before initializing
+        this.auth.onAuthStateChanged(user => {
+            this.currentUser = user;
+            if (user) {
+                this.fetchUserProfile(user.uid).then(() => {
+                    this.init();
+                });
+            } else {
+                console.log("No user logged in. Marketplace is in read-only mode.");
+                this.init(); // Init in read-only mode
             }
         });
     }
 
-    if (rarityFilterContainer) {
-        rarityFilterContainer.addEventListener('change', e => {
-            if (e.target.classList.contains('rarity-filter')) {
-                activeFilters.rarities = Array.from(rarityFilterContainer.querySelectorAll('.rarity-filter:checked')).map(el => el.value);
-                fetchListings();
+    async fetchUserProfile(uid) {
+        try {
+            const userDoc = await this.db.collection('users').doc(uid).get();
+            if (userDoc.exists) {
+                this.userProfile = userDoc.data();
+            } else {
+                console.log("User profile not found.");
+                this.userProfile = { handle: "Anonymous", location: "Unknown" };
             }
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+            this.userProfile = { handle: "Anonymous", location: "Unknown" };
+        }
+    }
+
+    init() {
+        this.bindEvents();
+        this.loadFirebaseData();
+    }
+
+    bindEvents() {
+        // Search and filter events
+        document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e.target.value));
+        document.getElementById('searchBtn').addEventListener('click', () => this.handleSearch(document.getElementById('searchInput').value));
+        
+        const filters = ['gameFilter', 'conditionFilter', 'sortFilter', 'minPrice', 'maxPrice'];
+        filters.forEach(id => document.getElementById(id).addEventListener('input', () => this.applyFilters()));
+        
+        // Modal events
+        document.getElementById('sellCardBtn').addEventListener('click', () => this.openSellModal());
+        document.getElementById('closeModal').addEventListener('click', () => this.closeModal('cardModal'));
+        document.getElementById('closeSellModal').addEventListener('click', () => this.closeModal('sellModal'));
+        document.getElementById('cancelSell').addEventListener('click', () => this.closeModal('sellModal'));
+        document.getElementById('sellCardForm').addEventListener('submit', (e) => this.handleSellCard(e));
+        
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) this.closeModal(e.target.id);
         });
+    }
+
+    async loadFirebaseData() {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        loadingIndicator.style.display = 'block';
+
+        try {
+            const snapshot = await this.db.collection('marketplaceListings').where('status', '==', 'available').orderBy('datePosted', 'desc').get();
+            this.allCards = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    datePosted: data.datePosted.toDate() // Convert Firestore Timestamp to JS Date
+                };
+            });
+            this.filteredCards = [...this.allCards];
+            this.updateStats();
+            this.applyFilters();
+        } catch (error) {
+            console.error("Error loading marketplace listings:", error);
+            this.showNotification("Failed to load marketplace data.", "error");
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    handleSearch(query) {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            this.applyFilters(query);
+        }, 300);
     }
     
-    if (gameSpecificFiltersContainer) {
-        gameSpecificFiltersContainer.addEventListener('change', e => {
-            if (e.target.classList.contains('mtg-color-filter')) {
-                 activeFilters.mtgColors = Array.from(gameSpecificFiltersContainer.querySelectorAll('.mtg-color-filter:checked')).map(el => el.value);
-            }
-            if (e.target.id === 'pokemon-type-filter') {
-                activeFilters.pokemonTypes = e.target.value ? [e.target.value] : [];
-            }
-            fetchListings();
-        });
-    }
-
-    // Modal listeners
-    if (createListingBtn) {
-        createListingBtn.addEventListener('click', () => {
-            if (!currentUser) {
-                alert("Please log in to create a listing.");
-                window.location.href = '/auth.html';
-                return;
-            }
-            createListingModal.classList.remove('hidden');
-        });
-    }
-    if (closeModalBtn) closeModalBtn.addEventListener('click', () => createListingModal.classList.add('hidden'));
-    if (cancelBtn) cancelBtn.addEventListener('click', () => createListingModal.classList.add('hidden'));
-    if (createListingModal) createListingModal.addEventListener('click', (e) => {
-        if (e.target === createListingModal) {
-            createListingModal.classList.add('hidden');
-        }
-    });
-    if (createListingForm) createListingForm.addEventListener('submit', handleCreateListing);
-};
-
-const renderGameSpecificFilters = () => {
-    if (!gameSpecificFiltersContainer) return;
-    gameSpecificFiltersContainer.innerHTML = '';
-    activeFilters.mtgColors = [];
-    activeFilters.pokemonTypes = [];
-
-    if (activeFilters.games.includes('mtg')) {
-        const colors = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green' };
-        let colorsHtml = '<div class="pt-4 border-t dark:border-gray-700"><h3 class="font-semibold mb-2">Magic Colors</h3><div class="flex flex-wrap gap-2">';
-        for (const [code, name] of Object.entries(colors)) {
-            colorsHtml += `
-                <label class="flex items-center space-x-1 text-sm">
-                    <input type="checkbox" class="mtg-color-filter rounded" value="${code}">
-                    <span>${name}</span>
-                </label>
-            `;
-        }
-        colorsHtml += '</div></div>';
-        gameSpecificFiltersContainer.innerHTML += colorsHtml;
-    }
-
-    if (activeFilters.games.includes('pokemon')) {
-        const types = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'Fire', 'Grass', 'Lightning', 'Metal', 'Psychic', 'Water'];
-        let typesHtml = '<div class="pt-4 border-t dark:border-gray-700"><h3 class="font-semibold mb-2">Pokémon Type</h3>';
-        typesHtml += '<select id="pokemon-type-filter" class="w-full p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600">';
-        typesHtml += '<option value="">All Types</option>';
-        types.forEach(type => {
-            typesHtml += `<option value="${type}">${type}</option>`;
-        });
-        typesHtml += '</select></div>';
-        gameSpecificFiltersContainer.innerHTML += typesHtml;
-    }
-};
-
-// --- Core Logic ---
-const fetchListings = async () => {
-    if (!listingsContainer) return;
-    listingsContainer.innerHTML = '<div class="text-center py-10 col-span-full"><p class="text-gray-500">Loading listings...</p></div>';
-    if(noResultsDiv) noResultsDiv.classList.add('hidden');
-
-    try {
-        let q = query(collection(db, 'marketplaceListings'));
-
-        if (activeFilters.games.length > 0) {
-            q = query(q, where('game', 'in', activeFilters.games));
-        }
-        if (activeFilters.searchText) {
-            q = query(q, 
-                where('cardName_lowercase', '>=', activeFilters.searchText),
-                where('cardName_lowercase', '<=', activeFilters.searchText + '\uf8ff')
+    applyFilters(searchQuery = document.getElementById('searchInput').value) {
+        let filtered = [...this.allCards];
+        
+        // Search filter (name, set, description)
+        const searchTerm = searchQuery.toLowerCase().trim();
+        if (searchTerm) {
+            filtered = filtered.filter(card =>
+                card.name.toLowerCase().includes(searchTerm) ||
+                (card.set && card.set.toLowerCase().includes(searchTerm)) ||
+                (card.seller.handle && card.seller.handle.toLowerCase().includes(searchTerm))
             );
         }
 
-        const querySnapshot = await getDocs(q);
-        let allListings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Dropdown and price filters
+        const gameFilter = document.getElementById('gameFilter').value;
+        if (gameFilter) filtered = filtered.filter(card => card.game === gameFilter);
 
-        const filteredListings = allListings.filter(listing => {
-            const cardData = listing.cardData || {};
-            if (activeFilters.rarities.length > 0 && !activeFilters.rarities.includes(cardData.rarity)) return false;
-            if (activeFilters.isGraded && !cardData.is_graded) return false;
-            if (activeFilters.games.includes('mtg') && activeFilters.mtgColors.length > 0 && !activeFilters.mtgColors.some(c => (cardData.colors || []).includes(c))) return false;
-            if (activeFilters.games.includes('pokemon') && activeFilters.pokemonTypes.length > 0 && !activeFilters.pokemonTypes.some(t => (cardData.types || []).includes(t))) return false;
-            return true;
-        });
+        const conditionFilter = document.getElementById('conditionFilter').value;
+        if (conditionFilter) filtered = filtered.filter(card => card.condition === conditionFilter);
+
+        const minPrice = parseFloat(document.getElementById('minPrice').value) || 0;
+        const maxPrice = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+        filtered = filtered.filter(card => card.price >= minPrice && card.price <= maxPrice);
         
-        const sortValue = sortOrderSelect?.value || 'date-desc';
-        filteredListings.sort((a, b) => {
-             const aDate = a.listedAt?.toMillis() || 0;
-             const bDate = b.listedAt?.toMillis() || 0;
-             const aPrice = a.price || 0;
-             const bPrice = b.price || 0;
-            switch (sortValue) {
-                case 'price-asc': return aPrice - bPrice;
-                case 'price-desc': return bPrice - aPrice;
-                case 'date-asc': return aDate - bDate;
-                default: return bDate - aDate;
-            }
+        // Sorting
+        const sortBy = document.getElementById('sortFilter').value;
+        this.sortCards(filtered, sortBy);
+        
+        this.filteredCards = filtered;
+        this.currentPage = 1;
+        this.renderCards();
+        this.renderPagination();
+    }
+
+
+    sortCards(cards, sortBy) {
+        switch (sortBy) {
+            case 'newest': cards.sort((a, b) => b.datePosted - a.datePosted); break;
+            case 'oldest': cards.sort((a, b) => a.datePosted - b.datePosted); break;
+            case 'price-low': cards.sort((a, b) => a.price - b.price); break;
+            case 'price-high': cards.sort((a, b) => b.price - a.price); break;
+            case 'name': cards.sort((a, b) => a.name.localeCompare(b.name)); break;
+        }
+    }
+
+    renderCards() {
+        const container = document.getElementById('marketplaceGrid');
+        const noResults = document.getElementById('noResults');
+        
+        container.style.display = 'none';
+        noResults.style.display = 'none';
+        
+        if (this.filteredCards.length === 0) {
+            noResults.style.display = 'block';
+            return;
+        }
+        
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const cardsToShow = this.filteredCards.slice(startIndex, endIndex);
+        
+        container.innerHTML = cardsToShow.map(card => this.createCardHTML(card)).join('');
+        container.style.display = 'grid';
+        
+        // Add event listeners after rendering
+        container.querySelectorAll('.card-item').forEach(cardElement => {
+            cardElement.addEventListener('click', (e) => {
+                if (!e.target.closest('.card-actions')) {
+                    this.openCardModal(cardElement.dataset.cardId);
+                }
+            });
         });
 
-        renderListings(filteredListings);
-
-    } catch (error) {
-        console.error("Error fetching marketplace listings:", error);
-        listingsContainer.innerHTML = `<div class="text-center py-10 bg-red-100 text-red-700 p-4 rounded-lg col-span-full"><p class="font-bold">Error loading listings.</p><p class="text-sm">Please check the browser console for details.</p></div>`;
-    }
-};
-
-const renderListings = (listings) => {
-    if (!listingsContainer) return;
-    listingsContainer.innerHTML = '';
-    
-    if (listings.length === 0) {
-        if(noResultsDiv) noResultsDiv.classList.remove('hidden');
-        return;
+        container.querySelectorAll('.message-seller-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const sellerId = btn.dataset.sellerId;
+                if (window.messenger && typeof window.messenger.startConversation === 'function') {
+                    window.messenger.startConversation(sellerId);
+                } else {
+                    alert("Messaging feature is currently unavailable.");
+                }
+            });
+        });
     }
 
-    listings.forEach(listing => {
-        const card = listing.cardData || listing;
-        const imageUrl = card.imageUrl || card.image_uris?.normal || 'https://placehold.co/600x400/2d3748/ffffff?text=No+Image';
-        const price = listing.price ? `$${Number(listing.price).toFixed(2)}` : 'N/A';
-        const cardName = card.cardName || card.name || 'Untitled';
+    createCardHTML(card) {
+        // Helper maps for display names
+        const gameNames = { pokemon: 'Pokémon', magic: 'Magic: TG', yugioh: 'Yu-Gi-Oh!', lorcana: 'Lorcana', gundam: 'Gundam' };
+        const conditionNames = { 'mint': 'Mint', 'near-mint': 'Near Mint', 'lightly-played': 'Lightly Played', 'moderately-played': 'Mod Played', 'heavily-played': 'Heavily Played', 'damaged': 'Damaged' };
 
-        const contactButtonHtml = currentUser && currentUser.uid !== listing.sellerId
-            ? `<button class="contact-seller-btn mt-auto w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700" data-seller-id="${listing.sellerId}" data-card-name="${cardName}">Contact Seller</button>`
-            : '';
+        return `
+            <div class="card-item" data-card-id="${card.id}">
+                <div class="card-image">
+                    ${card.image ? `<img src="${card.image}" alt="${card.name}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="fas fa-image"></i>`}
+                </div>
+                <div class="card-info">
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-details">
+                        <span class="card-game">${gameNames[card.game] || card.game}</span>
+                        <span class="card-condition">${conditionNames[card.condition] || card.condition}</span>
+                    </div>
+                    <div class="card-price">$${card.price.toFixed(2)}</div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                        <i class="fas fa-user"></i> ${card.seller.handle || 'Unknown Seller'} • <i class="fas fa-map-marker-alt"></i> ${card.seller.location || 'Unknown'}
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary message-seller-btn" data-seller-id="${card.seller.uid}">
+                           <i class="fas fa-comments"></i> Message
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+    }
 
-        const cardElement = `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col">
-                <div class="aspect-[3/4] w-full">
-                    <img src="${imageUrl}" alt="${cardName}" class="w-full h-full object-cover">
-                </div>
-                <div class="p-4 flex flex-col flex-grow">
-                    <h3 class="font-bold text-lg truncate">${cardName}</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 capitalize mb-2">${card.set_name || ''}</p>
-                    <p class="text-lg font-semibold mt-auto">${price}</p>
-                    ${contactButtonHtml}
-                </div>
+    renderPagination() {
+        // ... (Your pagination logic remains the same, it's well-written)
+        const pagination = document.getElementById('pagination');
+        const totalPages = Math.ceil(this.filteredCards.length / this.itemsPerPage);
+        
+        if (totalPages <= 1) {
+            pagination.style.display = 'none';
+            return;
+        }
+        
+        pagination.style.display = 'flex';
+        let paginationHTML = '';
+
+        if (this.currentPage > 1) {
+            paginationHTML += `<button class="page-btn" data-page="${this.currentPage - 1}"><i class="fas fa-chevron-left"></i></button>`;
+        }
+        for (let i = 1; i <= totalPages; i++) {
+             if (i === this.currentPage) {
+                paginationHTML += `<button class="page-btn active" data-page="${i}">${i}</button>`;
+            } else {
+                paginationHTML += `<button class="page-btn" data-page="${i}">${i}</button>`;
+            }
+        }
+        if (this.currentPage < totalPages) {
+            paginationHTML += `<button class="page-btn" data-page="${this.currentPage + 1}"><i class="fas fa-chevron-right"></i></button>`;
+        }
+        
+        pagination.innerHTML = paginationHTML;
+        
+        pagination.querySelectorAll('.page-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.currentPage = parseInt(btn.dataset.page);
+                this.renderCards();
+                this.renderPagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    }
+
+    openCardModal(cardId) {
+        const card = this.allCards.find(c => c.id === cardId);
+        if (!card) return;
+
+        // ... (Your modal opening logic is good, just update it to use live data)
+        const modal = document.getElementById('cardModal');
+        document.getElementById('modalTitle').textContent = card.name;
+        document.getElementById('modalBody').innerHTML = `
+            <p><strong>Game:</strong> ${card.game}</p>
+            <p><strong>Set:</strong> ${card.set}</p>
+            <p><strong>Condition:</strong> ${card.condition}</p>
+            <p><strong>Price:</strong> $${card.price.toFixed(2)}</p>
+            <p><strong>Description:</strong> ${card.description || 'N/A'}</p>
+            <hr class="my-4">
+            <h4>Seller Information</h4>
+            <p><strong>User:</strong> ${card.seller.handle}</p>
+            <p><strong>Location:</strong> ${card.seller.location}</p>
+            <div class="card-actions mt-4">
+                <button class="btn btn-primary message-seller-btn" data-seller-id="${card.seller.uid}">Message Seller</button>
             </div>
         `;
-        listingsContainer.innerHTML += cardElement;
-    });
-    
-    document.querySelectorAll('.contact-seller-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            if (!currentUser) {
-                alert('Please log in to contact sellers.');
-                return;
-            }
-            const sellerId = e.target.dataset.sellerId;
-            const cardName = e.target.dataset.cardName;
-            window.location.href = `/messages.html?recipient=${sellerId}&card=${encodeURIComponent(cardName)}`;
-        });
-    });
-};
-
-const handleCreateListing = async (e) => {
-    e.preventDefault();
-    if (!currentUser) {
-        alert("You must be logged in to create a listing.");
-        return;
-    }
-    const form = e.target;
-    const cardName = form['card-name'].value;
-    const price = Number(form['price'].value);
-
-    try {
-        await addDoc(collection(db, 'marketplaceListings'), {
-            cardName: cardName,
-            cardName_lowercase: cardName.toLowerCase(),
-            price: price,
-            description: form['description'].value,
-            imageUrl: form['image-url'].value,
-            game: form['game-select'].value,
-            sellerId: currentUser.uid,
-            sellerName: currentUser.displayName || 'Anonymous',
-            listedAt: serverTimestamp(),
-            cardData: {} 
-        });
         
-        form.reset();
-        createListingModal.classList.add('hidden');
-        fetchListings(); 
-        alert("Listing created successfully!");
+        // Re-bind listener for the button inside the modal
+        modal.querySelector('.message-seller-btn').addEventListener('click', (e) => {
+            const sellerId = e.currentTarget.dataset.sellerId;
+            if (window.messenger && typeof window.messenger.startConversation === 'function') {
+                window.messenger.startConversation(sellerId);
+            } else {
+                alert("Messaging feature is currently unavailable.");
+            }
+        });
 
-    } catch (error) {
-        console.error("Error creating listing: ", error);
-        alert("Failed to create listing. Please try again.");
+        modal.style.display = 'block';
     }
-};
 
-document.addEventListener('DOMContentLoaded', init);
+    openSellModal() {
+        if (!this.currentUser) {
+            this.showNotification("Please log in to sell a card.", "error");
+            // Optionally, trigger the login modal from auth.js
+            // document.getElementById('login-button-id').click(); 
+            return;
+        }
+        document.getElementById('sellModal').style.display = 'block';
+        document.getElementById('sellCardForm').reset();
+    }
 
+    closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    async handleSellCard(e) {
+        e.preventDefault();
+        if (!this.currentUser || !this.userProfile) {
+            this.showNotification("You must be logged in to list an item.", "error");
+            return;
+        }
+
+        const newListing = {
+            name: document.getElementById('sellCardName').value,
+            game: document.getElementById('sellGame').value,
+            set: document.getElementById('sellSet').value,
+            condition: document.getElementById('sellCondition').value,
+            price: parseFloat(document.getElementById('sellPrice').value),
+            image: document.getElementById('sellImageURL').value,
+            description: document.getElementById('sellDescription').value,
+            status: 'available',
+            datePosted: firebase.firestore.FieldValue.serverTimestamp(),
+            seller: {
+                uid: this.currentUser.uid,
+                handle: this.userProfile.handle,
+                location: `${this.userProfile.city || ''}, ${this.userProfile.country || ''}`.replace(/^, |, $/g, ''), // Clean up location string
+            }
+        };
+
+        try {
+            await this.db.collection('marketplaceListings').add(newListing);
+            this.showNotification("Card listed successfully!", "success");
+            this.closeModal('sellModal');
+            this.loadFirebaseData(); // Refresh data
+        } catch (error) {
+            console.error("Error adding document: ", error);
+            this.showNotification("Failed to list card. Please try again.", "error");
+        }
+    }
+
+    updateStats() {
+        const totalListings = this.allCards.length;
+        const activeTraders = new Set(this.allCards.map(card => card.seller.uid)).size;
+        const totalValue = this.allCards.reduce((sum, card) => sum + card.price, 0);
+
+        document.getElementById('totalListings').textContent = totalListings.toLocaleString();
+        document.getElementById('activeTraders').textContent = activeTraders.toLocaleString();
+        document.getElementById('totalValue').textContent = `$${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        // 'Completed Trades' would need to be tracked separately in your database
+        document.getElementById('completedTrades').textContent = 'N/A';
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-[1001]`;
+        notification.classList.add(type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500');
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+}
+
+// Initialize the marketplace application once the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.marketplaceApp = new MarketplaceApp();
+});
