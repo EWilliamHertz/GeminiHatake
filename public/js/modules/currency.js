@@ -66,12 +66,17 @@ export function getNormalizedPriceUSD(prices) {
     }
 
     if (prices.jpy && exchangeRates.JPY) {
-        // Fix: JPY to USD conversion - divide by exchange rate (JPY is typically > 100 per USD)
-        return (parseFloat(prices.jpy) / exchangeRates.JPY) || 0;
+        // Fix: JPY to USD conversion - divide by exchange rate since JPY is typically > 100 per USD
+        // For example: 300 JPY / 150 (JPY per USD) = 2 USD
+        const jpyRate = exchangeRates.JPY;
+        return (parseFloat(prices.jpy) / jpyRate) || 0;
     }
     
     if (prices.eur && exchangeRates.EUR) {
-        return (parseFloat(prices.eur) / exchangeRates.EUR) || 0;
+        // EUR to USD conversion - multiply by exchange rate since EUR is typically < 1 per USD
+        // For example: 10 EUR * 1.1 (USD per EUR) = 11 USD
+        const eurRate = exchangeRates.EUR;
+        return (parseFloat(prices.eur) * eurRate) || 0;
     }
     
     // NEW: Handle ScryDex format (Pokemon, Lorcana, Gundam cards)

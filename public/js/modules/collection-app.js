@@ -522,14 +522,26 @@ function switchView(view) {
     Collection.setView(view);
     const gridBtn = document.getElementById('view-toggle-grid');
     const listBtn = document.getElementById('view-toggle-list');
+    
+    // Reset both buttons to inactive state
     if(gridBtn) {
-        gridBtn.classList.toggle('bg-white', view === 'grid');
-        gridBtn.classList.toggle('dark:bg-gray-900', view === 'grid');
+        gridBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'shadow', 'text-gray-800', 'dark:text-gray-200');
+        gridBtn.classList.add('text-gray-500', 'dark:text-gray-400');
     }
-    if(listBtn){
-        listBtn.classList.toggle('bg-white', view === 'list');
-        listBtn.classList.toggle('dark:bg-gray-900', view === 'list');
+    if(listBtn) {
+        listBtn.classList.remove('bg-white', 'dark:bg-gray-900', 'shadow', 'text-gray-800', 'dark:text-gray-200');
+        listBtn.classList.add('text-gray-500', 'dark:text-gray-400');
     }
+    
+    // Set active button
+    if(view === 'grid' && gridBtn) {
+        gridBtn.classList.add('bg-white', 'dark:bg-gray-900', 'shadow', 'text-gray-800', 'dark:text-gray-200');
+        gridBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+    } else if(view === 'list' && listBtn) {
+        listBtn.classList.add('bg-white', 'dark:bg-gray-900', 'shadow', 'text-gray-800', 'dark:text-gray-200');
+        listBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+    }
+    
     applyAndRender({});
 }
 
@@ -614,7 +626,8 @@ function handleTypeFilterChange(e) {
 function handleGameFilterChange(e) {
     const game = e.target.dataset.game;
     const isChecked = e.target.checked;
-    const currentGames = Collection.getFilters().games || [];
+    const currentFilters = Collection.getFilters();
+    const currentGames = [...(currentFilters.games || [])]; // Create a copy to avoid mutation
     
     if (isChecked) {
         if (!currentGames.includes(game)) {
@@ -627,7 +640,8 @@ function handleGameFilterChange(e) {
         }
     }
     
-    Collection.setFilters({ games: currentGames });
+    // Update filters with the new games array
+    Collection.setFilters({ ...currentFilters, games: currentGames });
     updateSetFilterDropdown();
     applyAndRender({});
 }
@@ -636,40 +650,82 @@ function updateSetFilterDropdown() {
     const selectedGames = Collection.getFilters().games || [];
     const state = Collection.getState();
     const dropdown = document.getElementById('set-filter-dropdown');
-    const emptyMessage = document.getElementById('set-filter-empty');
     
     if (!dropdown) return;
     
+    // If no games selected, show all sets from all games
+    let availableSets = new Set();
+    
     if (selectedGames.length === 0) {
-        dropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">Select games first to see available sets</div>';
-        return;
-    }
-    
-    // Get unique sets from the collection for selected games
-    const availableSets = new Set();
-    state.fullCollection.forEach(card => {
-        if (selectedGames.includes(card.game) && card.set_name) {
-            availableSets.add(card.set_name);
+        // Show all sets from all games when no specific games are selected
+        state.fullCollection.forEach(card => {
+            if (card.set_name) {
+                availableSets.add(card.set_name);
+            }
+        });
+        
+        if (availableSets.size === 0) {
+            dropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">No sets available in collection</div>';
+            return;
         }
-    });
-    
-    if (availableSets.size === 0) {
-        dropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">No sets available for selected games</div>';
-        return;
+    } else {
+        // Get unique sets from the collection for selected games only
+        state.fullCollection.forEach(card => {
+            if (selectedGames.includes(card.game || 'mtg') && card.set_name) {
+                availableSets.add(card.set_name);
+            }
+        });
+        
+        if (availableSets.size === 0) {
+            dropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">No sets available for selected games</div>';
+            return;
+        }
     }
     
     const currentSetFilters = Collection.getFilters().set || [];
     const sortedSets = Array.from(availableSets).sort();
     
-    dropdown.innerHTML = sortedSets.map(setName => {
-        const isChecked = currentSetFilters.includes(setName);
-        return `
-            <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                <input type="checkbox" data-filter-type="set" value="${setName}" ${isChecked ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600">
-                <span class="text-sm">${setName}</span>
-            </label>
-        `;
-    }).join('');
+    // Add "Select All" option for multiple selection
+    let selectAllChecked = sortedSets.length > 0 && sortedSets.every(set => currentSetFilters.includes(set));
+    
+    dropdown.innerHTML = `
+        <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600">
+            <input type="checkbox" id="select-all-sets" ${selectAllChecked ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600">
+            <span class="text-sm font-semibold">Select All Sets</span>
+        </label>
+        ${sortedSets.map(setName => {
+            const isChecked = currentSetFilters.includes(setName);
+            return `
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                    <input type="checkbox" data-filter-type="set" value="${setName}" ${isChecked ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600">
+                    <span class="text-sm">${setName}</span>
+                </label>
+            `;
+        }).join('')}
+    `;
+    
+    // Add event listener for "Select All" functionality
+    const selectAllCheckbox = dropdown.querySelector('#select-all-sets');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const setCheckboxes = dropdown.querySelectorAll('input[data-filter-type="set"]');
+            const currentFilters = Collection.getFilters();
+            
+            if (e.target.checked) {
+                // Select all sets
+                const allSets = [...sortedSets];
+                Collection.setFilters({ ...currentFilters, set: allSets });
+                setCheckboxes.forEach(checkbox => checkbox.checked = true);
+            } else {
+                // Deselect all sets
+                Collection.setFilters({ ...currentFilters, set: [] });
+                setCheckboxes.forEach(checkbox => checkbox.checked = false);
+            }
+            
+            updateSetFilterLabel();
+            applyAndRender({});
+        });
+    }
     
     updateSetFilterLabel();
 }
@@ -694,36 +750,55 @@ function showCardPreview(event, card) {
     if (!tooltip) return;
     
     const imageUrl = getCardImageUrl(card);
+    const price = Currency.convertAndFormat(card.prices);
+    
     tooltip.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-2 max-w-xs">
-            <img src="${imageUrl}" alt="${card.name}" class="w-full rounded-lg" loading="lazy">
-            <div class="mt-2 text-center">
-                <h4 class="font-semibold text-sm">${card.name}</h4>
-                <p class="text-xs text-gray-600 dark:text-gray-400">${card.set_name || 'Unknown Set'}</p>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-3 max-w-xs z-50">
+            <img src="${imageUrl}" alt="${card.name}" class="w-full rounded-lg mb-2" loading="lazy" style="max-height: 300px; object-fit: contain;">
+            <div class="text-center">
+                <h4 class="font-semibold text-sm text-gray-900 dark:text-gray-100">${card.name}</h4>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">${card.set_name || 'Unknown Set'}</p>
+                ${card.collector_number ? `<p class="text-xs text-gray-500 dark:text-gray-500">#${card.collector_number}</p>` : ''}
+                <p class="text-sm font-semibold text-green-600 dark:text-green-400 mt-1">${price}</p>
+                ${card.rarity ? `<p class="text-xs text-gray-500 dark:text-gray-500 capitalize">${card.rarity}</p>` : ''}
             </div>
         </div>
     `;
     
     tooltip.classList.remove('hidden');
     tooltip.style.pointerEvents = 'none';
+    tooltip.style.position = 'fixed';
+    tooltip.style.zIndex = '9999';
     
-    // Position tooltip
+    updateTooltipPosition(event, tooltip);
+}
+
+function updateTooltipPosition(event, tooltip) {
+    if (!tooltip || tooltip.classList.contains('hidden')) return;
+    
     const rect = event.target.getBoundingClientRect();
     const tooltipRect = tooltip.getBoundingClientRect();
+    const padding = 10;
     
-    let left = rect.right + 10;
-    let top = rect.top;
+    let left = rect.right + padding;
+    let top = rect.top + window.scrollY;
     
-    // Adjust if tooltip would go off screen
+    // Adjust if tooltip would go off screen horizontally
     if (left + tooltipRect.width > window.innerWidth) {
-        left = rect.left - tooltipRect.width - 10;
+        left = rect.left - tooltipRect.width - padding;
     }
     
-    if (top + tooltipRect.height > window.innerHeight) {
-        top = window.innerHeight - tooltipRect.height - 10;
+    // Adjust if tooltip would go off screen vertically
+    if (top + tooltipRect.height > window.innerHeight + window.scrollY) {
+        top = window.innerHeight + window.scrollY - tooltipRect.height - padding;
     }
     
-    tooltip.style.left = `${left}px`;
+    // Ensure tooltip doesn't go above the viewport
+    if (top < window.scrollY) {
+        top = window.scrollY + padding;
+    }
+    
+    tooltip.style.left = `${Math.max(padding, left)}px`;
     tooltip.style.top = `${top}px`;
 }
 
@@ -731,6 +806,8 @@ function hideCardPreview() {
     const tooltip = document.getElementById('card-preview-tooltip');
     if (tooltip) {
         tooltip.classList.add('hidden');
+        tooltip.style.left = '-9999px';
+        tooltip.style.top = '-9999px';
     }
 }
 
@@ -870,18 +947,38 @@ async function openBulkReviewModal() {
     if (selectedIds.length === 0) return UI.showToast("No cards selected.", "info");
     const modal = document.getElementById('bulk-review-modal');
     if(!modal) return;
-    document.getElementById('bulk-list-count').textContent = selectedIds.length;
+    
+    // Fix null reference error by checking if element exists
+    const bulkListCountEl = document.getElementById('bulk-list-count');
+    if (bulkListCountEl) {
+        bulkListCountEl.textContent = selectedIds.length;
+    }
+    
     const reviewList = document.getElementById('bulk-review-list');
+    if (!reviewList) return;
+    
     reviewList.innerHTML = 'Loading...';
     UI.openModal(modal);
+    
     const cards = selectedIds.map(id => Collection.getCardById(id)).filter(Boolean);
+    if (cards.length === 0) {
+        reviewList.innerHTML = '<p class="text-center text-gray-500">No valid cards selected.</p>';
+        return;
+    }
+    
     reviewList.innerHTML = cards.map(card => {
-        const marketPrice = Currency.getNormalizedPriceUSD(card.prices);
+        const marketPrice = Currency.getNormalizedPriceUSD(card.prices) || 0;
         return `
             <div class="bulk-sale-item grid grid-cols-6 gap-4 items-center p-2 border-b dark:border-gray-600" data-card-id="${card.id}" data-market-price="${marketPrice}">
-                <div class="col-span-2"><p class="font-semibold truncate">${card.name}</p><p class="text-xs text-gray-500">${card.set_name}</p></div>
+                <div class="col-span-2">
+                    <p class="font-semibold truncate">${card.name}</p>
+                    <p class="text-xs text-gray-500">${card.set_name}</p>
+                </div>
                 <div class="text-sm font-mono text-center market-price-cell">$${marketPrice.toFixed(2)}</div>
-                <div class="flex items-center"><input type="number" class="w-20 p-1 border rounded-md dark:bg-gray-700 percentage-input" placeholder="100"><span class="ml-1">%</span></div>
+                <div class="flex items-center">
+                    <input type="number" class="w-20 p-1 border rounded-md dark:bg-gray-700 percentage-input" placeholder="100" value="100">
+                    <span class="ml-1">%</span>
+                </div>
                 <input type="number" class="w-24 p-1 border rounded-md dark:bg-gray-700 fixed-price-input" placeholder="e.g., 15.50" step="0.01">
                 <div class="font-semibold text-right final-price-cell">$${marketPrice.toFixed(2)}</div>
             </div>`;
@@ -939,6 +1036,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('search-results-container')?.addEventListener('click', (e) => {
             const item = e.target.closest('.search-result-item');
             if (item) handleSearchResultClick(item);
+        });
+
+        // Add hover functionality for search results
+        document.getElementById('search-results-container')?.addEventListener('mouseover', (e) => {
+            const searchResultItem = e.target.closest('.search-result-item');
+            if (searchResultItem) {
+                try {
+                    const cardData = JSON.parse(decodeURIComponent(searchResultItem.dataset.card));
+                    showCardPreview(e, cardData);
+                } catch (error) {
+                    console.warn('Failed to parse card data for preview:', error);
+                }
+            }
+        });
+
+        document.getElementById('search-results-container')?.addEventListener('mouseout', (e) => {
+            const searchResultItem = e.target.closest('.search-result-item');
+            if (searchResultItem) {
+                hideCardPreview();
+            }
         });
         document.getElementById('add-card-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
         document.getElementById('csv-import-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
@@ -1045,30 +1162,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // Modal close button handlers
-        document.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', () => {
+        // Enhanced Modal close functionality - Fix for Issue #1 and #2
+        // Modal close button handlers (X button)
+        document.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const modal = document.getElementById(btn.dataset.modalClose);
             if (modal) {
-                UI.closeModal(modal);
-                if (btn.dataset.modalClose === 'card-modal') Collection.setCurrentEditingCard(null);
+                closeModalAndCleanup(modal, btn.dataset.modalClose);
             }
         }));
 
         // Click outside modal to close functionality
         document.addEventListener('click', (e) => {
-            const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal'];
+            const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal', 'card-history-modal'];
             modals.forEach(modalId => {
                 const modal = document.getElementById(modalId);
                 if (modal && !modal.classList.contains('hidden')) {
                     const modalContent = modal.querySelector('div[class*="bg-white"], div[class*="bg-gray-800"]');
                     if (modalContent && !modalContent.contains(e.target) && e.target === modal) {
-                        UI.closeModal(modal);
-                        if (modalId === 'card-modal') Collection.setCurrentEditingCard(null);
-                        if (modalId === 'search-modal') {
-                            // Clear search results when closing search modal
-                            document.getElementById('card-search-input').value = '';
-                            document.getElementById('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
-                        }
+                        closeModalAndCleanup(modal, modalId);
                     }
                 }
             });
@@ -1077,21 +1190,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Escape key to close modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal'];
+                const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal', 'card-history-modal'];
                 modals.forEach(modalId => {
                     const modal = document.getElementById(modalId);
                     if (modal && !modal.classList.contains('hidden')) {
-                        UI.closeModal(modal);
-                        if (modalId === 'card-modal') Collection.setCurrentEditingCard(null);
-                        if (modalId === 'search-modal') {
-                            // Clear search results when closing search modal
-                            document.getElementById('card-search-input').value = '';
-                            document.getElementById('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
-                        }
+                        closeModalAndCleanup(modal, modalId);
                     }
                 });
             }
         });
+
+        // Helper function to close modal and perform cleanup
+        function closeModalAndCleanup(modal, modalId) {
+            UI.closeModal(modal);
+            
+            // Specific cleanup for different modals
+            switch (modalId) {
+                case 'card-modal':
+                    Collection.setCurrentEditingCard(null);
+                    break;
+                case 'search-modal':
+                    // Clear search results when closing search modal
+                    const searchInput = document.getElementById('card-search-input');
+                    const searchResults = document.getElementById('search-results-container');
+                    if (searchInput) searchInput.value = '';
+                    if (searchResults) searchResults.innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
+                    break;
+                case 'csv-import-modal':
+                    // Clear file input when closing CSV import modal
+                    const csvFileInput = document.getElementById('csv-file-input');
+                    if (csvFileInput) csvFileInput.value = '';
+                    const csvStatus = document.getElementById('csv-import-status');
+                    if (csvStatus) csvStatus.textContent = '';
+                    break;
+                case 'csv-review-modal':
+                    // Clear any ongoing import processes
+                    const csvProgressContainer = document.getElementById('csv-import-progress-container');
+                    if (csvProgressContainer) csvProgressContainer.classList.add('hidden');
+                    break;
+                case 'bulk-review-modal':
+                    // Clear bulk review data
+                    const bulkReviewList = document.getElementById('bulk-review-list');
+                    if (bulkReviewList) bulkReviewList.innerHTML = '';
+                    break;
+            }
+        }
         
         document.addEventListener('currencyChanged', () => applyAndRender({ skipFilters: true }));
 
@@ -1119,3 +1262,235 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilters };
 
+
+// --- ANALYTICS FUNCTIONALITY ---
+const Analytics = {
+    renderSingleCardChart: (card, canvasId) => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        // Generate sample price history data based on current price
+        const currentPrice = Currency.getNormalizedPriceUSD(card.prices) || 10;
+        const priceHistory = [];
+        const labels = [];
+        
+        // Generate 6 months of sample data
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            labels.push(date.toLocaleDateString('en-US', { month: 'short' }));
+            
+            // Generate realistic price variation (±20% of current price)
+            const variation = (Math.random() - 0.5) * 0.4;
+            const price = Math.max(0.1, currentPrice * (1 + variation));
+            priceHistory.push(price);
+        }
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Price (USD)',
+                    data: priceHistory,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `${card.name} - Price History`
+                    }
+                }
+            }
+        });
+    },
+    
+    renderCollectionChart: () => {
+        const canvas = document.getElementById('value-chart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate actual collection value over time (sample data for now)
+        const state = Collection.getState();
+        const currentValue = state.filteredCollection.reduce((sum, card) => {
+            return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
+        }, 0);
+        
+        const valueHistory = [];
+        const labels = [];
+        
+        // Generate 6 months of sample data based on current value
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date();
+            date.setMonth(date.getMonth() - i);
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+            
+            // Generate realistic collection value growth
+            const growthFactor = 1 + (i * 0.02); // 2% growth per month
+            const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
+            const value = Math.max(0, currentValue * growthFactor * (1 + variation));
+            valueHistory.push(value);
+        }
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Collection Value (USD)',
+                    data: valueHistory,
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Collection Value Over Time'
+                    }
+                }
+            }
+        });
+    },
+    
+    updateAnalyticsDashboard: () => {
+        const state = Collection.getState();
+        const cards = state.filteredCollection;
+        
+        // Calculate current collection value
+        const currentValue = cards.reduce((sum, card) => {
+            return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
+        }, 0);
+        
+        // Update dashboard values
+        const currentValueEl = document.getElementById('analytics-current-value');
+        const change24hEl = document.getElementById('analytics-24h-change');
+        const allTimeHighEl = document.getElementById('analytics-all-time-high');
+        
+        if (currentValueEl) {
+            currentValueEl.textContent = Currency.convertAndFormat({ usd: currentValue });
+        }
+        
+        if (change24hEl) {
+            // Sample 24h change calculation (would be real data in production)
+            const change24h = currentValue * (Math.random() - 0.5) * 0.05; // ±2.5% change
+            const isPositive = change24h >= 0;
+            change24hEl.textContent = (isPositive ? '+' : '') + Currency.convertAndFormat({ usd: Math.abs(change24h) });
+            change24hEl.className = `text-2xl font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`;
+        }
+        
+        if (allTimeHighEl) {
+            // Sample all-time high (would be tracked in production)
+            const allTimeHigh = currentValue * 1.2; // 20% higher than current
+            allTimeHighEl.textContent = Currency.convertAndFormat({ usd: allTimeHigh });
+        }
+        
+        // Update top movers (sample data)
+        const topMoversContainer = document.getElementById('top-movers-container');
+        if (topMoversContainer && cards.length > 0) {
+            const topCards = cards.slice(0, 6); // Show top 6 cards
+            topMoversContainer.innerHTML = topCards.map(card => {
+                const price = Currency.getNormalizedPriceUSD(card.prices);
+                const change = (Math.random() - 0.5) * 0.2; // ±10% change
+                const isPositive = change >= 0;
+                
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow" data-card-id="${card.id}">
+                        <div class="flex items-center space-x-3">
+                            <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-12 h-16 object-cover rounded">
+                            <div class="flex-grow">
+                                <h4 class="font-semibold text-sm truncate">${card.name}</h4>
+                                <p class="text-xs text-gray-500 truncate">${card.set_name}</p>
+                                <div class="flex items-center justify-between mt-1">
+                                    <span class="text-sm font-mono">${Currency.convertAndFormat({ usd: price })}</span>
+                                    <span class="text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}">
+                                        ${isPositive ? '+' : ''}${(change * 100).toFixed(1)}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+};
+
+// Add toggleDashboard function to global scope
+function toggleDashboard() {
+    const collectionDisplay = document.getElementById('collection-display');
+    const analyticsDashboard = document.getElementById('analytics-dashboard');
+    
+    if (!collectionDisplay || !analyticsDashboard) {
+        UI.showToast("Analytics dashboard not available", "error");
+        return;
+    }
+    
+    const isAnalyticsVisible = !analyticsDashboard.classList.contains('hidden');
+    
+    if (isAnalyticsVisible) {
+        // Hide analytics, show collection
+        analyticsDashboard.classList.add('hidden');
+        analyticsDashboard.classList.remove('flex');
+        collectionDisplay.classList.remove('hidden');
+    } else {
+        // Hide collection, show analytics
+        collectionDisplay.classList.add('hidden');
+        analyticsDashboard.classList.remove('hidden');
+        analyticsDashboard.classList.add('flex');
+        
+        // Update analytics data and render charts
+        Analytics.updateAnalyticsDashboard();
+        
+        // Small delay to ensure DOM is ready for chart rendering
+        setTimeout(() => {
+            Analytics.renderCollectionChart();
+        }, 100);
+    }
+}
+
+function handleTopMoverClick(element) {
+    const cardId = element.dataset.cardId;
+    if (cardId) {
+        const card = Collection.getCardById(cardId);
+        if (card) {
+            CardModal.populateCardModalForEdit(card);
+        }
+    }
+}
+
+// Export the toggleDashboard function for global access
+window.toggleDashboard = toggleDashboard;

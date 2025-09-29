@@ -270,9 +270,14 @@ export function applyFilters() {
         const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
         const setMatch = set.length === 0 || set.includes(card.set_name);
         const rarityMatch = rarity.length === 0 || rarity.includes(card.rarity);
-        const gameMatch = games.length === 0 || games.includes(card.game || 'mtg');
+        
+        // Fix game filtering - if no games selected, show all cards
+        // If games are selected, only show cards from those games
+        const cardGame = card.game || 'mtg'; // Default to MTG if no game specified
+        const gameMatch = games.length === 0 || games.includes(cardGame);
 
-        if (games.includes('mtg')) {
+        // Only apply game-specific filters if the card's game is in the selected games
+        if (gameMatch && games.includes('mtg') && cardGame === 'mtg') {
             const colorIdentity = card.color_identity || [];
             let colorMatch = true;
             if (colors.length > 0) {
@@ -283,11 +288,12 @@ export function applyFilters() {
                 }
             }
             return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
-        } else if (games.includes('pokemon')) {
+        } else if (gameMatch && games.includes('pokemon') && cardGame === 'pokemon') {
             const typeMatch = !type || (card.types && card.types.includes(type));
             return nameMatch && setMatch && rarityMatch && typeMatch && gameMatch;
         }
 
+        // For other games or when no specific game filters are applied
         return nameMatch && setMatch && rarityMatch && gameMatch;
     };
 
@@ -322,6 +328,10 @@ export function calculateWishlistStats() {
     }, 0);
     
     return { totalCards, uniqueCards, totalValue };
+}
+
+export function getFilters() {
+    return state.filters;
 }
 
 export function getAvailableFilterOptions(games) {
