@@ -4,6 +4,7 @@
  * - Implements the full, detailed CSV review and import process, fixing api_id errors.
  * - Implements the new bulk "List for Sale" modal with full pricing logic.
  * - Connects graded card price lookups in the card modal.
+ * - FIX: Adds a visual indicator for cards that are listed for sale.
  * - FIX: Corrects CSV import functionality and restores the preview panel.
  * - FIX: Corrects mismatched HTML element IDs to make all action buttons functional.
  * - FIX: Prevents initialization crash by ensuring a user is logged in before loading collection data.
@@ -107,15 +108,20 @@ const UI = {
         grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
         cards.forEach(card => {
             const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+            const forSaleIndicator = (card.for_sale && typeof card.sale_price === 'number')
+                ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">$${card.sale_price.toFixed(2)}</div>`
+                : '';
+
             const cardHtml = `
                 <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
                     <div class="relative">
+                        ${forSaleIndicator}
                         <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-full object-cover" loading="lazy">
-                        ${isBulkMode ? `<input type="checkbox" class="bulk-select-checkbox absolute top-2 left-2 h-5 w-5 z-10" ${isSelected ? 'checked' : ''}>` : ''}
-                        <div class="card-actions absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        ${isBulkMode ? `<input type="checkbox" class="bulk-select-checkbox absolute top-2 right-2 h-5 w-5 z-10" ${isSelected ? 'checked' : ''}>` : ''}
+                        <div class="card-actions absolute bottom-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                             <button data-action="history" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-chart-line"></i></button>
                             <button data-action="edit" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-edit"></i></button>
-                            <button data-action="delete" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-trash"></i></button>
+                            <button data-action="delete" class="p-2 bg-red-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="p-2 text-xs flex-grow flex flex-col justify-between">
@@ -154,6 +160,10 @@ const UI = {
                 <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                     ${cards.map(card => {
                         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
+                        const marketValue = Currency.convertAndFormat(card.prices);
+                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
+                            ? `<span class="block text-green-500 font-semibold text-xs">FOR SALE: $${card.sale_price.toFixed(2)}</span>`
+                            : '';
                         return `
                         <tr class="card-container hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}" data-id="${card.id}">
                             ${isBulkMode ? `<td class="px-4 py-3"><input type="checkbox" class="bulk-select-checkbox" ${isSelected ? 'checked' : ''}></td>` : ''}
@@ -161,7 +171,7 @@ const UI = {
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.set_name}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.quantity}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.condition}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-mono">${Currency.convertAndFormat(card.prices)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-mono">${marketValue}${saleInfo}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
                                 <div class="card-actions flex items-center space-x-3">
                                     <button data-action="history" title="Price History"><i class="fas fa-chart-line"></i></button>
@@ -190,15 +200,10 @@ const UI = {
         }
     },
     populateCardModalForAdd: (cardData) => {
-        // CRITICAL FIX: Clear all state before setting new card data
         Collection.clearPendingCards();
-        Collection.setCurrentEditingCard(null); // Clear previous card state first
-        
-        // Reset the form completely
+        Collection.setCurrentEditingCard(null);
         document.getElementById('card-form').reset();
         document.getElementById('card-modal-id').value = '';
-        
-        // Set the new card data
         Collection.setCurrentEditingCard(cardData);
         document.getElementById('card-api-id').value = cardData.api_id || cardData.id;
         document.getElementById('card-modal-title').textContent = `Add: ${cardData.name}`;
@@ -270,7 +275,6 @@ const UI = {
             data.grade = form.querySelector('#grade').value;
         }
         
-        // Sanitize object to remove undefined values before sending to Firestore
         for (const key in data) {
             if (data[key] === undefined) {
                 data[key] = null;
@@ -338,12 +342,9 @@ const UI = {
         const colorContainer = document.getElementById('filter-color-container');
         if (!colorContainer) return;
         const colors = [
-            { code: 'W', name: 'White', color: '#FFFBD5' },
-            { code: 'U', name: 'Blue', color: '#0E68AB' },
-            { code: 'B', name: 'Black', color: '#150B00' },
-            { code: 'R', name: 'Red', color: '#D3202A' },
-            { code: 'G', name: 'Green', color: '#00733E' },
-            { code: 'C', name: 'Colorless', color: '#CCCCCC' }
+            { code: 'W', name: 'White', color: '#FFFBD5' }, { code: 'U', name: 'Blue', color: '#0E68AB' },
+            { code: 'B', name: 'Black', color: '#150B00' }, { code: 'R', name: 'Red', color: '#D3202A' },
+            { code: 'G', name: 'Green', color: '#00733E' }, { code: 'C', name: 'Colorless', color: '#CCCCCC' }
         ];
         
         const colorButtons = colors.map(color => `
@@ -365,7 +366,6 @@ const UI = {
                 ${types.map(type => `<option value="${type}">${type}</option>`).join('')}
             </select>
         `;
-        
         typeContainer.innerHTML = typeSelect;
     }
 };
@@ -376,17 +376,14 @@ const Analytics = {
         try {
             const historyData = await API.getScryDexHistory(card);
             const container = document.getElementById(containerId);
-            
             if (!container) return;
             if (!historyData || historyData.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500">No price history available for this card.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500">No price history available.</p>';
                 return;
             }
-            
             const ctx = document.createElement('canvas');
             container.innerHTML = '';
             container.appendChild(ctx);
-            
             new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -401,16 +398,7 @@ const Analytics = {
                 },
                 options: {
                     responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(2);
-                                }
-                            }
-                        }
-                    }
+                    scales: { y: { beginAtZero: true, ticks: { callback: value => '$' + value.toFixed(2) }}}
                 }
             });
         } catch (error) {
@@ -425,18 +413,14 @@ const Analytics = {
 function applyAndRender(options = {}) {
     const state = Collection.getState();
     const { activeTab, activeView, filteredCollection, wishlist, bulkEdit } = state;
-    
     const cards = activeTab === 'collection' ? filteredCollection : wishlist;
-    
     if (activeView === 'grid') {
         UI.renderGridView(cards, activeTab, bulkEdit.isActive);
     } else {
         UI.renderListView(cards, activeTab, bulkEdit.isActive);
     }
-    
     const stats = activeTab === 'collection' ? Collection.calculateCollectionStats() : Collection.calculateWishlistStats();
     UI.updateStats(stats, activeTab);
-    
     if (!options.skipFilters) {
         const games = state.filters.games;
         const { sets, rarities, types } = Collection.getAvailableFilterOptions(games);
@@ -445,26 +429,9 @@ function applyAndRender(options = {}) {
     }
 }
 
-function toggleDashboard() {
-    const dashboard = document.getElementById('analytics-dashboard');
-    const collectionDisplay = document.getElementById('collection-display');
-    
-    if(!dashboard || !collectionDisplay) return;
-
-    const show = dashboard.classList.contains('hidden');
-    
-    dashboard.classList.toggle('hidden', !show);
-    collectionDisplay.classList.toggle('hidden', show);
-    
-    applyAndRender({});
-    if (show) {
-        UI.showToast("Disclaimer: Price data is for informational purposes only.", "info", 8000);
-    }
-}
-
 async function handleCardFormSubmit(e) {
     e.preventDefault();
-    const submitter = e.submitter;
+    const submitter = e.submitter || document.getElementById('save-card-btn');
     UI.setButtonLoading(submitter, true, submitter.textContent);
     try {
         const { id, data, customImageFile } = UI.getCardFormData();
@@ -476,9 +443,7 @@ async function handleCardFormSubmit(e) {
             await Collection.addMultipleCards([data], customImageFile);
             UI.showToast("Card added!", "success");
         }
-        
         Collection.setCurrentEditingCard(null);
-        
         UI.closeModal(document.getElementById('card-modal'));
         applyAndRender({});
     } catch (error) {
@@ -521,10 +486,8 @@ function handleSearchInput() {
     searchTimeout = setTimeout(async () => {
         try {
             const results = await API.searchCards(query, game);
-            if (results.length === 0) {
-                 resultsContainer.innerHTML = '<p class="text-center text-gray-500">No cards found.</p>';
-            } else {
-                resultsContainer.innerHTML = results.map(card => `
+            resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
+                results.map(card => `
                     <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
                         <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
                         <div class="flex-grow">
@@ -534,7 +497,6 @@ function handleSearchInput() {
                         <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
                     </div>
                 `).join('');
-            }
         } catch (error) {
             resultsContainer.innerHTML = `<p class="text-center text-red-500">Error: ${error.message}</p>`;
         }
@@ -586,9 +548,7 @@ function handleCardClick(e, cardContainer) {
             const card = Collection.getCardById(cardId);
             if (!card) return;
             switch (button.dataset.action) {
-                case 'edit':
-                    UI.populateCardModalForEdit(card);
-                    break;
+                case 'edit': UI.populateCardModalForEdit(card); break;
                 case 'delete':
                     if (confirm(`Delete "${card.name}"?`)) {
                         Collection.deleteCard(cardId).then(() => {
@@ -611,9 +571,7 @@ function handleCardClick(e, cardContainer) {
 function handleTopMoverClick(element) {
     if (element?.dataset.cardId) {
         const card = Collection.getCardById(element.dataset.cardId);
-        if (card) {
-            UI.populateCardModalForEdit(card);
-        }
+        if (card) UI.populateCardModalForEdit(card);
     }
 }
 
@@ -621,32 +579,13 @@ function handleFilterChange(e) {
     const filterType = e.target.dataset.filterType;
     const value = e.target.value;
     const isChecked = e.target.checked;
-    
-    const currentFilters = Collection.getState().filters;
-    
-    if (filterType === 'set') {
-        if (isChecked) {
-            currentFilters.set.push(value);
-        } else {
-            const index = currentFilters.set.indexOf(value);
-            if (index > -1) currentFilters.set.splice(index, 1);
-        }
-    } else if (filterType === 'rarity') {
-        if (isChecked) {
-            currentFilters.rarity.push(value);
-        } else {
-            const index = currentFilters.rarity.indexOf(value);
-            if (index > -1) currentFilters.rarity.splice(index, 1);
-        }
-    } else if (filterType === 'game') {
-        if (isChecked) {
-            currentFilters.games.push(value);
-        } else {
-            const index = currentFilters.games.indexOf(value);
-            if (index > -1) currentFilters.games.splice(index, 1);
-        }
+    const currentFilters = { ...Collection.getState().filters };
+    if (Array.isArray(currentFilters[filterType])) {
+        const set = new Set(currentFilters[filterType]);
+        if (isChecked) set.add(value);
+        else set.delete(value);
+        currentFilters[filterType] = [...set];
     }
-    
     Collection.setFilters(currentFilters);
     applyAndRender({});
 }
@@ -655,10 +594,8 @@ function handleColorFilterClick(e) {
     if (e.target.classList.contains('color-filter-btn')) {
         const color = e.target.dataset.color;
         const colors = Collection.toggleColorFilter(color);
-        
         e.target.classList.toggle('ring-4', colors.includes(color));
         e.target.classList.toggle('ring-blue-500', colors.includes(color));
-        
         applyAndRender({});
     }
 }
@@ -674,28 +611,12 @@ function handleNameFilterInput(e) {
 }
 
 function clearAllFilters() {
-    Collection.setFilters({
-        name: '',
-        set: [],
-        rarity: [],
-        colors: [],
-        games: [],
-        type: ''
-    });
-    
-    const nameFilterInput = document.getElementById('filter-name');
-    if (nameFilterInput) nameFilterInput.value = '';
-
-    document.querySelectorAll('input[data-filter-type]').forEach(input => {
-        input.checked = false;
-    });
-    document.querySelectorAll('.color-filter-btn').forEach(btn => {
-        btn.classList.remove('ring-4', 'ring-blue-500');
-    });
-    
+    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '' });
+    document.getElementById('filter-name').value = '';
+    document.querySelectorAll('input[data-filter-type]').forEach(input => input.checked = false);
+    document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-blue-500'));
     const typeFilterSelect = document.getElementById('type-filter-select');
     if(typeFilterSelect) typeFilterSelect.value = '';
-    
     applyAndRender({});
 }
 
@@ -719,71 +640,15 @@ function deselectAll() {
     applyAndRender({});
 }
 
-async function bulkMarkForSale() {
-    const selectedIds = Collection.getSelectedCardIds();
-    if (selectedIds.length === 0) {
-        UI.showToast("No cards selected.", "error");
-        return;
-    }
-    
-    const updates = selectedIds.map(id => ({
-        id: id,
-        data: { for_sale: true }
-    }));
-    
-    try {
-        await Collection.batchUpdateSaleStatus(updates);
-        UI.showToast(`${selectedIds.length} cards marked for sale.`, "success");
-    } catch (error) {
-        UI.showToast("Error updating cards.", "error");
-    }
-}
-
-async function bulkRemoveFromSale() {
-    const selectedIds = Collection.getSelectedCardIds();
-    if (selectedIds.length === 0) {
-        UI.showToast("No cards selected.", "error");
-        return;
-    }
-    
-    const updates = selectedIds.map(id => ({
-        id: id,
-        data: { for_sale: false }
-    }));
-    
-    try {
-        await Collection.batchUpdateSaleStatus(updates);
-        UI.showToast(`${selectedIds.length} cards removed from sale.`, "success");
-    } catch (error) {
-        UI.showToast("Error updating cards.", "error");
-    }
-}
-
 async function bulkDelete() {
     const selectedIds = Collection.getSelectedCardIds();
-    if (selectedIds.length === 0) {
-        UI.showToast("No cards selected.", "error");
-        return;
-    }
-    
-    if (confirm(`Are you sure you want to delete ${selectedIds.length} cards? This cannot be undone.`)) {
+    if (selectedIds.length === 0) return UI.showToast("No cards selected.", "error");
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} cards?`)) {
         try {
             await Collection.batchDelete(selectedIds);
             UI.showToast(`${selectedIds.length} cards deleted.`, "success");
         } catch (error) {
             UI.showToast("Error deleting cards.", "error");
-        }
-    }
-}
-
-function handleBulkCheckboxChange(e) {
-    if (e.target.classList.contains('bulk-select-checkbox')) {
-        const cardContainer = e.target.closest('.card-container');
-        if (cardContainer) {
-            const cardId = cardContainer.dataset.id;
-            Collection.toggleCardSelection(cardId);
-            UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
-            applyAndRender({});
         }
     }
 }
@@ -798,12 +663,11 @@ async function handleCSVUpload(e) {
     statusEl.textContent = 'Parsing file...';
     try {
         const parsedData = await CSV.parseCSV(file);
-        statusEl.textContent = `Successfully parsed ${parsedData.length} cards. Opening review modal...`;
+        statusEl.textContent = `Parsed ${parsedData.length} cards.`;
         UI.closeModal(document.getElementById('csv-import-modal'));
         openCsvReviewModal(parsedData);
     } catch (error) {
         statusEl.textContent = `Error: ${error.message}`;
-        console.error("Error parsing CSV:", error);
     } finally {
         UI.setButtonLoading(startBtn, false, 'Parse CSV');
         e.target.value = '';
@@ -814,7 +678,6 @@ async function openCsvReviewModal(cards) {
     const modal = document.getElementById('csv-review-modal');
     const tableBody = document.getElementById('csv-review-table-body');
     if (!modal || !tableBody) return;
-
     tableBody.innerHTML = '';
     UI.openModal(modal);
     let reviewData = [];
@@ -823,61 +686,46 @@ async function openCsvReviewModal(cards) {
         const row = document.createElement('tr');
         row.dataset.index = index;
         row.innerHTML = `
-            <td class="p-3">${card.name}</td>
-            <td class="p-3">${card.set_name || 'Any'}</td>
-            <td class="p-3">${card.collector_number || 'N/A'}</td>
-            <td class="p-3">${card.quantity}</td>
-            <td class="p-3">${card.condition}</td>
-            <td class="p-3">${card.language}</td>
-            <td class="p-3">${card.is_foil ? 'Yes' : 'No'}</td>
-            <td class="p-3 status-cell"><i class="fas fa-spinner fa-spin"></i> Finding...</td>
-            <td class="p-3"><button class="text-red-500 remove-row-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></td>
+            <td class="p-3">${card.name}</td><td>${card.set_name || 'Any'}</td>
+            <td>${card.collector_number || 'N/A'}</td><td>${card.quantity}</td>
+            <td>${card.condition}</td><td>${card.language}</td><td>${card.is_foil ? 'Yes' : 'No'}</td>
+            <td class="status-cell"><i class="fas fa-spinner fa-spin"></i></td>
+            <td><button class="text-red-500 remove-row-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></td>
         `;
         tableBody.appendChild(row);
         reviewData.push({ raw: card, enriched: null, status: 'pending' });
     });
     
     for (let i = 0; i < reviewData.length; i++) {
-        const item = reviewData[i];
-        if(item.status === 'removed') continue;
-
-        const row = tableBody.querySelector(`tr[data-index="${i}"]`);
-        const statusCell = row.querySelector('.status-cell');
-        
+        if(reviewData[i].status === 'removed') continue;
+        const statusCell = tableBody.querySelector(`tr[data-index="${i}"] .status-cell`);
         try {
-            let query = `!"${item.raw.name}"`;
-            if (item.raw.set) query += ` set:${item.raw.set}`;
-            if (item.raw.collector_number) query += ` cn:${item.raw.collector_number}`;
+            let query = `!"${reviewData[i].raw.name}"`;
+            if (reviewData[i].raw.set) query += ` set:${reviewData[i].raw.set}`;
+            if (reviewData[i].raw.collector_number) query += ` cn:${reviewData[i].raw.collector_number}`;
             const results = await API.searchCards(query, 'mtg');
             if (results.length > 0) {
-                item.enriched = { ...results[0], ...item.raw }; // Combine API data with CSV data
-                item.status = 'found';
-                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i> Found</span>`;
-            } else {
-                throw new Error("Not found");
-            }
+                reviewData[i].enriched = { ...results[0], ...reviewData[i].raw };
+                reviewData[i].status = 'found';
+                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
+            } else throw new Error("Not found");
         } catch (error) {
-            item.status = 'error';
-            statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i> Not Found</span>`;
+            reviewData[i].status = 'error';
+            statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i></span>`;
         }
         await new Promise(resolve => setTimeout(resolve, 110));
     }
-
-    const finalizeBtn = document.getElementById('finalize-csv-import-btn');
-    finalizeBtn.onclick = () => finalizeCsvImport(reviewData);
+    document.getElementById('finalize-csv-import-btn').onclick = () => finalizeCsvImport(reviewData);
 }
 
 async function finalizeCsvImport(reviewData) {
     const cardsToImport = reviewData.filter(item => item.status === 'found').map(item => item.enriched);
-    if (cardsToImport.length === 0) {
-        UI.showToast("No valid cards found to import.", "error");
-        return;
-    }
+    if (cardsToImport.length === 0) return UI.showToast("No valid cards to import.", "error");
     const importBtn = document.getElementById('finalize-csv-import-btn');
     UI.setButtonLoading(importBtn, true);
     try {
         await Collection.addMultipleCards(cardsToImport);
-        UI.showToast(`Successfully imported ${cardsToImport.length} cards!`, "success");
+        UI.showToast(`Imported ${cardsToImport.length} cards!`, "success");
         UI.closeModal(document.getElementById('csv-review-modal'));
         applyAndRender();
     } catch (error) {
@@ -887,15 +735,16 @@ async function finalizeCsvImport(reviewData) {
     }
 }
 
-async function openBulkListModal() {
+async function openBulkReviewModal() {
     const selectedIds = Collection.getSelectedCardIds();
     if (selectedIds.length === 0) return UI.showToast("No cards selected.", "info");
-    const modal = document.getElementById('bulk-list-sale-modal');
+    const modal = document.getElementById('bulk-review-modal');
+    if(!modal) return;
     document.getElementById('bulk-list-count').textContent = selectedIds.length;
     const reviewList = document.getElementById('bulk-review-list');
-    reviewList.innerHTML = 'Loading selected cards...';
+    reviewList.innerHTML = 'Loading...';
     UI.openModal(modal);
-    const cards = selectedIds.map(id => Collection.getCardById(id));
+    const cards = selectedIds.map(id => Collection.getCardById(id)).filter(Boolean);
     reviewList.innerHTML = cards.map(card => {
         const marketPrice = Currency.getNormalizedPriceUSD(card.prices);
         return `
@@ -925,40 +774,12 @@ async function finalizeBulkSale() {
     try {
         await Collection.batchUpdateSaleStatus(updates);
         UI.showToast(`${updates.length} cards listed for sale!`, "success");
-        UI.closeModal(document.getElementById('bulk-list-sale-modal'));
+        UI.closeModal(document.getElementById('bulk-review-modal'));
+        applyAndRender({});
     } catch (error) {
         UI.showToast(`Error: ${error.message}`, "error");
     } finally {
         UI.setButtonLoading(finalizeBtn, false, "Finalize and List Selected Cards");
-    }
-}
-
-async function importCSV() {
-    if (!csvFile) {
-        UI.showToast("No CSV file selected.", "error");
-        return;
-    }
-    
-    const button = document.getElementById('start-csv-import-btn');
-    UI.setButtonLoading(button, true, 'Importing...');
-    
-    try {
-        const cards = await CSV.parseCSV(csvFile);
-        
-        await Collection.addMultipleCards(cards);
-        UI.showToast(`Successfully imported ${cards.length} cards!`, "success");
-        
-        document.getElementById('csv-preview').classList.add('hidden');
-        document.getElementById('csv-file-input').value = '';
-        csvFile = null;
-        
-        UI.closeModal(document.getElementById('csv-import-modal'));
-        applyAndRender({});
-    } catch (error) {
-        console.error("CSV import error:", error);
-        UI.showToast(`Import failed: ${error.message}`, "error");
-    } finally {
-        UI.setButtonLoading(button, false, 'Parse CSV');
     }
 }
 
@@ -979,177 +800,85 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.error("Failed to load user data:", error);
                     UI.showToast("Failed to load your collection. Please refresh the page.", "error");
                 }
-            } else {
-                // If not logged in, you might want to show a message or redirect.
             }
         });
         
-        // --- Setup All Event Listeners ---
-        
-        // Modal & Form Listeners
-        const cardForm = document.getElementById('card-form');
-        if (cardForm) cardForm.addEventListener('submit', handleCardFormSubmit);
-        
-        const deleteCardBtn = document.getElementById('delete-card-btn');
-        if (deleteCardBtn) deleteCardBtn.addEventListener('click', handleDeleteCard);
-        
-        const cardSearchInput = document.getElementById('card-search-input');
-        if (cardSearchInput) cardSearchInput.addEventListener('input', handleSearchInput);
-        
-        const searchResultsContainer = document.getElementById('search-results-container');
-        if (searchResultsContainer) {
-            searchResultsContainer.addEventListener('click', (e) => {
-                const item = e.target.closest('.search-result-item');
-                if (item) handleSearchResultClick(item);
-            });
-        }
-
-        // Main Action Buttons
-        const addCardBtn = document.getElementById('add-card-btn');
-        if (addCardBtn) addCardBtn.addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
-        
-        const csvImportBtnSidebar = document.getElementById('csv-import-btn');
-        if (csvImportBtnSidebar) csvImportBtnSidebar.addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
-
-        const analyzeValueBtn = document.getElementById('analyze-value-btn');
-        if (analyzeValueBtn) analyzeValueBtn.addEventListener('click', toggleDashboard);
-
-        // Tab & View Switching
-        document.querySelectorAll('[data-tab]').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchTab(tab.dataset.tab);
-            });
+        document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
+        document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
+        document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
+        document.getElementById('search-results-container')?.addEventListener('click', (e) => {
+            const item = e.target.closest('.search-result-item');
+            if (item) handleSearchResultClick(item);
         });
-        
-        const viewToggleGrid = document.getElementById('view-toggle-grid');
-        if (viewToggleGrid) viewToggleGrid.addEventListener('click', () => switchView('grid'));
-        
-        const viewToggleList = document.getElementById('view-toggle-list');
-        if (viewToggleList) viewToggleList.addEventListener('click', () => switchView('list'));
-        
-        // Collection Display Interactions
-        const collectionDisplay = document.getElementById('collection-display');
-        if (collectionDisplay) {
-            collectionDisplay.addEventListener('click', (e) => {
-                const cardContainer = e.target.closest('.card-container');
-                if (cardContainer) handleCardClick(e, cardContainer);
-                if (e.target.classList.contains('bulk-select-checkbox')) handleBulkCheckboxChange(e);
-            });
-        }
-        
-        // Filter Listeners
+        document.getElementById('add-card-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+        document.getElementById('csv-import-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
+        document.getElementById('analyze-value-btn')?.addEventListener('click', toggleDashboard);
+        document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', (e) => { e.preventDefault(); switchTab(tab.dataset.tab); }));
+        document.getElementById('view-toggle-grid')?.addEventListener('click', () => switchView('grid'));
+        document.getElementById('view-toggle-list')?.addEventListener('click', () => switchView('list'));
+        document.getElementById('collection-display')?.addEventListener('click', (e) => {
+            const cardContainer = e.target.closest('.card-container');
+            if (cardContainer) handleCardClick(e, cardContainer);
+            if (e.target.classList.contains('bulk-select-checkbox')) handleBulkCheckboxChange(e);
+        });
+        document.getElementById('top-movers-container')?.addEventListener('click', (e) => {
+            const element = e.target.closest('[data-card-id]');
+            if (element) handleTopMoverClick(element);
+        });
         document.addEventListener('change', (e) => {
             if (e.target.dataset.filterType) handleFilterChange(e);
             if (e.target.id === 'type-filter-select') handleTypeFilterChange(e);
         });
-        
-        const colorContainer = document.getElementById('filter-color-container');
-        if (colorContainer) colorContainer.addEventListener('click', handleColorFilterClick);
-        
-        const nameFilterInput = document.getElementById('filter-name');
-        if (nameFilterInput) nameFilterInput.addEventListener('input', handleNameFilterInput);
-        
-        const clearFiltersBtn = document.getElementById('clear-filters-btn');
-        if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearAllFilters);
-        
-        // Bulk Edit Toolbar
-        const bulkEditBtn = document.getElementById('bulk-edit-btn');
-        if (bulkEditBtn) bulkEditBtn.addEventListener('click', toggleBulkEditMode);
-        
-        const bulkSelectAllBtn = document.getElementById('bulk-select-all-btn');
-        if (bulkSelectAllBtn) bulkSelectAllBtn.addEventListener('click', selectAllFiltered);
-        
-        const bulkDeselectAllBtn = document.getElementById('bulk-deselect-all-btn');
-        if (bulkDeselectAllBtn) bulkDeselectAllBtn.addEventListener('click', deselectAll);
-        
-        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
-        if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDelete);
-
-        // CSV Import Modal
-        const csvFileInput = document.getElementById('csv-file-input');
-        if (csvFileInput) csvFileInput.addEventListener('change', handleCSVUpload);
-        
-        const importCsvModalBtn = document.getElementById('start-csv-import-btn');
-        if (importCsvModalBtn) importCsvModalBtn.addEventListener('click', importCSV);
-
-        // Top Movers
-        const topMoversContainer = document.getElementById('top-movers-container');
-        if (topMoversContainer) {
-            topMoversContainer.addEventListener('click', (e) => {
-                const element = e.target.closest('[data-card-id]');
-                if (element) handleTopMoverClick(element);
-            });
-        }
-        
-        // Generic Modal Close Buttons
-        document.querySelectorAll('[data-modal-close]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const modal = document.getElementById(btn.dataset.modalClose);
-                if (modal) {
-                    UI.closeModal(modal);
-                    if (btn.dataset.modalClose === 'card-modal') {
-                        Collection.setCurrentEditingCard(null);
-                    }
-                }
-            });
-        });
-        
-        // Currency Change Listener
-        document.addEventListener('currencyChanged', () => {
-            applyAndRender({ skipFilters: true });
-        });
-
-        // --- ADD/MODIFY THESE LISTENERS ---
-        document.getElementById('bulk-list-btn')?.addEventListener('click', openBulkListModal);
+        document.getElementById('filter-color-container')?.addEventListener('click', handleColorFilterClick);
+        document.getElementById('filter-name')?.addEventListener('input', handleNameFilterInput);
+        document.getElementById('clear-filters-btn')?.addEventListener('click', clearAllFilters);
+        document.getElementById('bulk-edit-btn')?.addEventListener('click', toggleBulkEditMode);
+        document.getElementById('bulk-select-all-btn')?.addEventListener('click', selectAllFiltered);
+        document.getElementById('bulk-deselect-all-btn')?.addEventListener('click', deselectAll);
+        document.getElementById('bulk-delete-btn')?.addEventListener('click', bulkDelete);
+        document.getElementById('bulk-list-btn')?.addEventListener('click', openBulkReviewModal);
+        document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
         document.getElementById('finalize-bulk-list-btn')?.addEventListener('click', finalizeBulkSale);
         
-        document.body.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('.remove-row-btn');
-            if (removeBtn) {
-                const row = e.target.closest('tr');
-                row.style.display = 'none'; // Hide instead of remove to preserve indices
-                const reviewData = CSV.getReviewData(); // Assuming you add this getter to csv.js
-                reviewData[row.dataset.index].status = 'removed';
+        document.getElementById('bulk-review-modal')?.addEventListener('input', (e) => {
+            const item = e.target.closest('.bulk-sale-item');
+            if (!item) return;
+            const marketPrice = parseFloat(item.dataset.marketPrice);
+            const percentageInput = item.querySelector('.percentage-input');
+            const fixedPriceInput = item.querySelector('.fixed-price-input');
+            const finalPriceCell = item.querySelector('.final-price-cell');
+            let finalPrice = marketPrice;
+            if (e.target === fixedPriceInput && fixedPriceInput.value) {
+                percentageInput.value = '';
+                finalPrice = parseFloat(fixedPriceInput.value) || 0;
+            } else if (e.target === percentageInput) {
+                fixedPriceInput.value = '';
+                finalPrice = marketPrice * ((parseFloat(percentageInput.value) || 100) / 100);
             }
+            finalPriceCell.textContent = `$${finalPrice.toFixed(2)}`;
+        });
+        document.getElementById('bulk-apply-percentage-btn')?.addEventListener('click', () => {
+            const globalPercent = document.getElementById('bulk-apply-percentage-input').value;
+            if(!globalPercent) return;
+            document.querySelectorAll('.bulk-sale-item .percentage-input').forEach(input => {
+                input.value = globalPercent;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
         });
 
-        const bulkSaleModal = document.getElementById('bulk-list-sale-modal');
-        if (bulkSaleModal) {
-            bulkSaleModal.addEventListener('input', (e) => {
-                const item = e.target.closest('.bulk-sale-item');
-                if (!item) return;
-                const marketPrice = parseFloat(item.dataset.marketPrice);
-                const percentageInput = item.querySelector('.percentage-input');
-                const fixedPriceInput = item.querySelector('.fixed-price-input');
-                const finalPriceCell = item.querySelector('.final-price-cell');
-                let finalPrice = marketPrice;
-
-                if (e.target === fixedPriceInput && fixedPriceInput.value) {
-                    percentageInput.value = '';
-                    finalPrice = parseFloat(fixedPriceInput.value) || 0;
-                } else if (e.target === percentageInput) {
-                    fixedPriceInput.value = '';
-                    const percentage = parseFloat(percentageInput.value) || 100;
-                    finalPrice = marketPrice * (percentage / 100);
-                }
-                finalPriceCell.textContent = `$${finalPrice.toFixed(2)}`;
-            });
-            document.getElementById('bulk-apply-percentage-btn')?.addEventListener('click', () => {
-                const globalPercent = document.getElementById('bulk-apply-percentage-input').value;
-                if(!globalPercent) return;
-                bulkSaleModal.querySelectorAll('.bulk-sale-item').forEach(item => {
-                    const input = item.querySelector('.percentage-input');
-                    input.value = globalPercent;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                });
-            });
-        }
+        document.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', () => {
+            const modal = document.getElementById(btn.dataset.modalClose);
+            if (modal) {
+                UI.closeModal(modal);
+                if (btn.dataset.modalClose === 'card-modal') Collection.setCurrentEditingCard(null);
+            }
+        }));
+        
+        document.addEventListener('currencyChanged', () => applyAndRender({ skipFilters: true }));
 
         document.getElementById('card-is-graded')?.addEventListener('change', async (e) => {
             const isGraded = e.target.checked;
-            const gradedSection = document.getElementById('graded-section');
-            gradedSection.classList.toggle('hidden', !isGraded);
+            document.getElementById('graded-section').classList.toggle('hidden', !isGraded);
             if (isGraded) {
                 const card = Collection.getCurrentEditingCard();
                 const company = document.getElementById('grading-company').value;
@@ -1157,27 +886,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (card && (card.game === 'pokemon' || card.game === 'lorcana')) {
                     UI.showToast(`Fetching price for ${company} ${grade}...`, 'info');
                     const gradedPrice = await API.getGradedCardPrice(card, company, grade);
-                    if (gradedPrice) {
-                        UI.showToast(`Graded Market Price: $${gradedPrice.price}`, 'success', 8000);
-                    } else {
-                        UI.showToast(`Could not find a price for this grade.`, 'error');
-                    }
+                    if (gradedPrice) UI.showToast(`Graded Market Price: $${gradedPrice.price}`, 'success', 8000);
+                    else UI.showToast(`Could not find a price for this grade.`, 'error');
                 }
             }
         });
         
     } catch (error) {
         console.error("Initialization error:", error);
-        UI.showToast("Failed to initialize the application. Please refresh the page.", "error");
+        UI.showToast("Failed to initialize the application. Please refresh.", "error");
     }
 });
 
-// Export functions for global access
-window.CollectionApp = {
-    switchTab,
-    switchView,
-    toggleBulkEditMode,
-    clearAllFilters,
-    importCSV,
-    toggleDashboard
-};
+window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilters };
+

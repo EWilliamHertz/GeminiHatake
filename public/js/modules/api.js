@@ -86,9 +86,6 @@ async function searchScryDex(cardName, game) {
         const result = await searchScryDexFunction({ cardName, game });
         console.log('[API] ScryDex function raw result:', result);
 
-        // **CRITICAL FIX IS HERE:** Restore the original robust response handling.
-        // The result from a callable function has the data nested. The cloud function itself
-        // also returns an object with a 'data' key, leading to result.data.data.
         let cardData;
         if (result && result.data && Array.isArray(result.data.data)) {
             cardData = result.data.data;
@@ -130,7 +127,6 @@ export async function getScryDexHistory(card) {
     try {
         const result = await getScryDexHistoryFunction({ cardId: card.api_id, game: card.game });
         if (result && result.data && Array.isArray(result.data)) {
-            // The cloud function returns [['YYYY-MM-DD', price], ...], we need to format it
             return result.data.map(entry => ({
                 date: entry[0],
                 price: parseFloat(entry[1])
@@ -139,7 +135,6 @@ export async function getScryDexHistory(card) {
         return [];
     } catch (error) {
         console.error(`[API] ScryDex history function error for ${card.name}:`, error);
-        // We return an empty array so a single failed card doesn't break the whole dashboard
         return [];
     }
 }
@@ -176,9 +171,6 @@ export async function getGradedCardPrice(card, gradingCompany, grade) {
 
 // --- DATA CLEANING ---
 
-/**
- * Cleans data from a Scryfall API response.
- */
 function cleanScryfallData(card) {
     const prices = card.prices ? {
         usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
@@ -208,10 +200,6 @@ function cleanScryfallData(card) {
     };
 }
 
-/**
- * REWRITTEN: Cleans data from a ScryDex API response based on official documentation.
- * This fixes all known issues with names, sets, images, and prices.
- */
 function cleanScryDexData(card, game) {
     try {
         const cleaned = {
@@ -228,7 +216,6 @@ function cleanScryDexData(card, game) {
             prices: card.variants?.reduce((acc, variant) => {
                 if (variant.prices) {
                     variant.prices.forEach(price => {
-                        // Create a unique key for each price type, e.g., "reverseHolofoil_NM"
                         const priceKey = `${variant.name}_${price.condition || price.type}`;
                         acc[priceKey] = price.market;
                     });
@@ -239,7 +226,6 @@ function cleanScryDexData(card, game) {
             game: game
         };
 
-        // Add game-specific details from the documentation
         switch (game) {
             case 'mtg':
                 cleaned.mana_cost = card.mana_cost || '';
@@ -286,7 +272,6 @@ function cleanScryDexData(card, game) {
 }
 // --- FIRESTORE DATABASE OPERATIONS ---
 const getCollectionRef = (userId, collectionName = 'collection') => {
-    // This guard prevents crashes if userId is not a valid string.
     if (!userId || typeof userId !== 'string') {
         throw new Error("Invalid or missing User ID provided for Firestore operation.");
     }
@@ -294,13 +279,21 @@ const getCollectionRef = (userId, collectionName = 'collection') => {
 };
 
 export async function getCollection(userId) {
-    // Gracefully handle cases where no user is logged in.
     if (!userId) {
-        console.warn("[API] getCollection called without a valid userId.");
+        console.error("No user ID provided to getCollection.");
         return [];
     }
-    const snapshot = await getCollectionRef(userId).orderBy('addedAt', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const collectionRef = firebase.firestore().collection('users').doc(userId).collection('collection');
+        const snapshot = await collectionRef.get();
+        if (snapshot.empty) {
+            return [];
+        }
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching collection from Firestore:", error);
+        throw new Error("Could not fetch user collection.");
+    }
 }
 export async function getWishlist(userId) {
     if (!userId) return [];
