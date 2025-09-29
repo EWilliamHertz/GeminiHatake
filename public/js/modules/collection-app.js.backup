@@ -1,0 +1,776 @@
+/**
+ * collection-app.js
+ * Main application logic for the collection page.
+ * - Implements the full, detailed CSV review and import process, fixing api_id errors.
+ * - Implements the new bulk "List for Sale" modal with full pricing logic.
+ * - Connects graded card price lookups in the card modal.
+ * - FIX: Adds a visual indicator for cards that are listed for sale.
+ * - FIX: Corrects CSV import functionality and restores the preview panel.
+ * - FIX: Corrects mismatched HTML element IDs to make all action buttons functional.
+ * - FIX: Prevents initialization crash by ensuring a user is logged in before loading collection data.
+ * - FIX: Properly clears currentEditingCard state to prevent incorrect quantity updates.
+ */
+import * as Collection from './collection.js';
+import * as API from './api.js';
+import * as CSV from './csv.js';
+import * as Currency from './currency.js';
+import { getCardImageUrl } from './utils.js';
+
+let currentUser = null;
+let csvFile = null;
+
+// --- UI HELPER ---
+const UI = {
+    openModal: (modal) => { if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex', 'items-center', 'justify-center'); }},
+    closeModal: (modal) => { if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex', 'items-center', 'justify-center'); }},
+    showToast: (message, type = 'info', duration = 5000) => {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+        toast.className = `p-4 rounded-lg text-white shadow-lg mb-2 ${colors[type] || 'bg-gray-700'} transition-all duration-300 transform translate-y-4 opacity-0`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.remove('translate-y-4', 'opacity-0'), 10);
+        setTimeout(() => { toast.classList.add('opacity-0'); toast.addEventListener('transitionend', () => toast.remove()); }, duration);
+    },
+    setButtonLoading: (button, isLoading, originalText = 'Submit') => {
+        if (!button) return;
+        if (isLoading) {
+            button.dataset.originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Processing...`;
+        } else {
+            button.disabled = false;
+            button.innerHTML = button.dataset.originalText || originalText;
+        }
+    },
+    updateBulkEditUI: (isActive) => {
+        const toolbar = document.getElementById('bulk-edit-toolbar');
+        if (toolbar) {
+            toolbar.classList.toggle('hidden', !isActive);
+            toolbar.classList.toggle('flex', isActive);
+        }
+        applyAndRender({});
+    },
+    updateBulkEditSelection: (count) => {
+        const countEl = document.getElementById('bulk-selected-count');
+        if (countEl) countEl.textContent = count;
+    },
+    createCurrencySelector: (containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container || document.getElementById('currency-selector')) return;
+
+        const supported = {
+            'USD': 'United States Dollar',
+            'SEK': 'Swedish Krona',
+            'EUR': 'Euro',
+            'GBP': 'British Pound',
+            'NOK': 'Norwegian Krone',
+            'DKK': 'Danish Krone'
+        };
+        const currentCode = Currency.getUserCurrency();
+
+        const select = document.createElement('select');
+        select.id = 'currency-selector';
+        select.className = 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500';
+
+        for (const code in supported) {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = `${code} - ${supported[code]}`;
+            if (code === currentCode) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        }
+
+        select.addEventListener('change', async (e) => {
+            try {
+                await Currency.updateUserCurrency(e.target.value);
+                UI.showToast(`Currency updated to ${e.target.value}`, 'success');
+            } catch (error) {
+                UI.showToast(`Failed to update currency: ${error.message}`, 'error');
+            }
+        });
+
+        container.appendChild(select);
+    },
+    renderGridView: (cards, activeTab, isBulkMode) => {
+        const container = document.getElementById('collection-display');
+        if (!container || !cards) return;
+
+        if (cards.length === 0) {
+            container.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500"><p>${activeTab === 'collection' ? 'No cards match your filters.' : 'Your wishlist is empty.'}</p></div>`;
+            return;
+        }
+
+        const gridHTML = cards.map(card => {
+            const imageUrl = getCardImageUrl(card);
+            const price = Currency.convertAndFormat(card.prices);
+            const isSelected = Collection.isCardSelected(card.id);
+            const salePriceDisplay = (card.for_sale && card.sale_price) ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">$${card.sale_price}</div>` : '';
+
+            const bulkCheckbox = isBulkMode
+                ? `<div class="absolute top-2 right-2"><input type="checkbox" class="bulk-select-checkbox h-6 w-6" data-id="${card.id}" ${isSelected ? 'checked' : ''}></div>`
+                : `<div class="absolute top-2 right-2 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button data-action="edit" class="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 shadow-lg"><i class="fas fa-pencil-alt"></i></button>
+                        <button data-action="delete" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg"><i class="fas fa-trash"></i></button>
+                    </div>`;
+
+            return `
+                <div class="card-container relative group ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
+                        ${salePriceDisplay}
+                        ${bulkCheckbox}
+                        <div class="aspect-[3/4] overflow-hidden">
+                            <img src="${imageUrl}" alt="${card.name}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy">
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-sm truncate">${card.name}</h3>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate">${card.set_name || 'Unknown Set'}</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <span class="text-sm font-bold text-green-600">${price}</span>
+                                <span class="text-xs text-gray-500">Qty: ${card.quantity || 1}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${gridHTML}</div>`;
+    },
+    renderListView: (cards, activeTab, isBulkMode) => {
+        const container = document.getElementById('collection-display');
+        if (!container || !cards) return;
+
+        if (cards.length === 0) {
+            container.innerHTML = `<div class="flex items-center justify-center h-full text-gray-500"><p>${activeTab === 'collection' ? 'No cards match your filters.' : 'Your wishlist is empty.'}</p></div>`;
+            return;
+        }
+
+        const listHTML = cards.map(card => {
+            const imageUrl = getCardImageUrl(card);
+            const price = Currency.convertAndFormat(card.prices);
+            const isSelected = Collection.isCardSelected(card.id);
+            const saleBadge = (card.for_sale && card.sale_price) ? `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">For Sale: $${card.sale_price}</span>` : '';
+
+            const bulkCheckbox = isBulkMode
+                ? `<input type="checkbox" class="bulk-select-checkbox h-5 w-5" data-id="${card.id}" ${isSelected ? 'checked' : ''}>`
+                : `<div class="flex space-x-2">
+                        <button data-action="edit" class="p-1 bg-blue-500 text-white rounded hover:bg-blue-600"><i class="fas fa-pencil-alt text-xs"></i></button>
+                        <button data-action="delete" class="p-1 bg-red-500 text-white rounded hover:bg-red-600"><i class="fas fa-trash text-xs"></i></button>
+                    </div>`;
+
+            return `
+                <div class="card-container flex items-center p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 ${isSelected ? 'ring-2 ring-blue-500' : ''}" data-id="${card.id}">
+                    <div class="w-16 h-20 flex-shrink-0 mr-4">
+                        <img src="${imageUrl}" alt="${card.name}" class="w-full h-full object-cover rounded" loading="lazy">
+                    </div>
+                    <div class="flex-grow">
+                        <h3 class="font-semibold text-lg">${card.name}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">${card.set_name || 'Unknown Set'}</p>
+                        <div class="flex items-center space-x-4 mt-2">
+                            <span class="text-lg font-bold text-green-600">${price}</span>
+                            <span class="text-sm text-gray-500">Qty: ${card.quantity || 1}</span>
+                            ${saleBadge}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        ${bulkCheckbox}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `<div class="space-y-0">${listHTML}</div>`;
+    }
+};
+
+// --- STATE MANAGEMENT ---
+let currentView = 'grid';
+let currentEditingCard = null;
+
+function applyAndRender(options = {}) {
+    if (!options.skipFilters) Collection.applyFilters();
+    const state = Collection.getState();
+    const cards = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+    
+    if (currentView === 'grid') {
+        UI.renderGridView(cards, state.activeTab, state.bulkEdit.isActive);
+    } else {
+        UI.renderListView(cards, state.activeTab, state.bulkEdit.isActive);
+    }
+    
+    updateStats();
+    updateViewButtons();
+}
+
+function updateStats() {
+    const state = Collection.getState();
+    const cards = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+    const totalCards = cards.reduce((sum, card) => sum + (card.quantity || 1), 0);
+    const uniqueCards = cards.length;
+    const totalValue = cards.reduce((sum, card) => sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1)), 0);
+
+    document.getElementById('stats-total-cards').textContent = totalCards;
+    document.getElementById('stats-unique-cards').textContent = uniqueCards;
+    document.getElementById('stats-total-value').textContent = Currency.convertAndFormat({ usd: totalValue });
+}
+
+function updateViewButtons() {
+    document.getElementById('view-toggle-grid').classList.toggle('bg-white', currentView === 'grid');
+    document.getElementById('view-toggle-grid').classList.toggle('dark:bg-gray-900', currentView === 'grid');
+    document.getElementById('view-toggle-grid').classList.toggle('shadow', currentView === 'grid');
+    document.getElementById('view-toggle-grid').classList.toggle('text-gray-800', currentView === 'grid');
+    document.getElementById('view-toggle-grid').classList.toggle('dark:text-gray-200', currentView === 'grid');
+    document.getElementById('view-toggle-grid').classList.toggle('text-gray-500', currentView !== 'grid');
+    document.getElementById('view-toggle-grid').classList.toggle('dark:text-gray-400', currentView !== 'grid');
+
+    document.getElementById('view-toggle-list').classList.toggle('bg-white', currentView === 'list');
+    document.getElementById('view-toggle-list').classList.toggle('dark:bg-gray-900', currentView === 'list');
+    document.getElementById('view-toggle-list').classList.toggle('shadow', currentView === 'list');
+    document.getElementById('view-toggle-list').classList.toggle('text-gray-800', currentView === 'list');
+    document.getElementById('view-toggle-list').classList.toggle('dark:text-gray-200', currentView === 'list');
+    document.getElementById('view-toggle-list').classList.toggle('text-gray-500', currentView !== 'list');
+    document.getElementById('view-toggle-list').classList.toggle('dark:text-gray-400', currentView !== 'list');
+}
+
+function switchTab(tab) {
+    Collection.setActiveTab(tab);
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active', 'bg-white', 'dark:bg-gray-900', 'text-gray-900', 'dark:text-gray-100', 'shadow');
+        btn.classList.add('text-gray-500', 'dark:text-gray-400');
+    });
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active', 'bg-white', 'dark:bg-gray-900', 'text-gray-900', 'dark:text-gray-100', 'shadow');
+    document.querySelector(`[data-tab="${tab}"]`).classList.remove('text-gray-500', 'dark:text-gray-400');
+    applyAndRender({});
+}
+
+function switchView(view) {
+    currentView = view;
+    applyAndRender({ skipFilters: true });
+}
+
+function toggleDashboard() {
+    const dashboard = document.getElementById('analytics-dashboard');
+    const collection = document.getElementById('collection-display');
+    const isVisible = !dashboard.classList.contains('hidden');
+    
+    dashboard.classList.toggle('hidden', isVisible);
+    dashboard.classList.toggle('flex', !isVisible);
+    collection.classList.toggle('hidden', !isVisible);
+    
+    if (!isVisible) {
+        updateAnalyticsDashboard();
+    }
+}
+
+function updateAnalyticsDashboard() {
+    const state = Collection.getState();
+    const cards = state.fullCollection;
+    const totalValue = cards.reduce((sum, card) => sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1)), 0);
+    
+    document.getElementById('analytics-current-value').textContent = Currency.convertAndFormat({ usd: totalValue });
+    document.getElementById('analytics-24h-change').textContent = '$0.00'; // Placeholder
+    document.getElementById('analytics-all-time-high').textContent = Currency.convertAndFormat({ usd: totalValue });
+}
+
+// --- EVENT HANDLERS ---
+async function handleCardFormSubmit(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const cardData = Object.fromEntries(formData.entries());
+    
+    try {
+        if (currentEditingCard) {
+            await Collection.updateCard(currentEditingCard.id, cardData);
+            UI.showToast("Card updated successfully!", "success");
+        } else {
+            await Collection.addCard(cardData);
+            UI.showToast("Card added successfully!", "success");
+        }
+        
+        UI.closeModal(document.getElementById('card-modal'));
+        currentEditingCard = null;
+        applyAndRender({});
+    } catch (error) {
+        UI.showToast(`Error: ${error.message}`, "error");
+    }
+}
+
+async function handleDeleteCard() {
+    if (!currentEditingCard) return;
+    
+    if (confirm("Are you sure you want to delete this card?")) {
+        try {
+            await Collection.deleteCard(currentEditingCard.id);
+            UI.showToast("Card deleted successfully!", "success");
+            UI.closeModal(document.getElementById('card-modal'));
+            currentEditingCard = null;
+            applyAndRender({});
+        } catch (error) {
+            UI.showToast(`Error: ${error.message}`, "error");
+        }
+    }
+}
+
+async function handleSearchInput(e) {
+    const query = e.target.value.trim();
+    const resultsContainer = document.getElementById('search-results-container');
+    
+    if (query.length < 2) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const results = await API.searchCards(query);
+        displaySearchResults(results);
+    } catch (error) {
+        resultsContainer.innerHTML = '<p class="text-red-500 p-4">Search failed. Please try again.</p>';
+    }
+}
+
+function displaySearchResults(results) {
+    const container = document.getElementById('search-results-container');
+    if (!results || results.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 p-4">No cards found.</p>';
+        return;
+    }
+    
+    const resultsHTML = results.slice(0, 20).map(card => {
+        const imageUrl = getCardImageUrl(card);
+        const price = Currency.convertAndFormat(card.prices);
+        
+        return `
+            <div class="search-result-item flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600" data-card='${JSON.stringify(card)}'>
+                <img src="${imageUrl}" alt="${card.name}" class="w-12 h-16 object-cover rounded mr-3" loading="lazy">
+                <div class="flex-grow">
+                    <h4 class="font-semibold">${card.name}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${card.set_name || 'Unknown Set'}</p>
+                    <p class="text-sm font-bold text-green-600">${price}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = resultsHTML;
+}
+
+function handleSearchResultClick(item) {
+    const cardData = JSON.parse(item.dataset.card);
+    openCardModal(cardData);
+}
+
+function openCardModal(card = null) {
+    const modal = document.getElementById('card-modal');
+    if (!modal) return;
+    
+    currentEditingCard = card;
+    
+    if (card) {
+        // Populate form with existing card data
+        document.getElementById('card-name').value = card.name || '';
+        document.getElementById('card-set').value = card.set_name || '';
+        document.getElementById('card-quantity').value = card.quantity || 1;
+        document.getElementById('card-condition').value = card.condition || 'Near Mint';
+        document.getElementById('card-language').value = card.language || 'English';
+        document.getElementById('card-purchase-price').value = card.purchase_price || '';
+        document.getElementById('card-is-foil').checked = card.is_foil || false;
+        document.getElementById('card-is-signed').checked = card.is_signed || false;
+        document.getElementById('card-is-altered').checked = card.is_altered || false;
+        document.getElementById('card-is-graded').checked = card.is_graded || false;
+        document.getElementById('card-notes').value = card.notes || '';
+        
+        document.getElementById('save-card-btn').textContent = 'Update Card';
+        document.getElementById('delete-card-btn').style.display = 'block';
+    } else {
+        // Reset form for new card
+        document.getElementById('card-form').reset();
+        document.getElementById('save-card-btn').textContent = 'Add to Collection';
+        document.getElementById('delete-card-btn').style.display = 'none';
+    }
+    
+    UI.openModal(modal);
+}
+
+function handleCardClick(e, cardContainer) {
+    if (e.target.closest('button') || e.target.classList.contains('bulk-select-checkbox')) return;
+    
+    const cardId = cardContainer.dataset.id;
+    const card = Collection.getCardById(cardId);
+    
+    if (e.target.closest('[data-action="edit"]')) {
+        openCardModal(card);
+    } else if (e.target.closest('[data-action="delete"]')) {
+        if (confirm("Are you sure you want to delete this card?")) {
+            Collection.deleteCard(cardId);
+            applyAndRender({});
+        }
+    } else {
+        // Default click behavior - could open a preview or details view
+        openCardModal(card);
+    }
+}
+
+function handleBulkCheckboxChange(e) {
+    const cardId = e.target.dataset.id;
+    Collection.toggleCardSelection(cardId);
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    applyAndRender({ skipFilters: true });
+}
+
+function handleTopMoverClick(element) {
+    const cardId = element.dataset.cardId;
+    const card = Collection.getCardById(cardId);
+    if (card) openCardModal(card);
+}
+
+function handleFilterChange(e) {
+    const filterType = e.target.dataset.filterType;
+    const value = e.target.value;
+    const isChecked = e.target.checked;
+    
+    if (filterType === 'set' || filterType === 'rarity') {
+        const currentFilters = Collection.getFilters()[filterType] || [];
+        if (isChecked) {
+            currentFilters.push(value);
+        } else {
+            const index = currentFilters.indexOf(value);
+            if (index > -1) currentFilters.splice(index, 1);
+        }
+        Collection.setFilters({ [filterType]: currentFilters });
+    } else if (filterType === 'games') {
+        const currentGames = Collection.getFilters().games || [];
+        if (isChecked) {
+            currentGames.push(value);
+        } else {
+            const index = currentGames.indexOf(value);
+            if (index > -1) currentGames.splice(index, 1);
+        }
+        Collection.setFilters({ games: currentGames });
+    }
+    
+    applyAndRender({});
+}
+
+function handleColorFilterClick(e) {
+    if (!e.target.classList.contains('color-filter-btn')) return;
+    
+    const color = e.target.dataset.color;
+    const currentColors = Collection.getFilters().colors || [];
+    const index = currentColors.indexOf(color);
+    
+    if (index > -1) {
+        currentColors.splice(index, 1);
+        e.target.classList.remove('ring-4', 'ring-blue-500');
+    } else {
+        currentColors.push(color);
+        e.target.classList.add('ring-4', 'ring-blue-500');
+    }
+    
+    Collection.setFilters({ colors: currentColors });
+    applyAndRender({});
+}
+
+function handleTypeFilterChange(e) {
+    Collection.setFilters({ type: e.target.value });
+    applyAndRender({});
+}
+
+function handleNameFilterInput(e) {
+    Collection.setFilters({ name: e.target.value });
+    applyAndRender({});
+}
+
+function clearAllFilters() {
+    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '' });
+    document.getElementById('filter-name').value = '';
+    document.querySelectorAll('input[data-filter-type]').forEach(input => input.checked = false);
+    document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-blue-500'));
+    const typeFilterSelect = document.getElementById('type-filter-select');
+    if(typeFilterSelect) typeFilterSelect.value = '';
+    applyAndRender({});
+}
+
+function toggleBulkEditMode() {
+    const isActive = Collection.toggleBulkEditMode();
+    UI.updateBulkEditUI(isActive);
+}
+
+function selectAllFiltered() {
+    const state = Collection.getState();
+    const cards = state.activeTab === 'collection' ? state.filteredCollection : state.wishlist;
+    const cardIds = cards.map(card => card.id);
+    Collection.selectAllFiltered(cardIds);
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    applyAndRender({});
+}
+
+function deselectAll() {
+    Collection.deselectAllFiltered();
+    UI.updateBulkEditSelection(0);
+    applyAndRender({});
+}
+
+async function bulkDelete() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) return UI.showToast("No cards selected.", "error");
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} cards?`)) {
+        try {
+            await Collection.batchDelete(selectedIds);
+            UI.showToast(`${selectedIds.length} cards deleted.`, "success");
+        } catch (error) {
+            UI.showToast("Error deleting cards.", "error");
+        }
+    }
+}
+
+async function handleCSVUpload(e) {
+    const file = e.target.files[0];
+    const statusEl = document.getElementById('csv-import-status');
+    const startBtn = document.getElementById('start-csv-import-btn');
+    if (!file) return;
+
+    UI.setButtonLoading(startBtn, true);
+    statusEl.textContent = 'Parsing file...';
+    try {
+        const parsedData = await CSV.parseCSV(file);
+        statusEl.textContent = `Parsed ${parsedData.length} cards.`;
+        UI.closeModal(document.getElementById('csv-import-modal'));
+        openCsvReviewModal(parsedData);
+    } catch (error) {
+        statusEl.textContent = `Error: ${error.message}`;
+    } finally {
+        UI.setButtonLoading(startBtn, false, 'Parse CSV');
+        e.target.value = '';
+    }
+}
+
+async function openCsvReviewModal(cards) {
+    const modal = document.getElementById('csv-review-modal');
+    const tableBody = document.getElementById('csv-review-table-body');
+    if (!modal || !tableBody) return;
+    tableBody.innerHTML = '';
+    UI.openModal(modal);
+    let reviewData = [];
+
+    cards.forEach((card, index) => {
+        const row = document.createElement('tr');
+        row.dataset.index = index;
+        row.innerHTML = `
+            <td class="p-3">${card.name}</td><td>${card.set_name || 'Any'}</td>
+            <td>${card.collector_number || 'N/A'}</td><td>${card.quantity}</td>
+            <td>${card.condition}</td><td>${card.language}</td><td>${card.is_foil ? 'Yes' : 'No'}</td>
+            <td class="status-cell"><i class="fas fa-spinner fa-spin"></i></td>
+            <td><button class="text-red-500 remove-row-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></td>
+        `;
+        tableBody.appendChild(row);
+        reviewData.push({ raw: card, enriched: null, status: 'pending' });
+    });
+    
+    for (let i = 0; i < reviewData.length; i++) {
+        if(reviewData[i].status === 'removed') continue;
+        const statusCell = tableBody.querySelector(`tr[data-index="${i}"] .status-cell`);
+        try {
+            let query = `!"${reviewData[i].raw.name}"`;
+            if (reviewData[i].raw.set) query += ` set:${reviewData[i].raw.set}`;
+            if (reviewData[i].raw.collector_number) query += ` cn:${reviewData[i].raw.collector_number}`;
+            const results = await API.searchCards(query, 'mtg');
+            if (results.length > 0) {
+                reviewData[i].enriched = { ...results[0], ...reviewData[i].raw };
+                reviewData[i].status = 'found';
+                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
+            } else throw new Error("Not found");
+        } catch (error) {
+            reviewData[i].status = 'error';
+            statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i></span>`;
+        }
+        await new Promise(resolve => setTimeout(resolve, 110));
+    }
+    document.getElementById('finalize-csv-import-btn').onclick = () => finalizeCsvImport(reviewData);
+}
+
+async function finalizeCsvImport(reviewData) {
+    const cardsToImport = reviewData.filter(item => item.status === 'found').map(item => item.enriched);
+    if (cardsToImport.length === 0) return UI.showToast("No valid cards to import.", "error");
+    const importBtn = document.getElementById('finalize-csv-import-btn');
+    UI.setButtonLoading(importBtn, true);
+    try {
+        await Collection.addMultipleCards(cardsToImport);
+        UI.showToast(`Imported ${cardsToImport.length} cards!`, "success");
+        UI.closeModal(document.getElementById('csv-review-modal'));
+        applyAndRender();
+    } catch (error) {
+        UI.showToast(`Import failed: ${error.message}`, "error");
+    } finally {
+        UI.setButtonLoading(importBtn, false, 'Finalize Import');
+    }
+}
+
+async function openBulkReviewModal() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) return UI.showToast("No cards selected.", "info");
+    const modal = document.getElementById('bulk-review-modal');
+    if(!modal) return;
+    document.getElementById('bulk-list-count').textContent = selectedIds.length;
+    const reviewList = document.getElementById('bulk-review-list');
+    reviewList.innerHTML = 'Loading...';
+    UI.openModal(modal);
+    const cards = selectedIds.map(id => Collection.getCardById(id)).filter(Boolean);
+    reviewList.innerHTML = cards.map(card => {
+        const marketPrice = Currency.getNormalizedPriceUSD(card.prices);
+        return `
+            <div class="bulk-sale-item grid grid-cols-6 gap-4 items-center p-2 border-b dark:border-gray-600" data-card-id="${card.id}" data-market-price="${marketPrice}">
+                <div class="col-span-2"><p class="font-semibold truncate">${card.name}</p><p class="text-xs text-gray-500">${card.set_name}</p></div>
+                <div class="text-sm font-mono text-center market-price-cell">$${marketPrice.toFixed(2)}</div>
+                <div class="flex items-center"><input type="number" class="w-20 p-1 border rounded-md dark:bg-gray-700 percentage-input" placeholder="100"><span class="ml-1">%</span></div>
+                <input type="number" class="w-24 p-1 border rounded-md dark:bg-gray-700 fixed-price-input" placeholder="e.g., 15.50" step="0.01">
+                <div class="font-semibold text-right final-price-cell">$${marketPrice.toFixed(2)}</div>
+            </div>`;
+    }).join('');
+}
+
+async function finalizeBulkSale() {
+    const items = document.querySelectorAll('.bulk-sale-item');
+    const updates = [];
+    items.forEach(item => {
+        const finalPriceText = item.querySelector('.final-price-cell').textContent;
+        const salePrice = parseFloat(finalPriceText.replace('$', ''));
+        if (!isNaN(salePrice) && salePrice >= 0) {
+            updates.push({ id: item.dataset.cardId, data: { for_sale: true, sale_price: salePrice } });
+        }
+    });
+    if (updates.length === 0) return UI.showToast("No valid prices set.", "warning");
+    const finalizeBtn = document.getElementById('finalize-bulk-list-btn');
+    UI.setButtonLoading(finalizeBtn, true);
+    try {
+        await Collection.batchUpdateSaleStatus(updates);
+        UI.showToast(`${updates.length} cards listed for sale!`, "success");
+        UI.closeModal(document.getElementById('bulk-review-modal'));
+        applyAndRender({});
+    } catch (error) {
+        UI.showToast(`Error: ${error.message}`, "error");
+    } finally {
+        UI.setButtonLoading(finalizeBtn, false, "Finalize and List Selected Cards");
+    }
+}
+
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await Currency.initCurrency();
+        
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    await Collection.loadCollection(user.uid);
+                    await Collection.loadWishlist(user.uid);
+                    applyAndRender({});
+                    UI.createCurrencySelector('currency-selector-container');
+                } catch (error) {
+                    console.error("Failed to load user data:", error);
+                    UI.showToast("Failed to load your collection. Please refresh the page.", "error");
+                }
+            }
+        });
+        
+        document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
+        document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
+        document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
+        document.getElementById('search-results-container')?.addEventListener('click', (e) => {
+            const item = e.target.closest('.search-result-item');
+            if (item) handleSearchResultClick(item);
+        });
+        document.getElementById('add-card-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
+        document.getElementById('csv-import-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
+        document.getElementById('analyze-value-btn')?.addEventListener('click', toggleDashboard);
+        document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', (e) => { e.preventDefault(); switchTab(tab.dataset.tab); }));
+        document.getElementById('view-toggle-grid')?.addEventListener('click', () => switchView('grid'));
+        document.getElementById('view-toggle-list')?.addEventListener('click', () => switchView('list'));
+        document.getElementById('collection-display')?.addEventListener('click', (e) => {
+            const cardContainer = e.target.closest('.card-container');
+            if (cardContainer) handleCardClick(e, cardContainer);
+            if (e.target.classList.contains('bulk-select-checkbox')) handleBulkCheckboxChange(e);
+        });
+        document.getElementById('top-movers-container')?.addEventListener('click', (e) => {
+            const element = e.target.closest('[data-card-id]');
+            if (element) handleTopMoverClick(element);
+        });
+        document.addEventListener('change', (e) => {
+            if (e.target.dataset.filterType) handleFilterChange(e);
+            if (e.target.id === 'type-filter-select') handleTypeFilterChange(e);
+        });
+        document.getElementById('filter-color-container')?.addEventListener('click', handleColorFilterClick);
+        document.getElementById('filter-name')?.addEventListener('input', handleNameFilterInput);
+        document.getElementById('clear-filters-btn')?.addEventListener('click', clearAllFilters);
+        document.getElementById('bulk-edit-btn')?.addEventListener('click', toggleBulkEditMode);
+        document.getElementById('bulk-select-all-btn')?.addEventListener('click', selectAllFiltered);
+        document.getElementById('bulk-deselect-all-btn')?.addEventListener('click', deselectAll);
+        document.getElementById('bulk-delete-btn')?.addEventListener('click', bulkDelete);
+        document.getElementById('bulk-list-btn')?.addEventListener('click', openBulkReviewModal);
+        document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
+        document.getElementById('finalize-bulk-list-btn')?.addEventListener('click', finalizeBulkSale);
+        
+        document.getElementById('bulk-review-modal')?.addEventListener('input', (e) => {
+            const item = e.target.closest('.bulk-sale-item');
+            if (!item) return;
+            const marketPrice = parseFloat(item.dataset.marketPrice);
+            const percentageInput = item.querySelector('.percentage-input');
+            const fixedPriceInput = item.querySelector('.fixed-price-input');
+            const finalPriceCell = item.querySelector('.final-price-cell');
+            let finalPrice = marketPrice;
+            if (e.target === fixedPriceInput && fixedPriceInput.value) {
+                percentageInput.value = '';
+                finalPrice = parseFloat(fixedPriceInput.value) || 0;
+            } else if (e.target === percentageInput) {
+                fixedPriceInput.value = '';
+                finalPrice = marketPrice * ((parseFloat(percentageInput.value) || 100) / 100);
+            }
+            finalPriceCell.textContent = `$${finalPrice.toFixed(2)}`;
+        });
+        document.getElementById('bulk-apply-percentage-btn')?.addEventListener('click', () => {
+            const globalPercent = document.getElementById('bulk-apply-percentage-input').value;
+            if(!globalPercent) return;
+            document.querySelectorAll('.bulk-sale-item .percentage-input').forEach(input => {
+                input.value = globalPercent;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+
+        document.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', () => {
+            const modal = document.getElementById(btn.dataset.modalClose);
+            if (modal) {
+                UI.closeModal(modal);
+                if (btn.dataset.modalClose === 'card-modal') Collection.setCurrentEditingCard(null);
+            }
+        }));
+        
+        document.addEventListener('currencyChanged', () => applyAndRender({ skipFilters: true }));
+
+        document.getElementById('card-is-graded')?.addEventListener('change', async (e) => {
+            const isGraded = e.target.checked;
+            document.getElementById('graded-section').classList.toggle('hidden', !isGraded);
+            if (isGraded) {
+                const card = Collection.getCurrentEditingCard();
+                const company = document.getElementById('grading-company').value;
+                const grade = document.getElementById('grade').value;
+                if (card && (card.game === 'pokemon' || card.game === 'lorcana')) {
+                    UI.showToast(`Fetching price for ${company} ${grade}...`, 'info');
+                    const gradedPrice = await API.getGradedCardPrice(card, company, grade);
+                    if (gradedPrice) UI.showToast(`Graded Market Price: $${gradedPrice.price}`, 'success', 8000);
+                    else UI.showToast(`Could not find a price for this grade.`, 'error');
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error("Initialization error:", error);
+        UI.showToast("Failed to initialize the application. Please refresh.", "error");
+    }
+});
+
+window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilters };

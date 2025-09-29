@@ -587,6 +587,12 @@ function handleFilterChange(e) {
         currentFilters[filterType] = [...set];
     }
     Collection.setFilters(currentFilters);
+    
+    // Update the label for set filters
+    if (filterType === 'set') {
+        updateSetFilterLabel();
+    }
+    
     applyAndRender({});
 }
 
@@ -605,6 +611,129 @@ function handleTypeFilterChange(e) {
     applyAndRender({});
 }
 
+function handleGameFilterChange(e) {
+    const game = e.target.dataset.game;
+    const isChecked = e.target.checked;
+    const currentGames = Collection.getFilters().games || [];
+    
+    if (isChecked) {
+        if (!currentGames.includes(game)) {
+            currentGames.push(game);
+        }
+    } else {
+        const index = currentGames.indexOf(game);
+        if (index > -1) {
+            currentGames.splice(index, 1);
+        }
+    }
+    
+    Collection.setFilters({ games: currentGames });
+    updateSetFilterDropdown();
+    applyAndRender({});
+}
+
+function updateSetFilterDropdown() {
+    const selectedGames = Collection.getFilters().games || [];
+    const state = Collection.getState();
+    const dropdown = document.getElementById('set-filter-dropdown');
+    const emptyMessage = document.getElementById('set-filter-empty');
+    
+    if (!dropdown) return;
+    
+    if (selectedGames.length === 0) {
+        dropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">Select games first to see available sets</div>';
+        return;
+    }
+    
+    // Get unique sets from the collection for selected games
+    const availableSets = new Set();
+    state.fullCollection.forEach(card => {
+        if (selectedGames.includes(card.game) && card.set_name) {
+            availableSets.add(card.set_name);
+        }
+    });
+    
+    if (availableSets.size === 0) {
+        dropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">No sets available for selected games</div>';
+        return;
+    }
+    
+    const currentSetFilters = Collection.getFilters().set || [];
+    const sortedSets = Array.from(availableSets).sort();
+    
+    dropdown.innerHTML = sortedSets.map(setName => {
+        const isChecked = currentSetFilters.includes(setName);
+        return `
+            <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                <input type="checkbox" data-filter-type="set" value="${setName}" ${isChecked ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600">
+                <span class="text-sm">${setName}</span>
+            </label>
+        `;
+    }).join('');
+    
+    updateSetFilterLabel();
+}
+
+function updateSetFilterLabel() {
+    const currentSetFilters = Collection.getFilters().set || [];
+    const label = document.getElementById('set-filter-label');
+    
+    if (!label) return;
+    
+    if (currentSetFilters.length === 0) {
+        label.textContent = 'Select Sets/Editions';
+    } else if (currentSetFilters.length === 1) {
+        label.textContent = currentSetFilters[0];
+    } else {
+        label.textContent = `${currentSetFilters.length} sets selected`;
+    }
+}
+
+function showCardPreview(event, card) {
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (!tooltip) return;
+    
+    const imageUrl = getCardImageUrl(card);
+    tooltip.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-2 max-w-xs">
+            <img src="${imageUrl}" alt="${card.name}" class="w-full rounded-lg" loading="lazy">
+            <div class="mt-2 text-center">
+                <h4 class="font-semibold text-sm">${card.name}</h4>
+                <p class="text-xs text-gray-600 dark:text-gray-400">${card.set_name || 'Unknown Set'}</p>
+            </div>
+        </div>
+    `;
+    
+    tooltip.classList.remove('hidden');
+    tooltip.style.pointerEvents = 'none';
+    
+    // Position tooltip
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    let left = rect.right + 10;
+    let top = rect.top;
+    
+    // Adjust if tooltip would go off screen
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = rect.left - tooltipRect.width - 10;
+    }
+    
+    if (top + tooltipRect.height > window.innerHeight) {
+        top = window.innerHeight - tooltipRect.height - 10;
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
+function hideCardPreview() {
+    const tooltip = document.getElementById('card-preview-tooltip');
+    if (tooltip) {
+        tooltip.classList.add('hidden');
+    }
+}
+
 function handleNameFilterInput(e) {
     Collection.setFilters({ name: e.target.value });
     applyAndRender({});
@@ -614,6 +743,7 @@ function clearAllFilters() {
     Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '' });
     document.getElementById('filter-name').value = '';
     document.querySelectorAll('input[data-filter-type]').forEach(input => input.checked = false);
+    document.querySelectorAll('input[data-game]').forEach(input => input.checked = false);
     document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-blue-500'));
     const typeFilterSelect = document.getElementById('type-filter-select');
     if(typeFilterSelect) typeFilterSelect.value = '';
@@ -821,6 +951,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (cardContainer) handleCardClick(e, cardContainer);
             if (e.target.classList.contains('bulk-select-checkbox')) handleBulkCheckboxChange(e);
         });
+        
+        // Card hover functionality
+        document.getElementById('collection-display')?.addEventListener('mouseover', (e) => {
+            const cardContainer = e.target.closest('.card-container');
+            if (cardContainer && !e.target.closest('button') && !e.target.classList.contains('bulk-select-checkbox')) {
+                const cardId = cardContainer.dataset.id;
+                const card = Collection.getCardById(cardId);
+                if (card) {
+                    showCardPreview(e, card);
+                }
+            }
+        });
+        
+        document.getElementById('collection-display')?.addEventListener('mouseout', (e) => {
+            const cardContainer = e.target.closest('.card-container');
+            if (cardContainer) {
+                hideCardPreview();
+            }
+        });
         document.getElementById('top-movers-container')?.addEventListener('click', (e) => {
             const element = e.target.closest('[data-card-id]');
             if (element) handleTopMoverClick(element);
@@ -828,15 +977,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.addEventListener('change', (e) => {
             if (e.target.dataset.filterType) handleFilterChange(e);
             if (e.target.id === 'type-filter-select') handleTypeFilterChange(e);
+            if (e.target.dataset.game) handleGameFilterChange(e);
         });
         document.getElementById('filter-color-container')?.addEventListener('click', handleColorFilterClick);
         document.getElementById('filter-name')?.addEventListener('input', handleNameFilterInput);
         document.getElementById('clear-filters-btn')?.addEventListener('click', clearAllFilters);
+        
+        // Set filter dropdown functionality
+        document.getElementById('set-filter-dropdown-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('set-filter-dropdown');
+            const chevron = document.getElementById('set-filter-chevron');
+            if (dropdown && chevron) {
+                const isHidden = dropdown.classList.contains('hidden');
+                dropdown.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-180', !isHidden);
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('set-filter-dropdown');
+            const button = document.getElementById('set-filter-dropdown-btn');
+            if (dropdown && button && !button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                document.getElementById('set-filter-chevron')?.classList.remove('rotate-180');
+            }
+        });
         document.getElementById('bulk-edit-btn')?.addEventListener('click', toggleBulkEditMode);
         document.getElementById('bulk-select-all-btn')?.addEventListener('click', selectAllFiltered);
         document.getElementById('bulk-deselect-all-btn')?.addEventListener('click', deselectAll);
         document.getElementById('bulk-delete-btn')?.addEventListener('click', bulkDelete);
-        document.getElementById('bulk-list-btn')?.addEventListener('click', openBulkReviewModal);
+        document.getElementById('bulk-list-btn')?.addEventListener('click', () => {
+            const selectedIds = Collection.getSelectedCardIds();
+            if (selectedIds.length === 0) {
+                UI.showToast("No cards selected for bulk listing.", "info");
+                return;
+            }
+            openBulkReviewModal();
+        });
         document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
         document.getElementById('finalize-bulk-list-btn')?.addEventListener('click', finalizeBulkSale);
         
@@ -866,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
+        // Modal close button handlers
         document.querySelectorAll('[data-modal-close]').forEach(btn => btn.addEventListener('click', () => {
             const modal = document.getElementById(btn.dataset.modalClose);
             if (modal) {
@@ -873,6 +1053,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (btn.dataset.modalClose === 'card-modal') Collection.setCurrentEditingCard(null);
             }
         }));
+
+        // Click outside modal to close functionality
+        document.addEventListener('click', (e) => {
+            const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal && !modal.classList.contains('hidden')) {
+                    const modalContent = modal.querySelector('div[class*="bg-white"], div[class*="bg-gray-800"]');
+                    if (modalContent && !modalContent.contains(e.target) && e.target === modal) {
+                        UI.closeModal(modal);
+                        if (modalId === 'card-modal') Collection.setCurrentEditingCard(null);
+                        if (modalId === 'search-modal') {
+                            // Clear search results when closing search modal
+                            document.getElementById('card-search-input').value = '';
+                            document.getElementById('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
+                        }
+                    }
+                }
+            });
+        });
+
+        // Escape key to close modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal'];
+                modals.forEach(modalId => {
+                    const modal = document.getElementById(modalId);
+                    if (modal && !modal.classList.contains('hidden')) {
+                        UI.closeModal(modal);
+                        if (modalId === 'card-modal') Collection.setCurrentEditingCard(null);
+                        if (modalId === 'search-modal') {
+                            // Clear search results when closing search modal
+                            document.getElementById('card-search-input').value = '';
+                            document.getElementById('search-results-container').innerHTML = '<p class="text-center text-gray-500">Search results will appear here.</p>';
+                        }
+                    }
+                });
+            }
+        });
         
         document.addEventListener('currencyChanged', () => applyAndRender({ skipFilters: true }));
 

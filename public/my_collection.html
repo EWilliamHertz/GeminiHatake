@@ -197,6 +197,15 @@
        <div class="space-y-4">
         <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="filter-name" placeholder="Filter by name..." type="text"/>
         <div class="relative" id="filter-set-container">
+         <button class="w-full text-left flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="set-filter-dropdown-btn">
+          <span id="set-filter-label">Select Sets/Editions</span>
+          <i class="fas fa-chevron-down transition-transform" id="set-filter-chevron"></i>
+         </button>
+         <div class="absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 hidden max-h-60 overflow-y-auto" id="set-filter-dropdown">
+          <div class="p-2 text-sm text-gray-500 dark:text-gray-400" id="set-filter-empty">
+           Select games first to see available sets
+          </div>
+         </div>
         </div>
         <div class="relative" id="filter-rarity-container">
         </div>
