@@ -66,6 +66,7 @@ export function getNormalizedPriceUSD(prices) {
     }
 
     if (prices.jpy && exchangeRates.JPY) {
+        // Fix: JPY to USD conversion - divide by exchange rate (JPY is typically > 100 per USD)
         return (parseFloat(prices.jpy) / exchangeRates.JPY) || 0;
     }
     
