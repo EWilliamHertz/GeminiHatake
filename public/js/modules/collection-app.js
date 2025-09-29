@@ -368,7 +368,7 @@ const UI = {
         `;
         typeContainer.innerHTML = typeSelect;
     }
-};
+});
 
 // --- ANALYTICS MODULE ---
 const Analytics = {
@@ -407,7 +407,7 @@ const Analytics = {
             if(container) container.innerHTML = '<p class="text-center text-red-500">Error loading price history.</p>';
         }
     }
-};
+});
 
 // --- MAIN APPLICATION LOGIC ---
 function applyAndRender(options = {}) {
@@ -1264,7 +1264,8 @@ window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilt
 
 
 // --- ANALYTICS FUNCTIONALITY ---
-const Analytics = {
+// Analytics object already declared above, extending it here
+Object.assign(Analytics, {
     renderSingleCardChart: (card, canvasId) => {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
@@ -1447,7 +1448,7 @@ const Analytics = {
             }).join('');
         }
     }
-};
+});
 
 // Add toggleDashboard function to global scope
 function toggleDashboard() {
