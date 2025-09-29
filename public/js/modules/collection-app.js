@@ -368,7 +368,7 @@ const UI = {
         `;
         typeContainer.innerHTML = typeSelect;
     }
-});
+};
 
 // --- ANALYTICS MODULE ---
 const Analytics = {
@@ -407,7 +407,7 @@ const Analytics = {
             if(container) container.innerHTML = '<p class="text-center text-red-500">Error loading price history.</p>';
         }
     }
-});
+};
 
 // --- MAIN APPLICATION LOGIC ---
 function applyAndRender(options = {}) {
@@ -580,12 +580,6 @@ function handleCardClick(e, cardContainer) {
     }
 }
 
-function handleTopMoverClick(element) {
-    if (element?.dataset.cardId) {
-        const card = Collection.getCardById(element.dataset.cardId);
-        if (card) UI.populateCardModalForEdit(card);
-    }
-}
 
 function handleFilterChange(e) {
     const filterType = e.target.dataset.filterType;
