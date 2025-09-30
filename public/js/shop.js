@@ -7,7 +7,16 @@
  * for all cart manipulation logic.
  */
 
-const initializeShop = () => {
+let Currency = null;
+
+const initializeShop = async () => {
+    // Import currency module
+    try {
+        Currency = await import('./modules/currency.js');
+        await Currency.initCurrency();
+    } catch (error) {
+        console.error('Failed to load currency module:', error);
+    }
     // --- DOM Elements ---
     const productGrid = document.getElementById('product-grid');
     const productDetailModal = document.getElementById('product-detail-modal');
@@ -69,7 +78,7 @@ const initializeShop = () => {
                 <div class="product-info">
                     <div>
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white truncate">${product.name}</h3>
-                        <p class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">$${product.price.toFixed(2)}</p>
+                        <p class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">${Currency ? Currency.convertAndFormat({ usd: product.price }) : '$' + product.price.toFixed(2)}</p>
                         <p class="text-sm ${product.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}">${product.stock > 0 ? `${product.stock} available` : 'Out of Stock'}</p>
                     </div>
                     <div class="mt-4">
@@ -107,7 +116,7 @@ const initializeShop = () => {
                 </div>
                 <div>
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${product.name}</h2>
-                    <p class="text-3xl font-extrabold text-blue-600 dark:text-blue-400">$${product.price.toFixed(2)}</p>
+                    <p class="text-3xl font-extrabold text-blue-600 dark:text-blue-400">${Currency ? Currency.convertAndFormat({ usd: product.price }) : '$' + product.price.toFixed(2)}</p>
                     <p class="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">${product.description || 'No description available.'}</p>
                     <p class="text-sm font-medium ${product.stock > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'} mb-4">${product.stock > 0 ? `${product.stock} in stock` : 'Out of Stock'}</p>
                     <button data-id="${product.id}" class="add-to-cart-btn-modal w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${product.stock === 0 ? 'disabled' : ''}>
@@ -198,6 +207,13 @@ const initializeShop = () => {
     };
 
     initShop();
+    
+    // Add currency change event listener
+    document.addEventListener('currencyChanged', async (event) => {
+        console.log('Currency changed in shop:', event.detail);
+        // Re-render products with new currency
+        renderProducts();
+    });
 };
 
 // --- SCRIPT EXECUTION ---

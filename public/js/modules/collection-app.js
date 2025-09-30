@@ -1275,7 +1275,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        document.addEventListener('currencyChanged', () => applyAndRender({ skipFilters: true }));
+        document.addEventListener('currencyChanged', async (event) => {
+            console.log('Currency changed event received:', event.detail);
+            // Force re-render of all price displays
+            await applyAndRender({ skipFilters: true });
+            // Update analytics dashboard if it exists
+            if (typeof Analytics !== 'undefined' && Analytics.updateAnalyticsDashboard) {
+                Analytics.updateAnalyticsDashboard();
+            }
+            // Update any open modals with new prices
+            const cardModal = document.getElementById('card-modal');
+            if (cardModal && !cardModal.classList.contains('hidden')) {
+                const currentCard = Collection.getCurrentEditingCard();
+                if (currentCard) {
+                    const priceElement = cardModal.querySelector('.card-price');
+                    if (priceElement) {
+                        priceElement.textContent = Currency.convertAndFormat(currentCard.prices);
+                    }
+                }
+            }
+        });
 
         document.getElementById('card-is-graded')?.addEventListener('change', async (e) => {
             const isGraded = e.target.checked;
