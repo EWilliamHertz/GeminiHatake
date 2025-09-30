@@ -855,3 +855,119 @@ class MarketplaceManager {
 
 // Initialize the marketplace when the script loads
 window.marketplaceManager = new MarketplaceManager();
+
+
+// --- MARKETPLACE TO TRADE INTEGRATION ---
+
+// Add "Add to Trade" button functionality
+function addTradeButtons() {
+    const cardElements = document.querySelectorAll('.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-md');
+    cardElements.forEach(element => {
+        // Check if trade button already exists
+        if (element.querySelector('.add-to-trade-btn')) return;
+        
+        // Make the element relative positioned
+        element.classList.add('relative', 'group');
+        
+        // Create add to trade button
+        const tradeBtn = document.createElement('button');
+        tradeBtn.className = 'add-to-trade-btn absolute top-2 right-2 bg-purple-600 text-white p-2 rounded-full hover:bg-purple-700 transition-all opacity-0 group-hover:opacity-100 z-10';
+        tradeBtn.innerHTML = '<i class="fas fa-exchange-alt text-sm"></i>';
+        tradeBtn.title = 'Add to Trade Window';
+        
+        tradeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Get the card data from the marketplace instance
+            const marketplace = window.marketplaceInstance;
+            if (marketplace && marketplace.selectedCard) {
+                addCardToTradeWindow(marketplace.selectedCard);
+            } else {
+                // Try to extract card data from the element
+                const cardName = element.querySelector('h3')?.textContent || 'Unknown Card';
+                const cardPrice = element.querySelector('.text-green-600')?.textContent || '$0.00';
+                
+                addCardToTradeWindow({
+                    cardData: { name: cardName },
+                    price: parseFloat(cardPrice.replace(/[^0-9.]/g, '')) || 0,
+                    addedFromMarketplace: true
+                });
+            }
+        });
+        
+        element.appendChild(tradeBtn);
+    });
+}
+
+function addCardToTradeWindow(cardData) {
+    // Check if we're on the trades page or if trade window is available
+    if (typeof window.TradeManager !== 'undefined') {
+        window.TradeManager.addCardFromMarketplace(cardData);
+        showToast(`${cardData.cardData?.name || 'Card'} added to trade window!`, 'success');
+    } else {
+        // Store in localStorage and redirect to trades page
+        const tradeCards = JSON.parse(localStorage.getItem('pendingTradeCards') || '[]');
+        tradeCards.push({
+            ...cardData,
+            addedFromMarketplace: true,
+            timestamp: Date.now()
+        });
+        localStorage.setItem('pendingTradeCards', JSON.stringify(tradeCards));
+        
+        // Show confirmation and redirect
+        showToast(`${cardData.cardData?.name || 'Card'} added to trade window. Redirecting to trades...`, 'success');
+        
+        setTimeout(() => {
+            window.location.href = 'trades.html';
+        }, 1500);
+    }
+}
+
+// Enhanced marketplace initialization with trade integration
+document.addEventListener('DOMContentLoaded', () => {
+    // Add trade buttons after marketplace loads
+    setTimeout(() => {
+        addTradeButtons();
+    }, 2000);
+    
+    // Re-add trade buttons when cards are re-rendered
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                setTimeout(() => {
+                    addTradeButtons();
+                }, 100);
+            }
+        });
+    });
+    
+    const marketplaceGrid = document.getElementById('marketplace-grid');
+    if (marketplaceGrid) {
+        observer.observe(marketplaceGrid, { childList: true, subtree: true });
+    }
+});
+
+// Toast notification function (if not already defined)
+if (typeof showToast === 'undefined') {
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white max-w-sm transition-all transform translate-x-0 ${
+            type === 'success' ? 'bg-green-600' : 
+            type === 'error' ? 'bg-red-600' : 
+            type === 'warning' ? 'bg-yellow-600' : 'bg-blue-600'
+        }`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+}

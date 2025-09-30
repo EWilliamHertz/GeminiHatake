@@ -160,8 +160,140 @@
     <!-- This container is dynamically filled by auth.js -->
    </div>
   </header>
-      
 
+    <!-- New Trading Interface -->
+    <div class="flex-1 flex overflow-hidden" id="new-trading-interface">
+        <!-- Left Panel - Trade Window -->
+        <div class="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-handshake mr-2 text-blue-600"></i>
+                    Current Trade
+                </h2>
+                <div class="mt-2 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span id="trade-partner-name">Select a trading partner</span>
+                    <button class="px-3 py-1 bg-green-600 text-white rounded-full text-xs hover:bg-green-700" id="start-tour-btn">
+                        <i class="fas fa-question-circle mr-1"></i>Tour
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Trade Sides -->
+            <div class="flex-1 flex flex-col">
+                <!-- Your Side -->
+                <div class="flex-1 border-b border-gray-200 dark:border-gray-700">
+                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="font-medium text-blue-900 dark:text-blue-300">Your Offer</h3>
+                        <div class="text-sm text-blue-700 dark:text-blue-400">
+                            Value: <span id="your-trade-value">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="p-2 overflow-y-auto" id="your-trade-cards" style="max-height: 200px;">
+                        <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <i class="fas fa-plus-circle text-3xl mb-2"></i>
+                            <p>Add cards from your collection</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Their Side -->
+                <div class="flex-1">
+                    <div class="p-3 bg-red-50 dark:bg-red-900/20 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="font-medium text-red-900 dark:text-red-300">Their Offer</h3>
+                        <div class="text-sm text-red-700 dark:text-red-400">
+                            Value: <span id="their-trade-value">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="p-2 overflow-y-auto" id="their-trade-cards" style="max-height: 200px;">
+                        <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <i class="fas fa-user-plus text-3xl mb-2"></i>
+                            <p>Partner's cards will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Trade Actions -->
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <button class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50" id="autobalance-btn" disabled>
+                    <i class="fas fa-balance-scale mr-2"></i>Auto Balance
+                </button>
+                <button class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50" id="propose-trade-btn" disabled>
+                    <i class="fas fa-paper-plane mr-2"></i>Propose Trade
+                </button>
+                <button class="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700" id="toggle-legacy-view">
+                    <i class="fas fa-list mr-2"></i>View All Trades
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Binder Views -->
+        <div class="flex-1 flex flex-col">
+            <!-- Binder Tabs -->
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex">
+                    <button class="flex-1 px-4 py-3 text-center border-b-2 border-blue-600 text-blue-600 font-medium" data-binder="your" id="your-binder-tab">
+                        Your Collection
+                    </button>
+                    <button class="flex-1 px-4 py-3 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" data-binder="their" id="their-binder-tab" disabled>
+                        Partner's Collection
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="bg-gray-50 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <!-- Game Filters -->
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Games:</label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="game-filter mr-1" data-game="mtg" checked>
+                            <span class="text-sm">Magic</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="game-filter mr-1" data-game="pokemon" checked>
+                            <span class="text-sm">Pokémon</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="game-filter mr-1" data-game="lorcana" checked>
+                            <span class="text-sm">Lorcana</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="game-filter mr-1" data-game="gundam" checked>
+                            <span class="text-sm">Gundam</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Search -->
+                    <div class="flex-1 max-w-md">
+                        <input class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" id="binder-search" placeholder="Search cards..." type="text"/>
+                    </div>
+                    
+                    <!-- View Toggle -->
+                    <div class="flex items-center space-x-2">
+                        <button class="p-2 bg-blue-600 text-white rounded-md" id="view-toggle-grid">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button class="p-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md" id="view-toggle-list">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Binder Content -->
+            <div class="flex-1 overflow-y-auto p-4" id="binder-content">
+                <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                    <i class="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                    <p>Loading collection...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legacy Trade Management (Hidden by default) -->
+    <main class="flex-1 overflow-y-auto p-6 container mx-auto hidden" id="legacy-trades-section">
     
      <div class="flex justify-between items-center mb-8 border-b pb-4 dark:border-gray-700">
       <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">
@@ -538,6 +670,81 @@
     </script>
    </main>
   </div>
+
+  <!-- Autobalance Modal -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="autobalance-modal">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl p-6">
+          <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">Auto Balance Trade</h2>
+              <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-autobalance-modal">×</button>
+          </div>
+          <div class="space-y-4">
+              <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <h3 class="font-medium text-gray-900 dark:text-white mb-2">Current Trade Value</h3>
+                  <div class="flex justify-between text-sm">
+                      <span>Your offer: <span id="autobalance-your-value">$0.00</span></span>
+                      <span>Their offer: <span id="autobalance-their-value">$0.00</span></span>
+                  </div>
+                  <div class="mt-2 text-center">
+                      <span class="font-medium">Difference: <span id="autobalance-difference">$0.00</span></span>
+                  </div>
+              </div>
+              <div id="autobalance-suggestions">
+                  <!-- Suggestions will be populated here -->
+              </div>
+              <div class="flex justify-end space-x-2">
+                  <button class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500" id="cancel-autobalance">Cancel</button>
+                  <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" id="apply-autobalance">Apply Suggestions</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Escrow Payment Modal -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="escrow-modal">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+          <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">Secure Payment</h2>
+              <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-escrow-modal">×</button>
+          </div>
+          <div class="space-y-4">
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <h3 class="font-medium text-blue-900 dark:text-blue-300 mb-2">
+                      <i class="fas fa-shield-alt mr-2"></i>Escrow.com Protection
+                  </h3>
+                  <p class="text-sm text-blue-800 dark:text-blue-400">Your payment is secured through Escrow.com until both parties confirm the trade.</p>
+              </div>
+              <div class="space-y-2">
+                  <div class="flex justify-between text-sm">
+                      <span>Trade amount:</span>
+                      <span id="escrow-trade-amount">$0.00</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                      <span>Escrow.com fee (0.8%):</span>
+                      <span id="escrow-fee">$0.00</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                      <span>Platform fee (2.7%):</span>
+                      <span id="platform-fee">$0.00</span>
+                  </div>
+                  <div class="border-t pt-2 flex justify-between font-medium">
+                      <span>Total:</span>
+                      <span id="escrow-total">$0.00</span>
+                  </div>
+              </div>
+              <div class="flex justify-end space-x-2">
+                  <button class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500" id="cancel-escrow">Cancel</button>
+                  <button class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700" id="proceed-escrow">
+                      <i class="fas fa-lock mr-2"></i>Secure Payment
+                  </button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Card Preview Tooltip -->
+  <div class="fixed pointer-events-none z-50 hidden" id="card-preview-tooltip"></div>
+
   <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
     <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
@@ -593,6 +800,37 @@
             }
   </script>
   <script src="js/messenger.js">
+  </script>
+
+  <!-- Tour.js Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
+
+  <!-- Toggle between new and legacy trading interfaces -->
+  <script>
+      document.addEventListener('DOMContentLoaded', () => {
+          const toggleBtn = document.getElementById('toggle-legacy-view');
+          const newInterface = document.getElementById('new-trading-interface');
+          const legacySection = document.getElementById('legacy-trades-section');
+          
+          if (toggleBtn) {
+              toggleBtn.addEventListener('click', () => {
+                  const isLegacyVisible = !legacySection.classList.contains('hidden');
+                  
+                  if (isLegacyVisible) {
+                      // Switch to new interface
+                      legacySection.classList.add('hidden');
+                      newInterface.classList.remove('hidden');
+                      toggleBtn.innerHTML = '<i class="fas fa-list mr-2"></i>View All Trades';
+                  } else {
+                      // Switch to legacy interface
+                      newInterface.classList.add('hidden');
+                      legacySection.classList.remove('hidden');
+                      toggleBtn.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i>New Trade';
+                  }
+              });
+          }
+      });
   </script>
   <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1001]" id="new-conversation-modal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">

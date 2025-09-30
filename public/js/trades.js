@@ -522,3 +522,654 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 
     initializePage();
 });
+
+// --- NEW TRADING FEATURES ---
+
+// Trade Window Management
+class TradeWindow {
+    constructor() {
+        this.currentTrade = {
+            yourCards: [],
+            theirCards: [],
+            yourValue: 0,
+            theirValue: 0,
+            partner: null
+        };
+        this.initializeTradeWindow();
+    }
+
+    initializeTradeWindow() {
+        // Add event listeners for trade window functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            this.setupTradeWindowEvents();
+            this.setupAutobalance();
+            this.setupEscrowIntegration();
+        });
+    }
+
+    setupTradeWindowEvents() {
+        // Binder tab switching
+        const binderTabs = document.querySelectorAll('[data-binder]');
+        binderTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                this.switchBinder(e.target.dataset.binder);
+            });
+        });
+
+        // Game filters
+        const gameFilters = document.querySelectorAll('.game-filter');
+        gameFilters.forEach(filter => {
+            filter.addEventListener('change', () => {
+                this.applyFilters();
+            });
+        });
+
+        // Search functionality
+        const binderSearch = document.getElementById('binder-search');
+        if (binderSearch) {
+            binderSearch.addEventListener('input', (e) => {
+                this.searchCards(e.target.value);
+            });
+        }
+
+        // View toggle
+        const viewToggles = document.querySelectorAll('#view-toggle-grid, #view-toggle-list');
+        viewToggles.forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                this.switchView(e.target.id.includes('grid') ? 'grid' : 'list');
+            });
+        });
+    }
+
+    switchBinder(binderType) {
+        const tabs = document.querySelectorAll('[data-binder]');
+        tabs.forEach(tab => {
+            tab.classList.remove('border-blue-600', 'text-blue-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        const activeTab = document.querySelector(`[data-binder="${binderType}"]`);
+        if (activeTab) {
+            activeTab.classList.add('border-blue-600', 'text-blue-600');
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        if (binderType === 'your') {
+            this.loadYourCollection();
+        } else if (binderType === 'their' && this.currentTrade.partner) {
+            this.loadPartnerCollection();
+        }
+    }
+
+    async loadYourCollection() {
+        const user = firebase.auth().currentUser;
+        if (!user) return;
+
+        try {
+            const db = firebase.firestore();
+            const snapshot = await db.collection('users').doc(user.uid).collection('collection').get();
+            const cards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            this.renderBinder(cards, 'your');
+        } catch (error) {
+            console.error('Error loading your collection:', error);
+            this.showToast('Failed to load your collection', 'error');
+        }
+    }
+
+    async loadPartnerCollection() {
+        if (!this.currentTrade.partner) return;
+
+        try {
+            const db = firebase.firestore();
+            const snapshot = await db.collection('users').doc(this.currentTrade.partner.uid).collection('collection').get();
+            const cards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            this.renderBinder(cards, 'their');
+        } catch (error) {
+            console.error('Error loading partner collection:', error);
+            this.showToast('Failed to load partner collection', 'error');
+        }
+    }
+
+    renderBinder(cards, owner) {
+        const binderContent = document.getElementById('binder-content');
+        if (!binderContent) return;
+
+        const filteredCards = this.filterCards(cards);
+        const currentView = document.getElementById('view-toggle-grid').classList.contains('bg-blue-600') ? 'grid' : 'list';
+
+        if (currentView === 'grid') {
+            binderContent.innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    ${filteredCards.map(card => this.renderCardGrid(card, owner)).join('')}
+                </div>
+            `;
+        } else {
+            binderContent.innerHTML = `
+                <div class="space-y-2">
+                    ${filteredCards.map(card => this.renderCardList(card, owner)).join('')}
+                </div>
+            `;
+        }
+
+        // Add click handlers for adding cards to trade
+        binderContent.querySelectorAll('.trade-card-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const cardId = item.dataset.cardId;
+                const card = filteredCards.find(c => c.id === cardId);
+                if (card) {
+                    this.addCardToTrade(card, owner);
+                }
+            });
+        });
+    }
+
+    renderCardGrid(card, owner) {
+        const imageUrl = this.getCardImageUrl(card);
+        const price = this.formatPrice(card.prices);
+        
+        return `
+            <div class="trade-card-item bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" data-card-id="${card.id}">
+                <img src="${imageUrl}" alt="${card.name}" class="w-full h-32 object-cover">
+                <div class="p-2">
+                    <h4 class="text-xs font-medium text-gray-900 dark:text-white truncate">${card.name}</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">${price}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    renderCardList(card, owner) {
+        const imageUrl = this.getCardImageUrl(card);
+        const price = this.formatPrice(card.prices);
+        
+        return `
+            <div class="trade-card-item flex items-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow" data-card-id="${card.id}">
+                <img src="${imageUrl}" alt="${card.name}" class="w-12 h-16 object-cover rounded mr-3">
+                <div class="flex-1">
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-white">${card.name}</h4>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">${card.set_name || 'Unknown Set'}</p>
+                    <p class="text-xs text-green-600 dark:text-green-400">${price}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-gray-500">Qty: ${card.quantity || 1}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    addCardToTrade(card, owner) {
+        const tradeSection = owner === 'your' ? 'yourCards' : 'theirCards';
+        
+        // Check if card is already in trade
+        const existingCard = this.currentTrade[tradeSection].find(c => c.id === card.id);
+        if (existingCard) {
+            this.showToast('Card already in trade', 'warning');
+            return;
+        }
+
+        this.currentTrade[tradeSection].push(card);
+        this.updateTradeDisplay();
+        this.calculateTradeValues();
+        this.showToast(`Added ${card.name} to trade`, 'success');
+    }
+
+    removeCardFromTrade(cardId, owner) {
+        const tradeSection = owner === 'your' ? 'yourCards' : 'theirCards';
+        this.currentTrade[tradeSection] = this.currentTrade[tradeSection].filter(c => c.id !== cardId);
+        this.updateTradeDisplay();
+        this.calculateTradeValues();
+    }
+
+    updateTradeDisplay() {
+        this.updateTradeSection('your', this.currentTrade.yourCards);
+        this.updateTradeSection('their', this.currentTrade.theirCards);
+    }
+
+    updateTradeSection(owner, cards) {
+        const container = document.getElementById(`${owner}-trade-cards`);
+        if (!container) return;
+
+        if (cards.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                    <i class="fas fa-${owner === 'your' ? 'plus-circle' : 'user-plus'} text-3xl mb-2"></i>
+                    <p>${owner === 'your' ? 'Add cards from your collection' : "Partner's cards will appear here"}</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = cards.map(card => `
+            <div class="flex items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <img src="${this.getCardImageUrl(card)}" alt="${card.name}" class="w-8 h-10 object-cover rounded mr-2">
+                <div class="flex-1">
+                    <p class="text-xs font-medium text-gray-900 dark:text-white">${card.name}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">${this.formatPrice(card.prices)}</p>
+                </div>
+                <button class="text-red-500 hover:text-red-700 ml-2" onclick="tradeWindow.removeCardFromTrade('${card.id}', '${owner}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+
+    calculateTradeValues() {
+        this.currentTrade.yourValue = this.currentTrade.yourCards.reduce((sum, card) => {
+            return sum + (this.getCardValue(card) || 0);
+        }, 0);
+
+        this.currentTrade.theirValue = this.currentTrade.theirCards.reduce((sum, card) => {
+            return sum + (this.getCardValue(card) || 0);
+        }, 0);
+
+        // Update UI
+        const yourValueEl = document.getElementById('your-trade-value');
+        const theirValueEl = document.getElementById('their-trade-value');
+        
+        if (yourValueEl) yourValueEl.textContent = this.formatCurrency(this.currentTrade.yourValue);
+        if (theirValueEl) theirValueEl.textContent = this.formatCurrency(this.currentTrade.theirValue);
+
+        // Enable/disable autobalance and propose buttons
+        this.updateTradeButtons();
+    }
+
+    updateTradeButtons() {
+        const autobalanceBtn = document.getElementById('autobalance-btn');
+        const proposeBtn = document.getElementById('propose-trade-btn');
+        
+        const hasCards = this.currentTrade.yourCards.length > 0 || this.currentTrade.theirCards.length > 0;
+        const hasPartner = this.currentTrade.partner !== null;
+        
+        if (autobalanceBtn) {
+            autobalanceBtn.disabled = !hasCards;
+        }
+        
+        if (proposeBtn) {
+            proposeBtn.disabled = !hasCards || !hasPartner;
+        }
+    }
+
+    // Autobalance functionality
+    setupAutobalance() {
+        const autobalanceBtn = document.getElementById('autobalance-btn');
+        if (autobalanceBtn) {
+            autobalanceBtn.addEventListener('click', () => {
+                this.showAutobalanceModal();
+            });
+        }
+
+        const closeAutobalanceBtn = document.getElementById('close-autobalance-modal');
+        if (closeAutobalanceBtn) {
+            closeAutobalanceBtn.addEventListener('click', () => {
+                this.hideAutobalanceModal();
+            });
+        }
+
+        const applyAutobalanceBtn = document.getElementById('apply-autobalance');
+        if (applyAutobalanceBtn) {
+            applyAutobalanceBtn.addEventListener('click', () => {
+                this.applyAutobalanceSuggestions();
+            });
+        }
+    }
+
+    showAutobalanceModal() {
+        const modal = document.getElementById('autobalance-modal');
+        if (!modal) return;
+
+        const yourValue = this.currentTrade.yourValue;
+        const theirValue = this.currentTrade.theirValue;
+        const difference = Math.abs(yourValue - theirValue);
+
+        document.getElementById('autobalance-your-value').textContent = this.formatCurrency(yourValue);
+        document.getElementById('autobalance-their-value').textContent = this.formatCurrency(theirValue);
+        document.getElementById('autobalance-difference').textContent = this.formatCurrency(difference);
+
+        this.generateAutobalanceSuggestions(yourValue, theirValue, difference);
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    hideAutobalanceModal() {
+        const modal = document.getElementById('autobalance-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    generateAutobalanceSuggestions(yourValue, theirValue, difference) {
+        const suggestionsContainer = document.getElementById('autobalance-suggestions');
+        if (!suggestionsContainer) return;
+
+        const needsMore = yourValue < theirValue ? 'your' : 'their';
+        const suggestions = [];
+
+        // Cash suggestion
+        if (difference > 1) {
+            suggestions.push({
+                type: 'cash',
+                side: needsMore,
+                amount: difference,
+                description: `Add ${this.formatCurrency(difference)} cash to ${needsMore === 'your' ? 'your' : 'their'} side`
+            });
+        }
+
+        // Card suggestions (simplified - would need more complex logic in production)
+        suggestions.push({
+            type: 'card',
+            side: needsMore,
+            description: `Add cards worth approximately ${this.formatCurrency(difference)} to ${needsMore === 'your' ? 'your' : 'their'} side`
+        });
+
+        suggestionsContainer.innerHTML = suggestions.map(suggestion => `
+            <div class="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm">${suggestion.description}</span>
+                    <button class="px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700" 
+                            onclick="tradeWindow.applySuggestion('${suggestion.type}', '${suggestion.side}', ${suggestion.amount || 0})">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    applySuggestion(type, side, amount) {
+        if (type === 'cash') {
+            // For now, just show escrow modal
+            this.showEscrowModal(amount);
+        } else {
+            this.showToast('Card suggestions require manual selection', 'info');
+        }
+    }
+
+    // Escrow.com Integration
+    setupEscrowIntegration() {
+        const closeEscrowBtn = document.getElementById('close-escrow-modal');
+        if (closeEscrowBtn) {
+            closeEscrowBtn.addEventListener('click', () => {
+                this.hideEscrowModal();
+            });
+        }
+
+        const proceedEscrowBtn = document.getElementById('proceed-escrow');
+        if (proceedEscrowBtn) {
+            proceedEscrowBtn.addEventListener('click', () => {
+                this.processEscrowPayment();
+            });
+        }
+    }
+
+    showEscrowModal(amount) {
+        const modal = document.getElementById('escrow-modal');
+        if (!modal) return;
+
+        const escrowFee = amount * 0.008; // 0.8%
+        const platformFee = amount * 0.027; // 2.7%
+        const total = amount + escrowFee + platformFee;
+
+        document.getElementById('escrow-trade-amount').textContent = this.formatCurrency(amount);
+        document.getElementById('escrow-fee').textContent = this.formatCurrency(escrowFee);
+        document.getElementById('platform-fee').textContent = this.formatCurrency(platformFee);
+        document.getElementById('escrow-total').textContent = this.formatCurrency(total);
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    hideEscrowModal() {
+        const modal = document.getElementById('escrow-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    async processEscrowPayment() {
+        try {
+            // This would integrate with Escrow.com API
+            this.showToast('Redirecting to Escrow.com for secure payment...', 'info');
+            
+            // For now, just simulate the process
+            setTimeout(() => {
+                this.showToast('Escrow payment initiated successfully', 'success');
+                this.hideEscrowModal();
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Escrow payment error:', error);
+            this.showToast('Failed to process escrow payment', 'error');
+        }
+    }
+
+    // Utility functions
+    filterCards(cards) {
+        const selectedGames = Array.from(document.querySelectorAll('.game-filter:checked')).map(cb => cb.dataset.game);
+        const searchTerm = document.getElementById('binder-search')?.value.toLowerCase() || '';
+
+        return cards.filter(card => {
+            const matchesGame = selectedGames.length === 0 || selectedGames.includes(card.game);
+            const matchesSearch = !searchTerm || card.name.toLowerCase().includes(searchTerm);
+            return matchesGame && matchesSearch;
+        });
+    }
+
+    applyFilters() {
+        // Re-render current binder with new filters
+        const activeTab = document.querySelector('[data-binder].border-blue-600');
+        if (activeTab) {
+            this.switchBinder(activeTab.dataset.binder);
+        }
+    }
+
+    searchCards(searchTerm) {
+        this.applyFilters();
+    }
+
+    switchView(viewType) {
+        const gridBtn = document.getElementById('view-toggle-grid');
+        const listBtn = document.getElementById('view-toggle-list');
+
+        if (viewType === 'grid') {
+            gridBtn.classList.add('bg-blue-600', 'text-white');
+            gridBtn.classList.remove('bg-gray-300', 'text-gray-700');
+            listBtn.classList.add('bg-gray-300', 'text-gray-700');
+            listBtn.classList.remove('bg-blue-600', 'text-white');
+        } else {
+            listBtn.classList.add('bg-blue-600', 'text-white');
+            listBtn.classList.remove('bg-gray-300', 'text-gray-700');
+            gridBtn.classList.add('bg-gray-300', 'text-gray-700');
+            gridBtn.classList.remove('bg-blue-600', 'text-white');
+        }
+
+        this.applyFilters();
+    }
+
+    getCardImageUrl(card) {
+        if (card.image_uris?.normal) return card.image_uris.normal;
+        if (card.image_uris?.large) return card.image_uris.large;
+        if (card.image_uris?.small) return card.image_uris.small;
+        return 'https://placehold.co/223x310?text=No+Image';
+    }
+
+    getCardValue(card) {
+        if (card.prices?.usd) return parseFloat(card.prices.usd);
+        if (card.prices?.eur) return parseFloat(card.prices.eur) * 1.1; // Rough conversion
+        return 0;
+    }
+
+    formatPrice(prices) {
+        if (prices?.usd) return `$${parseFloat(prices.usd).toFixed(2)}`;
+        if (prices?.eur) return `€${parseFloat(prices.eur).toFixed(2)}`;
+        return 'N/A';
+    }
+
+    formatCurrency(amount) {
+        return `$${amount.toFixed(2)}`;
+    }
+
+    showToast(message, type = 'info') {
+        // Simple toast implementation
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white ${
+            type === 'success' ? 'bg-green-600' : 
+            type === 'error' ? 'bg-red-600' : 
+            type === 'warning' ? 'bg-yellow-600' : 'bg-blue-600'
+        }`;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+}
+
+// Marketplace Integration
+class MarketplaceIntegration {
+    static addCardToTradeFromMarketplace(cardData) {
+        if (window.tradeWindow) {
+            // Convert marketplace card to trade format
+            const tradeCard = {
+                id: cardData.id || cardData.api_id,
+                name: cardData.cardData?.name || cardData.name,
+                prices: cardData.cardData?.prices || cardData.prices,
+                image_uris: cardData.cardData?.image_uris || cardData.image_uris,
+                set_name: cardData.cardData?.set_name || cardData.set_name,
+                quantity: 1
+            };
+            
+            window.tradeWindow.addCardToTrade(tradeCard, 'their');
+            window.tradeWindow.showToast(`Added ${tradeCard.name} to trade window`, 'success');
+        }
+    }
+}
+
+// Tour.js Integration
+class TradingTour {
+    constructor() {
+        this.tour = null;
+        this.initializeTour();
+    }
+
+    initializeTour() {
+        if (typeof Shepherd === 'undefined') {
+            console.warn('Shepherd.js not loaded, tour functionality disabled');
+            return;
+        }
+
+        this.tour = new Shepherd.Tour({
+            useModalOverlay: true,
+            defaultStepOptions: {
+                classes: 'shadow-md bg-purple-dark',
+                scrollTo: true
+            }
+        });
+
+        this.setupTourSteps();
+        this.setupTourTrigger();
+    }
+
+    setupTourSteps() {
+        this.tour.addStep({
+            id: 'welcome',
+            text: 'Welcome to the HatakeSocial Trading Center! Let me show you how to trade cards securely.',
+            buttons: [{
+                text: 'Next',
+                action: this.tour.next
+            }]
+        });
+
+        this.tour.addStep({
+            id: 'trade-window',
+            text: 'This is your trade window. Cards you want to trade will appear here, along with their values.',
+            attachTo: {
+                element: '#your-trade-cards',
+                on: 'right'
+            },
+            buttons: [{
+                text: 'Back',
+                action: this.tour.back
+            }, {
+                text: 'Next',
+                action: this.tour.next
+            }]
+        });
+
+        this.tour.addStep({
+            id: 'binder-view',
+            text: 'Browse your collection or your partner\'s collection here. Click on cards to add them to the trade.',
+            attachTo: {
+                element: '#binder-content',
+                on: 'left'
+            },
+            buttons: [{
+                text: 'Back',
+                action: this.tour.back
+            }, {
+                text: 'Next',
+                action: this.tour.next
+            }]
+        });
+
+        this.tour.addStep({
+            id: 'autobalance',
+            text: 'Use the Auto Balance feature to get suggestions for equalizing trade values with cards or cash.',
+            attachTo: {
+                element: '#autobalance-btn',
+                on: 'top'
+            },
+            buttons: [{
+                text: 'Back',
+                action: this.tour.back
+            }, {
+                text: 'Next',
+                action: this.tour.next
+            }]
+        });
+
+        this.tour.addStep({
+            id: 'secure-payment',
+            text: 'All cash transactions are secured through Escrow.com, ensuring safe trades for everyone.',
+            buttons: [{
+                text: 'Back',
+                action: this.tour.back
+            }, {
+                text: 'Finish',
+                action: this.tour.complete
+            }]
+        });
+    }
+
+    setupTourTrigger() {
+        const tourBtn = document.getElementById('start-tour-btn');
+        if (tourBtn) {
+            tourBtn.classList.remove('hidden');
+            tourBtn.addEventListener('click', () => {
+                this.startTour();
+            });
+        }
+    }
+
+    startTour() {
+        if (this.tour) {
+            this.tour.start();
+        }
+    }
+}
+
+// Initialize new trading features
+let tradeWindow, marketplaceIntegration, tradingTour;
+
+document.addEventListener('DOMContentLoaded', () => {
+    tradeWindow = new TradeWindow();
+    marketplaceIntegration = new MarketplaceIntegration();
+    tradingTour = new TradingTour();
+    
+    // Make tradeWindow globally accessible for onclick handlers
+    window.tradeWindow = tradeWindow;
+    window.MarketplaceIntegration = MarketplaceIntegration;
+});
