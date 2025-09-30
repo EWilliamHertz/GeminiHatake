@@ -50,6 +50,10 @@ class TradeWindow {
         this.updateTradeBasketCounter();
         this.bindTradeBasketButton();
         this.loadTradeBasketItems();
+        
+        // ADDED: Handle URL parameters and pending trades
+        this.handleUrlParameters();
+        this.processPendingTrade();
     }
 
     bindEvents() {
@@ -96,6 +100,11 @@ class TradeWindow {
         document.getElementById('toggle-legacy-view')?.addEventListener('click', () => {
             this.toggleLegacyView();
         });
+
+        // ADDED: Trade partner selection functionality
+        document.getElementById('trade-partner-name')?.addEventListener('click', () => {
+            this.openUserSearchModal();
+        });
     }
 
     async loadYourCollection() {
@@ -110,9 +119,10 @@ class TradeWindow {
                 </div>
             `;
 
-            // Load user's collection from Firestore
-            const collectionRef = this.db.collection('userCollections')
-                .where('userId', '==', this.user.uid)
+            // Load user's collection from Firestore - FIXED: Use correct subcollection path
+            const collectionRef = this.db.collection('users')
+                .doc(this.user.uid)
+                .collection('collection')
                 .orderBy('addedAt', 'desc');
 
             const snapshot = await collectionRef.get();
@@ -148,8 +158,10 @@ class TradeWindow {
         if (!partnerId) return;
 
         try {
-            const collectionRef = this.db.collection('userCollections')
-                .where('userId', '==', partnerId)
+            // FIXED: Use correct subcollection path for partner's collection
+            const collectionRef = this.db.collection('users')
+                .doc(partnerId)
+                .collection('collection')
                 .orderBy('addedAt', 'desc');
 
             const snapshot = await collectionRef.get();
@@ -669,6 +681,128 @@ class TradeWindow {
                 duration: 3000,
                 style: { background: "linear-gradient(to right, #f59e0b, #d97706)" }
             }).showToast();
+        }
+    }
+
+    // ADDED: Open user search modal for trade partner selection
+    openUserSearchModal() {
+        // Create a simple modal for user search
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Select Trade Partner</h2>
+                    <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" id="close-user-search">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" 
+                       id="partner-search-input" 
+                       placeholder="Search for a user by name or email..." 
+                       type="text"/>
+                <div class="max-h-60 overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded-md hidden" id="partner-search-results">
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Bind events
+        const closeBtn = modal.querySelector('#close-user-search');
+        const searchInput = modal.querySelector('#partner-search-input');
+        const resultsContainer = modal.querySelector('#partner-search-results');
+
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+
+        // Use the existing user search functionality
+        if (window.userSearch) {
+            searchInput.addEventListener('input', (e) => {
+                window.userSearch.handleSearch(e.target.value, 'partner-search-results');
+            });
+        }
+
+        // Focus the search input
+        searchInput.focus();
+    }
+
+    // ADDED: Handle URL parameters for pre-selected sellers
+    handleUrlParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sellerId = urlParams.get('seller');
+        
+        if (sellerId) {
+            // Load seller information and set as trade partner
+            this.loadSellerAsTradePartner(sellerId);
+        }
+    }
+
+    // ADDED: Process pending trade data from marketplace
+    processPendingTrade() {
+        const pendingTrade = localStorage.getItem('pendingTrade');
+        if (pendingTrade) {
+            try {
+                const tradeData = JSON.parse(pendingTrade);
+                
+                // Check if the trade data is recent (within 5 minutes)
+                if (Date.now() - tradeData.timestamp < 5 * 60 * 1000) {
+                    // Set the seller as trade partner
+                    this.setTradePartner(tradeData.selectedSeller);
+                    
+                    // Show success message
+                    if (window.Toastify) {
+                        Toastify({
+                            text: `Trade partner set to ${tradeData.selectedSeller.displayName || tradeData.selectedSeller.email}`,
+                            duration: 3000,
+                            style: { background: "linear-gradient(to right, #10b981, #059669)" }
+                        }).showToast();
+                    }
+                }
+                
+                // Clear the pending trade data
+                localStorage.removeItem('pendingTrade');
+            } catch (error) {
+                console.error('Error processing pending trade:', error);
+                localStorage.removeItem('pendingTrade');
+            }
+        }
+    }
+
+    // ADDED: Load seller information and set as trade partner
+    async loadSellerAsTradePartner(sellerId) {
+        try {
+            const userDoc = await this.db.collection('users').doc(sellerId).get();
+            
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                const sellerInfo = {
+                    uid: sellerId,
+                    displayName: userData.displayName,
+                    email: userData.email
+                };
+                
+                this.setTradePartner(sellerInfo);
+                
+                if (window.Toastify) {
+                    Toastify({
+                        text: `Trade partner set to ${userData.displayName || userData.email}`,
+                        duration: 3000,
+                        style: { background: "linear-gradient(to right, #10b981, #059669)" }
+                    }).showToast();
+                }
+            } else {
+                console.error('Seller not found:', sellerId);
+            }
+        } catch (error) {
+            console.error('Error loading seller information:', error);
         }
     }
 }

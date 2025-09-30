@@ -196,6 +196,13 @@ class MarketplaceManager {
                 this.handleContactSeller();
             }
         });
+
+        // ADDED: Start trade button
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'start-trade-btn' || e.target.closest('#start-trade-btn')) {
+                this.handleStartTrade();
+            }
+        });
     }
 
     bindGameFilterToggles() {
@@ -825,6 +832,41 @@ class MarketplaceManager {
         // Implement messaging functionality here
         // This would typically open a messaging modal or redirect to messages page
         this.showToast('Messaging feature coming soon!', 'info');
+    }
+
+    // ADDED: Start trade functionality
+    handleStartTrade() {
+        if (!this.currentUser) {
+            this.showToast('Please log in to start a trade', 'error');
+            return;
+        }
+
+        if (!this.selectedCard || !this.selectedCard.sellerData) {
+            this.showToast('Seller information not available', 'error');
+            return;
+        }
+
+        // Add the card to trade basket
+        this.addCardToTradeBasket(this.selectedCard);
+
+        // Store the selected seller information for the trade
+        const tradeData = {
+            selectedCard: this.selectedCard,
+            selectedSeller: this.selectedCard.sellerData,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('pendingTrade', JSON.stringify(tradeData));
+
+        // Close the modal and redirect to trades page
+        this.closeModal('card-detail-modal');
+        
+        // Show success message
+        this.showToast('Card added to trade! Redirecting to trades page...', 'success');
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+            window.location.href = 'trades.html?seller=' + encodeURIComponent(this.selectedCard.sellerData.uid);
+        }, 1500);
     }
 }
 
