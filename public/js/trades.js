@@ -627,7 +627,7 @@ class TradeWindow {
                     text: "Trade proposal sent successfully!",
                     duration: 3000,
                     style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                }).showToast();
+                }).showTradeToast();
             }
 
             // Reset trade
@@ -680,7 +680,7 @@ class TradeWindow {
                 text: `Value difference: $${valueDiff.toFixed(2)}. Auto-balance feature coming soon!`,
                 duration: 3000,
                 style: { background: "linear-gradient(to right, #f59e0b, #d97706)" }
-            }).showToast();
+            }).showTradeToast();
         }
     }
 
@@ -763,7 +763,7 @@ class TradeWindow {
                             text: `Trade partner set to ${tradeData.selectedSeller.displayName || tradeData.selectedSeller.email}`,
                             duration: 3000,
                             style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                        }).showToast();
+                        }).showTradeToast();
                     }
                 }
                 
@@ -796,7 +796,7 @@ class TradeWindow {
                         text: `Trade partner set to ${userData.displayName || userData.email}`,
                         duration: 3000,
                         style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                    }).showToast();
+                    }).showTradeToast();
                 }
             } else {
                 console.error('Seller not found:', sellerId);
@@ -943,7 +943,7 @@ class UserSearch {
                 text: `Selected ${userData.displayName || userData.email} as trade partner`,
                 duration: 3000,
                 style: { background: "linear-gradient(to right, #10b981, #059669)" }
-            }).showToast();
+            }).showTradeToast();
         }
     }
 }
@@ -1198,7 +1198,7 @@ async function handleTradeAction(action, tradeId, db) {
              // initiateEscrowTransaction(tradeId, tradeData); // Implement if needed
         } else {
              await tradeRef.update({ status: 'funds_authorized' });
-             showToast("Trade accepted! Ready for shipment.", 'success');
+             showTradeToast("Trade accepted! Ready for shipment.", 'success');
         }
     } else if (action === 'confirm-shipment') {
         const user = firebase.auth().currentUser;
@@ -1210,17 +1210,18 @@ async function handleTradeAction(action, tradeId, db) {
         if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
             await tradeRef.update({ status: 'shipped' });
         }
-        showToast("Shipment confirmed!", 'success');
+        showTradeToast("Shipment confirmed!", 'success');
     } else if (action === 'confirm-receipt') {
         await tradeRef.update({ status: 'completed' });
-        showToast("Trade completed successfully!", 'success');
+        showTradeToast("Trade completed successfully!", 'success');
     } else if (['rejected', 'cancelled'].includes(action)) {
         await tradeRef.update({ status: action });
-        showToast("Trade offer has been updated.", 'info');
+        showTradeToast("Trade offer has been updated.", 'info');
     }
 }
 
-function showToast(message, type = 'info') {
+// Utility function for showing toast notifications
+function showTradeToast(message, type = 'info') {
     if (window.Toastify) {
         const backgrounds = {
             success: "linear-gradient(to right, #10b981, #059669)",
@@ -1233,7 +1234,7 @@ function showToast(message, type = 'info') {
             text: message,
             duration: 3000,
             style: { background: backgrounds[type] || backgrounds.info }
-        }).showToast();
+        }).showTradeToast();
     } else {
         console.log(`${type.toUpperCase()}: ${message}`);
     }
