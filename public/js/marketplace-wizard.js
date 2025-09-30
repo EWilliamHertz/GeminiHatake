@@ -325,9 +325,15 @@ class MarketplaceWizard {
             // Show success message and redirect
             this.showToast(`Created ${proposals.length} trade proposal${proposals.length !== 1 ? 's' : ''}!`, 'success');
             
-            // Redirect to trades page
+            // Redirect to trades page and open the first proposal
             setTimeout(() => {
-                window.location.href = 'trades.html';
+                if (proposals.length === 1) {
+                    // If only one proposal, redirect to trades page with the proposal ID
+                    window.location.href = `trades.html?openTrade=${proposals[0].id}`;
+                } else {
+                    // If multiple proposals, just redirect to trades page
+                    window.location.href = 'trades.html';
+                }
             }, 1500);
 
         } catch (error) {

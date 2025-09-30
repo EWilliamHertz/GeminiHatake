@@ -124,6 +124,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const createTradeCard = async (trade, tradeId) => {
         const tradeCard = document.createElement('div');
         tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
+        tradeCard.setAttribute('data-trade-id', tradeId);
         const isProposer = trade.proposerId === user.uid;
 
         const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
@@ -441,11 +442,28 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     const checkForUrlParams = async () => {
         const params = new URLSearchParams(window.location.search);
         const userToTradeWith = params.get('with');
+        const tradeToOpen = params.get('openTrade');
+        
         if (userToTradeWith) {
             const userDoc = await db.collection('users').doc(userToTradeWith).get();
             if (userDoc.exists) {
                 openProposeTradeModal({ initialPartner: { id: userDoc.id, ...userDoc.data() } });
             }
+        }
+        
+        if (tradeToOpen) {
+            // Wait a moment for trades to load, then scroll to the specific trade
+            setTimeout(() => {
+                const tradeElement = document.querySelector(`[data-trade-id="${tradeToOpen}"]`);
+                if (tradeElement) {
+                    tradeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    tradeElement.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                    // Remove highlight after 3 seconds
+                    setTimeout(() => {
+                        tradeElement.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                    }, 3000);
+                }
+            }, 1000);
         }
     };
 
