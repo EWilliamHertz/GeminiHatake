@@ -8,16 +8,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
     <link href="css/style.css" rel="stylesheet"/>
     <script>
-        tailwind.config = { 
+        tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-gray': '#1a202c',
-                        'custom-gray-light': '#2d3748',
-                    }
+            plugins: [
+                function ({ addVariant }) {
+                    addVariant('has-[:checked]', '&:has(:checked)')
                 }
-            }
+            ]
         };
     </script>
     <link href="/manifest.json" rel="manifest"/>
@@ -109,7 +106,7 @@
                     </button>
                     <div class="relative">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+                        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search marketplace..." type="text"/>
                     </div>
                 </div>
                 <div class="flex items-center space-x-5" id="user-actions">
@@ -117,201 +114,409 @@
                 </div>
             </header>
 
-            <!-- Marketplace Main Content -->
-            <main class="flex-1 overflow-y-auto p-6">
-                <!-- Game Selection Tabs -->
-                <div class="mb-6">
-                    <div class="flex flex-wrap gap-2 mb-4">
-                        <button class="game-tab px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active" data-game="all">
-                            <i class="fas fa-globe mr-2"></i>All Games
-                        </button>
-                        <button class="game-tab px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="mtg">
-                            <i class="fas fa-magic mr-2"></i>Magic: The Gathering
-                        </button>
-                        <button class="game-tab px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="pokemon">
-                            <i class="fas fa-paw mr-2"></i>Pokémon
-                        </button>
-                        <button class="game-tab px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="lorcana">
-                            <i class="fas fa-crown mr-2"></i>Lorcana
-                        </button>
-                        <button class="game-tab px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="gundam">
-                            <i class="fas fa-robot mr-2"></i>Gundam
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col lg:flex-row gap-6">
-                    <!-- Filters Sidebar -->
-                    <aside class="w-full lg:w-1/4 xl:w-1/5">
-                        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md sticky top-6">
-                            <h2 class="text-xl font-bold mb-4 flex items-center">
-                                <i class="fas fa-filter mr-2"></i>Filters
-                            </h2>
-                            
-                            <!-- Search Filter -->
-                            <div class="mb-4">
-                                <label for="search-input" class="block text-sm font-medium mb-2">Search Cards</label>
-                                <div class="relative">
-                                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                    <input type="text" id="search-input" placeholder="Card name..." class="w-full pl-10 pr-4 py-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
+            <main class="flex-1 overflow-hidden flex">
+                <!-- Filters Sidebar -->
+                <div class="w-full md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 p-6 flex-shrink-0 flex flex-col overflow-y-auto">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Marketplace Statistics</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Total Listings:</span>
+                                <span class="font-mono" id="stats-total-listings">0</span>
                             </div>
+                            <div class="flex justify-between">
+                                <span>Average Price:</span>
+                                <span class="font-mono" id="stats-avg-price">$0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Price Range:</span>
+                                <span class="font-mono" id="stats-price-range">$0 - $0</span>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Price Range Filter -->
-                            <div class="mb-4 pt-4 border-t dark:border-gray-700">
-                                <label class="block text-sm font-medium mb-2">Price Range</label>
-                                <div class="flex gap-2">
-                                    <input type="number" id="price-min" placeholder="Min" class="flex-1 p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <input type="number" id="price-max" placeholder="Max" class="flex-1 p-2 rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div class="mb-6 flex-1">
+                        <h3 class="text-lg font-semibold mb-3">Filters</h3>
+                        <div class="space-y-4">
+                            <!-- Search Filter -->
+                            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" id="filter-name" placeholder="Search by card name..." type="text"/>
+                            
+                            <!-- Game Filter -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium">Game</label>
+                                <div class="space-y-2" id="game-filter-container">
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" data-game="mtg" class="form-checkbox h-4 w-4 text-blue-600">
+                                        <span>Magic: The Gathering</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" data-game="pokemon" class="form-checkbox h-4 w-4 text-blue-600">
+                                        <span>Pokémon</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" data-game="lorcana" class="form-checkbox h-4 w-4 text-blue-600">
+                                        <span>Lorcana</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" data-game="gundam" class="form-checkbox h-4 w-4 text-blue-600">
+                                        <span>Gundam</span>
+                                    </label>
                                 </div>
                             </div>
 
                             <!-- Condition Filter -->
-                            <div class="mb-4 pt-4 border-t dark:border-gray-700">
+                            <div>
                                 <label class="block text-sm font-medium mb-2">Condition</label>
-                                <div id="condition-filter-container" class="space-y-2">
-                                    <label class="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" class="condition-filter rounded" value="Near Mint">
-                                        <span>Near Mint</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" class="condition-filter rounded" value="Lightly Played">
-                                        <span>Lightly Played</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" class="condition-filter rounded" value="Moderately Played">
-                                        <span>Moderately Played</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" class="condition-filter rounded" value="Heavily Played">
-                                        <span>Heavily Played</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 text-sm">
-                                        <input type="checkbox" class="condition-filter rounded" value="Damaged">
-                                        <span>Damaged</span>
-                                    </label>
-                                </div>
+                                <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="condition-filter">
+                                    <option value="">All Conditions</option>
+                                    <option value="mint">Mint</option>
+                                    <option value="near_mint">Near Mint</option>
+                                    <option value="excellent">Excellent</option>
+                                    <option value="good">Good</option>
+                                    <option value="light_played">Light Played</option>
+                                    <option value="played">Played</option>
+                                    <option value="poor">Poor</option>
+                                </select>
                             </div>
 
-                            <!-- Special Attributes -->
-                            <div class="mb-4 pt-4 border-t dark:border-gray-700">
-                                <label class="block text-sm font-medium mb-2">Special Attributes</label>
-                                <div class="space-y-2">
-                                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
-                                        <input type="checkbox" id="filter-graded" class="rounded">
-                                        <span>Graded Cards Only</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
-                                        <input type="checkbox" id="filter-foil" class="rounded">
-                                        <span>Foil/Holo Only</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 text-sm cursor-pointer">
-                                        <input type="checkbox" id="filter-signed" class="rounded">
-                                        <span>Signed Cards</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Rarity Filter -->
-                            <div class="mb-4 pt-4 border-t dark:border-gray-700">
-                                <label class="block text-sm font-medium mb-2">Rarity</label>
-                                <div id="rarity-filter-container" class="space-y-2">
-                                    <!-- Rarity checkboxes will be injected here -->
+                            <!-- Price Range -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Price Range</label>
+                                <div class="flex space-x-2">
+                                    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="min-price" placeholder="Min" type="number" step="0.01"/>
+                                    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="max-price" placeholder="Max" type="number" step="0.01"/>
                                 </div>
                             </div>
 
                             <!-- Game-Specific Filters -->
-                            <div id="game-specific-filters" class="space-y-4"></div>
+                            <div id="game-specific-filters">
+                                <!-- MTG Filters -->
+                                <div class="hidden" id="mtg-filters">
+                                    <label class="block text-sm font-medium mb-2">Card Type</label>
+                                    <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="mtg-type-filter">
+                                        <option value="">All Types</option>
+                                        <option value="Creature">Creature</option>
+                                        <option value="Instant">Instant</option>
+                                        <option value="Sorcery">Sorcery</option>
+                                        <option value="Enchantment">Enchantment</option>
+                                        <option value="Artifact">Artifact</option>
+                                        <option value="Planeswalker">Planeswalker</option>
+                                        <option value="Land">Land</option>
+                                    </select>
+                                </div>
 
-                            <!-- Clear Filters Button -->
-                            <div class="pt-4 border-t dark:border-gray-700">
-                                <button id="clear-filters" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                                    <i class="fas fa-times mr-2"></i>Clear All Filters
-                                </button>
+                                <!-- Pokemon Filters -->
+                                <div class="hidden" id="pokemon-filters">
+                                    <label class="block text-sm font-medium mb-2">Type</label>
+                                    <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="pokemon-type-filter">
+                                        <option value="">All Types</option>
+                                        <option value="Pokémon">Pokémon</option>
+                                        <option value="Trainer">Trainer</option>
+                                        <option value="Energy">Energy</option>
+                                    </select>
+                                    <div class="mt-2">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" id="pokemon-graded-filter" class="form-checkbox h-4 w-4 text-blue-600">
+                                            <span>Graded Cards Only</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Lorcana Filters -->
+                                <div class="hidden" id="lorcana-filters">
+                                    <div class="mt-2">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" id="lorcana-graded-filter" class="form-checkbox h-4 w-4 text-blue-600">
+                                            <span>Graded Cards Only</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Gundam Filters -->
+                                <div class="hidden" id="gundam-filters">
+                                    <label class="block text-sm font-medium mb-2">Series</label>
+                                    <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="gundam-series-filter">
+                                        <option value="">All Series</option>
+                                        <option value="Mobile Suit Gundam">Mobile Suit Gundam</option>
+                                        <option value="Gundam SEED">Gundam SEED</option>
+                                        <option value="Gundam Wing">Gundam Wing</option>
+                                        <option value="Iron-Blooded Orphans">Iron-Blooded Orphans</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                    </aside>
 
-                    <!-- Listings -->
-                    <section class="w-full lg:w-3/4 xl:w-4/5">
-                        <!-- Results Header -->
-                        <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div class="flex items-center gap-4">
-                                <span id="results-count" class="text-sm text-gray-600 dark:text-gray-400">Loading...</span>
-                                <div class="flex items-center gap-2">
-                                    <button id="view-grid" class="p-2 rounded bg-blue-600 text-white">
-                                        <i class="fas fa-th"></i>
+                            <!-- Sort Options -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Sort By</label>
+                                <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="sort-filter">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="price-low">Price: Low to High</option>
+                                    <option value="price-high">Price: High to Low</option>
+                                    <option value="name">Name A-Z</option>
+                                </select>
+                            </div>
+
+                            <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="clear-filters-btn">
+                                <i class="fas fa-times w-6"></i>
+                                Clear Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="flex-1 flex flex-col overflow-hidden p-6">
+                    <div class="flex-shrink-0 mb-4">
+                        <div class="flex flex-wrap justify-between items-center gap-4">
+                            <h1 class="text-2xl font-bold">Marketplace</h1>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+                                    <button class="p-2 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 shadow" id="view-toggle-grid">
+                                        <i class="fas fa-th-large"></i>
                                     </button>
-                                    <button id="view-list" class="p-2 rounded bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                                    <button class="p-2 rounded-full text-gray-500 dark:text-gray-400" id="view-toggle-list">
                                         <i class="fas fa-list"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <label for="sort-order" class="text-sm font-medium">Sort by:</label>
-                                <select id="sort-order" class="p-2 rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 focus:outline-none">
-                                    <option value="date-desc">Newest First</option>
-                                    <option value="date-asc">Oldest First</option>
-                                    <option value="price-asc">Price: Low to High</option>
-                                    <option value="price-desc">Price: High to Low</option>
-                                    <option value="name-asc">Name: A to Z</option>
-                                    <option value="name-desc">Name: Z to A</option>
-                                </select>
-                            </div>
                         </div>
-                        
-                        <div id="listings-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <!-- Listings will be injected here -->
-                        </div>
-                        
-                        <div id="loading-indicator" class="text-center py-10">
-                            <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
-                            <p class="mt-2">Loading marketplace listings...</p>
-                        </div>
-                        
-                        <div id="no-results" class="hidden text-center py-10">
-                            <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
-                            <p class="text-lg">No listings found matching your criteria.</p>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Try adjusting your filters or search terms.</p>
-                        </div>
+                    </div>
 
-                        <!-- Load More Button -->
-                        <div id="load-more-container" class="hidden text-center mt-6">
-                            <button id="load-more-btn" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                Load More Results
+                    <!-- Loading Indicator -->
+                    <div class="hidden flex items-center justify-center h-64" id="loading-indicator">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <span class="ml-3 text-lg">Loading marketplace...</span>
+                    </div>
+
+                    <!-- Marketplace Grid -->
+                    <div class="flex-1 overflow-y-auto" id="marketplace-display">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="marketplace-grid">
+                            <!-- Cards will be populated here -->
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div class="flex justify-center items-center space-x-4 mt-8" id="pagination-container">
+                            <button class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50" id="prev-page" disabled>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                            <span class="text-sm text-gray-600 dark:text-gray-400" id="page-info">Page 1 of 1</span>
+                            <button class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50" id="next-page" disabled>
+                                Next <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
-                    </section>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div class="fixed bottom-5 right-5 z-50" id="toast-container"></div>
-
     <!-- Card Detail Modal -->
-    <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cardDetailModal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center p-6 border-b dark:border-gray-700">
-                <h2 id="modal-card-name" class="text-2xl font-bold">Card Details</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCardDetailModal">×</button>
+    <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1003]" id="card-detail-modal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col" style="height: 90vh;">
+            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold" id="modal-card-name">Card Details</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" data-modal-close="card-detail-modal">×</button>
             </div>
-            <div id="card-detail-content" class="p-6">
-                <!-- Card details will be injected here -->
+            <div class="flex-grow overflow-y-auto p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <img class="w-full max-w-sm mx-auto rounded-lg shadow-lg" id="modal-card-image" src="" alt="Card Image"/>
+                        <div class="text-center">
+                            <button class="btn btn-primary w-full" id="add-to-collection-btn">
+                                <i class="fas fa-plus mr-2"></i>
+                                Add to Collection
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div id="modal-card-details">
+                            <!-- Card details will be populated here -->
+                        </div>
+                        <div class="border-t pt-4">
+                            <h3 class="text-lg font-semibold mb-2">Seller Information</h3>
+                            <div id="modal-seller-info">
+                                <!-- Seller info will be populated here -->
+                            </div>
+                        </div>
+                        <div class="border-t pt-4">
+                            <button class="btn btn-success w-full" id="contact-seller-btn">
+                                <i class="fas fa-envelope mr-2"></i>
+                                Contact Seller
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
+    <!-- Add to Collection Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1004]" id="add-collection-modal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 class="text-xl font-bold">Add to Collection</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" data-modal-close="add-collection-modal">×</button>
+            </div>
+            <div class="p-6">
+                <form id="add-collection-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Quantity</label>
+                            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" name="quantity" type="number" value="1" min="1"/>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Condition</label>
+                            <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" name="condition">
+                                <option value="mint">Mint</option>
+                                <option value="near_mint" selected>Near Mint</option>
+                                <option value="excellent">Excellent</option>
+                                <option value="good">Good</option>
+                                <option value="light_played">Light Played</option>
+                                <option value="played">Played</option>
+                                <option value="poor">Poor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Purchase Price (Optional)</label>
+                            <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" name="purchase-price" type="number" step="0.01" placeholder="0.00"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" name="foil" type="checkbox"/>
+                                <span class="ml-2 text-sm">Foil</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" id="collection-graded" name="graded" type="checkbox"/>
+                                <span class="ml-2 text-sm">Graded</span>
+                            </label>
+                        </div>
+                        <div class="hidden" id="graded-details">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Grading Company</label>
+                                    <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" name="grading-company">
+                                        <option value="PSA">PSA</option>
+                                        <option value="BGS">BGS</option>
+                                        <option value="CGC">CGC</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Grade</label>
+                                    <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" name="grade">
+                                        <option value="10">10</option>
+                                        <option value="9">9</option>
+                                        <option value="8">8</option>
+                                        <option value="7">7</option>
+                                        <option value="6">6</option>
+                                        <option value="5">5</option>
+                                        <option value="4">4</option>
+                                        <option value="3">3</option>
+                                        <option value="2">2</option>
+                                        <option value="1">1</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Notes</label>
+                            <textarea class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" name="notes" rows="3" placeholder="Add any notes about this card..."></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <button class="btn btn-secondary" type="button" data-modal-close="add-collection-modal">Cancel</button>
+                        <button class="btn btn-primary" type="submit">Add to Collection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Login</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
+            </div>
+            <form class="mt-4 space-y-4" id="loginForm">
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+                <p class="text-red-500 text-sm hidden" id="login-error-message"></p>
+                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Login</button>
+                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                    Sign in with Google
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Register</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
+            </div>
+            <form class="mt-4 space-y-4" id="registerForm">
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+                <p class="text-red-500 text-sm hidden" id="register-error-message"></p>
+                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">Register</button>
+                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                    Register with Google
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
     
-    <!-- App Scripts -->
-    <script src="js/firebase-config.js"></script>
+    <!-- Custom Scripts -->
     <script src="js/auth.js"></script>
-    <script src="js/marketplace_enhanced.js"></script>
+    <script src="js/darkmode.js"></script>
+    <script src="js/messenger.js"></script>
+    <script src="js/modules/marketplace-enhanced.js" type="module"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                });
+            }
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
+                });
+            }
+
+            // Add to collection button handler
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'add-to-collection-btn' || e.target.closest('#add-to-collection-btn')) {
+                    const modal = document.getElementById('add-collection-modal');
+                    if (modal) {
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
