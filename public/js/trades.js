@@ -56,6 +56,48 @@ class TradeWindow {
         this.processPendingTrade();
     }
 
+    // ADDED: Calculate dynamic price based on condition and edition
+    calculateCardPrice(cardData) {
+        // Return fallback price if no prices object exists
+        if (!cardData.prices || typeof cardData.prices !== 'object') {
+            return cardData.priceUsd || cardData.price || 0;
+        }
+
+        const condition = cardData.condition || 'Near Mint';
+        const isFirstEdition = cardData.is_first_edition || false;
+        
+        // Map condition names to price keys
+        const conditionMap = {
+            'Mint': 'NM',
+            'Near Mint': 'NM', 
+            'Excellent': 'NM',
+            'Good': 'LP',
+            'Light Played': 'LP',
+            'Played': 'MP',
+            'Poor': 'HP',
+            'Heavily Played': 'HP',
+            'Damaged': 'DM'
+        };
+
+        const conditionKey = conditionMap[condition] || 'NM';
+        const editionPrefix = isFirstEdition ? 'firstEdition' : 'unlimited';
+        const priceKey = `${editionPrefix}_${conditionKey}`;
+
+        // Try to get the specific price, fallback to NM if not found
+        let price = cardData.prices[priceKey];
+        if (price === undefined || price === null) {
+            price = cardData.prices[`${editionPrefix}_NM`];
+        }
+        
+        // Final fallback to any available price
+        if (price === undefined || price === null) {
+            const availablePrices = Object.values(cardData.prices).filter(p => typeof p === 'number' && p > 0);
+            price = availablePrices.length > 0 ? availablePrices[0] : 0;
+        }
+
+        return typeof price === 'number' ? price : 0;
+    }
+
     bindEvents() {
         // Binder tab switching
         document.getElementById('your-binder-tab')?.addEventListener('click', () => {
@@ -247,10 +289,16 @@ class TradeWindow {
                         cardData.imageUrl || 
                         'https://via.placeholder.com/223x310?text=No+Image';
 
-        const price = cardData.priceUsd || cardData.price || 0;
+        // ENHANCED: Dynamic price calculation based on condition and edition
+        const price = this.calculateCardPrice(cardData);
         const isInTrade = this.currentBinder === 'your' 
             ? this.currentTrade.yourCards.some(c => c.id === card.id)
             : this.currentTrade.theirCards.some(c => c.id === card.id);
+
+        // Get condition and edition info for display
+        const condition = cardData.condition || 'Unknown';
+        const isFirstEdition = cardData.is_first_edition || false;
+        const editionText = isFirstEdition ? '1st Ed' : 'Unlimited';
 
         return `
             <div class="trade-card bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer ${isInTrade ? 'ring-2 ring-blue-500' : ''}" 
@@ -261,12 +309,17 @@ class TradeWindow {
                          class="w-full h-32 object-cover"
                          onerror="this.src='https://via.placeholder.com/223x310?text=No+Image'">
                     ${isInTrade ? '<div class="absolute top-1 right-1 bg-blue-500 text-white rounded-full p-1"><i class="fas fa-check text-xs"></i></div>' : ''}
+                    ${isFirstEdition ? '<div class="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1 rounded">1st</div>' : ''}
                 </div>
                 <div class="p-2">
                     <h4 class="font-medium text-sm mb-1 text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h4>
-                    <div class="flex justify-between items-center text-xs">
+                    <div class="flex justify-between items-center text-xs mb-1">
                         <span class="text-gray-600 dark:text-gray-400">${cardData.game || 'Unknown'}</span>
                         <span class="font-bold text-green-600 dark:text-green-400">$${price.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-500 dark:text-gray-400">${condition}</span>
+                        <span class="text-gray-500 dark:text-gray-400">${editionText}</span>
                     </div>
                     ${card.quantity > 1 ? `<div class="text-xs text-gray-500 mt-1">Qty: ${card.quantity}</div>` : ''}
                 </div>
