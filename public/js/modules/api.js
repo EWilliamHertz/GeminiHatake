@@ -326,6 +326,37 @@ export async function batchUpdateCards(userId, updates) {
     });
     await batch.commit();
 }
+
+export async function batchCreateMarketplaceListings(listings) {
+    const batch = db.batch();
+    const marketplaceRef = db.collection('marketplaceListings');
+    
+    listings.forEach(listing => {
+        const docRef = marketplaceRef.doc();
+        batch.set(docRef, listing);
+    });
+    
+    await batch.commit();
+}
+
+export async function batchRemoveMarketplaceListings(userId, collectionCardIds) {
+    // Query marketplace listings by originalCollectionCardId and seller
+    const marketplaceRef = db.collection('marketplaceListings');
+    const batch = db.batch();
+    
+    for (const cardId of collectionCardIds) {
+        const querySnapshot = await marketplaceRef
+            .where('originalCollectionCardId', '==', cardId)
+            .where('sellerData.uid', '==', userId)
+            .get();
+        
+        querySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+    }
+    
+    await batch.commit();
+}
 export async function uploadCustomImage(userId, cardId, file) {
     const filePath = `users/${userId}/collection_images/${cardId}/${file.name}`;
     const fileRef = storage.ref(filePath);

@@ -244,6 +244,62 @@ export async function batchUpdateSaleStatus(updates) {
     toggleBulkEditMode();
 }
 
+export async function batchCreateMarketplaceListings(updates) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    const userProfile = await API.getUserProfile(state.currentUser.uid);
+    const listings = [];
+    
+    for (const update of updates) {
+        const card = state.fullCollection.find(c => c.id === update.id);
+        if (card && update.data.for_sale) {
+            const listing = {
+                cardData: {
+                    name: card.name,
+                    game: card.game || 'mtg',
+                    set: card.set,
+                    set_name: card.set_name,
+                    condition: card.condition,
+                    collector_number: card.collector_number,
+                    rarity: card.rarity,
+                    type_line: card.type_line,
+                    mana_cost: card.mana_cost,
+                    cmc: card.cmc,
+                    color_identity: card.color_identity,
+                    image_uris: card.image_uris,
+                    prices: card.prices,
+                    language: card.language,
+                    is_foil: card.is_foil || card.isFoil,
+                    isGraded: card.is_graded || card.isGraded,
+                    gradingCompany: card.grading_company,
+                    grade: card.grade,
+                    api_id: card.api_id
+                },
+                sellerData: {
+                    uid: state.currentUser.uid,
+                    displayName: userProfile?.displayName || 'Unknown Seller',
+                    photoURL: userProfile?.photoURL || null,
+                    country: userProfile?.country || 'Unknown'
+                },
+                price: update.data.sale_price,
+                quantity: card.quantity || 1,
+                listedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                originalCollectionCardId: card.id
+            };
+            listings.push(listing);
+        }
+    }
+    
+    if (listings.length > 0) {
+        await API.batchCreateMarketplaceListings(listings);
+    }
+}
+
+export async function batchRemoveMarketplaceListings(collectionCardIds) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    await API.batchRemoveMarketplaceListings(state.currentUser.uid, collectionCardIds);
+}
+
 export async function deleteCard(cardId) {
     if (!state.currentUser) throw new Error("User not logged in.");
     await API.deleteCardFromCollection(state.currentUser.uid, cardId);

@@ -994,6 +994,7 @@ async function finalizeBulkSale() {
     UI.setButtonLoading(finalizeBtn, true);
     try {
         await Collection.batchUpdateSaleStatus(updates);
+        await Collection.batchCreateMarketplaceListings(updates);
         UI.showToast(`${updates.length} cards listed for sale!`, "success");
         UI.closeModal(document.getElementById('bulk-review-modal'));
         applyAndRender({});
@@ -1001,6 +1002,49 @@ async function finalizeBulkSale() {
         UI.showToast(`Error: ${error.message}`, "error");
     } finally {
         UI.setButtonLoading(finalizeBtn, false, "Finalize and List Selected Cards");
+    }
+}
+
+async function bulkRemoveFromMarketplace() {
+    const selectedIds = Collection.getSelectedCardIds();
+    if (selectedIds.length === 0) {
+        UI.showToast("No cards selected.", "info");
+        return;
+    }
+
+    // Filter to only cards that are currently for sale
+    const cards = selectedIds.map(id => Collection.getCardById(id)).filter(Boolean);
+    const forSaleCards = cards.filter(card => card.for_sale);
+    
+    if (forSaleCards.length === 0) {
+        UI.showToast("No selected cards are currently listed for sale.", "info");
+        return;
+    }
+
+    const confirmed = confirm(`Remove ${forSaleCards.length} card(s) from marketplace?`);
+    if (!confirmed) return;
+
+    const removeBtn = document.getElementById('bulk-remove-marketplace-btn');
+    UI.setButtonLoading(removeBtn, true);
+
+    try {
+        // Update collection cards to remove sale status
+        const updates = forSaleCards.map(card => ({
+            id: card.id,
+            data: { for_sale: false, sale_price: null }
+        }));
+        
+        await Collection.batchUpdateSaleStatus(updates);
+        
+        // Remove from marketplace listings collection
+        await Collection.batchRemoveMarketplaceListings(forSaleCards.map(card => card.id));
+        
+        UI.showToast(`${forSaleCards.length} card(s) removed from marketplace!`, "success");
+        applyAndRender({});
+    } catch (error) {
+        UI.showToast(`Error: ${error.message}`, "error");
+    } finally {
+        UI.setButtonLoading(removeBtn, false, "Remove from Marketplace");
     }
 }
 
@@ -1127,6 +1171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             openBulkReviewModal();
         });
+        document.getElementById('bulk-remove-marketplace-btn')?.addEventListener('click', bulkRemoveFromMarketplace);
         document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
         document.getElementById('finalize-bulk-list-btn')?.addEventListener('click', finalizeBulkSale);
         
