@@ -1200,20 +1200,55 @@ class TradeWindow {
 
 // Marketplace Integration
 class MarketplaceIntegration {
-    static addCardToTradeFromMarketplace(cardData) {
+    constructor() {
+        this.checkForPendingCards();
+    }
+
+    checkForPendingCards() {
+        // Check for cards added from marketplace
+        const pendingCards = JSON.parse(localStorage.getItem('pendingTradeCards') || '[]');
+        if (pendingCards.length > 0) {
+            // Clear the pending cards
+            localStorage.removeItem('pendingTradeCards');
+            
+            // Add each card to the trade window
+            pendingCards.forEach(cardData => {
+                this.addCardToTradeFromMarketplace(cardData);
+            });
+            
+            if (typeof showToast === 'function') {
+                showToast(`Added ${pendingCards.length} card${pendingCards.length !== 1 ? 's' : ''} from marketplace`, 'success');
+            }
+        }
+    }
+
+    addCardToTradeFromMarketplace(cardData) {
         if (window.tradeWindow) {
             // Convert marketplace card to trade format
             const tradeCard = {
-                id: cardData.id || cardData.api_id,
-                name: cardData.cardData?.name || cardData.name,
-                prices: cardData.cardData?.prices || cardData.prices,
-                image_uris: cardData.cardData?.image_uris || cardData.image_uris,
-                set_name: cardData.cardData?.set_name || cardData.set_name,
-                quantity: 1
+                id: cardData.id || cardData.api_id || Date.now().toString(),
+                name: cardData.cardData?.name || cardData.name || 'Unknown Card',
+                prices: cardData.cardData?.prices || cardData.prices || { usd: cardData.price || 0 },
+                image_uris: cardData.cardData?.image_uris || cardData.image_uris || { normal: cardData.imageUrl },
+                set_name: cardData.cardData?.set_name || cardData.set_name || 'Unknown Set',
+                quantity: 1,
+                addedFromMarketplace: true,
+                seller: cardData.sellerData
             };
             
+            // Add to the "their" side since it's from marketplace
             window.tradeWindow.addCardToTrade(tradeCard, 'their');
-            window.tradeWindow.showToast(`Added ${tradeCard.name} to trade window`, 'success');
+            
+            if (window.tradeWindow.showToast) {
+                window.tradeWindow.showToast(`Added ${tradeCard.name} to trade window`, 'success');
+            }
+        }
+    }
+
+    static addCardToTradeFromMarketplace(cardData) {
+        // Static method for external calls
+        if (window.marketplaceIntegration) {
+            window.marketplaceIntegration.addCardToTradeFromMarketplace(cardData);
         }
     }
 }
@@ -1341,5 +1376,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Make tradeWindow globally accessible for onclick handlers
     window.tradeWindow = tradeWindow;
+    window.marketplaceIntegration = marketplaceIntegration;
     window.MarketplaceIntegration = MarketplaceIntegration;
 });

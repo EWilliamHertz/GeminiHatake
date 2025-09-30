@@ -923,10 +923,22 @@ function addTradeButtons() {
 }
 
 function addCardToTradeWindow(cardData) {
-    // Check if we're on the trades page or if trade window is available
-    if (typeof window.TradeManager !== 'undefined') {
-        window.TradeManager.addCardFromMarketplace(cardData);
-        showToast(`${cardData.cardData?.name || 'Card'} added to trade window!`, 'success');
+    // Check if we're on the trades page and the new trade window is available
+    if (window.tradeWindow && typeof window.tradeWindow.addCardToTrade === 'function') {
+        // Convert marketplace card to trade format
+        const tradeCard = {
+            id: cardData.id || Date.now().toString(),
+            name: cardData.cardData?.name || cardData.name || 'Unknown Card',
+            prices: cardData.cardData?.prices || { usd: cardData.price || 0 },
+            image_uris: cardData.cardData?.image_uris || { normal: cardData.imageUrl },
+            set_name: cardData.cardData?.set_name || 'Unknown Set',
+            quantity: 1,
+            addedFromMarketplace: true,
+            seller: cardData.sellerData
+        };
+        
+        window.tradeWindow.addCardToTrade(tradeCard, 'their');
+        showToast(`${tradeCard.name} added to trade window!`, 'success');
     } else {
         // Store in localStorage and redirect to trades page
         const tradeCards = JSON.parse(localStorage.getItem('pendingTradeCards') || '[]');
