@@ -628,6 +628,29 @@ class MarketplaceManager {
             </div>
         `;
 
+        // Add trade basket button to modal actions
+        const modalActions = document.querySelector('#card-detail-modal .modal-actions');
+        if (modalActions) {
+            // Check if trade basket button already exists
+            let tradeBasketBtn = modalActions.querySelector('.add-to-trade-basket-btn');
+            if (!tradeBasketBtn) {
+                tradeBasketBtn = document.createElement('button');
+                tradeBasketBtn.className = 'add-to-trade-basket-btn px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors';
+                tradeBasketBtn.innerHTML = '<i class="fas fa-shopping-basket mr-2"></i>Add to Trade Basket';
+                
+                // Insert before the first button (usually "Add to Collection")
+                const firstBtn = modalActions.querySelector('button');
+                if (firstBtn) {
+                    modalActions.insertBefore(tradeBasketBtn, firstBtn);
+                } else {
+                    modalActions.appendChild(tradeBasketBtn);
+                }
+            }
+            
+            // Update the button's data attribute with current card data
+            tradeBasketBtn.dataset.card = JSON.stringify(listing);
+        }
+
         this.openModal('card-detail-modal');
     }
 

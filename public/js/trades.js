@@ -518,6 +518,158 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
                 }
             });
         }
+
+        // Add user search functionality for the conversation modal
+        const userSearchInput = document.getElementById('user-search-input');
+        const userSearchResults = document.getElementById('user-search-results');
+        
+        if (userSearchInput && userSearchResults) {
+            let searchTimeout;
+            userSearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim().toLowerCase();
+                
+                if (query.length < 2) {
+                    userSearchResults.innerHTML = '';
+                    return;
+                }
+                
+                searchTimeout = setTimeout(async () => {
+                    try {
+                        const usersRef = db.collection('users');
+                        // Search by handle (case-insensitive)
+                        const handleQuery = query.startsWith('@') ? query.substring(1) : query;
+                        const endQuery = handleQuery + '\uf8ff';
+                        
+                        // Search by handle
+                        const handleSnapshot = await usersRef
+                            .where('handle', '>=', handleQuery)
+                            .where('handle', '<', endQuery)
+                            .limit(5)
+                            .get();
+                        
+                        // Search by display name (if handle search returns few results)
+                        const displayNameSnapshot = await usersRef
+                            .where('displayName_lower', '>=', query)
+                            .where('displayName_lower', '<', query + '\uf8ff')
+                            .limit(5)
+                            .get();
+                        
+                        // Combine and deduplicate results
+                        const userMap = new Map();
+                        
+                        handleSnapshot.forEach(doc => {
+                            if (doc.id !== user.uid) {
+                                userMap.set(doc.id, { id: doc.id, ...doc.data() });
+                            }
+                        });
+                        
+                        displayNameSnapshot.forEach(doc => {
+                            if (doc.id !== user.uid && !userMap.has(doc.id)) {
+                                userMap.set(doc.id, { id: doc.id, ...doc.data() });
+                            }
+                        });
+                        
+                        const users = Array.from(userMap.values()).slice(0, 8);
+                        
+                        userSearchResults.innerHTML = '';
+                        if (users.length === 0) {
+                            userSearchResults.innerHTML = '<p class="text-center text-gray-500 p-4">No users found.</p>';
+                        } else {
+                            users.forEach(userData => {
+                                const userElement = document.createElement('div');
+                                userElement.className = 'flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-lg transition-colors';
+                                userElement.innerHTML = `
+                                    <img src="${userData.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.displayName || 'User') + '&background=random&color=fff'}" 
+                                         alt="${userData.displayName}" 
+                                         class="w-10 h-10 rounded-full object-cover mr-3">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100">${userData.displayName || 'Unknown User'}</p>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">@${userData.handle || 'no-handle'}</p>
+                                    </div>
+                                    <i class="fas fa-comment text-blue-500 ml-2"></i>
+                                `;
+                                
+                                userElement.addEventListener('click', () => {
+                                    // Start a conversation with this user
+                                    startConversationWithUser(userData);
+                                    // Close the modal
+                                    const modal = document.getElementById('new-conversation-modal');
+                                    if (modal) {
+                                        modal.classList.add('hidden');
+                                        modal.classList.remove('flex');
+                                    }
+                                    // Clear search
+                                    userSearchInput.value = '';
+                                    userSearchResults.innerHTML = '';
+                                });
+                                
+                                userSearchResults.appendChild(userElement);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error searching for users:', error);
+                        userSearchResults.innerHTML = '<p class="text-center text-red-500 p-4">Error searching for users. Please try again.</p>';
+                    }
+                }, 300);
+            });
+        }
+    };
+
+    // Function to start a conversation with a user
+    const startConversationWithUser = async (userData) => {
+        try {
+            // Check if conversation already exists
+            const conversationsRef = db.collection('conversations');
+            const existingConversation = await conversationsRef
+                .where('participants', 'array-contains', user.uid)
+                .get();
+            
+            let conversationId = null;
+            
+            // Look for existing conversation with this user
+            for (const doc of existingConversation.docs) {
+                const data = doc.data();
+                if (data.participants.includes(userData.id) && data.participants.length === 2) {
+                    conversationId = doc.id;
+                    break;
+                }
+            }
+            
+            // Create new conversation if none exists
+            if (!conversationId) {
+                const newConversation = await conversationsRef.add({
+                    participants: [user.uid, userData.id],
+                    participantInfo: {
+                        [user.uid]: {
+                            displayName: user.displayName,
+                            photoURL: user.photoURL,
+                            handle: user.handle || 'unknown'
+                        },
+                        [userData.id]: {
+                            displayName: userData.displayName,
+                            photoURL: userData.photoURL,
+                            handle: userData.handle || 'unknown'
+                        }
+                    },
+                    lastMessage: '',
+                    lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    unreadCount: {
+                        [user.uid]: 0,
+                        [userData.id]: 0
+                    }
+                });
+                conversationId = newConversation.id;
+            }
+            
+            // Navigate to messages page with the conversation
+            window.location.href = `messages.html?conversation=${conversationId}`;
+            
+        } catch (error) {
+            console.error('Error starting conversation:', error);
+            showToast('Failed to start conversation. Please try again.', 'error');
+        }
     };
 
     initializePage();

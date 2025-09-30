@@ -36,7 +36,7 @@ service cloud.firestore {
         allow read, write, delete: if isUser(userId);
       }
       match /collection/{cardId} {
-        allow read: if true;
+        allow read, list: if true;
         allow create: if isSignedIn();
         allow update, delete: if isUser(userId);
       }
@@ -182,6 +182,14 @@ service cloud.firestore {
     // --- MARKETPLACE ---
     match /marketplace/{listingId} {
       allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isUser(resource.data.sellerId);
+    }
+    
+    match /marketplaceListings/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isUser(resource.data.sellerId);
     }
   }
 }

@@ -110,6 +110,11 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-5" id="user-actions">
+                    <!-- Trade Basket Button -->
+                    <button id="trade-basket-btn" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <i class="fas fa-shopping-basket text-xl"></i>
+                        <span id="trade-basket-counter" class="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                    </button>
                     <!-- This container is dynamically filled by auth.js -->
                 </div>
             </header>
@@ -487,6 +492,7 @@
     <script src="js/darkmode.js"></script>
     <script src="js/messenger.js"></script>
     <script src="js/marketplace.js"></script>
+    <script src="js/marketplace-wizard.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
