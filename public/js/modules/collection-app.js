@@ -746,9 +746,6 @@ function showCardPreview(event, card) {
     const imageUrl = getCardImageUrl(card);
     const price = Currency.convertAndFormat(card.prices);
     
-    // Check if this is a search result preview (has api_id) to show add button
-    const isSearchResult = card.api_id && !card.id;
-    
     tooltip.innerHTML = `
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-3 max-w-xs z-50">
             <img src="${imageUrl}" alt="${card.name}" class="w-full rounded-lg mb-2" loading="lazy" style="max-height: 300px; object-fit: contain;">
@@ -758,30 +755,12 @@ function showCardPreview(event, card) {
                 ${card.collector_number ? `<p class="text-xs text-gray-500 dark:text-gray-500">#${card.collector_number}</p>` : ''}
                 <p class="text-sm font-semibold text-green-600 dark:text-green-400 mt-1">${price}</p>
                 ${card.rarity ? `<p class="text-xs text-gray-500 dark:text-gray-500 capitalize">${card.rarity}</p>` : ''}
-                ${isSearchResult ? `
-                    <button class="add-card-from-preview-btn mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors" 
-                            data-card='${encodeURIComponent(JSON.stringify(card))}'>
-                        <i class="fas fa-plus mr-1"></i>Add Card
-                    </button>
-                ` : ''}
             </div>
         </div>
     `;
     
-    // Add event listener for the add button if it exists
-    const addBtn = tooltip.querySelector('.add-card-from-preview-btn');
-    if (addBtn) {
-        addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const cardData = JSON.parse(decodeURIComponent(e.target.dataset.card));
-            hideCardPreview();
-            UI.closeModal(document.getElementById('search-modal'));
-            UI.populateCardModalForAdd(cardData);
-        });
-    }
-    
     tooltip.classList.remove('hidden');
-    tooltip.style.pointerEvents = isSearchResult ? 'auto' : 'none'; // Allow clicks for search results
+    tooltip.style.pointerEvents = 'none'; // Hover preview is not clickable
     tooltip.style.position = 'fixed';
     tooltip.style.zIndex = '9999';
     
@@ -1112,8 +1091,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
         document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
         document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
-        // Removed click functionality - search results now only show preview on hover
-        // Users must use the "Add Card" button in the preview to add cards
+        document.getElementById('search-results-container')?.addEventListener('click', (e) => {
+            const item = e.target.closest('.search-result-item');
+            if (item) handleSearchResultClick(item);
+        });
 
         // Add hover functionality for search results
         document.getElementById('search-results-container')?.addEventListener('mouseover', (e) => {
