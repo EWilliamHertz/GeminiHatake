@@ -857,8 +857,15 @@ function handleBulkCheckboxChange(e) {
         cardContainer.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
     }
     
-    // Update the bulk edit UI
-    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
+    // Update the checkbox state
+    const checkbox = cardContainer.querySelector('.bulk-select-checkbox');
+    if (checkbox) {
+        checkbox.checked = isSelected;
+    }
+    
+    // Update the selection counter
+    const selectedCount = Collection.getSelectedCardIds().length;
+    UI.updateBulkEditSelection(selectedCount);
 }
 
 async function bulkDelete() {
