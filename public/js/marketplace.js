@@ -970,27 +970,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Toast notification function (if not already defined)
-if (typeof showToast === 'undefined') {
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white max-w-sm transition-all transform translate-x-0 ${
-            type === 'success' ? 'bg-green-600' : 
-            type === 'error' ? 'bg-red-600' : 
-            type === 'warning' ? 'bg-yellow-600' : 'bg-blue-600'
-        }`;
-        toast.innerHTML = `
-            <div class="flex items-center">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>
-                <span>${message}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.style.transform = 'translateX(100%)';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-}
+
