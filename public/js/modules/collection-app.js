@@ -746,6 +746,9 @@ function showCardPreview(event, card) {
     const imageUrl = getCardImageUrl(card);
     const price = Currency.convertAndFormat(card.prices);
     
+    // Check if this is a search result preview (has api_id) to show add button
+    const isSearchResult = card.api_id && !card.id;
+    
     tooltip.innerHTML = `
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 p-3 max-w-xs z-50">
             <img src="${imageUrl}" alt="${card.name}" class="w-full rounded-lg mb-2" loading="lazy" style="max-height: 300px; object-fit: contain;">
@@ -755,12 +758,30 @@ function showCardPreview(event, card) {
                 ${card.collector_number ? `<p class="text-xs text-gray-500 dark:text-gray-500">#${card.collector_number}</p>` : ''}
                 <p class="text-sm font-semibold text-green-600 dark:text-green-400 mt-1">${price}</p>
                 ${card.rarity ? `<p class="text-xs text-gray-500 dark:text-gray-500 capitalize">${card.rarity}</p>` : ''}
+                ${isSearchResult ? `
+                    <button class="add-card-from-preview-btn mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700 transition-colors" 
+                            data-card='${encodeURIComponent(JSON.stringify(card))}'>
+                        <i class="fas fa-plus mr-1"></i>Add Card
+                    </button>
+                ` : ''}
             </div>
         </div>
     `;
     
+    // Add event listener for the add button if it exists
+    const addBtn = tooltip.querySelector('.add-card-from-preview-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const cardData = JSON.parse(decodeURIComponent(e.target.dataset.card));
+            hideCardPreview();
+            UI.closeModal(document.getElementById('search-modal'));
+            UI.populateCardModalForAdd(cardData);
+        });
+    }
+    
     tooltip.classList.remove('hidden');
-    tooltip.style.pointerEvents = 'none';
+    tooltip.style.pointerEvents = isSearchResult ? 'auto' : 'none'; // Allow clicks for search results
     tooltip.style.position = 'fixed';
     tooltip.style.zIndex = '9999';
     
@@ -839,6 +860,26 @@ function deselectAll() {
     Collection.deselectAllFiltered();
     UI.updateBulkEditSelection(0);
     applyAndRender({});
+}
+
+function handleBulkCheckboxChange(e) {
+    const cardContainer = e.target.closest('.card-container');
+    if (!cardContainer) return;
+    
+    const cardId = cardContainer.dataset.id;
+    const isSelected = Collection.toggleCardSelection(cardId);
+    
+    // Update the visual state of the card container
+    if (isSelected) {
+        cardContainer.classList.add('ring-4', 'ring-blue-500');
+        cardContainer.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+    } else {
+        cardContainer.classList.remove('ring-4', 'ring-blue-500');
+        cardContainer.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+    }
+    
+    // Update the bulk edit UI
+    UI.updateBulkEditSelection(Collection.getSelectedCardIds().length);
 }
 
 async function bulkDelete() {
@@ -1071,10 +1112,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
         document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
         document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
-        document.getElementById('search-results-container')?.addEventListener('click', (e) => {
-            const item = e.target.closest('.search-result-item');
-            if (item) handleSearchResultClick(item);
-        });
+        // Removed click functionality - search results now only show preview on hover
+        // Users must use the "Add Card" button in the preview to add cards
 
         // Add hover functionality for search results
         document.getElementById('search-results-container')?.addEventListener('mouseover', (e) => {
