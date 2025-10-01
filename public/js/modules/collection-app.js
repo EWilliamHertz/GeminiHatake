@@ -1646,3 +1646,11 @@ function handleTopMoverClick(element) {
 
 // Export the toggleDashboard function for global access
 window.toggleDashboard = toggleDashboard;
+
+// ES6 module export
+export default {
+    switchTab,
+    switchView,
+    toggleBulkEditMode,
+    clearAllFilters
+};
