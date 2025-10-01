@@ -40,11 +40,52 @@ cursor: grab;
 .modal-overlay {
 transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
 }
+/* Modal content styling */
+.modal-content {
+position: relative;
+padding: 2rem;
+max-height: 90vh;
+overflow-y: auto;
+}
+/* Close button styling */
+.close-button {
+position: absolute;
+top: 1rem;
+right: 1rem;
+background: none;
+border: none;
+font-size: 2rem;
+cursor: pointer;
+color: #6b7280;
+z-index: 10;
+}
+.close-button:hover {
+color: #374151;
+}
+/* Filter button styling */
+.tcg-filter-btn, .format-filter-btn {
+padding: 0.5rem 1rem;
+margin: 0.25rem;
+border: 1px solid #d1d5db;
+border-radius: 0.5rem;
+background: white;
+cursor: pointer;
+transition: all 0.2s;
+}
+.tcg-filter-btn:hover, .format-filter-btn:hover {
+background: #f3f4f6;
+}
+.filter-btn-active {
+background: #3b82f6 !important;
+color: white !important;
+border-color: #3b82f6 !important;
+}
   </style>
   <link href="/manifest.json" rel="manifest"/>
  </head>
  <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-  <div class="flex h-screen">
+  <div class="flex min-h-screen flex-col">
+   <div class="flex flex-1">
    <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
    </div>
    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
@@ -495,13 +536,13 @@ Example:
       </button>
       <div class="flex-shrink-0 p-2 border-b border-gray-600 flex items-center justify-between" id="playtest-controls">
        <div class="flex items-center space-x-2">
-        <button class="playtest-btn" id="playtest-draw-btn">
+        <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="playtest-draw-btn">
          Draw Card
         </button>
-        <button class="playtest-btn" id="playtest-mulligan-btn">
+        <button class="px-4 py-2 bg-yellow-600 text-white font-semibold rounded-full hover:bg-yellow-700" id="playtest-mulligan-btn">
          Mulligan
         </button>
-        <button class="playtest-btn bg-red-600 hover:bg-red-700" id="playtest-reset-btn">
+        <button class="px-4 py-2 bg-red-600 text-white font-semibold rounded-full hover:bg-red-700" id="playtest-reset-btn">
          Reset
         </button>
        </div>
@@ -588,6 +629,7 @@ Example:
       </form>
      </div>
     </div>
+   </div>
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
      <div class="container mx-auto py-8 px-4">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -680,6 +722,7 @@ Example:
       </div>
      </div>
     </footer>
+   </div>
     <!-- Toast Notification -->
     <div class="fixed top-28 right-5 bg-red-500 text-white py-3 px-5 rounded-lg shadow-xl hidden transition-all duration-300 ease-in-out z-[2000] opacity-0" id="toast-notification">
      <p id="toast-message">

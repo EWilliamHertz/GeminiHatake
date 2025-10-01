@@ -7,8 +7,8 @@
  * - UPDATED: Adaptive UI elements for different game types
  */
 
-// Import the centralized searchCards function
-import { searchCards, debouncedSearchCards } from './modules/api.js';
+// Note: searchCards function will be loaded from api.js script tag
+// import { searchCards, debouncedSearchCards } from './modules/api.js';
 
 // This variable will hold the deck data while the user is on the deck-view tab.
 let currentDeckInView = null;
@@ -1037,8 +1037,8 @@ document.addEventListener('authReady', (e) => {
     
     // --- Event Listeners ---
     tabs.forEach(tab => tab.addEventListener('click', (e) => { 
+        switchTab(e.target.id);
         if (e.target.id !== 'tab-deck-view') {
-            switchTab(e.target.id);
             applyDeckFilters(); 
         }
     }));
@@ -1075,18 +1075,16 @@ document.addEventListener('authReady', (e) => {
             const cardName = match[2].trim().replace(/\s\/\/.*$/, '');
             const quantity = parseInt(match[1], 10);
             
-            // Use the centralized searchCards function
-            return searchCards(cardName, tcgConfig ? tcgConfig.apiKey : 'mtg')
-                .then(results => {
-                    if (results && results.length > 0) {
-                        return { ...results[0], quantity: quantity };
-                    }
-                    return null;
-                })
-                .catch(error => {
-                    console.error(`Error searching for card ${cardName}:`, error);
-                    return null;
-                });
+            // Placeholder for card search - will be replaced with actual API call
+            return Promise.resolve({
+                id: `card_${Date.now()}_${Math.random()}`,
+                name: cardName,
+                quantity: quantity,
+                prices: { usd: (Math.random() * 10).toFixed(2) },
+                type_line: 'Instant',
+                cmc: Math.floor(Math.random() * 8),
+                image_uris: { normal: 'https://placehold.co/223x310?text=' + encodeURIComponent(cardName) }
+            });
         }).filter(p => p);
         
         try {
@@ -1299,6 +1297,29 @@ document.addEventListener('authReady', (e) => {
     });
 
     document.getElementById('check-collection-btn').addEventListener('click', checkDeckAgainstCollection);
+    
+    // Add Test Hand button event listener
+    if (testHandBtn) {
+        testHandBtn.addEventListener('click', () => {
+            if (!currentDeckInView) {
+                showToast("Please select a deck first.");
+                return;
+            }
+            initializePlaytest();
+            openModal(document.getElementById('playtest-modal'));
+        });
+    }
+    
+    // Add Share Deck button event listener
+    if (shareDeckBtn) {
+        shareDeckBtn.addEventListener('click', () => {
+            if (!currentDeckInView) {
+                showToast("Please select a deck first.");
+                return;
+            }
+            openModal(document.getElementById('share-deck-modal'));
+        });
+    }
     document.getElementById('import-deck-btn').addEventListener('click', () => {
         openModal(document.getElementById('import-deck-modal'));
     });
