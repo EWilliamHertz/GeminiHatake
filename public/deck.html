@@ -215,6 +215,8 @@ border-color: #3b82f6 !important;
      </div>
      <div class="flex items-center space-x-5" id="user-actions">
       <!-- This container is dynamically filled by auth.js -->
+      <div id="currency-selector-container">
+      </div>
      </div>
     </header>
     <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -611,6 +613,7 @@ Example:
   </script>
   <script src="js/messenger.js">
   </script>
-  <!-- Modules removed to eliminate console errors - not needed for deck builder functionality -->
+  <script type="module" src="js/modules/currency.js">
+  </script>
  </body>
 </html>

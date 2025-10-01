@@ -33,33 +33,51 @@ const TCG_CONFIG = {
     }
 };
 
-// Initialize immediately when DOM loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing deck builder...');
-    initializeTabs();
-    initializeFormHandlers();
-    initializeFilters();
-    
-    // Initialize Firebase if available
-    if (typeof firebase !== 'undefined') {
-        db = firebase.firestore();
+// Robust initialization function (global scope)
+window.initializeDeckBuilder = function() {
+    console.log('Initializing deck builder...');
+    try {
+        initializeTabs();
+        initializeFormHandlers();
+        initializeFilters();
+        
+        // Initialize Firebase if available
+        if (typeof firebase !== 'undefined') {
+            db = firebase.firestore();
+        }
+        
+        console.log('Deck builder initialization complete');
+    } catch (error) {
+        console.error('Error initializing deck builder:', error);
+        // Retry after a short delay
+        setTimeout(window.initializeDeckBuilder, 500);
+    }
+};
+
+// Execute immediately
+window.initializeDeckBuilder();
+
+// Multiple initialization strategies to ensure it works
+document.addEventListener('DOMContentLoaded', window.initializeDeckBuilder);
+
+// Also try immediate initialization if DOM is ready
+if (document.readyState === 'loading') {
+    console.log('DOM still loading, waiting for DOMContentLoaded...');
+} else {
+    console.log('DOM already loaded, initializing immediately...');
+    setTimeout(window.initializeDeckBuilder, 100);
+}
+
+// Fallback initialization after page load
+window.addEventListener('load', function() {
+    console.log('Window loaded, ensuring deck builder is initialized...');
+    // Check if tabs are working, if not, reinitialize
+    const tabs = document.querySelectorAll('.tab-button');
+    if (tabs.length > 0 && !tabs[0].onclick && !tabs[0].hasAttribute('data-initialized')) {
+        console.log('Tabs not initialized, running fallback initialization...');
+        window.initializeDeckBuilder();
     }
 });
-
-// Also initialize if DOM is already loaded
-if (document.readyState === 'loading') {
-    // DOM is still loading, wait for DOMContentLoaded
-} else {
-    // DOM is already loaded, initialize immediately
-    console.log('DOM already loaded, initializing deck builder...');
-    initializeTabs();
-    initializeFormHandlers();
-    initializeFilters();
-    
-    if (typeof firebase !== 'undefined') {
-        db = firebase.firestore();
-    }
-}
 
 // Listen for auth ready
 document.addEventListener('authReady', function(e) {
@@ -92,6 +110,9 @@ function initializeTabs() {
                 loadCommunityDecks();
             }
         });
+        
+        // Mark tab as initialized
+        tab.setAttribute('data-initialized', 'true');
     });
 }
 
@@ -162,7 +183,7 @@ function initializeFormHandlers() {
     
     // Form submission
     const deckBuilderForm = document.getElementById('deck-builder-form');
-    if (deckBuilderForm) {
+    if (deckBuilderForm && typeof handleFormSubmission !== 'undefined') {
         deckBuilderForm.addEventListener('submit', handleFormSubmission);
     }
     
