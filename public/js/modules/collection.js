@@ -166,7 +166,7 @@ export async function addMultipleCards(cardVersions, customImageFile) {
         }
 
         // CRITICAL FIX: Ensure we're using the correct card data for matching
-        // Create a clean copy of the card data to avoid reference issues
+        // Create a clean copy of the card data to avoid reference issues, preserving price data
         const cleanCardData = {
             api_id: cardData.api_id,
             condition: cardData.condition || 'NM',
@@ -177,7 +177,11 @@ export async function addMultipleCards(cardVersions, customImageFile) {
             is_graded: cardData.is_graded || false,
             grading_company: cardData.grading_company || null,
             grade: cardData.grade || null,
-            quantity: cardData.quantity || 1
+            quantity: cardData.quantity || 1,
+            // IMPORTANT: Preserve price data from ScryDx/Scryfall
+            prices: cardData.prices || {},
+            // Also preserve the timestamp for price data freshness
+            priceLastUpdated: cardData.priceLastUpdated || new Date().toISOString()
         };
 
         const matchingCard = findMatchingCard(cleanCardData);

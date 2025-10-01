@@ -54,7 +54,7 @@ function showLoginRequired() {
 async function loadCardData() {
     const urlParams = new URLSearchParams(window.location.search);
     const cardName = urlParams.get('name');
-    const game = urlParams.get('tcg') || 'mtg'; // Default to MTG for Sol Ring
+    const game = urlParams.get('tcg') || 'pokemon'; // Default to Pokemon
     const cardId = urlParams.get('id');
     
     console.log('Loading card:', { cardName, game, cardId });
@@ -69,11 +69,11 @@ async function loadCardData() {
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('card-content').classList.add('hidden');
         
-        // Search for the card using ScryDex - REAL DATA ONLY
-        console.log('Searching ScryDex for:', cardName, 'in game:', game);
-        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-        const result = await searchScryDexFunction({ cardName: cardName, game: game });
-        console.log('ScryDex search result:', result);
+        // Search for the card using ScryDx - REAL DATA ONLY
+        console.log('Searching ScryDx for:', cardName, 'in game:', game);
+        const searchScryDxFunction = firebase.functions().httpsCallable('searchScryDx');
+        const result = await searchScryDxFunction({ cardName: cardName, game: game });
+        console.log('ScryDx search result:', result);
         
         let searchResults = [];
         if (result && result.data) {
@@ -123,11 +123,24 @@ async function loadCardData() {
         console.log('Selected card data:', cardData);
         currentCard = cardData;
         
+        // Add card to tracking for price history collection
+        try {
+            const addToTrackingFunction = firebase.functions().httpsCallable('addCardToTracking');
+            await addToTrackingFunction({
+                cardId: cardData.id,
+                game: game,
+                cardName: cardData.name || cardData.Name
+            });
+            console.log('Card added to price tracking');
+        } catch (trackingError) {
+            console.warn('Could not add card to tracking:', trackingError);
+        }
+        
         // Display the card
         await displayCard(cardData);
         
         // Load and display price history
-        await displayPriceChart(cardData);
+        await displayPriceChart(cardData, game);
         
         // Show the card content
         document.getElementById('loading').classList.add('hidden');
@@ -178,14 +191,19 @@ async function displayCard(card) {
         numberElement.textContent = card.number || card.collector_number || 'N/A';
     }
     
-    // Current price
+    // Current price - Use consistent ScryDx price data
     const priceElement = document.getElementById('current-price');
     if (priceElement && card.variants && card.variants.length > 0) {
         const variant = card.variants[0];
         if (variant.prices && variant.prices.length > 0) {
             const price = variant.prices[0];
-            priceElement.textContent = `$${price.market || price.low || 0}`;
+            const currentPrice = price.market || price.low || 0;
+            priceElement.textContent = `$${currentPrice.toFixed(2)}`;
+        } else {
+            priceElement.textContent = 'Price unavailable';
         }
+    } else {
+        if (priceElement) priceElement.textContent = 'Price unavailable';
     }
     
     // Card details (mana cost, type, etc.)
@@ -216,15 +234,16 @@ async function displayCard(card) {
     }
 }
 
-async function displayPriceChart(card) {
+async function displayPriceChart(card, game, days = 30) {
     console.log('Loading price chart for card:', card.name || card.Name);
     
     try {
-        // Get price history data
+        // Get price history data from Firebase Functions
         const historyFunction = firebase.functions().httpsCallable('getCardPriceHistory');
         const historyResult = await historyFunction({ 
             cardId: card.id || card.scryfall_id || card.api_id,
-            days: 30 
+            days: days,
+            game: game
         });
         
         let priceData = [];
@@ -234,26 +253,56 @@ async function displayPriceChart(card) {
             priceData = historyResult.data.priceHistory || [];
             console.log('Using real price history data:', priceData.length, 'data points');
         } else {
-            // Fallback to trends data from the card
+            // Fallback to trends data from the card if no historical data
             console.log('No historical data, using trends fallback');
             if (card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {
                 const price = card.variants[0].prices[0];
                 const trends = price.trends || {};
                 
                 // Convert trends to chart data
-                const currentPrice = price.market || price.low || 10;
+                const currentPrice = price.market || price.low || 0;
                 const today = new Date();
                 
-                priceData = [
-                    { date: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], price: currentPrice - (trends.days_30?.price_change || 0) },
-                    { date: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], price: currentPrice - (trends.days_7?.price_change || 0) },
-                    { date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], price: currentPrice - (trends.days_1?.price_change || 0) },
-                    { date: today.toISOString().split('T')[0], price: currentPrice }
-                ];
+                priceData = [];
+                
+                // Create data points from trends
+                if (trends.days_30) {
+                    const pastPrice30 = currentPrice - (trends.days_30.price_change || 0);
+                    priceData.push({ 
+                        date: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+                        price: Math.max(0, pastPrice30),
+                        market: Math.max(0, pastPrice30)
+                    });
+                }
+                
+                if (trends.days_7) {
+                    const pastPrice7 = currentPrice - (trends.days_7.price_change || 0);
+                    priceData.push({ 
+                        date: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+                        price: Math.max(0, pastPrice7),
+                        market: Math.max(0, pastPrice7)
+                    });
+                }
+                
+                if (trends.days_1) {
+                    const pastPrice1 = currentPrice - (trends.days_1.price_change || 0);
+                    priceData.push({ 
+                        date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], 
+                        price: Math.max(0, pastPrice1),
+                        market: Math.max(0, pastPrice1)
+                    });
+                }
+                
+                // Add current price
+                priceData.push({ 
+                    date: today.toISOString().split('T')[0], 
+                    price: currentPrice,
+                    market: currentPrice
+                });
             }
         }
         
-        // Display price changes
+        // Display price changes using consistent ScryDx data
         if (card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {
             const price = card.variants[0].prices[0];
             const trends = price.trends || {};
@@ -265,9 +314,11 @@ async function displayPriceChart(card) {
                 const changePercent = trends.days_1.percent_change || 0;
                 change24h.innerHTML = `
                     <span class="${changeValue >= 0 ? 'text-green-600' : 'text-red-600'}">
-                        ${changeValue >= 0 ? '+' : ''}$${changeValue.toFixed(2)} (${changePercent.toFixed(1)}%)
+                        ${changeValue >= 0 ? '+' : ''}$${Math.abs(changeValue).toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%)
                     </span>
                 `;
+            } else if (change24h) {
+                change24h.innerHTML = '<span class="text-gray-500">No data</span>';
             }
             
             // 7d change
@@ -277,9 +328,11 @@ async function displayPriceChart(card) {
                 const changePercent = trends.days_7.percent_change || 0;
                 change7d.innerHTML = `
                     <span class="${changeValue >= 0 ? 'text-green-600' : 'text-red-600'}">
-                        ${changeValue >= 0 ? '+' : ''}$${changeValue.toFixed(2)} (${changePercent.toFixed(1)}%)
+                        ${changeValue >= 0 ? '+' : ''}$${Math.abs(changeValue).toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%)
                     </span>
                 `;
+            } else if (change7d) {
+                change7d.innerHTML = '<span class="text-gray-500">No data</span>';
             }
             
             // 30d change
@@ -289,15 +342,22 @@ async function displayPriceChart(card) {
                 const changePercent = trends.days_30.percent_change || 0;
                 change30d.innerHTML = `
                     <span class="${changeValue >= 0 ? 'text-green-600' : 'text-red-600'}">
-                        ${changeValue >= 0 ? '+' : ''}$${changeValue.toFixed(2)} (${changePercent.toFixed(1)}%)
+                        ${changeValue >= 0 ? '+' : ''}$${Math.abs(changeValue).toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%)
                     </span>
                 `;
+            } else if (change30d) {
+                change30d.innerHTML = '<span class="text-gray-500">No data</span>';
             }
         }
         
         // Create the price chart
         if (priceData.length > 0) {
             createPriceChart(priceData);
+        } else {
+            const chartContainer = document.getElementById('price-chart-container');
+            if (chartContainer) {
+                chartContainer.innerHTML = '<p class="text-gray-500 text-center py-8">No price history available</p>';
+            }
         }
         
     } catch (error) {
@@ -327,7 +387,7 @@ function createPriceChart(priceData) {
         return date.toLocaleDateString();
     });
     
-    const prices = priceData.map(item => item.price);
+    const prices = priceData.map(item => item.market || item.price || 0);
     
     priceChart = new Chart(ctx, {
         type: 'line',
@@ -387,7 +447,9 @@ function showPeriod(days) {
     
     // Reload chart with new period
     if (currentCard) {
-        displayPriceChart(currentCard, days);
+        const urlParams = new URLSearchParams(window.location.search);
+        const game = urlParams.get('tcg') || 'pokemon';
+        displayPriceChart(currentCard, game, days);
     }
 }
 
