@@ -367,7 +367,7 @@
             };
 
             // Search users in Firestore
-            const searchUsers = async (query) => {
+            window.searchUsers = async (query) => {
                 console.log('Searching users for:', query);
                 try {
                     if (!firebase.firestore) {
@@ -431,7 +431,7 @@
             };
 
             // Search articles in Firestore
-            const searchArticles = async (query) => {
+            window.searchArticles = async (query) => {
                 console.log('Searching articles for:', query);
                 try {
                     if (!firebase.firestore) {
@@ -502,9 +502,9 @@
                                     return await searchMTG(query, page);
                             }
                         case 'users':
-                            return await searchUsers(query);
+                            return await window.searchUsers(query);
                         case 'articles':
-                            return await searchArticles(query);
+                            return await window.searchArticles(query);
                         default:
                             return await searchMTG(query, page);
                     }
