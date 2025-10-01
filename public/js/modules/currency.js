@@ -135,11 +135,15 @@ export function convertAndFormat(priceData) {
     const targetCurrency = getUserCurrency();
     let priceUSD = 0;
 
+    console.log(`[Currency] convertAndFormat called with:`, priceData, `Target currency: ${targetCurrency}`);
+
     if (typeof priceData === 'number') {
         priceUSD = priceData;
     } else if (typeof priceData === 'object' && priceData !== null) {
         priceUSD = getNormalizedPriceUSD(priceData);
     }
+
+    console.log(`[Currency] Extracted USD price: ${priceUSD}, Exchange rates available:`, !!exchangeRates);
 
     if (typeof priceUSD !== 'number' || isNaN(priceUSD)) {
         priceUSD = 0;

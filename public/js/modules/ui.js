@@ -138,8 +138,8 @@ export function renderListView(cards, activeTab) {
     const tableBody = cards.map(card => {
         const price = Currency.convertAndFormat(card.prices);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
-        const saleStatus = (card.forSale && typeof card.salePrice === 'number')
-            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.salePrice)})</span>`
+        const saleStatus = (card.for_sale && typeof card.sale_price === 'number')
+            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.sale_price)})</span>`
             : 'In Collection';
 
         return `
