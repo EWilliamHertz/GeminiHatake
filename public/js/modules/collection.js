@@ -421,3 +421,61 @@ export function getAvailableFilterOptions(games) {
     return { sets, rarities, types };
 }
 
+
+export async function batchRemoveMarketplaceListings(cardIds) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    try {
+        await API.batchRemoveMarketplaceListings(state.currentUser.uid, cardIds);
+    } catch (error) {
+        console.error('Error removing marketplace listings:', error);
+        throw error;
+    }
+}
+
+export async function removeCardFromSale(cardId) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    const card = getCardById(cardId);
+    if (!card || !card.for_sale) {
+        throw new Error("Card is not currently for sale.");
+    }
+    
+    // Update the card in collection
+    await batchUpdateSaleStatus([{
+        id: cardId,
+        data: { for_sale: false, sale_price: null, sale_currency: null }
+    }]);
+    
+    // Remove from marketplace listings
+    await batchRemoveMarketplaceListings([cardId]);
+}
+
+export async function updateCardSalePrice(cardId, newPrice, currency) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    const card = getCardById(cardId);
+    if (!card) {
+        throw new Error("Card not found.");
+    }
+    
+    // Update the card in collection
+    await batchUpdateSaleStatus([{
+        id: cardId,
+        data: { 
+            for_sale: true, 
+            sale_price: newPrice, 
+            sale_currency: currency 
+        }
+    }]);
+    
+    // Update marketplace listing
+    await batchCreateMarketplaceListings([{
+        id: cardId,
+        data: { 
+            for_sale: true, 
+            sale_price: newPrice, 
+            sale_currency: currency 
+        }
+    }]);
+}

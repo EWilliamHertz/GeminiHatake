@@ -118,7 +118,12 @@ const UI = {
                         ${forSaleIndicator}
                         <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-full object-cover" loading="lazy">
                         ${isBulkMode ? `<input type="checkbox" class="bulk-select-checkbox absolute top-2 right-2 h-5 w-5 z-10" ${isSelected ? 'checked' : ''}>` : ''}
-                        <div class="card-actions absolute bottom-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        <div class="card-actions absolute bottom-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                            ${card.for_sale 
+                                ? `<button data-action="update-price" title="Update Price" class="p-2 bg-green-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-tag"></i></button>
+                                   <button data-action="remove-sale" title="Remove from Sale" class="p-2 bg-orange-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-store-slash"></i></button>`
+                                : `<button data-action="list-sale" title="List for Sale" class="p-2 bg-green-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-dollar-sign"></i></button>`
+                            }
                             <button data-action="history" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-chart-line"></i></button>
                             <button data-action="edit" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-edit"></i></button>
                             <button data-action="delete" class="p-2 bg-red-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-trash"></i></button>
@@ -174,9 +179,14 @@ const UI = {
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-mono">${marketValue}${saleInfo}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
                                 <div class="card-actions flex items-center space-x-3">
-                                    <button data-action="history" title="Price History"><i class="fas fa-chart-line"></i></button>
-                                    <button data-action="edit" title="Edit Card"><i class="fas fa-edit"></i></button>
-                                    <button data-action="delete" title="Delete Card"><i class="fas fa-trash text-red-500"></i></button>
+                                    ${card.for_sale 
+                                        ? `<button data-action="update-price" title="Update Price" class="text-green-600 hover:text-green-800"><i class="fas fa-tag"></i></button>
+                                           <button data-action="remove-sale" title="Remove from Sale" class="text-orange-600 hover:text-orange-800"><i class="fas fa-store-slash"></i></button>`
+                                        : `<button data-action="list-sale" title="List for Sale" class="text-green-600 hover:text-green-800"><i class="fas fa-dollar-sign"></i></button>`
+                                    }
+                                    <button data-action="history" title="Price History" class="text-blue-600 hover:text-blue-800"><i class="fas fa-chart-line"></i></button>
+                                    <button data-action="edit" title="Edit Card" class="text-gray-600 hover:text-gray-800"><i class="fas fa-edit"></i></button>
+                                    <button data-action="delete" title="Delete Card" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -986,6 +996,15 @@ function handleCardClick(e, cardContainer) {
                         });
                     }
                     break;
+                case 'list-sale':
+                    openIndividualSaleModal(cardId);
+                    break;
+                case 'remove-sale':
+                    removeCardFromSale(cardId);
+                    break;
+                case 'update-price':
+                    updateCardSalePrice(cardId);
+                    break;
                 case 'history':
                     console.log(`[UI] Opening price history for card: ${card.name} (${card.api_id})`);
                     
@@ -1684,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Click outside modal to close functionality
         document.addEventListener('click', (e) => {
-            const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal', 'card-history-modal'];
+            const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal', 'card-history-modal', 'individual-sale-modal'];
             modals.forEach(modalId => {
                 const modal = document.getElementById(modalId);
                 if (modal && !modal.classList.contains('hidden')) {
@@ -1699,7 +1718,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Escape key to close modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal', 'card-history-modal'];
+                const modals = ['search-modal', 'csv-import-modal', 'csv-review-modal', 'bulk-review-modal', 'card-modal', 'card-history-modal', 'individual-sale-modal'];
                 modals.forEach(modalId => {
                     const modal = document.getElementById(modalId);
                     if (modal && !modal.classList.contains('hidden')) {
@@ -1742,6 +1761,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const bulkReviewList = document.getElementById('bulk-review-list');
                     if (bulkReviewList) bulkReviewList.innerHTML = '';
                     break;
+                case 'individual-sale-modal':
+                    // Clear individual sale modal data
+                    currentIndividualSaleCard = null;
+                    resetIndividualSaleForm();
+                    // Reset modal title and button text
+                    const modalTitle = document.querySelector('#individual-sale-modal h2');
+                    const confirmBtn = document.getElementById('individual-sale-confirm-btn');
+                    if (modalTitle) modalTitle.textContent = 'List Card for Sale';
+                    if (confirmBtn) confirmBtn.textContent = 'List for Sale';
+                    break;
             }
         }
         
@@ -1781,6 +1810,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         });
+
+        // Individual marketplace event listeners
+        document.getElementById('individual-sale-confirm-btn')?.addEventListener('click', handleIndividualSaleConfirm);
+        
+        // Percentage button clicks
+        document.querySelectorAll('.percentage-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const percentage = e.target.dataset.percentage;
+                
+                // Update button states
+                document.querySelectorAll('.percentage-btn').forEach(b => {
+                    b.classList.remove('bg-blue-500', 'text-white');
+                    b.classList.add('hover:bg-blue-50', 'dark:hover:bg-blue-900/50');
+                });
+                e.target.classList.add('bg-blue-500', 'text-white');
+                e.target.classList.remove('hover:bg-blue-50', 'dark:hover:bg-blue-900/50');
+                
+                // Set percentage value and update price
+                document.getElementById('individual-sale-percentage').value = percentage;
+                updateIndividualSaleFinalPrice();
+            });
+        });
+        
+        // Price input changes
+        document.getElementById('individual-sale-percentage')?.addEventListener('input', () => {
+            // Clear button states when typing custom percentage
+            document.querySelectorAll('.percentage-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('hover:bg-blue-50', 'dark:hover:bg-blue-900/50');
+            });
+            updateIndividualSaleFinalPrice();
+        });
+        
+        document.getElementById('individual-sale-fixed-price')?.addEventListener('input', updateIndividualSaleFinalPrice);
         
     } catch (error) {
         console.error("Initialization error:", error);
@@ -1906,6 +1969,276 @@ function handleTopMoverClick(element) {
             CardModal.populateCardModalForEdit(card);
         }
     }
+}
+
+// --- INDIVIDUAL MARKETPLACE FUNCTIONS ---
+
+let currentIndividualSaleCard = null;
+
+function openIndividualSaleModal(cardId) {
+    const card = Collection.getCardById(cardId);
+    if (!card) {
+        UI.showToast("Card not found.", "error");
+        return;
+    }
+
+    currentIndividualSaleCard = card;
+    const modal = document.getElementById('individual-sale-modal');
+    if (!modal) return;
+
+    // Populate card information
+    document.getElementById('individual-sale-card-image').src = getCardImageUrl(card);
+    document.getElementById('individual-sale-card-name').textContent = card.name;
+    document.getElementById('individual-sale-card-set').textContent = card.set_name;
+    document.getElementById('individual-sale-card-condition').textContent = `Condition: ${card.condition || 'N/A'}`;
+    
+    // Set market price
+    const marketPrice = Currency.getNormalizedPriceUSD(card.prices) || 0;
+    document.getElementById('individual-sale-market-price').textContent = Currency.convertAndFormat(card.prices);
+
+    // Show/hide quantity section for cards with multiple copies
+    const quantitySection = document.getElementById('individual-sale-quantity-section');
+    const totalQuantitySpan = document.getElementById('individual-sale-total-quantity');
+    const quantityInput = document.getElementById('individual-sale-quantity');
+    
+    if (card.quantity > 1) {
+        quantitySection.classList.remove('hidden');
+        totalQuantitySpan.textContent = card.quantity;
+        quantityInput.max = card.quantity;
+        quantityInput.value = 1;
+    } else {
+        quantitySection.classList.add('hidden');
+        quantityInput.value = 1;
+    }
+
+    // Set currency information
+    const userCurrency = Currency.getUserCurrency();
+    const currencySymbol = Currency.getCurrencySymbol(userCurrency);
+    document.getElementById('individual-sale-currency-symbol').textContent = currencySymbol;
+    document.getElementById('individual-sale-currency-code').textContent = userCurrency;
+
+    // Reset form
+    resetIndividualSaleForm();
+    
+    // Set default to 100% of market value
+    document.getElementById('individual-sale-percentage').value = '100';
+    updateIndividualSaleFinalPrice();
+
+    UI.openModal(modal);
+}
+
+function resetIndividualSaleForm() {
+    // Clear all inputs
+    document.getElementById('individual-sale-percentage').value = '';
+    document.getElementById('individual-sale-fixed-price').value = '';
+    document.getElementById('individual-sale-condition-override').value = '';
+    
+    // Reset button states
+    document.querySelectorAll('.percentage-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white');
+        btn.classList.add('hover:bg-blue-50', 'dark:hover:bg-blue-900/50');
+    });
+    
+    // Reset final price
+    document.getElementById('individual-sale-final-price').textContent = '$0.00';
+    document.getElementById('individual-sale-price-comparison').textContent = '';
+}
+
+function updateIndividualSaleFinalPrice() {
+    if (!currentIndividualSaleCard) return;
+
+    const marketPriceUSD = Currency.getNormalizedPriceUSD(currentIndividualSaleCard.prices) || 0;
+    const percentageInput = document.getElementById('individual-sale-percentage');
+    const fixedPriceInput = document.getElementById('individual-sale-fixed-price');
+    const finalPriceEl = document.getElementById('individual-sale-final-price');
+    const comparisonEl = document.getElementById('individual-sale-price-comparison');
+
+    let finalPriceUSD = 0;
+    let comparisonText = '';
+
+    // Determine price based on input method
+    if (fixedPriceInput.value && parseFloat(fixedPriceInput.value) > 0) {
+        // Fixed price in user's currency - convert to USD for comparison
+        const fixedPrice = parseFloat(fixedPriceInput.value);
+        finalPriceUSD = Currency.convertFromUserCurrency(fixedPrice);
+        
+        // Clear percentage input
+        percentageInput.value = '';
+        
+        // Calculate percentage for comparison
+        if (marketPriceUSD > 0) {
+            const percentage = (finalPriceUSD / marketPriceUSD) * 100;
+            comparisonText = `${percentage.toFixed(1)}% of market value`;
+        }
+    } else if (percentageInput.value && parseFloat(percentageInput.value) > 0) {
+        // Percentage of market value
+        const percentage = parseFloat(percentageInput.value);
+        finalPriceUSD = marketPriceUSD * (percentage / 100);
+        
+        // Clear fixed price input
+        fixedPriceInput.value = '';
+        
+        if (percentage < 90) {
+            comparisonText = 'Below market value';
+        } else if (percentage > 110) {
+            comparisonText = 'Above market value';
+        } else {
+            comparisonText = 'Near market value';
+        }
+    }
+
+    // Display final price in user's currency
+    const finalPriceUserCurrency = Currency.convertToUserCurrency(finalPriceUSD);
+    const currencySymbol = Currency.getCurrencySymbol(Currency.getUserCurrency());
+    finalPriceEl.textContent = `${currencySymbol}${finalPriceUserCurrency.toFixed(2)}`;
+    comparisonEl.textContent = comparisonText;
+
+    // Enable/disable confirm button
+    const confirmBtn = document.getElementById('individual-sale-confirm-btn');
+    confirmBtn.disabled = finalPriceUSD <= 0;
+}
+
+async function handleIndividualSaleConfirm() {
+    if (!currentIndividualSaleCard) return;
+
+    const confirmBtn = document.getElementById('individual-sale-confirm-btn');
+    const originalText = confirmBtn.textContent;
+    
+    try {
+        UI.setButtonLoading(confirmBtn, true);
+
+        // Get final price in USD
+        const marketPriceUSD = Currency.getNormalizedPriceUSD(currentIndividualSaleCard.prices) || 0;
+        const percentageInput = document.getElementById('individual-sale-percentage');
+        const fixedPriceInput = document.getElementById('individual-sale-fixed-price');
+        
+        let salePriceUserCurrency = 0;
+        
+        if (fixedPriceInput.value && parseFloat(fixedPriceInput.value) > 0) {
+            salePriceUserCurrency = parseFloat(fixedPriceInput.value);
+        } else if (percentageInput.value && parseFloat(percentageInput.value) > 0) {
+            const percentage = parseFloat(percentageInput.value);
+            const salePriceUSD = marketPriceUSD * (percentage / 100);
+            salePriceUserCurrency = Currency.convertToUserCurrency(salePriceUSD);
+        }
+
+        if (salePriceUserCurrency <= 0) {
+            UI.showToast("Please set a valid price.", "error");
+            return;
+        }
+
+        // Get quantity and condition override
+        const quantity = parseInt(document.getElementById('individual-sale-quantity').value) || 1;
+        const conditionOverride = document.getElementById('individual-sale-condition-override').value;
+
+        // Prepare update data
+        const updateData = {
+            for_sale: true,
+            sale_price: salePriceUserCurrency,
+            sale_currency: Currency.getUserCurrency()
+        };
+
+        // If condition override is specified, include it
+        if (conditionOverride) {
+            updateData.condition = conditionOverride;
+        }
+
+        // Update the card in collection
+        await Collection.batchUpdateSaleStatus([{
+            id: currentIndividualSaleCard.id,
+            data: updateData
+        }]);
+
+        // Create marketplace listing
+        await Collection.batchCreateMarketplaceListings([{
+            id: currentIndividualSaleCard.id,
+            data: updateData
+        }]);
+
+        UI.showToast(`${currentIndividualSaleCard.name} listed for sale!`, "success");
+        UI.closeModal(document.getElementById('individual-sale-modal'));
+        
+        // Refresh the display
+        applyAndRender({});
+
+    } catch (error) {
+        console.error('Error listing card for sale:', error);
+        UI.showToast(`Error: ${error.message}`, "error");
+    } finally {
+        UI.setButtonLoading(confirmBtn, false, originalText);
+    }
+}
+
+async function removeCardFromSale(cardId) {
+    const card = Collection.getCardById(cardId);
+    if (!card || !card.for_sale) {
+        UI.showToast("Card is not currently for sale.", "info");
+        return;
+    }
+
+    const confirmed = confirm(`Remove "${card.name}" from marketplace?`);
+    if (!confirmed) return;
+
+    try {
+        // Update collection to remove sale status
+        await Collection.batchUpdateSaleStatus([{
+            id: cardId,
+            data: { for_sale: false, sale_price: null, sale_currency: null }
+        }]);
+
+        // Remove from marketplace listings
+        await Collection.batchRemoveMarketplaceListings([cardId]);
+
+        UI.showToast(`${card.name} removed from marketplace!`, "success");
+        
+        // Refresh the display
+        applyAndRender({});
+
+    } catch (error) {
+        console.error('Error removing card from sale:', error);
+        UI.showToast(`Error: ${error.message}`, "error");
+    }
+}
+
+async function updateCardSalePrice(cardId) {
+    const card = Collection.getCardById(cardId);
+    if (!card || !card.for_sale) {
+        UI.showToast("Card is not currently for sale.", "info");
+        return;
+    }
+
+    // Open the individual sale modal with current price pre-filled
+    currentIndividualSaleCard = card;
+    const modal = document.getElementById('individual-sale-modal');
+    if (!modal) return;
+
+    // Populate card information (same as openIndividualSaleModal)
+    document.getElementById('individual-sale-card-image').src = getCardImageUrl(card);
+    document.getElementById('individual-sale-card-name').textContent = card.name;
+    document.getElementById('individual-sale-card-set').textContent = card.set_name;
+    document.getElementById('individual-sale-card-condition').textContent = `Condition: ${card.condition || 'N/A'}`;
+    
+    const marketPrice = Currency.getNormalizedPriceUSD(card.prices) || 0;
+    document.getElementById('individual-sale-market-price').textContent = Currency.convertAndFormat(card.prices);
+
+    // Set currency information
+    const userCurrency = Currency.getUserCurrency();
+    const currencySymbol = Currency.getCurrencySymbol(userCurrency);
+    document.getElementById('individual-sale-currency-symbol').textContent = currencySymbol;
+    document.getElementById('individual-sale-currency-code').textContent = userCurrency;
+
+    // Pre-fill with current sale price
+    resetIndividualSaleForm();
+    if (card.sale_price) {
+        document.getElementById('individual-sale-fixed-price').value = card.sale_price.toFixed(2);
+        updateIndividualSaleFinalPrice();
+    }
+
+    // Change modal title and button text
+    modal.querySelector('h2').textContent = 'Update Sale Price';
+    document.getElementById('individual-sale-confirm-btn').textContent = 'Update Price';
+
+    UI.openModal(modal);
 }
 
 // ES6 module exports
