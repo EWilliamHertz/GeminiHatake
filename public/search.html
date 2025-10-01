@@ -1,67 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results - HatakeSocial</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            plugins: [
+                function ({ addVariant }) {
+                    addVariant('has-[:checked]', '&:has(:checked)')
+                }
+            ]
+        };
+    </script>
+    <link rel="manifest" href="/manifest.json">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
     <div class="flex h-screen">
+        <!-- Sidebar Overlay -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+        
         <!-- Sidebar -->
-        <nav class="w-64 bg-white dark:bg-gray-800 shadow-lg transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out fixed lg:relative z-30 h-full" id="sidebar">
-            <div class="p-6">
-                <div class="flex items-center space-x-3 mb-8">
-                    <img src="images/logo.png" alt="HatakeSocial Logo" class="w-10 h-10 rounded-full">
-                    <h1 class="text-xl font-bold">HatakeSocial</h1>
-                </div>
-                <ul class="space-y-2">
-                    <li><a href="index.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-home text-blue-500"></i><span>Feed</span><span class="ml-auto bg-blue-500 text-white text-xs px-2 py-1 rounded-full">2</span></a></li>
-                    <li><a href="messages.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-envelope text-yellow-500"></i><span>Messages</span><span class="ml-auto bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">3</span></a></li>
-                    <li><a href="community.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-users text-purple-500"></i><span>Community</span><span class="ml-auto bg-purple-500 text-white text-xs px-2 py-1 rounded-full">4</span></a></li>
-                    <li><a href="articles.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-newspaper text-teal-500"></i><span>TCG Articles</span><span class="ml-auto bg-teal-500 text-white text-xs px-2 py-1 rounded-full">8</span></a></li>
-                    <li><a href="blog.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-blog text-pink-500"></i><span>Hatake Blog</span><span class="ml-auto bg-pink-500 text-white text-xs px-2 py-1 rounded-full">3</span></a></li>
-                    <li><a href="events.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-calendar text-purple-500"></i><span>Events</span><span class="ml-auto bg-purple-500 text-white text-xs px-2 py-1 rounded-full">7</span></a></li>
-                    <li><a href="my_collection.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-layer-group text-orange-500"></i><span>My Collection</span><span class="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded-full">1</span></a></li>
-                    <li><a href="deck_builder.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-hammer text-green-500"></i><span>Deck Builder</span><span class="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full">6</span></a></li>
-                    <li><a href="shop.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-shopping-cart text-red-500"></i><span>Shop</span><span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">10</span></a></li>
-                    <li><a href="marketplace.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-store text-blue-500"></i><span>Marketplace</span><span class="ml-auto bg-blue-500 text-white text-xs px-2 py-1 rounded-full">16</span></a></li>
-                    <li><a href="trades.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-exchange-alt text-red-500"></i><span>Trades</span><span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">15</span></a></li>
-                    <li><a href="profile.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-user text-green-500"></i><span>Profile</span><span class="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full">13</span></a></li>
-                    <li><a href="settings.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-cog text-blue-500"></i><span>Settings</span><span class="ml-auto bg-blue-500 text-white text-xs px-2 py-1 rounded-full">14</span></a></li>
-                    <li><a href="about.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-info-circle text-yellow-500"></i><span>About Us</span><span class="ml-auto bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">15</span></a></li>
-                </ul>
+        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+                <a href="app.html" class="flex flex-col items-center space-y-1">
+                    <img src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b" 
+                         alt="HatakeSocial Logo" class="h-16" 
+                         onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
+                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+                </a>
             </div>
-        </nav>
-
-        <!-- Overlay for mobile sidebar -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden hidden" id="sidebar-overlay"></div>
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <a href="app.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-home w-6 text-center"></i>
+                    <span class="ml-3">Feed</span>
+                </a>
+                <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-comments w-6 text-center"></i>
+                    <span class="ml-3">Messages</span>
+                </a>
+                <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-users w-6 text-center"></i>
+                    <span class="ml-3">Community</span>
+                </a>
+                <a href="articles.html?type=tcg" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-newspaper w-6 text-center"></i>
+                    <span class="ml-3">TCG Articles</span>
+                </a>
+                <a href="articles.html?type=blog" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-blog w-6 text-center"></i>
+                    <span class="ml-3">Hatake Blog</span>
+                </a>
+                <a href="events.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-calendar-alt w-6 text-center"></i>
+                    <span class="ml-3">Events</span>
+                </a>
+                <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-layer-group w-6 text-center"></i>
+                    <span class="ml-3">My Collection</span>
+                </a>
+                <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-book-open w-6 text-center"></i>
+                    <span class="ml-3">Deck Builder</span>
+                </a>
+                <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-shopping-cart w-6 text-center"></i>
+                    <span class="ml-3">Shop</span>
+                </a>
+                <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-store w-6 text-center"></i>
+                    <span class="ml-3">Marketplace</span>
+                </a>
+                <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-exchange-alt w-6 text-center"></i>
+                    <span class="ml-3">Trades</span>
+                </a>
+                <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-user w-6 text-center"></i>
+                    <span class="ml-3">Profile</span>
+                </a>
+                <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-cog w-6 text-center"></i>
+                    <span class="ml-3">Settings</span>
+                </a>
+                <a href="about.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+                    <i class="fas fa-info-circle w-6 text-center"></i>
+                    <span class="ml-3">About Us</span>
+                </a>
+            </nav>
+            <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+                <div id="auth-container-sidebar"></div>
+            </div>
+        </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col lg:ml-0">
+        <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
-            <header class="bg-white dark:bg-gray-800 shadow-sm p-4 flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <button class="lg:hidden text-gray-600 dark:text-gray-300" id="sidebar-toggle">
+            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="flex items-center">
+                    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    <a href="index.html" class="text-xl font-bold text-blue-600 dark:text-blue-400">HatakeSocial</a>
-                </div>
-                <div class="flex-1 max-w-2xl mx-4">
                     <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         <input type="text" 
                                placeholder="Search for cards, users, or articles..." 
-                               class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                               class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                id="main-search-bar">
-                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                     </div>
                 </div>
-                <div class="flex items-center space-x-5" id="user-actions">
-                    <!-- This container is dynamically filled by auth.js -->
-                </div>
+                <div class="flex items-center space-x-5" id="user-actions"></div>
             </header>
 
             <!-- Main Content Area -->
@@ -140,6 +192,20 @@
                             <div class="space-y-8" id="search-results-area">
                                 <p class="text-center text-gray-500 dark:text-gray-400 text-lg">Please enter a search term in the bar above.</p>
                             </div>
+
+                            <!-- Pagination Controls -->
+                            <div class="mt-8 flex justify-center items-center space-x-4" id="pagination-controls" style="display: none;">
+                                <button class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" id="prev-page" disabled>
+                                    <i class="fas fa-chevron-left mr-2"></i>Previous
+                                </button>
+                                <span class="text-sm text-gray-600 dark:text-gray-400" id="page-info">Page 1</span>
+                                <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" id="next-page">
+                                    Next<i class="fas fa-chevron-right ml-2"></i>
+                                </button>
+                                <button class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700" id="load-more">
+                                    Load More Results
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -161,7 +227,16 @@
     <script>
         console.log('Search page loading...');
         
-        // Wait for Firebase to be ready
+        // Global variables
+        let currentQuery = '';
+        let currentPage = 1;
+        let currentCategory = 'cards';
+        let currentTcg = 'mtg';
+        let allResults = [];
+        let searchTimeout = null;
+        const RESULTS_PER_PAGE = 20;
+        
+        // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM ready, initializing search...');
             
@@ -175,80 +250,204 @@
             const clearFiltersBtn = document.getElementById('clear-filters');
             const tcgFilterContainer = document.getElementById('tcg-filter-container');
             const priceFilterContainer = document.getElementById('price-filter-container');
-            
-            let currentQuery = '';
-            let searchTimeout = null;
+            const paginationControls = document.getElementById('pagination-controls');
+            const prevPageBtn = document.getElementById('prev-page');
+            const nextPageBtn = document.getElementById('next-page');
+            const loadMoreBtn = document.getElementById('load-more');
+            const pageInfo = document.getElementById('page-info');
             
             // Search functions for different APIs
-            const searchMTG = async (query) => {
-                console.log('Searching MTG for:', query);
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints`);
+            const searchMTG = async (query, page = 1) => {
+                console.log('Searching MTG for:', query, 'page:', page);
+                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints&page=${page}`);
                 if (!response.ok) {
-                    if (response.status === 404) return [];
+                    if (response.status === 404) return { data: [], has_more: false, total_cards: 0 };
                     throw new Error(`MTG API Error: ${response.status}`);
                 }
                 const data = await response.json();
-                return data.data || [];
+                return {
+                    data: data.data || [],
+                    has_more: data.has_more || false,
+                    total_cards: data.total_cards || 0
+                };
             };
             
-            const searchPokemon = async (query) => {
-                console.log('Searching Pokemon for:', query);
-                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(query)}`, {
+            const searchPokemon = async (query, page = 1) => {
+                console.log('Searching Pokemon for:', query, 'page:', page);
+                const pageSize = 20;
+                const offset = (page - 1) * pageSize;
+                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`, {
                     headers: { 'X-Api-Key': '60a08d4a-3a34-43d8-8f41-827b58cfac6d' }
                 });
                 if (!response.ok) {
                     throw new Error(`Pokemon API Error: ${response.status}`);
                 }
                 const data = await response.json();
-                return data.data || [];
+                return {
+                    data: data.data || [],
+                    has_more: data.data && data.data.length === pageSize,
+                    total_cards: data.totalCount || 0
+                };
             };
             
-            const searchScryDex = async (query, game) => {
-                console.log(`Searching ScryDex for ${game}:`, query);
+            const searchScryDex = async (query, game, page = 1) => {
+                console.log(`Searching ScryDex for ${game}:`, query, 'page:', page);
                 try {
                     const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-                    const result = await searchScryDexFunction({ cardName: query, game: game });
+                    const result = await searchScryDexFunction({ 
+                        cardName: query, 
+                        game: game,
+                        page: page,
+                        limit: RESULTS_PER_PAGE
+                    });
                     
                     if (result && result.data && Array.isArray(result.data.data)) {
-                        return result.data.data;
+                        return {
+                            data: result.data.data,
+                            has_more: result.data.has_more || false,
+                            total_cards: result.data.total || 0
+                        };
                     } else if (result && Array.isArray(result.data)) {
-                        return result.data;
+                        return {
+                            data: result.data,
+                            has_more: false,
+                            total_cards: result.data.length
+                        };
                     }
-                    return [];
+                    return { data: [], has_more: false, total_cards: 0 };
                 } catch (error) {
                     console.error(`ScryDex search error for ${game}:`, error);
-                    return [];
+                    return { data: [], has_more: false, total_cards: 0 };
+                }
+            };
+
+            // Search users in Firestore
+            const searchUsers = async (query) => {
+                console.log('Searching users for:', query);
+                try {
+                    if (!firebase.firestore) {
+                        throw new Error('Firestore not available');
+                    }
+                    
+                    const db = firebase.firestore();
+                    const usersRef = db.collection('users');
+                    
+                    // Search by display name (case insensitive)
+                    const snapshot = await usersRef
+                        .where('displayName', '>=', query)
+                        .where('displayName', '<=', query + '\uf8ff')
+                        .limit(50)
+                        .get();
+                    
+                    const users = [];
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        users.push({
+                            id: doc.id,
+                            displayName: userData.displayName || 'Unknown User',
+                            email: userData.email || '',
+                            photoURL: userData.photoURL || 'https://via.placeholder.com/100x100?text=User',
+                            bio: userData.bio || '',
+                            joinDate: userData.createdAt ? userData.createdAt.toDate() : new Date()
+                        });
+                    });
+                    
+                    return {
+                        data: users,
+                        has_more: false,
+                        total_cards: users.length
+                    };
+                } catch (error) {
+                    console.error('User search error:', error);
+                    return { data: [], has_more: false, total_cards: 0 };
+                }
+            };
+
+            // Search articles in Firestore
+            const searchArticles = async (query) => {
+                console.log('Searching articles for:', query);
+                try {
+                    if (!firebase.firestore) {
+                        throw new Error('Firestore not available');
+                    }
+                    
+                    const db = firebase.firestore();
+                    const articlesRef = db.collection('articles');
+                    
+                    // Search by title (case insensitive)
+                    const snapshot = await articlesRef
+                        .where('title', '>=', query)
+                        .where('title', '<=', query + '\uf8ff')
+                        .where('published', '==', true)
+                        .orderBy('title')
+                        .orderBy('publishedAt', 'desc')
+                        .limit(50)
+                        .get();
+                    
+                    const articles = [];
+                    snapshot.forEach(doc => {
+                        const articleData = doc.data();
+                        articles.push({
+                            id: doc.id,
+                            title: articleData.title || 'Untitled Article',
+                            content: articleData.content || '',
+                            excerpt: articleData.excerpt || '',
+                            author: articleData.author || 'Unknown Author',
+                            publishedAt: articleData.publishedAt ? articleData.publishedAt.toDate() : new Date(),
+                            tags: articleData.tags || [],
+                            type: articleData.type || 'article',
+                            imageUrl: articleData.imageUrl || 'https://via.placeholder.com/400x200?text=Article'
+                        });
+                    });
+                    
+                    return {
+                        data: articles,
+                        has_more: false,
+                        total_cards: articles.length
+                    };
+                } catch (error) {
+                    console.error('Article search error:', error);
+                    return { data: [], has_more: false, total_cards: 0 };
                 }
             };
             
             // Main search function
-            const searchCards = async (query, tcg) => {
-                console.log(`Searching for "${query}" in ${tcg}`);
+            const searchContent = async (query, category, tcg, page = 1) => {
+                console.log(`Searching for "${query}" in ${category} (${tcg}) page ${page}`);
                 
                 if (!query || query.trim().length < 2) {
                     throw new Error('Search query must be at least 2 characters long.');
                 }
 
                 try {
-                    switch (tcg) {
-                        case 'mtg':
-                            return await searchMTG(query);
-                        case 'pokemon':
-                            return await searchPokemon(query);
-                        case 'lorcana':
-                            return await searchScryDex(query, 'lorcana');
-                        case 'gundam':
-                            return await searchScryDex(query, 'gundam');
+                    switch (category) {
+                        case 'cards':
+                            switch (tcg) {
+                                case 'mtg':
+                                    return await searchMTG(query, page);
+                                case 'pokemon':
+                                    return await searchPokemon(query, page);
+                                case 'lorcana':
+                                    return await searchScryDex(query, 'lorcana', page);
+                                case 'gundam':
+                                    return await searchScryDex(query, 'gundam', page);
+                                default:
+                                    return await searchMTG(query, page);
+                            }
+                        case 'users':
+                            return await searchUsers(query);
+                        case 'articles':
+                            return await searchArticles(query);
                         default:
-                            return await searchMTG(query);
+                            return await searchMTG(query, page);
                     }
                 } catch (error) {
-                    console.error(`Search failed for ${tcg}:`, error);
+                    console.error(`Search failed for ${category}:`, error);
                     throw error;
                 }
             };
             
-            // Render card function
+            // Render functions
             const renderCard = (card, tcg) => {
                 const name = card.name || 'Unknown Card';
                 let imageUrl = 'https://via.placeholder.com/200x280?text=No+Image';
@@ -299,59 +498,126 @@
                     </div>
                 `;
             };
+
+            const renderUser = (user) => {
+                const joinDate = user.joinDate ? user.joinDate.toLocaleDateString() : 'Unknown';
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer p-6" 
+                         onclick="openUserProfile('${user.id}')">
+                        <div class="flex items-center space-x-4">
+                            <img src="${user.photoURL}" alt="${user.displayName}" class="w-16 h-16 rounded-full object-cover" 
+                                 onerror="this.src='https://via.placeholder.com/100x100?text=User'">
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-lg text-gray-900 dark:text-white">${user.displayName}</h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">${user.email}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-500">Joined ${joinDate}</p>
+                                ${user.bio ? `<p class="text-sm text-gray-700 dark:text-gray-300 mt-2">${user.bio}</p>` : ''}
+                            </div>
+                            <button class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                    onclick="event.stopPropagation(); followUser('${user.id}')">
+                                Follow
+                            </button>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const renderArticle = (article) => {
+                const publishDate = article.publishedAt ? article.publishedAt.toLocaleDateString() : 'Unknown';
+                const excerpt = article.excerpt || (article.content ? article.content.substring(0, 150) + '...' : 'No preview available');
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" 
+                         onclick="openArticle('${article.id}')">
+                        <img src="${article.imageUrl}" alt="${article.title}" class="w-full h-48 object-cover" 
+                             onerror="this.src='https://via.placeholder.com/400x200?text=Article'">
+                        <div class="p-6">
+                            <div class="flex items-center space-x-2 mb-2">
+                                ${article.tags.map(tag => `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded">${tag}</span>`).join('')}
+                            </div>
+                            <h3 class="font-semibold text-lg mb-2 text-gray-900 dark:text-white">${article.title}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${excerpt}</p>
+                            <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-500">
+                                <span>By ${article.author}</span>
+                                <span>${publishDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
             
             // Perform search function
-            const performSearch = async (query) => {
+            const performSearch = async (query, page = 1, append = false) => {
                 if (!query || query.trim().length < 2) {
                     resultsArea.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 text-lg">Please enter a search term.</p>';
+                    paginationControls.style.display = 'none';
                     return;
                 }
                 
                 currentQuery = query;
+                currentPage = page;
                 if (headerSearchBar) headerSearchBar.value = query;
                 if (searchQueryDisplay) searchQueryDisplay.textContent = query;
                 
                 // Show loading
-                if (loadingIndicator) loadingIndicator.classList.remove('hidden');
-                resultsArea.innerHTML = '';
+                if (!append && loadingIndicator) loadingIndicator.classList.remove('hidden');
+                if (!append) resultsArea.innerHTML = '';
                 
                 try {
                     const selectedCategory = categoryFilter ? categoryFilter.value : 'cards';
+                    const selectedTcg = tcgFilter ? tcgFilter.value : 'mtg';
+                    currentCategory = selectedCategory;
+                    currentTcg = selectedTcg;
                     
-                    if (selectedCategory === 'cards') {
-                        const selectedTcg = tcgFilter ? tcgFilter.value : 'mtg';
-                        const results = await searchCards(query, selectedTcg);
+                    const results = await searchContent(query, selectedCategory, selectedTcg, page);
+                    
+                    if (results.data.length === 0 && !append) {
+                        resultsArea.innerHTML = `
+                            <div class="text-center p-8">
+                                <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">No Results Found</h3>
+                                <p class="text-gray-600 dark:text-gray-400">Try adjusting your search terms or selecting a different category.</p>
+                            </div>
+                        `;
+                        paginationControls.style.display = 'none';
+                    } else {
+                        let resultElements = '';
                         
-                        if (results.length === 0) {
-                            resultsArea.innerHTML = `
-                                <div class="text-center p-8">
-                                    <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
-                                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">No Results Found</h3>
-                                    <p class="text-gray-600 dark:text-gray-400">Try adjusting your search terms or selecting a different TCG.</p>
-                                </div>
-                            `;
+                        if (selectedCategory === 'cards') {
+                            resultElements = results.data.map(item => renderCard(item, selectedTcg)).join('');
+                        } else if (selectedCategory === 'users') {
+                            resultElements = results.data.map(item => renderUser(item)).join('');
+                        } else if (selectedCategory === 'articles') {
+                            resultElements = results.data.map(item => renderArticle(item)).join('');
+                        }
+                        
+                        const gridClass = selectedCategory === 'cards' ? 
+                            'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' :
+                            'space-y-6';
+                        
+                        if (append) {
+                            const existingGrid = resultsArea.querySelector('.results-grid');
+                            if (existingGrid) {
+                                existingGrid.innerHTML += resultElements;
+                            }
                         } else {
-                            const cardElements = results.slice(0, 20).map(card => renderCard(card, selectedTcg)).join('');
+                            const categoryName = selectedCategory === 'cards' ? 
+                                (tcgFilter.options[tcgFilter.selectedIndex].text) : 
+                                selectedCategory;
+                            
                             resultsArea.innerHTML = `
                                 <div class="mb-4">
                                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                                        Found ${results.length} result${results.length !== 1 ? 's' : ''} for "${query}" in ${tcgFilter.options[tcgFilter.selectedIndex].text} (showing first 20)
+                                        Found ${results.total_cards} result${results.total_cards !== 1 ? 's' : ''} for "${query}" in ${categoryName}
                                     </p>
                                 </div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    ${cardElements}
+                                <div class="results-grid ${gridClass}">
+                                    ${resultElements}
                                 </div>
                             `;
                         }
-                    } else {
-                        // Handle users and articles search later
-                        resultsArea.innerHTML = `
-                            <div class="text-center p-8">
-                                <i class="fas fa-info-circle text-4xl text-blue-400 mb-4"></i>
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Feature Coming Soon</h3>
-                                <p class="text-gray-600 dark:text-gray-400">${selectedCategory} search will be available soon. For now, please search for cards.</p>
-                            </div>
-                        `;
+                        
+                        // Update pagination
+                        updatePagination(results.has_more, page, results.total_cards);
                     }
                 } catch (error) {
                     console.error('Search error:', error);
@@ -362,8 +628,25 @@
                             <p class="text-gray-600 dark:text-gray-400">An error occurred while searching: ${error.message}</p>
                         </div>
                     `;
+                    paginationControls.style.display = 'none';
                 } finally {
                     if (loadingIndicator) loadingIndicator.classList.add('hidden');
+                }
+            };
+
+            const updatePagination = (hasMore, page, totalResults) => {
+                if (totalResults > RESULTS_PER_PAGE || page > 1) {
+                    paginationControls.style.display = 'flex';
+                    
+                    prevPageBtn.disabled = page <= 1;
+                    nextPageBtn.disabled = !hasMore;
+                    loadMoreBtn.style.display = hasMore ? 'block' : 'none';
+                    
+                    const startResult = ((page - 1) * RESULTS_PER_PAGE) + 1;
+                    const endResult = Math.min(page * RESULTS_PER_PAGE, totalResults);
+                    pageInfo.textContent = `Page ${page} (${startResult}-${endResult} of ${totalResults})`;
+                } else {
+                    paginationControls.style.display = 'none';
                 }
             };
             
@@ -372,12 +655,28 @@
             
             window.openCardDetails = (cardName, tcg) => {
                 console.log('Opening card details for:', cardName, 'from', tcg);
-                alert(`Card details for ${cardName} (${tcg}) - Feature coming soon!`);
+                // Navigate to card details page
+                window.location.href = `card-view.html?name=${encodeURIComponent(cardName)}&tcg=${tcg}`;
             };
             
             window.addCardToCollection = (cardName, tcg) => {
                 console.log('Adding card to collection:', cardName, 'from', tcg);
                 alert(`Added ${cardName} (${tcg}) to collection - Feature coming soon!`);
+            };
+
+            window.openUserProfile = (userId) => {
+                console.log('Opening user profile:', userId);
+                window.location.href = `profile.html?user=${userId}`;
+            };
+
+            window.followUser = (userId) => {
+                console.log('Following user:', userId);
+                alert(`Following user - Feature coming soon!`);
+            };
+
+            window.openArticle = (articleId) => {
+                console.log('Opening article:', articleId);
+                window.location.href = `article.html?id=${articleId}`;
             };
             
             // Event listeners
@@ -419,6 +718,27 @@
                     if (currentQuery) {
                         performSearch(currentQuery);
                     }
+                });
+            }
+            
+            // Pagination event listeners
+            if (prevPageBtn) {
+                prevPageBtn.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        performSearch(currentQuery, currentPage - 1);
+                    }
+                });
+            }
+
+            if (nextPageBtn) {
+                nextPageBtn.addEventListener('click', () => {
+                    performSearch(currentQuery, currentPage + 1);
+                });
+            }
+
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', () => {
+                    performSearch(currentQuery, currentPage + 1, true);
                 });
             }
             
