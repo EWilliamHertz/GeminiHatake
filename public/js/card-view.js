@@ -1,64 +1,137 @@
-// Card View JavaScript
 console.log('Card view script loading...');
 
 let currentCard = null;
 let priceChart = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Card view DOM ready, loading card...');
+    console.log('Card view DOM ready, waiting for authentication...');
     
-    try {
-        await loadCardData();
-    } catch (error) {
-        console.error('Error loading card:', error);
-        showError();
-    }
+    // Wait for Firebase Auth to initialize
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            console.log('User authenticated, loading card data...');
+            try {
+                await loadCardData();
+            } catch (error) {
+                console.error('Error loading card:', error);
+                showError();
+            }
+        } else {
+            console.log('User not authenticated, showing login prompt...');
+            // Show a message that user needs to log in
+            showLoginRequired();
+        }
+    });
 });
+
+function showLoginRequired() {
+    // Hide loading and card content
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('card-content').classList.add('hidden');
+    
+    // Show login required message
+    const errorContent = document.getElementById('error-content');
+    if (errorContent) {
+        errorContent.innerHTML = `
+            <div class="text-blue-500 mb-4">
+                <i class="fas fa-sign-in-alt text-4xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Login Required</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Please log in to view card details and pricing information.</p>
+            <div class="space-x-4">
+                <button onclick="window.location.href='login.html'" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
+                    Log In
+                </button>
+                <button onclick="history.back()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
+                    Go Back
+                </button>
+            </div>
+        `;
+        errorContent.classList.remove('hidden');
+    }
+}
 
 async function loadCardData() {
     const urlParams = new URLSearchParams(window.location.search);
     const cardName = urlParams.get('name');
-    const game = urlParams.get('tcg');
+    const game = urlParams.get('tcg') || 'mtg'; // Default to MTG for Sol Ring
     const cardId = urlParams.get('id');
     
     console.log('Loading card:', { cardName, game, cardId });
+    console.log('Full URL:', window.location.href);
     
-    if (!cardName || !game) {
-        throw new Error('Missing card name or game parameter');
+    if (!cardName) {
+        throw new Error('Missing card name parameter');
     }
     
     try {
-        // Search for the card using ScryDex
+        // Show loading state
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('card-content').classList.add('hidden');
+        
+        // Search for the card using ScryDex - REAL DATA ONLY
+        console.log('Searching ScryDex for:', cardName, 'in game:', game);
         const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
         const result = await searchScryDexFunction({ cardName: cardName, game: game });
+        console.log('ScryDex search result:', result);
         
         let searchResults = [];
-        if (result && result.data && Array.isArray(result.data.data)) {
-            searchResults = result.data.data;
-        } else if (result && Array.isArray(result.data)) {
-            searchResults = result.data;
+        if (result && result.data) {
+            if (Array.isArray(result.data.data)) {
+                searchResults = result.data.data;
+            } else if (Array.isArray(result.data)) {
+                searchResults = result.data;
+            } else if (result.data.success && Array.isArray(result.data.cards)) {
+                searchResults = result.data.cards;
+            }
+        }
+        
+        console.log('Parsed search results:', searchResults);
+        console.log('Number of results:', searchResults.length);
+        
+        if (searchResults.length === 0) {
+            throw new Error(`No results found for "${cardName}" in ScryDx. Please check the card name and try again.`);
         }
         
         // Find exact match by ID or name
         let cardData = null;
+        
         if (cardId) {
-            cardData = searchResults.find(card => card.id === cardId);
-        }
-        if (!cardData) {
+            // Try to find by ID first
             cardData = searchResults.find(card => 
-                (card.Name || card.name || '').toLowerCase() === cardName.toLowerCase()
-            ) || searchResults[0];
+                card.id === cardId || 
+                card.scryfall_id === cardId ||
+                card.api_id === cardId
+            );
         }
         
         if (!cardData) {
-            throw new Error('Card not found in search results.');
+            // Find by name match
+            const searchName = cardName.toLowerCase().replace(/[-\s]+/g, ' ');
+            cardData = searchResults.find(card => {
+                const cardNameNormalized = (card.name || card.Name || '').toLowerCase().replace(/[-\s]+/g, ' ');
+                return cardNameNormalized === searchName;
+            });
         }
         
-        console.log('Found card data:', cardData);
+        if (!cardData) {
+            // Take the first result if no exact match
+            cardData = searchResults[0];
+            console.log('No exact match found, using first result:', cardData.name || cardData.Name);
+        }
+        
+        console.log('Selected card data:', cardData);
         currentCard = cardData;
         
         // Display the card
-        displayCard(cardData, game);
+        await displayCard(cardData);
+        
+        // Load and display price history
+        await displayPriceChart(cardData);
+        
+        // Show the card content
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('card-content').classList.remove('hidden');
         
     } catch (error) {
         console.error('Error loading card data:', error);
@@ -66,200 +139,208 @@ async function loadCardData() {
     }
 }
 
-function displayCard(card, game) {
+async function displayCard(card) {
     console.log('Displaying card:', card);
     
-    // Hide loading, show content
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('card-content').classList.remove('hidden');
+    // Update page title
+    const cardName = card.name || card.Name || 'Unknown Card';
+    document.title = `${cardName} - Card View - HatakeSocial`;
     
-    // Basic card info
-    const cardName = card.Name || card.name || 'Unknown Card';
-    document.getElementById('card-name').textContent = cardName;
-    document.title = `${cardName} - HatakeSocial`;
+    // Card name
+    const nameElement = document.getElementById('card-name');
+    if (nameElement) {
+        nameElement.textContent = cardName;
+    }
     
     // Card image
-    let imageUrl = 'https://via.placeholder.com/300x420?text=No+Image';
-    if (card.images && Array.isArray(card.images) && card.images.length > 0) {
-        imageUrl = card.images[0].large || card.images[0].medium || card.images[0].small || imageUrl;
+    const imageElement = document.getElementById('card-image');
+    if (imageElement && card.images && card.images.length > 0) {
+        imageElement.src = card.images[0].large || card.images[0].medium || card.images[0].small;
+        imageElement.alt = cardName;
     }
-    document.getElementById('card-image').src = imageUrl;
-    document.getElementById('card-image').alt = cardName;
     
-    // Set and rarity
-    const setName = card.expansion?.name || card.set_name || 'Unknown Set';
-    const rarity = card.rarity || 'Common';
-    document.getElementById('card-set').textContent = setName;
-    document.getElementById('card-rarity').textContent = rarity;
+    // Set information
+    const setElement = document.getElementById('card-set');
+    if (setElement) {
+        const setName = card.set_name || card.expansion?.name || 'Unknown Set';
+        setElement.textContent = setName;
+    }
     
-    // Collector number
-    const collectorNumber = card.number || card.collector_number || '';
-    document.getElementById('card-number').textContent = collectorNumber ? `#${collectorNumber}` : '';
+    // Rarity
+    const rarityElement = document.getElementById('card-rarity');
+    if (rarityElement) {
+        rarityElement.textContent = card.rarity || 'Unknown';
+    }
     
-    // Price
-    let price = 'N/A';
-    if (card.variants && Array.isArray(card.variants) && card.variants.length > 0) {
+    // Card number
+    const numberElement = document.getElementById('card-number');
+    if (numberElement) {
+        numberElement.textContent = card.number || card.collector_number || 'N/A';
+    }
+    
+    // Current price
+    const priceElement = document.getElementById('current-price');
+    if (priceElement && card.variants && card.variants.length > 0) {
         const variant = card.variants[0];
-        if (variant.prices && Array.isArray(variant.prices) && variant.prices.length > 0) {
-            const priceData = variant.prices[0];
-            if (priceData.market) {
-                price = `$${parseFloat(priceData.market).toFixed(2)}`;
-            }
+        if (variant.prices && variant.prices.length > 0) {
+            const price = variant.prices[0];
+            priceElement.textContent = `$${price.market || price.low || 0}`;
         }
     }
-    document.getElementById('card-price').textContent = price;
     
-    // Card stats
-    displayCardStats(card, game);
-    
-    // Rulings
-    displayRulings(card);
-    
-    // Price chart
-    displayPriceChart(card);
-    
-    // Add to collection button
-    const addBtn = document.getElementById('add-to-collection-btn');
-    addBtn.onclick = () => addToCollection(card, game);
-}
-
-function displayCardStats(card, game) {
-    const statsContainer = document.getElementById('card-stats');
-    statsContainer.innerHTML = '';
-    
-    const stats = [];
-    
-    // Game-specific stats
-    switch (game) {
-        case 'mtg':
-            if (card.type) stats.push({ label: 'Type', value: card.type });
-            if (card.mana_cost) stats.push({ label: 'Mana Cost', value: card.mana_cost });
-            if (card.mana_value !== undefined) stats.push({ label: 'Mana Value', value: card.mana_value });
-            if (card.power !== undefined && card.toughness !== undefined) {
-                stats.push({ label: 'Power/Toughness', value: `${card.power}/${card.toughness}` });
-            }
-            if (card.colors && card.colors.length > 0) {
-                stats.push({ label: 'Colors', value: card.colors.join(', ') });
-            }
-            break;
-            
-        case 'pokemon':
-            if (card.types) stats.push({ label: 'Types', value: card.types.join(', ') });
-            if (card.hp) stats.push({ label: 'HP', value: card.hp });
-            if (card.retreat_cost) stats.push({ label: 'Retreat Cost', value: card.retreat_cost });
-            break;
-            
-        case 'lorcana':
-            if (card.card_type) stats.push({ label: 'Type', value: card.card_type });
-            if (card.cost !== undefined) stats.push({ label: 'Cost', value: card.cost });
-            if (card.strength !== undefined) stats.push({ label: 'Strength', value: card.strength });
-            if (card.willpower !== undefined) stats.push({ label: 'Willpower', value: card.willpower });
-            if (card.lore !== undefined) stats.push({ label: 'Lore', value: card.lore });
-            break;
+    // Card details (mana cost, type, etc.)
+    const manaElement = document.getElementById('card-mana');
+    if (manaElement) {
+        manaElement.textContent = card.mana_cost || card.manaCost || 'N/A';
     }
     
-    // Common stats
-    if (card.artist) stats.push({ label: 'Artist', value: card.artist });
-    if (card.language) stats.push({ label: 'Language', value: card.language });
-    
-    // Render stats
-    stats.forEach(stat => {
-        const statDiv = document.createElement('div');
-        statDiv.className = 'flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600';
-        statDiv.innerHTML = `
-            <span class="font-medium text-gray-700 dark:text-gray-300">${stat.label}:</span>
-            <span class="text-gray-900 dark:text-gray-100">${stat.value}</span>
-        `;
-        statsContainer.appendChild(statDiv);
-    });
-}
-
-function displayRulings(card) {
-    const rulingsContainer = document.getElementById('card-rulings');
-    rulingsContainer.innerHTML = '';
-    
-    // Card text/rules
-    if (card.rules || card.text || card.oracle_text) {
-        const rulesText = card.rules || card.text || card.oracle_text;
-        const rulesDiv = document.createElement('div');
-        rulesDiv.className = 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg';
-        rulesDiv.innerHTML = `
-            <h3 class="font-bold mb-2">Card Text</h3>
-            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${rulesText}</p>
-        `;
-        rulingsContainer.appendChild(rulesDiv);
+    const typeElement = document.getElementById('card-type');
+    if (typeElement) {
+        typeElement.textContent = card.type_line || card.typeLine || 'N/A';
     }
     
-    // Official rulings
-    if (card.rulings && Array.isArray(card.rulings) && card.rulings.length > 0) {
-        const rulingsDiv = document.createElement('div');
-        rulingsDiv.className = 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg';
-        rulingsDiv.innerHTML = `
-            <h3 class="font-bold mb-2">Official Rulings</h3>
-            <div class="space-y-2">
-                ${card.rulings.map(ruling => `
-                    <div class="text-sm">
-                        <p class="text-gray-700 dark:text-gray-300">${ruling.comment || ruling.text}</p>
-                        ${ruling.date ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${ruling.date}</p>` : ''}
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        rulingsContainer.appendChild(rulingsDiv);
+    const textElement = document.getElementById('card-text');
+    if (textElement) {
+        textElement.textContent = card.oracle_text || card.oracleText || 'No text available';
     }
     
-    // If no rulings, show placeholder
-    if (rulingsContainer.children.length === 0) {
-        rulingsContainer.innerHTML = `
-            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                <i class="fas fa-info-circle text-2xl mb-2"></i>
-                <p>No additional rulings available for this card.</p>
-            </div>
-        `;
+    // Power/Toughness for creatures
+    const ptElement = document.getElementById('card-pt');
+    if (ptElement) {
+        if (card.power && card.toughness) {
+            ptElement.textContent = `${card.power}/${card.toughness}`;
+            ptElement.parentElement.classList.remove('hidden');
+        } else {
+            ptElement.parentElement.classList.add('hidden');
+        }
     }
 }
 
-function displayPriceChart(card) {
-    const ctx = document.getElementById('price-chart').getContext('2d');
+async function displayPriceChart(card) {
+    console.log('Loading price chart for card:', card.name || card.Name);
     
-    // Generate sample price history data (in a real app, this would come from your database)
-    const labels = [];
-    const prices = [];
-    const currentDate = new Date();
-    
-    // Generate 30 days of sample data
-    for (let i = 29; i >= 0; i--) {
-        const date = new Date(currentDate);
-        date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString());
+    try {
+        // Get price history data
+        const historyFunction = firebase.functions().httpsCallable('getCardPriceHistory');
+        const historyResult = await historyFunction({ 
+            cardId: card.id || card.scryfall_id || card.api_id,
+            days: 30 
+        });
         
-        // Generate realistic price fluctuation
-        let basePrice = 10;
+        let priceData = [];
+        
+        if (historyResult && historyResult.data && historyResult.data.success) {
+            // Use real historical data
+            priceData = historyResult.data.priceHistory || [];
+            console.log('Using real price history data:', priceData.length, 'data points');
+        } else {
+            // Fallback to trends data from the card
+            console.log('No historical data, using trends fallback');
+            if (card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {
+                const price = card.variants[0].prices[0];
+                const trends = price.trends || {};
+                
+                // Convert trends to chart data
+                const currentPrice = price.market || price.low || 10;
+                const today = new Date();
+                
+                priceData = [
+                    { date: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], price: currentPrice - (trends.days_30?.price_change || 0) },
+                    { date: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], price: currentPrice - (trends.days_7?.price_change || 0) },
+                    { date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], price: currentPrice - (trends.days_1?.price_change || 0) },
+                    { date: today.toISOString().split('T')[0], price: currentPrice }
+                ];
+            }
+        }
+        
+        // Display price changes
         if (card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {
-            basePrice = parseFloat(card.variants[0].prices[0].market) || 10;
+            const price = card.variants[0].prices[0];
+            const trends = price.trends || {};
+            
+            // 24h change
+            const change24h = document.getElementById('price-change-24h');
+            if (change24h && trends.days_1) {
+                const changeValue = trends.days_1.price_change || 0;
+                const changePercent = trends.days_1.percent_change || 0;
+                change24h.innerHTML = `
+                    <span class="${changeValue >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${changeValue >= 0 ? '+' : ''}$${changeValue.toFixed(2)} (${changePercent.toFixed(1)}%)
+                    </span>
+                `;
+            }
+            
+            // 7d change
+            const change7d = document.getElementById('price-change-7d');
+            if (change7d && trends.days_7) {
+                const changeValue = trends.days_7.price_change || 0;
+                const changePercent = trends.days_7.percent_change || 0;
+                change7d.innerHTML = `
+                    <span class="${changeValue >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${changeValue >= 0 ? '+' : ''}$${changeValue.toFixed(2)} (${changePercent.toFixed(1)}%)
+                    </span>
+                `;
+            }
+            
+            // 30d change
+            const change30d = document.getElementById('price-change-30d');
+            if (change30d && trends.days_30) {
+                const changeValue = trends.days_30.price_change || 0;
+                const changePercent = trends.days_30.percent_change || 0;
+                change30d.innerHTML = `
+                    <span class="${changeValue >= 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${changeValue >= 0 ? '+' : ''}$${changeValue.toFixed(2)} (${changePercent.toFixed(1)}%)
+                    </span>
+                `;
+            }
         }
         
-        const fluctuation = (Math.random() - 0.5) * 0.2; // ±10% fluctuation
-        const price = basePrice * (1 + fluctuation);
-        prices.push(Math.max(0.01, price)); // Ensure positive price
+        // Create the price chart
+        if (priceData.length > 0) {
+            createPriceChart(priceData);
+        }
+        
+    } catch (error) {
+        console.error('Error loading price chart:', error);
+        // Show basic price info even if chart fails
+        const chartContainer = document.getElementById('price-chart-container');
+        if (chartContainer) {
+            chartContainer.innerHTML = '<p class="text-gray-500 text-center py-8">Price chart temporarily unavailable</p>';
+        }
     }
+}
+
+function createPriceChart(priceData) {
+    const canvas = document.getElementById('price-chart');
+    if (!canvas) return;
     
+    const ctx = canvas.getContext('2d');
+    
+    // Destroy existing chart
     if (priceChart) {
         priceChart.destroy();
     }
+    
+    // Prepare data for Chart.js
+    const labels = priceData.map(item => {
+        const date = new Date(item.date);
+        return date.toLocaleDateString();
+    });
+    
+    const prices = priceData.map(item => item.price);
     
     priceChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Market Price ($)',
+                label: 'Price ($)',
                 data: prices,
                 borderColor: 'rgb(59, 130, 246)',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2,
                 fill: true,
-                tension: 0.1
+                tension: 0.4
             }]
         },
         options: {
@@ -278,53 +359,35 @@ function displayPriceChart(card) {
                             return '$' + value.toFixed(2);
                         }
                     }
-                },
-                x: {
-                    display: false
                 }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
             }
         }
     });
 }
 
-async function addToCollection(card, game) {
-    try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            alert('Please log in to add cards to your collection.');
-            return;
-        }
-        
-        const db = firebase.firestore();
-        const cardData = {
-            cardId: card.id,
-            name: card.Name || card.name,
-            tcg: game,
-            imageUrl: card.images?.[0]?.medium || card.images?.[0]?.large,
-            set: card.expansion?.name || card.set_name,
-            rarity: card.rarity,
-            addedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            userId: user.uid
-        };
-        
-        await db.collection('collections').doc(user.uid).collection('cards').add(cardData);
-        
-        // Show success feedback
-        const btn = document.getElementById('add-to-collection-btn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Added!';
-        btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-        btn.classList.add('bg-green-500');
-        
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.classList.remove('bg-green-500');
-            btn.classList.add('bg-blue-500', 'hover:bg-blue-600');
-        }, 2000);
-        
-    } catch (error) {
-        console.error('Error adding card to collection:', error);
-        alert('Error adding card to collection. Please try again.');
+// Period selection functions
+function showPeriod(days) {
+    console.log('Switching to', days, 'day view');
+    
+    // Update active button
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    
+    const activeBtn = document.querySelector(`[onclick="showPeriod(${days})"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        activeBtn.classList.add('bg-blue-500', 'text-white');
+    }
+    
+    // Reload chart with new period
+    if (currentCard) {
+        displayPriceChart(currentCard, days);
     }
 }
 
@@ -334,21 +397,58 @@ function showError() {
     document.getElementById('error-content').classList.remove('hidden');
 }
 
-// Sidebar toggle functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+// Add to collection functionality
+async function addToCollection() {
+    if (!currentCard) {
+        alert('No card data available');
+        return;
+    }
     
-    if (sidebarToggle && sidebar && sidebarOverlay) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('-translate-x-full');
-            sidebarOverlay.classList.toggle('hidden');
+    try {
+        const addFunction = firebase.functions().httpsCallable('addCardToCollection');
+        const result = await addFunction({
+            cardId: currentCard.id || currentCard.scryfall_id,
+            cardData: currentCard,
+            quantity: 1
         });
         
-        sidebarOverlay.addEventListener('click', function() {
-            sidebar.classList.add('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-        });
+        if (result.data.success) {
+            alert('Card added to collection!');
+        } else {
+            alert('Failed to add card to collection');
+        }
+    } catch (error) {
+        console.error('Error adding to collection:', error);
+        alert('Error adding card to collection');
     }
-});
+}
+
+// Price alert functionality
+async function setPriceAlert() {
+    if (!currentCard) {
+        alert('No card data available');
+        return;
+    }
+    
+    const targetPrice = prompt('Enter target price for alert:');
+    if (!targetPrice || isNaN(targetPrice)) {
+        return;
+    }
+    
+    try {
+        // Use the price alerts system
+        if (typeof PriceAlerts !== 'undefined') {
+            PriceAlerts.addAlert(currentCard.id || currentCard.scryfall_id, {
+                cardName: currentCard.name || currentCard.Name,
+                targetPrice: parseFloat(targetPrice),
+                alertType: 'below'
+            });
+            alert('Price alert set!');
+        } else {
+            alert('Price alerts system not available');
+        }
+    } catch (error) {
+        console.error('Error setting price alert:', error);
+        alert('Error setting price alert');
+    }
+}
