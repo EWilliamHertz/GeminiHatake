@@ -386,14 +386,23 @@ const Analytics = {
                 return;
             }
             
-            // Destroy any existing charts in this container first
+            // Destroy ALL existing charts and completely clear the container
+            Chart.helpers.each(Chart.instances, function(instance, id) {
+                if (instance.canvas && instance.canvas.id && instance.canvas.id.includes('chart-')) {
+                    console.log(`[Analytics] Destroying chart instance ${id}`);
+                    instance.destroy();
+                }
+            });
+            
+            // Also check for any existing canvas in this specific container
             const existingCanvas = container.querySelector('canvas');
             if (existingCanvas) {
                 const existingChart = Chart.getChart(existingCanvas);
                 if (existingChart) {
-                    console.log(`[Analytics] Destroying existing chart`);
+                    console.log(`[Analytics] Destroying existing chart in container`);
                     existingChart.destroy();
                 }
+                existingCanvas.remove();
             }
             
             // Clear the container completely and show loading state
@@ -957,10 +966,28 @@ function handleCardClick(e, cardContainer) {
                     }
                     break;
                 case 'history':
+                    console.log(`[UI] Opening price history for card: ${card.name} (${card.api_id})`);
+                    
+                    // Clear any existing chart data first
+                    const chartContainer = document.getElementById('card-history-chart');
+                    if (chartContainer) {
+                        chartContainer.innerHTML = '<div class="text-center text-gray-500 py-4">Loading...</div>';
+                    }
+                    
+                    // Set the modal title
                     const titleEl = document.getElementById('card-history-modal-title');
-                    if(titleEl) titleEl.textContent = `Price History: ${card.name}`;
+                    if(titleEl) {
+                        titleEl.textContent = `Price History: ${card.name}`;
+                        console.log(`[UI] Set modal title to: Price History: ${card.name}`);
+                    }
+                    
+                    // Open modal first, then render chart
                     UI.openModal(document.getElementById('card-history-modal'));
-                    Analytics.renderSingleCardChart(card, 'card-history-chart');
+                    
+                    // Small delay to ensure modal is fully opened before rendering chart
+                    setTimeout(() => {
+                        Analytics.renderSingleCardChart(card, 'card-history-chart');
+                    }, 100);
                     break;
             }
         }
