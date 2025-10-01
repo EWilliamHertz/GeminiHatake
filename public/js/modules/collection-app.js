@@ -374,7 +374,7 @@ const UI = {
 const Analytics = {
     renderSingleCardChart: async (card, containerId) => {
         try {
-            console.log(`[Analytics] === STARTING CHART RENDER ===`);
+            console.log(`[Analytics] === STARTING FRESH CHART RENDER ===`);
             console.log(`[Analytics] Card: ${card.name}`);
             console.log(`[Analytics] API ID: ${card.api_id}`);
             console.log(`[Analytics] Game: ${card.game || card.tcg || 'pokemon'}`);
@@ -386,27 +386,25 @@ const Analytics = {
                 return;
             }
             
-            // Destroy ALL existing charts and completely clear the container
-            Chart.helpers.each(Chart.instances, function(instance, id) {
-                if (instance.canvas && instance.canvas.id && instance.canvas.id.includes('chart-')) {
-                    console.log(`[Analytics] Destroying chart instance ${id}`);
+            // NUCLEAR OPTION: Destroy ALL Chart.js instances globally
+            Object.keys(Chart.instances).forEach(key => {
+                const instance = Chart.instances[key];
+                if (instance) {
+                    console.log(`[Analytics] DESTROYING Chart instance ${key}`);
                     instance.destroy();
+                    delete Chart.instances[key];
                 }
             });
             
-            // Also check for any existing canvas in this specific container
-            const existingCanvas = container.querySelector('canvas');
-            if (existingCanvas) {
-                const existingChart = Chart.getChart(existingCanvas);
-                if (existingChart) {
-                    console.log(`[Analytics] Destroying existing chart in container`);
-                    existingChart.destroy();
-                }
-                existingCanvas.remove();
-            }
+            // Remove the entire container and recreate it
+            const parent = container.parentNode;
+            const newContainer = document.createElement('div');
+            newContainer.id = containerId;
+            newContainer.className = container.className;
+            parent.replaceChild(newContainer, container);
             
-            // Clear the container completely and show loading state
-            container.innerHTML = `<div class="text-center text-gray-500 py-4">
+            // Show loading state in new container
+            newContainer.innerHTML = `<div class="text-center text-gray-500 py-4">
                 <i class="fas fa-spinner fa-spin"></i> 
                 <p>Loading price history for ${card.name}...</p>
             </div>`;
@@ -450,9 +448,10 @@ const Analytics = {
             canvas.width = 800;
             canvas.height = 400;
             
-            // Clear container and add new canvas
-            container.innerHTML = '';
-            container.appendChild(canvas);
+            // Clear new container and add new canvas
+            const finalContainer = document.getElementById(containerId);
+            finalContainer.innerHTML = '';
+            finalContainer.appendChild(canvas);
             
             // Process the data to ensure it's unique to this card
             const processedData = historyData.map(entry => ({
@@ -558,12 +557,34 @@ const Analytics = {
             }
             
             console.log(`[Analytics] Calling getCollectionPriceAnalytics for user: ${userId}`);
-            console.log(`[Analytics] Sample card data:`, cards.slice(0, 2).map(c => ({
+            console.log(`[Analytics] Local collection has ${cards.length} cards`);
+            console.log(`[Analytics] Sample card data:`, cards.slice(0, 3).map(c => ({
                 name: c.name,
                 api_id: c.api_id,
-                game: c.game,
-                prices: c.prices
+                game: c.game || c.tcg,
+                prices: c.prices,
+                id: c.id
             })));
+            
+            // Also check what's actually in Firestore by calling the collection directly
+            try {
+                const collectionRef = firebase.firestore().collection('users').doc(userId).collection('collection');
+                const snapshot = await collectionRef.limit(3).get();
+                console.log(`[Analytics] Firestore collection has ${snapshot.size} documents`);
+                snapshot.docs.forEach((doc, index) => {
+                    const data = doc.data();
+                    console.log(`[Analytics] Firestore doc ${index}:`, {
+                        docId: doc.id,
+                        name: data.name,
+                        api_id: data.api_id,
+                        cardId: data.cardId,
+                        id: data.id,
+                        game: data.game || data.tcg
+                    });
+                });
+            } catch (firestoreError) {
+                console.error(`[Analytics] Error checking Firestore directly:`, firestoreError);
+            }
             
             const analyticsResult = await getCollectionAnalyticsFunction({ 
                 userId: userId,
