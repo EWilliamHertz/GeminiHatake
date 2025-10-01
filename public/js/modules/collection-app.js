@@ -1345,7 +1345,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilters };
+// Create a function to manually trigger collection loading
+async function loadCollection() {
+    if (!currentUser) {
+        console.error('No user logged in');
+        return;
+    }
+    
+    try {
+        console.log('Loading collection for user:', currentUser.uid);
+        await Collection.loadCollection(currentUser.uid);
+        await Collection.loadWishlist(currentUser.uid);
+        applyAndRender({});
+        console.log('Collection loaded successfully');
+    } catch (error) {
+        console.error("Failed to load collection:", error);
+        UI.showToast("Failed to load collection. Please try again.", "error");
+    }
+}
+
+// Export CollectionApp to global scope for ES6 module compatibility
+const CollectionApp = { 
+    switchTab, 
+    switchView, 
+    toggleBulkEditMode, 
+    clearAllFilters,
+    loadCollection 
+};
+
+// Make sure it's available globally
+window.CollectionApp = CollectionApp;
+
+// Also export it as a module export
+export default CollectionApp;
 
 
 // --- ANALYTICS FUNCTIONALITY ---

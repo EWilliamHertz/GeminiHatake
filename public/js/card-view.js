@@ -18,40 +18,78 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadCardData() {
     const urlParams = new URLSearchParams(window.location.search);
     const cardName = urlParams.get('name');
-    const game = urlParams.get('tcg');
+    const game = urlParams.get('tcg') || 'mtg'; // Default to MTG for Sol Ring
     const cardId = urlParams.get('id');
     
     console.log('Loading card:', { cardName, game, cardId });
+    console.log('Full URL:', window.location.href);
     
-    if (!cardName || !game) {
-        throw new Error('Missing card name or game parameter');
+    if (!cardName) {
+        throw new Error('Missing card name parameter');
     }
     
     try {
-        // Search for the card using ScryDex
-        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+        // Show loading state
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('card-content').classList.add('hidden');
+        
+        // Search for the card using ScryDex - REAL DATA ONLY
+        console.log('Searching ScryDx for:', cardName, 'in game:', game);
+        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDx');
         const result = await searchScryDexFunction({ cardName: cardName, game: game });
+        console.log('ScryDx search result:', result);
         
         let searchResults = [];
-        if (result && result.data && Array.isArray(result.data.data)) {
-            searchResults = result.data.data;
-        } else if (result && Array.isArray(result.data)) {
-            searchResults = result.data;
+        if (result && result.data) {
+            if (Array.isArray(result.data.data)) {
+                searchResults = result.data.data;
+            } else if (Array.isArray(result.data)) {
+                searchResults = result.data;
+            } else if (result.data.success && Array.isArray(result.data.cards)) {
+                searchResults = result.data.cards;
+            }
+        }
+        
+        console.log('Parsed search results:', searchResults);
+        console.log('Number of results:', searchResults.length);
+        
+        if (searchResults.length === 0) {
+            throw new Error(`No results found for "${cardName}" in ScryDx. Please check the card name and try again.`);
         }
         
         // Find exact match by ID or name
         let cardData = null;
         if (cardId) {
             cardData = searchResults.find(card => card.id === cardId);
-        }
-        if (!cardData) {
-            cardData = searchResults.find(card => 
-                (card.Name || card.name || '').toLowerCase() === cardName.toLowerCase()
-            ) || searchResults[0];
+            console.log('Found card by ID:', cardData);
         }
         
         if (!cardData) {
-            throw new Error('Card not found in search results.');
+            // Try different name matching strategies
+            const searchName = cardName.toLowerCase().replace(/[-_]/g, ' ');
+            
+            cardData = searchResults.find(card => {
+                const cardNameLower = (card.Name || card.name || '').toLowerCase().replace(/[-_]/g, ' ');
+                return cardNameLower === searchName;
+            });
+            
+            if (!cardData) {
+                // Try partial match
+                cardData = searchResults.find(card => {
+                    const cardNameLower = (card.Name || card.name || '').toLowerCase();
+                    return cardNameLower.includes(searchName) || searchName.includes(cardNameLower);
+                });
+            }
+            
+            // If still no match, use first result
+            if (!cardData && searchResults.length > 0) {
+                cardData = searchResults[0];
+                console.log('Using first result as fallback:', cardData);
+            }
+        }
+        
+        if (!cardData) {
+            throw new Error(`Card "${cardName}" not found in search results. Tried ${searchResults.length} results.`);
         }
         
         console.log('Found card data:', cardData);
@@ -62,6 +100,14 @@ async function loadCardData() {
         
     } catch (error) {
         console.error('Error loading card data:', error);
+        
+        // Show error state
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('card-content').classList.remove('hidden');
+        document.getElementById('card-name').textContent = 'Error Loading Card';
+        document.getElementById('card-image').src = 'https://via.placeholder.com/300x420?text=Error+Loading+Card';
+        document.getElementById('card-set').textContent = 'Error: ' + error.message;
+        
         throw error;
     }
 }
