@@ -264,20 +264,20 @@ exports.getScryDexCard = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Fetches and stores daily price snapshots for a card from ScryDx API.
+ * Fetches and stores daily price snapshots for a card from ScryDex API.
  * This replaces the non-functional history endpoint approach.
  */
 exports.collectCardPriceSnapshot = functions.https.onCall(async (data, context) => {
-    console.log("--- ScryDx collectCardPriceSnapshot function invoked ---");
+    console.log("--- ScryDex collectCardPriceSnapshot function invoked ---");
     const { cardId, game } = data;
     if (!cardId || !game) {
         throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardId" and "game" arguments.');
     }
 
     try {
-        // Get current card data with prices from ScryDx
-        const getScryDxCardFunction = exports.getScryDxCard;
-        const cardResult = await getScryDxCardFunction({ cardId, game }, context);
+        // Get current card data with prices from ScryDex
+        const getScryDexCardFunction = exports.getScryDexCard;
+        const cardResult = await getScryDexCardFunction({ cardId, game }, context);
         
         if (!cardResult || !cardResult.data) {
             throw new functions.https.HttpsError('not-found', 'Card data not found.');
@@ -383,10 +383,10 @@ exports.getCardPriceHistory = functions.https.onCall(async (data, context) => {
             }
         });
 
-        // If no historical data, try to get current price trends from ScryDx
+        // If no historical data, try to get current price trends from ScryDex
         if (priceHistory.length === 0) {
             console.log(`No historical data found for ${cardId}, fetching current trends`);
-            const cardResult = await exports.getScryDxCard({ cardId, game: data.game || 'pokemon' }, context);
+            const cardResult = await exports.getScryDexCard({ cardId, game: data.game || 'pokemon' }, context);
             
             if (cardResult && cardResult.data && cardResult.data.variants) {
                 const targetVariant = cardResult.data.variants.find(v => v.name === variant);
