@@ -513,8 +513,8 @@ function handleSearchResultClick(item) {
 
 function switchTab(tab) {
     Collection.setTab(tab);
-    document.querySelector("[data-tab="collection"]").classList.toggle('active', tab === 'collection');
-    document.querySelector("[data-tab="wishlist"]").classList.toggle('active', tab === 'wishlist');
+    document.querySelector('[data-tab="collection"]').classList.toggle('active', tab === 'collection');
+    document.querySelector('[data-tab="wishlist"]').classList.toggle('active', tab === 'wishlist');
     applyAndRender({});
 }
 
@@ -702,7 +702,7 @@ function updateSetFilterDropdown() {
     const selectAllCheckbox = dropdown.querySelector("#select-all-sets");
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', (e) => {
-            const setCheckboxes = dropdown.querySelectorAll("input[data-filter-type="set"]");
+            const setCheckboxes = dropdown.querySelectorAll('input[data-filter-type="set"]');
             const currentFilters = Collection.getFilters();
             
             if (e.target.checked) {
@@ -1614,7 +1614,7 @@ Object.assign(Analytics, {
             return `
                 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
                     <div class="flex items-center space-x-3">
-                        <img src="${card.imageUrl || "https://via.placeholder.com/60x84?text=No+Image"}" 
+                        <img src="${card.imageUrl || 'https://via.placeholder.com/60x84?text=No+Image'}" 
                              alt="${card.name}" 
                              class="w-12 h-16 object-cover rounded">
                         <div class="flex-1 min-w-0">
@@ -1677,5 +1677,5 @@ function handleTopMoverClick(element) {
     }
 }
 
-// Export the toggleDashboard function for global access
+/// Export the toggleDashboard function for global access
 window.toggleDashboard = toggleDashboard;
