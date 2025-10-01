@@ -1605,7 +1605,8 @@ Object.assign(Analytics, {
             `;
             return;
         }
-               topMoversContainer.innerHTML = allMovers.map(card => {
+        
+        topMoversContainer.innerHTML = allMovers.map(card => {
             const isPositive = card.percentChange >= 0;
             const changeIcon = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
             const changeColor = isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
