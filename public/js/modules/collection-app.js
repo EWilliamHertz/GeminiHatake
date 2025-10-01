@@ -1551,7 +1551,11 @@ Object.assign(Analytics, {
             }
             
             // Update top movers with basic data
-            Analytic    updateTopMovers: (topGainers = [], topLosers = []) => {
+            Analytics.updateTopMovers(cards.slice(0, 6));
+        }
+    },
+
+    updateTopMovers: (topGainers = [], topLosers = []) => {
         const topMoversContainer = document.getElementById('top-movers-container');
         if (!topMoversContainer) return;
         
@@ -1569,31 +1573,33 @@ Object.assign(Analytics, {
             `;
             return;
         }
-        
-        topMoversContainer.innerHTML = allMovers.map(card => {            const price = Currency.getNormalizedPriceUSD(card.prices);
-                const change = (Math.random() - 0.5) * 0.2; // ±10% change
-                const isPositive = change >= 0;
-                
-                return `
-                    <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow" data-card-id="${card.id}">
-                        <div class="flex items-center space-x-3">
-                            <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-12 h-16 object-cover rounded">
-                            <div class="flex-grow">
-                                <h4 class="font-semibold text-sm truncate">${card.name}</h4>
-                                <p class="text-xs text-gray-500 truncate">${card.set_name}</p>
-                                <div class="flex items-center justify-between mt-1">
-                                    <span class="text-sm font-mono">${Currency.convertAndFormat({ usd: price })}</span>
-                                    <span class="text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}">
-                                        ${isPositive ? '+' : ''}${(change * 100).toFixed(1)}%
-                                    </span>
-                                </div>
+               topMoversContainer.innerHTML = allMovers.map(card => {
+            const isPositive = card.percentChange >= 0;
+            const changeIcon = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
+            const changeColor = isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+
+            return `
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                    <div class="flex items-center space-x-3">
+                        <img src="${card.imageUrl || 'https://via.placeholder.com/60x84?text=No+Image'}" 
+                             alt="${card.name}" 
+                             class="w-12 h-16 object-cover rounded">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-medium text-sm truncate">${card.name}</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${Currency.convertAndFormat({ usd: card.currentPrice || 0 })}</p>
+                            <div class="flex items-center space-x-1 ${changeColor}">
+                                <i class="fas ${changeIcon} text-xs"></i>
+                                <span class="text-xs font-medium">
+                                    ${isPositive ? '+' : ''}${card.percentChange ? card.percentChange.toFixed(1) : '0.0'}%
+                                </span>
                             </div>
                         </div>
                     </div>
-                `;
-            }).join('');
-        }
+                </div>
+            `;
+        }).join('');
     }
+}
 });
 
 // Add toggleDashboard function to global scope
