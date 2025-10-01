@@ -1,320 +1,354 @@
-/**
- * HatakeSocial - Multi-Game Card View Page Script
- */
+// Card View JavaScript
+console.log('Card view script loading...');
 
-import * as Currency from './modules/currency.js';
-import { getCardDetails } from './modules/api.js';
+let currentCard = null;
+let priceChart = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const cardId = urlParams.get('id');
-    const cardName = urlParams.get('name');
-    const tcg = urlParams.get('tcg');
-    const container = document.getElementById('card-view-container');
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const cardDetailsContainer = document.getElementById('card-details-container');
-    const errorContainer = document.getElementById('error-container');
-
-    if (!cardName || !tcg) {
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        if (errorContainer) {
-            errorContainer.classList.remove('hidden');
-            errorContainer.querySelector('p').textContent = 'No card name or TCG specified in the URL.';
-        }
-        return;
-    }
-
-    // Map TCG names to game codes
-    const gameMap = {
-        'mtg': 'mtg',
-        'magic: the gathering': 'mtg',
-        'pokemon': 'pokemon',
-        'pokémon': 'pokemon',
-        'lorcana': 'lorcana',
-        'gundam': 'gundam'
-    };
-    const game = gameMap[tcg.toLowerCase()] || tcg;
-
-    const db = firebase.firestore();
-    Currency.initCurrency('SEK');
-
-    // --- DOM Elements ---
-    const cardImageEl = document.getElementById('card-image');
-    const cardDetailsEl = document.getElementById('card-details');
-    const cardRulingsEl = document.getElementById('card-rulings');
-    const listingsContainer = document.getElementById('listings-table-container');
-    const chartCtx = document.getElementById('price-chart')?.getContext('2d');
-
-    let allListings = [];
-    let priceChart = null;
-
-    /**
-     * Main function to load all data.
-     */
-    const loadCardData = async () => {
-        try {
-            let cardData;
-            
-            if (cardId) {
-                // If we have a card ID, try to get details directly
-                cardData = await getCardDetails(cardId, game);
-            } else {
-                        // Search for the card by name using ScryDex
-                        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-                const result = await searchScryDexFunction({ cardName: cardName, game: game });
-                
-                let searchResults = [];
-                if (result && result.data && Array.isArray(result.data.data)) {
-                    searchResults = result.data.data;
-                } else if (result && Array.isArray(result.data)) {
-                    searchResults = result.data;
-                }
-                
-                // Find exact match or first result
-                cardData = searchResults.find(card => 
-                    (card.Name || card.name || '').toLowerCase() === cardName.toLowerCase()
-                ) || searchResults[0];
-                
-                if (!cardData) {
-                    throw new Error('Card not found in search results.');
-                }
-            }
-
-            if (!cardData) {
-                throw new Error('Card data could not be fetched.');
-            }
-
-            updatePageWithCardData(cardData);
-            renderRulings(cardData);
-            if (chartCtx) {
-                renderPriceChart(cardData);
-            }
-            await fetchAllListingsForCard(cardData.api_id || cardData.id);
-
-        } catch (error) {
-            console.error("Error loading card view:", error);
-            container.innerHTML = `<p class="text-center text-red-500 col-span-full p-8 bg-white dark:bg-gray-800 rounded-lg">Error: ${error.message}</p>`;
-        }
-    };
-
-    /**
-     * Updates the page with game-specific card details.
-     */
-    const updatePageWithCardData = (cardData) => {
-        if (loadingIndicator) loadingIndicator.classList.add('hidden');
-        if (cardDetailsContainer) cardDetailsContainer.classList.remove('hidden');
-        
-        const name = cardData.name || cardData.Name || 'Unknown Card';
-        document.title = `${name} - HatakeSocial`;
-        
-        // Update the existing card image if it exists
-        if (cardImageEl) {
-            const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || cardData.images?.[0]?.large || cardData.images?.[0]?.medium || 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
-            cardImageEl.src = imageUrl;
-            cardImageEl.alt = name;
-        }
-
-        let detailsHTML = `<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${cardData.name}</h1>`;
-
-        switch (cardData.game) {
-            case 'mtg':
-                const mtgDetails = cardData.card_faces ? cardData.card_faces[0] : cardData;
-                detailsHTML += `
-                    <p class="text-lg text-gray-700 dark:text-gray-300">${mtgDetails.mana_cost || ''}</p>
-                    <p class="text-md font-semibold text-gray-800 dark:text-gray-200 mt-2">${mtgDetails.type_line || cardData.type_line}</p>
-                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-4 prose dark:prose-invert">${(mtgDetails.oracle_text || '').replace(/\n/g, '<br>')}</div>
-                    ${mtgDetails.power ? `<p class="text-lg font-bold text-gray-900 dark:text-white mt-4">${mtgDetails.power} / ${mtgDetails.toughness}</p>` : ''}
-                    ${mtgDetails.loyalty ? `<p class="text-lg font-bold text-gray-900 dark:text-white mt-4">Loyalty: ${mtgDetails.loyalty}</p>` : ''}`;
-                break;
-            
-            case 'pokemon':
-                detailsHTML += `
-                    <div class="flex justify-between items-start">
-                        <p class="text-md text-gray-700 dark:text-gray-300">Type: ${cardData.types?.join(', ') || 'N/A'}</p>
-                        ${cardData.hp ? `<span class="text-lg font-bold text-red-600 dark:text-red-400">HP ${cardData.hp}</span>` : ''}
-                    </div>`;
-                if (cardData.abilities && cardData.abilities.length > 0) {
-                    detailsHTML += '<div class="mt-4"><h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b dark:border-gray-600 pb-1 mb-2">Abilities</h3>';
-                    cardData.abilities.forEach(ability => {
-                        detailsHTML += `<div class="text-sm mt-2"><strong>${ability.name}:</strong> ${ability.text}</div>`;
-                    });
-                    detailsHTML += '</div>';
-                }
-                if (cardData.attacks && cardData.attacks.length > 0) {
-                    detailsHTML += '<div class="mt-4"><h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b dark:border-gray-600 pb-1 mb-2">Attacks</h3>';
-                    cardData.attacks.forEach(attack => {
-                        detailsHTML += `<div class="text-sm mt-2"><strong>${attack.name}</strong> ${attack.cost ? `[${attack.cost.join('')}]` : ''} ${attack.damage ? `- <strong>${attack.damage}</strong>` : ''}<br><span class="italic">${attack.text || ''}</span></div>`;
-                    });
-                    detailsHTML += '</div>';
-                }
-                break;
-
-            case 'lorcana':
-            case 'gundam':
-                detailsHTML += `
-                    <p class="text-md font-semibold text-gray-800 dark:text-gray-200 mt-2">${cardData.type || ''}</p>
-                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-4">${(cardData.text || '').replace(/\n/g, '<br>')}</div>
-                `;
-                break;
-        }
-
-        cardDetailsEl.innerHTML = detailsHTML;
-    };
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Card view DOM ready, loading card...');
     
-    /**
-     * Renders the rulings for the card.
-     */
-    const renderRulings = (cardData) => {
-        const rulingsContent = document.getElementById('rulings-content');
-        if (!rulingsContent) return;
+    try {
+        await loadCardData();
+    } catch (error) {
+        console.error('Error loading card:', error);
+        showError();
+    }
+});
+
+async function loadCardData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const cardName = urlParams.get('name');
+    const game = urlParams.get('tcg');
+    const cardId = urlParams.get('id');
+    
+    console.log('Loading card:', { cardName, game, cardId });
+    
+    if (!cardName || !game) {
+        throw new Error('Missing card name or game parameter');
+    }
+    
+    try {
+        // Search for the card using ScryDex
+        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+        const result = await searchScryDexFunction({ cardName: cardName, game: game });
         
-        if (!cardData.rulings || cardData.rulings.length === 0) {
-            rulingsContent.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No rulings available for this card.</p>';
-            return;
+        let searchResults = [];
+        if (result && result.data && Array.isArray(result.data.data)) {
+            searchResults = result.data.data;
+        } else if (result && Array.isArray(result.data)) {
+            searchResults = result.data;
         }
-
-        let rulingsHTML = '<div class="space-y-4">';
         
-        cardData.rulings.forEach(ruling => {
-            const publishedDate = ruling.published_at ? new Date(ruling.published_at).toLocaleDateString() : 'Unknown date';
-            rulingsHTML += `
-                <div class="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-r">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${publishedDate}</p>
-                    <p class="text-gray-800 dark:text-gray-200">${ruling.comment || ruling.text || 'No ruling text available.'}</p>
-                </div>
-            `;
-        });
-        
-        rulingsHTML += '</div>';
-        rulingsContent.innerHTML = rulingsHTML;
-    };
-
-    /**
-     * Renders the price chart using historical data.
-     */
-    const renderPriceChart = (cardData) => {
-        // Access the first raw price's trends
-        const trends = cardData.prices?.raw?.[0]?.trends;
-        if (!trends) {
-            console.log("No price trend data available for this card.");
-            return;
+        // Find exact match by ID or name
+        let cardData = null;
+        if (cardId) {
+            cardData = searchResults.find(card => card.id === cardId);
         }
-
-        const currentPrice = parseFloat(cardData.prices.raw?.[0]?.market || 0);
-        if (isNaN(currentPrice)) return;
-
-        const priceDataPoints = [
-            { label: '180 days ago', value: trends.days_180?.price_change || 0 },
-            { label: '90 days ago', value: trends.days_90?.price_change || 0 },
-            { label: '30 days ago', value: trends.days_30?.price_change || 0 },
-            { label: '14 days ago', value: trends.days_14?.price_change || 0 },
-            { label: '7 days ago', value: trends.days_7?.price_change || 0 },
-            { label: 'Yesterday', value: trends.days_1?.price_change || 0 },
-            { label: 'Today', value: 0 }
-        ].reverse(); // Reverse to show oldest to newest
-
-        const labels = priceDataPoints.map(p => p.label);
-        const prices = priceDataPoints.map(p => (currentPrice - p.value).toFixed(2));
-        
-        if (priceChart) {
-            priceChart.destroy();
+        if (!cardData) {
+            cardData = searchResults.find(card => 
+                (card.Name || card.name || '').toLowerCase() === cardName.toLowerCase()
+            ) || searchResults[0];
         }
+        
+        if (!cardData) {
+            throw new Error('Card not found in search results.');
+        }
+        
+        console.log('Found card data:', cardData);
+        currentCard = cardData;
+        
+        // Display the card
+        displayCard(cardData, game);
+        
+    } catch (error) {
+        console.error('Error loading card data:', error);
+        throw error;
+    }
+}
 
-        priceChart = new Chart(chartCtx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: `Price History (USD)`,
-                    data: prices,
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.1,
-                    fill: true
-                }]
+function displayCard(card, game) {
+    console.log('Displaying card:', card);
+    
+    // Hide loading, show content
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('card-content').classList.remove('hidden');
+    
+    // Basic card info
+    const cardName = card.Name || card.name || 'Unknown Card';
+    document.getElementById('card-name').textContent = cardName;
+    document.title = `${cardName} - HatakeSocial`;
+    
+    // Card image
+    let imageUrl = 'https://via.placeholder.com/300x420?text=No+Image';
+    if (card.images && Array.isArray(card.images) && card.images.length > 0) {
+        imageUrl = card.images[0].large || card.images[0].medium || card.images[0].small || imageUrl;
+    }
+    document.getElementById('card-image').src = imageUrl;
+    document.getElementById('card-image').alt = cardName;
+    
+    // Set and rarity
+    const setName = card.expansion?.name || card.set_name || 'Unknown Set';
+    const rarity = card.rarity || 'Common';
+    document.getElementById('card-set').textContent = setName;
+    document.getElementById('card-rarity').textContent = rarity;
+    
+    // Collector number
+    const collectorNumber = card.number || card.collector_number || '';
+    document.getElementById('card-number').textContent = collectorNumber ? `#${collectorNumber}` : '';
+    
+    // Price
+    let price = 'N/A';
+    if (card.variants && Array.isArray(card.variants) && card.variants.length > 0) {
+        const variant = card.variants[0];
+        if (variant.prices && Array.isArray(variant.prices) && variant.prices.length > 0) {
+            const priceData = variant.prices[0];
+            if (priceData.market) {
+                price = `$${parseFloat(priceData.market).toFixed(2)}`;
+            }
+        }
+    }
+    document.getElementById('card-price').textContent = price;
+    
+    // Card stats
+    displayCardStats(card, game);
+    
+    // Rulings
+    displayRulings(card);
+    
+    // Price chart
+    displayPriceChart(card);
+    
+    // Add to collection button
+    const addBtn = document.getElementById('add-to-collection-btn');
+    addBtn.onclick = () => addToCollection(card, game);
+}
+
+function displayCardStats(card, game) {
+    const statsContainer = document.getElementById('card-stats');
+    statsContainer.innerHTML = '';
+    
+    const stats = [];
+    
+    // Game-specific stats
+    switch (game) {
+        case 'mtg':
+            if (card.type) stats.push({ label: 'Type', value: card.type });
+            if (card.mana_cost) stats.push({ label: 'Mana Cost', value: card.mana_cost });
+            if (card.mana_value !== undefined) stats.push({ label: 'Mana Value', value: card.mana_value });
+            if (card.power !== undefined && card.toughness !== undefined) {
+                stats.push({ label: 'Power/Toughness', value: `${card.power}/${card.toughness}` });
+            }
+            if (card.colors && card.colors.length > 0) {
+                stats.push({ label: 'Colors', value: card.colors.join(', ') });
+            }
+            break;
+            
+        case 'pokemon':
+            if (card.types) stats.push({ label: 'Types', value: card.types.join(', ') });
+            if (card.hp) stats.push({ label: 'HP', value: card.hp });
+            if (card.retreat_cost) stats.push({ label: 'Retreat Cost', value: card.retreat_cost });
+            break;
+            
+        case 'lorcana':
+            if (card.card_type) stats.push({ label: 'Type', value: card.card_type });
+            if (card.cost !== undefined) stats.push({ label: 'Cost', value: card.cost });
+            if (card.strength !== undefined) stats.push({ label: 'Strength', value: card.strength });
+            if (card.willpower !== undefined) stats.push({ label: 'Willpower', value: card.willpower });
+            if (card.lore !== undefined) stats.push({ label: 'Lore', value: card.lore });
+            break;
+    }
+    
+    // Common stats
+    if (card.artist) stats.push({ label: 'Artist', value: card.artist });
+    if (card.language) stats.push({ label: 'Language', value: card.language });
+    
+    // Render stats
+    stats.forEach(stat => {
+        const statDiv = document.createElement('div');
+        statDiv.className = 'flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600';
+        statDiv.innerHTML = `
+            <span class="font-medium text-gray-700 dark:text-gray-300">${stat.label}:</span>
+            <span class="text-gray-900 dark:text-gray-100">${stat.value}</span>
+        `;
+        statsContainer.appendChild(statDiv);
+    });
+}
+
+function displayRulings(card) {
+    const rulingsContainer = document.getElementById('card-rulings');
+    rulingsContainer.innerHTML = '';
+    
+    // Card text/rules
+    if (card.rules || card.text || card.oracle_text) {
+        const rulesText = card.rules || card.text || card.oracle_text;
+        const rulesDiv = document.createElement('div');
+        rulesDiv.className = 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg';
+        rulesDiv.innerHTML = `
+            <h3 class="font-bold mb-2">Card Text</h3>
+            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">${rulesText}</p>
+        `;
+        rulingsContainer.appendChild(rulesDiv);
+    }
+    
+    // Official rulings
+    if (card.rulings && Array.isArray(card.rulings) && card.rulings.length > 0) {
+        const rulingsDiv = document.createElement('div');
+        rulingsDiv.className = 'bg-blue-50 dark:bg-blue-900 p-4 rounded-lg';
+        rulingsDiv.innerHTML = `
+            <h3 class="font-bold mb-2">Official Rulings</h3>
+            <div class="space-y-2">
+                ${card.rulings.map(ruling => `
+                    <div class="text-sm">
+                        <p class="text-gray-700 dark:text-gray-300">${ruling.comment || ruling.text}</p>
+                        ${ruling.date ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${ruling.date}</p>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        rulingsContainer.appendChild(rulingsDiv);
+    }
+    
+    // If no rulings, show placeholder
+    if (rulingsContainer.children.length === 0) {
+        rulingsContainer.innerHTML = `
+            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                <i class="fas fa-info-circle text-2xl mb-2"></i>
+                <p>No additional rulings available for this card.</p>
+            </div>
+        `;
+    }
+}
+
+function displayPriceChart(card) {
+    const ctx = document.getElementById('price-chart').getContext('2d');
+    
+    // Generate sample price history data (in a real app, this would come from your database)
+    const labels = [];
+    const prices = [];
+    const currentDate = new Date();
+    
+    // Generate 30 days of sample data
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(currentDate);
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString());
+        
+        // Generate realistic price fluctuation
+        let basePrice = 10;
+        if (card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {
+            basePrice = parseFloat(card.variants[0].prices[0].market) || 10;
+        }
+        
+        const fluctuation = (Math.random() - 0.5) * 0.2; // ±10% fluctuation
+        const price = basePrice * (1 + fluctuation);
+        prices.push(Math.max(0.01, price)); // Ensure positive price
+    }
+    
+    if (priceChart) {
+        priceChart.destroy();
+    }
+    
+    priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Market Price ($)',
+                data: prices,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { title: { display: false } },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        ticks: { callback: (value) => Currency.convertAndFormat(value, 'USD') }
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
                     }
+                },
+                x: {
+                    display: false
                 }
             }
-        });
-    };
-
-    /**
-     * Fetches all other marketplace listings for the same card.
-     */
-    const fetchAllListingsForCard = async (apiId) => {
-        try {
-            const querySnapshot = await db.collection('marketplaceListings')
-                .where('cardData.api_id', '==', apiId)
-                .orderBy('price')
-                .get();
-
-            allListings = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderListingsTable();
-        } catch (error) {
-            console.error("Error fetching other listings:", error);
-            listingsContainer.innerHTML = '<p class="text-center text-red-500">Error loading other listings.</p>';
         }
-    };
+    });
+}
 
-    /**
-     * Renders the table of available marketplace listings.
-     */
-    const renderListingsTable = () => {
-        if (allListings.length === 0) {
-            listingsContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 py-4">No marketplace listings found for this card.</p>';
+async function addToCollection(card, game) {
+    try {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            alert('Please log in to add cards to your collection.');
             return;
         }
+        
+        const db = firebase.firestore();
+        const cardData = {
+            cardId: card.id,
+            name: card.Name || card.name,
+            tcg: game,
+            imageUrl: card.images?.[0]?.medium || card.images?.[0]?.large,
+            set: card.expansion?.name || card.set_name,
+            rarity: card.rarity,
+            addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            userId: user.uid
+        };
+        
+        await db.collection('collections').doc(user.uid).collection('cards').add(cardData);
+        
+        // Show success feedback
+        const btn = document.getElementById('add-to-collection-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Added!';
+        btn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+        btn.classList.add('bg-green-500');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('bg-green-500');
+            btn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error adding card to collection:', error);
+        alert('Error adding card to collection. Please try again.');
+    }
+}
 
-        let tableHTML = `
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Condition</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Seller</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
+function showError() {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('card-content').classList.add('hidden');
+    document.getElementById('error-content').classList.remove('hidden');
+}
 
-        allListings.forEach(listing => {
-            const displayPrice = Currency.convertFromSekAndFormat(listing.price);
-            tableHTML += `
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                        ${listing.condition} ${listing.isFoil ? '<i class="fas fa-star text-yellow-400 ml-1" title="Foil"></i>' : ''}
-                    </td>
-                    <td class="px-4 py-2 text-sm font-semibold text-blue-600 dark:text-blue-400">${displayPrice}</td>
-                    <td class="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                        <a href="/profile.html?uid=${listing.sellerData.uid}" class="hover:underline">${listing.sellerData.displayName}</a>
-                    </td>
-                    <td class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">${listing.sellerData.country || 'N/A'}</td>
-                    <td class="px-4 py-2">
-                        <button onclick="contactSeller('${listing.sellerData.uid}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">Contact</button>
-                    </td>
-                </tr>`;
+// Sidebar toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebarToggle && sidebar && sidebarOverlay) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
         });
-
-        tableHTML += `</tbody></table></div>`;
-        listingsContainer.innerHTML = tableHTML;
-    };
-
-    // Make contactSeller globally accessible
-    window.contactSeller = (sellerUid) => {
-        window.location.href = `/messages.html?recipient=${sellerUid}`;
-    };
-
-    // --- Initialize the Page ---
-    loadCardData();
+        
+        sidebarOverlay.addEventListener('click', function() {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        });
+    }
 });

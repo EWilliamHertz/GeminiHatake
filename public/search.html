@@ -312,28 +312,52 @@
             // Clean ScryDex data function (updated for all games including MTG)
             const cleanScryDexData = (card, game) => {
                 try {
+                    // Extract images properly from ScryDex structure
+                    let imageUris = { small: null, normal: null, large: null };
+                    if (card.images && Array.isArray(card.images) && card.images.length > 0) {
+                        const img = card.images[0];
+                        imageUris = {
+                            small: img.small || img.medium || img.large || null,
+                            normal: img.medium || img.large || img.small || null,
+                            large: img.large || img.medium || img.small || null,
+                        };
+                    }
+                    
+                    // Extract pricing from variants
+                    let prices = {};
+                    let marketPrice = null;
+                    if (card.variants && Array.isArray(card.variants)) {
+                        card.variants.forEach(variant => {
+                            if (variant.prices && Array.isArray(variant.prices)) {
+                                variant.prices.forEach(price => {
+                                    if (price.market && !marketPrice) {
+                                        marketPrice = price.market;
+                                    }
+                                    const priceKey = `${variant.name || 'normal'}_${price.condition || price.type || 'market'}`;
+                                    prices[priceKey] = price.market || price.low || price.high || price.average;
+                                });
+                            }
+                        });
+                    }
+                    
+                    // If no market price found, try to get from first variant
+                    if (!marketPrice && card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {
+                        marketPrice = card.variants[0].prices[0].market || card.variants[0].prices[0].low;
+                    }
+
                     const cleaned = {
                         api_id: card.id,
                         name: card.Name || card.name || 'Unknown Card',
                         set: card.expansion?.id || card.set || 'unknown',
                         set_name: card.expansion?.name || card.set_name || 'Unknown Set',
                         rarity: card.rarity || 'Common',
-                        image_uris: {
-                            small: card.images?.[0]?.small || card.image_uris?.small || null,
-                            normal: card.images?.[0]?.medium || card.image_uris?.normal || null,
-                            large: card.images?.[0]?.large || card.image_uris?.large || null,
-                        },
-                        prices: card.variants?.reduce((acc, variant) => {
-                            if (variant.prices) {
-                                variant.prices.forEach(price => {
-                                    const priceKey = `${variant.name}_${price.condition || price.type}`;
-                                    acc[priceKey] = price.market;
-                                });
-                            }
-                            return acc;
-                        }, {}) || card.prices || {},
+                        image_uris: imageUris,
+                        prices: prices,
+                        market_price: marketPrice,
                         collector_number: card.number || card.collector_number || '',
-                        game: game
+                        game: game,
+                        // Keep original card data for card-view
+                        original_data: card
                     };
 
                     switch (game) {
@@ -507,47 +531,19 @@
                 let price = 'N/A';
                 let setName = 'Unknown Set';
                 
-                // Handle different card data structures
-                if (tcg === 'mtg') {
-                    imageUrl = card.image_uris?.normal || card.image_uris?.small || imageUrl;
-                    price = card.prices?.usd ? `$${parseFloat(card.prices.usd).toFixed(2)}` : 
-                           card.prices?.eur ? `€${parseFloat(card.prices.eur).toFixed(2)}` : 'N/A';
-                    setName = card.set_name || 'Unknown Set';
-                } else if (tcg === 'pokemon') {
-                    imageUrl = card.images?.small || card.images?.large || imageUrl;
-                    if (card.cardmarket && card.cardmarket.prices && card.cardmarket.prices.averageSellPrice) {
-                        price = `€${parseFloat(card.cardmarket.prices.averageSellPrice).toFixed(2)}`;
-                    } else if (card.tcgplayer && card.tcgplayer.prices && card.tcgplayer.prices.normal && card.tcgplayer.prices.normal.market) {
-                        price = `$${parseFloat(card.tcgplayer.prices.normal.market).toFixed(2)}`;
+                // Use the cleaned data structure
+                imageUrl = card.image_uris?.normal || card.image_uris?.large || card.image_uris?.small || imageUrl;
+                setName = card.set_name || 'Unknown Set';
+                
+                // Handle pricing - use market_price first, then try prices object
+                if (card.market_price && !isNaN(parseFloat(card.market_price))) {
+                    price = `$${parseFloat(card.market_price).toFixed(2)}`;
+                } else if (card.prices && Object.keys(card.prices).length > 0) {
+                    const priceKeys = Object.keys(card.prices);
+                    const firstPrice = card.prices[priceKeys[0]];
+                    if (firstPrice && !isNaN(parseFloat(firstPrice))) {
+                        price = `$${parseFloat(firstPrice).toFixed(2)}`;
                     }
-                    setName = card.set?.name || 'Unknown Set';
-                } else {
-                    // ScryDex data (Pokemon, Lorcana, Gundam)
-                    // Handle image URLs from ScryDex data structure
-                    if (card.image_uris) {
-                        imageUrl = card.image_uris.normal || card.image_uris.large || card.image_uris.small || imageUrl;
-                    } else if (card.images && Array.isArray(card.images) && card.images.length > 0) {
-                        imageUrl = card.images[0].medium || card.images[0].large || card.images[0].small || imageUrl;
-                    } else if (card.image || card.image_url) {
-                        imageUrl = card.image || card.image_url;
-                    }
-                    
-                    // Handle pricing from ScryDex data structure
-                    if (card.prices) {
-                        // Try different price keys that might exist
-                        const priceKeys = Object.keys(card.prices);
-                        if (priceKeys.length > 0) {
-                            const firstPrice = card.prices[priceKeys[0]];
-                            if (firstPrice && !isNaN(parseFloat(firstPrice))) {
-                                price = `$${parseFloat(firstPrice).toFixed(2)}`;
-                            }
-                        }
-                    } else if (card.price && !isNaN(parseFloat(card.price))) {
-                        price = `$${parseFloat(card.price).toFixed(2)}`;
-                    }
-                    
-                    // Handle set name from ScryDex data structure
-                    setName = card.set_name || (card.expansion && card.expansion.name) || card.set || 'Unknown Set';
                 }
                 
                 const collectorNumber = card.collector_number || card.number || '';
@@ -568,7 +564,7 @@
                             <div class="flex justify-between items-center">
                                 <span class="text-lg font-bold text-green-600 dark:text-green-400">${price}</span>
                                 <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition-colors" 
-                                        onclick="event.stopPropagation(); addCardToCollection('${name.replace(/'/g, "\\'")}', '${tcg}')">
+                                        onclick="event.stopPropagation(); addCardToCollection('${card.api_id || card.id}', '${name.replace(/'/g, "\\'")}', '${tcg}', '${imageUrl}', '${price}')">
                                     Add to Collection
                                 </button>
                             </div>
@@ -739,9 +735,46 @@
                 window.location.href = `card-view.html?${params.toString()}`;
             };
             
-            window.addCardToCollection = (cardName, tcg) => {
+            window.addCardToCollection = async (cardId, cardName, tcg, imageUrl, price) => {
                 console.log('Adding card to collection:', cardName, 'from', tcg);
-                alert(`Added ${cardName} (${tcg}) to collection - Feature coming soon!`);
+                
+                try {
+                    const user = firebase.auth().currentUser;
+                    if (!user) {
+                        alert('Please log in to add cards to your collection.');
+                        return;
+                    }
+                    
+                    const db = firebase.firestore();
+                    const cardData = {
+                        cardId: cardId,
+                        name: cardName,
+                        tcg: tcg,
+                        imageUrl: imageUrl,
+                        price: price,
+                        addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        userId: user.uid
+                    };
+                    
+                    await db.collection('collections').doc(user.uid).collection('cards').add(cardData);
+                    
+                    // Show success message
+                    const button = event.target;
+                    const originalText = button.textContent;
+                    button.textContent = 'Added!';
+                    button.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    button.classList.add('bg-green-500');
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.remove('bg-green-500');
+                        button.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                    }, 2000);
+                    
+                } catch (error) {
+                    console.error('Error adding card to collection:', error);
+                    alert('Error adding card to collection. Please try again.');
+                }
             };
 
             window.openUserProfile = (userId) => {
