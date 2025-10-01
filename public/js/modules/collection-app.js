@@ -1541,7 +1541,8 @@ async function bulkRemoveFromMarketplace() {
 // --- EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await Currency.initCurrency();
+        // Currency is initialized by auth.js, just wait for it
+        console.log('[Collection] Waiting for currency initialization...');
         
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
