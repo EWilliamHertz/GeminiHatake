@@ -1922,7 +1922,7 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
         // Process each card in the collection
         for (const doc of collectionSnapshot.docs) {
             const cardData = doc.data();
-            const cardId = cardData.cardId || cardData.id;
+            const cardId = cardData.api_id || cardData.cardId || cardData.id;
             
             if (!cardId) continue;
             

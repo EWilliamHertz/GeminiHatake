@@ -521,7 +521,10 @@ const Analytics = {
     
     updateAnalyticsDashboard: async () => {
         const state = Collection.getState();
-        const cards = state.cards || [];
+        const cards = state.fullCollection || [];
+        
+        console.log(`[Analytics] Collection state:`, state);
+        console.log(`[Analytics] Found ${cards.length} cards in collection`);
         
         if (cards.length === 0) {
             // Show empty state
@@ -536,12 +539,33 @@ const Analytics = {
         }
         
         try {
-            // Use our new collection analytics function
+            // Use our new collection analytics function with user ID
             const getCollectionAnalyticsFunction = firebase.functions().httpsCallable('getCollectionPriceAnalytics');
-            const analyticsResult = await getCollectionAnalyticsFunction({ days: 30 });
+            const userId = state.currentUser?.uid;
+            
+            if (!userId) {
+                console.error('[Analytics] No user ID available for collection analytics');
+                return;
+            }
+            
+            console.log(`[Analytics] Calling getCollectionPriceAnalytics for user: ${userId}`);
+            console.log(`[Analytics] Sample card data:`, cards.slice(0, 2).map(c => ({
+                name: c.name,
+                api_id: c.api_id,
+                game: c.game,
+                prices: c.prices
+            })));
+            
+            const analyticsResult = await getCollectionAnalyticsFunction({ 
+                userId: userId,
+                days: 30 
+            });
+            
+            console.log(`[Analytics] Raw analytics result:`, analyticsResult);
             
             if (analyticsResult && analyticsResult.data && analyticsResult.data.success) {
                 const analytics = analyticsResult.data;
+                console.log(`[Analytics] Using real collection analytics for chart:`, analytics);
                 
                 // Update dashboard values
                 const currentValueEl = document.getElementById('analytics-current-value');
