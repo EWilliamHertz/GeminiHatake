@@ -217,7 +217,7 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 
 document.addEventListener('DOMContentLoaded', async () => {
      // Import the currency module
-    const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
+    const { initCurrency, updateUserCurrency, getUserCurrency, loadUserCurrency } = await import('./modules/currency.js');
 
     document.body.style.opacity = '0'; // Hide body until ready
 
@@ -381,15 +381,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             verificationTimer = null;
         }
         
-        await initCurrency(user ? user.uid : null);
-
-
+         await initCurrency(user ? user.uid : null);
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 userData = userDoc.data();
             }
-
+            
+            // Load user's currency preference from Firestore
+            await loadUserCurrency(user.uid);
+            
             // --- MERGED TOUR TRIGGER ---
             const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
             if (isNewUser || sessionStorage.getItem('tour_step')) {

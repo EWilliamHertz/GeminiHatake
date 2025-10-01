@@ -172,6 +172,30 @@ export function getUserCurrency() {
     return userCurrency;
 }
 
+export async function loadUserCurrency(userId) {
+    try {
+        const userDoc = await firebase.firestore().collection('users').doc(userId).get();
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            const savedCurrency = userData.primaryCurrency || 'USD';
+            userCurrency = savedCurrency;
+            localStorage.setItem('userCurrency', savedCurrency);
+            
+            // Update any existing currency selectors
+            const selector = document.getElementById('currency-selector');
+            if (selector) {
+                selector.value = savedCurrency;
+            }
+            
+            console.log(`Loaded user currency: ${savedCurrency}`);
+            return savedCurrency;
+        }
+    } catch (error) {
+        console.error("Failed to load currency preference from Firestore:", error);
+    }
+    return userCurrency;
+}
+
 export async function updateUserCurrency(newCurrency) {
     userCurrency = newCurrency;
     localStorage.setItem('userCurrency', newCurrency);
@@ -181,7 +205,7 @@ export async function updateUserCurrency(newCurrency) {
     if (user) {
         try {
             await firebase.firestore().collection('users').doc(user.uid).update({
-                preferredCurrency: newCurrency
+                primaryCurrency: newCurrency
             });
         } catch (error) {
             console.error("Failed to save currency preference to Firestore:", error);

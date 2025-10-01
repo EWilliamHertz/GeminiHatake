@@ -1522,7 +1522,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await Collection.loadCollection(user.uid);
                     await Collection.loadWishlist(user.uid);
                     applyAndRender({});
-                    UI.createCurrencySelector('currency-selector-container');
                 } catch (error) {
                     console.error("Failed to load user data:", error);
                     UI.showToast("Failed to load your collection. Please refresh the page.", "error");
