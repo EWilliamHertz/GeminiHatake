@@ -33,11 +33,14 @@ html {
 /* Ensure the main content area is allowed to scroll */
 main {
     overflow-y: auto; /* Changed from 'hidden' to 'auto' */
+    width: calc(100vw - 256px);
+    flex: 1;
 }
 
 /* Fix for main content area width issue */
 .flex-1.flex.flex-col.overflow-hidden {
-    width: calc(100% - 256px);
+    flex: 1;
+    width: auto;
     min-width: 0; /* Allows flex items to shrink below their content size */
 }
 
