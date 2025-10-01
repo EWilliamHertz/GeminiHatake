@@ -374,16 +374,27 @@ const UI = {
 const Analytics = {
     renderSingleCardChart: async (card, containerId) => {
         try {
-            // Use Firebase Functions to get price history
+            console.log(`[Analytics] Rendering chart for card: ${card.name} (${card.api_id}) in container: ${containerId}`);
+            
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`[Analytics] Container ${containerId} not found`);
+                return;
+            }
+            
+            // Clear the container completely and show loading state
+            container.innerHTML = '<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin"></i> Loading price history...</div>';
+            
+            // Use Firebase Functions to get price history with unique request
             const historyFunction = firebase.functions().httpsCallable('getCardPriceHistory');
             const historyResult = await historyFunction({ 
                 cardId: card.api_id || card.id,
                 days: 30,
-                game: card.game || card.tcg || 'pokemon'
+                game: card.game || card.tcg || 'pokemon',
+                timestamp: Date.now() // Add timestamp to ensure unique requests
             });
             
-            const container = document.getElementById(containerId);
-            if (!container) return;
+            console.log(`[Analytics] Price history result for ${card.name}:`, historyResult);
             
             let historyData = [];
             if (historyResult && historyResult.data && historyResult.data.success) {
@@ -391,15 +402,22 @@ const Analytics = {
             }
             
             if (historyData.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500">No price history available.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500">No price history available for this card.</p>';
                 return;
             }
             
-            const ctx = document.createElement('canvas');
-            container.innerHTML = '';
-            container.appendChild(ctx);
+            // Create a completely new canvas element with unique ID
+            const canvasId = `chart-${containerId}-${Date.now()}`;
+            const canvas = document.createElement('canvas');
+            canvas.id = canvasId;
+            canvas.style.maxHeight = '400px';
             
-            new Chart(ctx, {
+            // Clear container and add new canvas
+            container.innerHTML = '';
+            container.appendChild(canvas);
+            
+            // Create chart with unique data
+            const chartInstance = new Chart(canvas, {
                 type: 'line',
                 data: {
                     labels: historyData.map(entry => {
@@ -407,29 +425,50 @@ const Analytics = {
                         return date.toLocaleDateString();
                     }),
                     datasets: [{
-                        label: 'Price (USD)',
+                        label: `${card.name} - Price (USD)`,
                         data: historyData.map(entry => entry.market || entry.price || 0),
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.1
+                        tension: 0.1,
+                        fill: true
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${card.name} - Price History (30 days)`
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
                     scales: { 
                         y: { 
                             beginAtZero: true, 
                             ticks: { 
                                 callback: value => '$' + value.toFixed(2) 
                             }
+                        },
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 8
+                            }
                         }
                     }
                 }
             });
+            
+            console.log(`[Analytics] Chart created successfully for ${card.name} with ${historyData.length} data points`);
+            
         } catch (error) {
-            console.error('Error rendering chart:', error);
+            console.error(`[Analytics] Error rendering chart for ${card.name}:`, error);
             const container = document.getElementById(containerId);
-            if(container) container.innerHTML = '<p class="text-center text-red-500">Error loading price history.</p>';
+            if(container) {
+                container.innerHTML = `<p class="text-center text-red-500">Error loading price history for ${card.name}.</p>`;
+            }
         }
     },
     
@@ -1402,26 +1441,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('add-card-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
         document.getElementById('csv-import-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
         document.getElementById('analyze-value-btn')?.addEventListener('click', toggleDashboard);
-        
-        // Add refresh prices functionality
-        document.getElementById('refresh-prices-btn')?.addEventListener('click', async () => {
-            const button = document.getElementById('refresh-prices-btn');
-            const originalText = button.textContent;
-            
-            try {
-                button.textContent = 'Refreshing...';
-                button.disabled = true;
-                
-                const updatedCount = await Collection.refreshAllPrices();
-                UI.showToast(`Updated prices for ${updatedCount} cards`, 'success');
-            } catch (error) {
-                console.error('Price refresh failed:', error);
-                UI.showToast('Failed to refresh prices: ' + error.message, 'error');
-            } finally {
-                button.textContent = originalText;
-                button.disabled = false;
-            }
-        });
         document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', (e) => { e.preventDefault(); switchTab(tab.dataset.tab); }));
         document.getElementById('view-toggle-grid')?.addEventListener('click', () => switchView('grid'));
         document.getElementById('view-toggle-list')?.addEventListener('click', () => switchView('list'));
