@@ -368,7 +368,7 @@ const UI = {
         `;
         typeContainer.innerHTML = typeSelect;
     }
-};
+});
 
 // --- ANALYTICS MODULE ---
 const Analytics = {
@@ -407,7 +407,7 @@ const Analytics = {
             if(container) container.innerHTML = '<p class="text-center text-red-500">Error loading price history.</p>';
         }
     }
-};
+});
 
 // --- MAIN APPLICATION LOGIC ---
 function applyAndRender(options = {}) {
@@ -1343,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Initialization error:", error);
         UI.showToast("Failed to initialize the application. Please refresh.", "error");
     }
-});
+}); // End of DOMContentLoaded event listener
 
 window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilters };
 
@@ -1599,7 +1599,6 @@ Object.assign(Analytics, {
             `;
         }).join('');
     }
-}
 });
 
 // Add toggleDashboard function to global scope
