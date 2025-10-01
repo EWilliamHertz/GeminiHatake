@@ -106,22 +106,34 @@ class MarketplaceManager {
             checkbox.addEventListener('change', () => this.applyFilters());
         });
 
-        // Other filters
+        // Additional filters
         const filterElements = [
-            'condition-filter', 'min-price', 'max-price', 'sort-filter',
-            'mtg-type-filter', 'pokemon-type-filter', 'pokemon-graded-filter',
-            'lorcana-graded-filter', 'gundam-series-filter'
+            'condition-filter',
+            'min-price',
+            'max-price',
+            'rarity-filter',
+            'location-filter',
+            'set-filter',
+            'sort-filter'
         ];
 
-        filterElements.forEach(id => {
-            const element = document.getElementById(id);
+        filterElements.forEach(filterId => {
+            const element = document.getElementById(filterId);
             if (element) {
-                element.addEventListener('change', () => this.applyFilters());
-                element.addEventListener('input', () => this.applyFilters());
+                const eventType = element.type === 'text' ? 'input' : 'change';
+                element.addEventListener(eventType, () => {
+                    if (filterId === 'min-price' || filterId === 'max-price' || filterId === 'set-filter') {
+                        // Add debounce for text inputs
+                        clearTimeout(this.filterTimeout);
+                        this.filterTimeout = setTimeout(() => this.applyFilters(), 300);
+                    } else {
+                        this.applyFilters();
+                    }
+                });
             }
         });
 
-        // Clear filters
+        // Clear filters button
         const clearFiltersBtn = document.getElementById('clear-filters-btn');
         if (clearFiltersBtn) {
             clearFiltersBtn.addEventListener('click', () => this.clearFilters());
@@ -368,6 +380,33 @@ class MarketplaceManager {
             return price >= minPrice && price <= maxPrice;
         });
 
+        // Rarity filter
+        const rarityFilter = document.getElementById('rarity-filter')?.value;
+        if (rarityFilter) {
+            filtered = filtered.filter(listing => {
+                const rarity = (listing.cardData?.rarity || '').toLowerCase();
+                return rarity.includes(rarityFilter.toLowerCase());
+            });
+        }
+
+        // Seller location filter
+        const locationFilter = document.getElementById('location-filter')?.value;
+        if (locationFilter) {
+            filtered = filtered.filter(listing => {
+                const sellerCountry = listing.sellerData?.country || '';
+                return sellerCountry === locationFilter;
+            });
+        }
+
+        // Set filter
+        const setFilter = document.getElementById('set-filter')?.value?.toLowerCase().trim();
+        if (setFilter) {
+            filtered = filtered.filter(listing => {
+                const setName = (listing.cardData?.set_name || listing.cardData?.set || '').toLowerCase();
+                return setName.includes(setFilter);
+            });
+        }
+
         // Game-specific filters
         filtered = this.applyGameSpecificFilters(filtered);
 
@@ -502,7 +541,7 @@ class MarketplaceManager {
                         'https://via.placeholder.com/223x310?text=No+Image';
 
         const price = listing.price || 0;
-        const priceDisplay = convertAndFormat ? convertAndFormat(price, 'USD') : `$${price.toFixed(2)}`;
+        const priceDisplay = convertAndFormat ? convertAndFormat(price) : `$${price.toFixed(2)}`;
 
         cardDiv.innerHTML = `
             <div class="relative">
@@ -521,14 +560,35 @@ class MarketplaceManager {
             
             <div class="p-4">
                 <h3 class="font-semibold text-lg mb-2 text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                
+                <!-- Price and Game -->
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">${cardData.game || 'Unknown Game'}</span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400 capitalize">${cardData.game || 'Unknown Game'}</span>
                     <span class="text-lg font-bold text-green-600 dark:text-green-400">${priceDisplay}</span>
                 </div>
-                ${cardData.foil ? '<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Foil</span>' : ''}
-                <div class="mt-3">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Seller: <span class="font-medium">${sellerData.displayName || 'Unknown'}</span></p>
-                    ${cardData.condition ? `<p class="text-sm text-gray-600 dark:text-gray-400">Condition: <span class="font-medium">${cardData.condition}</span></p>` : ''}
+                
+                <!-- Set and Rarity -->
+                <div class="mb-2">
+                    ${cardData.set_name ? `<p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name}</p>` : ''}
+                    <div class="flex items-center space-x-2 mt-1">
+                        ${cardData.rarity ? `<span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full capitalize">${cardData.rarity}</span>` : ''}
+                        ${cardData.foil ? '<span class="inline-block bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded-full">Foil</span>' : ''}
+                        ${cardData.condition ? `<span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded-full capitalize">${cardData.condition.replace('_', ' ')}</span>` : ''}
+                    </div>
+                </div>
+                
+                <!-- Seller Information -->
+                <div class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            ${sellerData.photoURL ? `<img src="${sellerData.photoURL}" alt="Seller" class="w-6 h-6 rounded-full">` : '<div class="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center"><i class="fas fa-user text-xs text-gray-500"></i></div>'}
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">${sellerData.displayName || 'Unknown'}</p>
+                                ${sellerData.country ? `<p class="text-xs text-gray-500 dark:text-gray-400">${sellerData.country}</p>` : ''}
+                            </div>
+                        </div>
+                        ${listing.quantity > 1 ? `<span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">Qty: ${listing.quantity}</span>` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -707,21 +767,40 @@ class MarketplaceManager {
         if (avgPrice && this.filteredListings.length > 0) {
             const total = this.filteredListings.reduce((sum, listing) => sum + (listing.price || 0), 0);
             const average = total / this.filteredListings.length;
-            avgPrice.textContent = convertAndFormat ? convertAndFormat(average, 'USD') : `$${average.toFixed(2)}`;
+            avgPrice.textContent = convertAndFormat ? convertAndFormat(average) : `$${average.toFixed(2)}`;
         } else if (avgPrice) {
-            avgPrice.textContent = '$0.00';
+            avgPrice.textContent = convertAndFormat ? convertAndFormat(0) : '$0.00';
         }
     }
 
     clearFilters() {
-        // Clear all filter inputs
-        const inputs = document.querySelectorAll('#filters-container input, #filters-container select');
-        inputs.forEach(input => {
-            if (input.type === 'checkbox') {
-                input.checked = input.hasAttribute('data-default-checked');
-            } else {
-                input.value = '';
+        // Clear specific filter elements
+        const filterIds = [
+            'filter-name',
+            'condition-filter',
+            'min-price',
+            'max-price',
+            'rarity-filter',
+            'location-filter',
+            'set-filter',
+            'sort-filter'
+        ];
+
+        filterIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = false;
+                } else {
+                    element.value = '';
+                }
             }
+        });
+
+        // Clear game checkboxes
+        const gameCheckboxes = document.querySelectorAll('#game-filter-container input[type="checkbox"]');
+        gameCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
         });
 
         // Reset game-specific filters

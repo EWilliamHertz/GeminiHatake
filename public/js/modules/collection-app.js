@@ -1446,9 +1446,18 @@ async function finalizeBulkSale() {
     const updates = [];
     items.forEach(item => {
         const finalPriceText = item.querySelector('.final-price-cell').textContent;
-        const salePrice = parseFloat(finalPriceText.replace('$', ''));
+        // Remove currency symbols and parse the price
+        const salePrice = parseFloat(finalPriceText.replace(/[^\d.,]/g, '').replace(',', '.'));
         if (!isNaN(salePrice) && salePrice >= 0) {
-            updates.push({ id: item.dataset.cardId, data: { for_sale: true, sale_price: salePrice } });
+            // Store the price in the user's current currency, not USD
+            updates.push({ 
+                id: item.dataset.cardId, 
+                data: { 
+                    for_sale: true, 
+                    sale_price: salePrice,
+                    sale_currency: Currency.getUserCurrency() // Store which currency this price is in
+                } 
+            });
         }
     });
     if (updates.length === 0) return UI.showToast("No valid prices set.", "warning");

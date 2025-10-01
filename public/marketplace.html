@@ -193,6 +193,42 @@
                                 </div>
                             </div>
 
+                            <!-- Rarity Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Rarity</label>
+                                <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="rarity-filter">
+                                    <option value="">All Rarities</option>
+                                    <option value="common">Common</option>
+                                    <option value="uncommon">Uncommon</option>
+                                    <option value="rare">Rare</option>
+                                    <option value="mythic">Mythic Rare</option>
+                                    <option value="legendary">Legendary</option>
+                                    <option value="special">Special</option>
+                                </select>
+                            </div>
+
+                            <!-- Seller Location Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Seller Location</label>
+                                <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="location-filter">
+                                    <option value="">All Locations</option>
+                                    <option value="Sweden">Sweden</option>
+                                    <option value="Norway">Norway</option>
+                                    <option value="Denmark">Denmark</option>
+                                    <option value="Finland">Finland</option>
+                                    <option value="Germany">Germany</option>
+                                    <option value="United Kingdom">United Kingdom</option>
+                                    <option value="United States">United States</option>
+                                    <option value="Canada">Canada</option>
+                                </select>
+                            </div>
+
+                            <!-- Set Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Set</label>
+                                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="set-filter" placeholder="Search by set name..." type="text"/>
+                            </div>
+
                             <!-- Game-Specific Filters -->
                             <div id="game-specific-filters">
                                 <!-- MTG Filters -->
