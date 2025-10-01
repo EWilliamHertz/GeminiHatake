@@ -422,16 +422,7 @@ export function getAvailableFilterOptions(games) {
 }
 
 
-export async function batchRemoveMarketplaceListings(cardIds) {
-    if (!state.currentUser) throw new Error("User not logged in.");
-    
-    try {
-        await API.batchRemoveMarketplaceListings(state.currentUser.uid, cardIds);
-    } catch (error) {
-        console.error('Error removing marketplace listings:', error);
-        throw error;
-    }
-}
+
 
 export async function removeCardFromSale(cardId) {
     if (!state.currentUser) throw new Error("User not logged in.");
