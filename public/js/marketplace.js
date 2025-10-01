@@ -133,6 +133,18 @@ class MarketplaceManager {
             }
         });
 
+        // Continent filter checkboxes
+        const continentCheckboxes = document.querySelectorAll('[id^="continent-"]');
+        continentCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                this.saveContinentPreferences();
+                this.applyFilters();
+            });
+        });
+
+        // Load saved continent preferences
+        this.loadContinentPreferences();
+
         // Clear filters button
         const clearFiltersBtn = document.getElementById('clear-filters-btn');
         if (clearFiltersBtn) {
@@ -310,8 +322,13 @@ class MarketplaceManager {
             this.filteredListings = [...this.allListings];
             console.log(`Loaded ${this.allListings.length} marketplace listings`);
 
+            // Clean up orphaned listings
+            await this.cleanupOrphanedListings();
+            
             // Populate dynamic filters
             this.populateCountryFilter();
+            this.populateRarityFilter();
+            this.populateConditionFilter();
             
             this.updateStats();
             this.applyFilters();
@@ -422,6 +439,20 @@ class MarketplaceManager {
             filtered = filtered.filter(listing => {
                 const setName = (listing.cardData?.set_name || listing.cardData?.set || '').toLowerCase();
                 return setName.includes(setFilter);
+            });
+        }
+
+        // Continent filter
+        const selectedContinents = Array.from(document.querySelectorAll('[id^="continent-"]:checked'))
+            .map(cb => cb.value);
+
+        if (selectedContinents.length > 0) {
+            filtered = filtered.filter(listing => {
+                const country = listing.sellerData?.country;
+                if (!country) return false;
+                
+                const continent = this.getCountryContinent(country);
+                return selectedContinents.includes(continent);
             });
         }
 
@@ -559,7 +590,9 @@ class MarketplaceManager {
                         'https://via.placeholder.com/223x310?text=No+Image';
 
         const price = listing.price || 0;
+        console.log(`[Marketplace] Converting price: ${price}, convertAndFormat available:`, !!convertAndFormat);
         const priceDisplay = convertAndFormat ? convertAndFormat(price) : `$${price.toFixed(2)}`;
+        console.log(`[Marketplace] Price display result: ${priceDisplay}`);
 
         cardDiv.innerHTML = `
             <div class="relative">
@@ -774,6 +807,47 @@ class MarketplaceManager {
         }
     }
 
+    async cleanupOrphanedListings() {
+        console.log('Checking for orphaned marketplace listings...');
+        const orphanedListings = [];
+
+        for (const listing of this.allListings) {
+            try {
+                // Check if the card still exists in the seller's collection
+                const collectionRef = this.db.collection('users').doc(listing.sellerId).collection('collection');
+                const cardQuery = await collectionRef.where('api_id', '==', listing.cardData?.api_id).get();
+                
+                if (cardQuery.empty) {
+                    console.log(`Found orphaned listing: ${listing.cardData?.name} from ${listing.sellerData?.displayName}`);
+                    orphanedListings.push(listing);
+                }
+            } catch (error) {
+                console.error('Error checking listing:', listing.id, error);
+            }
+        }
+
+        // Remove orphaned listings
+        for (const orphaned of orphanedListings) {
+            try {
+                await this.db.collection('marketplaceListings').doc(orphaned.id).delete();
+                console.log(`Removed orphaned listing: ${orphaned.cardData?.name}`);
+                
+                // Remove from local array
+                const index = this.allListings.findIndex(l => l.id === orphaned.id);
+                if (index > -1) {
+                    this.allListings.splice(index, 1);
+                }
+            } catch (error) {
+                console.error('Error removing orphaned listing:', orphaned.id, error);
+            }
+        }
+
+        if (orphanedListings.length > 0) {
+            console.log(`Cleaned up ${orphanedListings.length} orphaned listings`);
+            this.filteredListings = [...this.allListings];
+        }
+    }
+
     populateCountryFilter() {
         const locationFilter = document.getElementById('location-filter');
         if (!locationFilter) return;
@@ -808,6 +882,152 @@ class MarketplaceManager {
         });
 
         console.log(`Populated country filter with ${countries.size} countries:`, Array.from(countries));
+    }
+
+    populateRarityFilter() {
+        const rarityFilter = document.getElementById('rarity-filter');
+        if (!rarityFilter) return;
+
+        // Get unique rarities from cards
+        const rarities = new Set();
+        this.allListings.forEach(listing => {
+            const rarity = listing.cardData?.rarity;
+            if (rarity && rarity.trim()) {
+                rarities.add(rarity.trim().toLowerCase());
+            }
+        });
+
+        // Clear existing options except "All Rarities"
+        rarityFilter.innerHTML = '<option value="">All Rarities</option>';
+
+        // Add rarity options sorted by typical rarity order
+        const rarityOrder = ['common', 'uncommon', 'rare', 'mythic', 'legendary', 'special'];
+        const sortedRarities = Array.from(rarities).sort((a, b) => {
+            const aIndex = rarityOrder.indexOf(a.toLowerCase());
+            const bIndex = rarityOrder.indexOf(b.toLowerCase());
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        });
+
+        sortedRarities.forEach(rarity => {
+            const option = document.createElement('option');
+            option.value = rarity;
+            option.textContent = rarity.charAt(0).toUpperCase() + rarity.slice(1);
+            rarityFilter.appendChild(option);
+        });
+
+        console.log(`Populated rarity filter with ${rarities.size} rarities:`, Array.from(rarities));
+    }
+
+    populateConditionFilter() {
+        const conditionFilter = document.getElementById('condition-filter');
+        if (!conditionFilter) return;
+
+        // Get unique conditions from cards
+        const conditions = new Set();
+        this.allListings.forEach(listing => {
+            const condition = listing.cardData?.condition;
+            if (condition && condition.trim()) {
+                conditions.add(condition.trim());
+            }
+        });
+
+        // Clear existing options except "All Conditions"
+        conditionFilter.innerHTML = '<option value="">All Conditions</option>';
+
+        // Add condition options sorted by typical condition order
+        const conditionOrder = ['mint', 'near_mint', 'excellent', 'good', 'light_played', 'played', 'poor'];
+        const sortedConditions = Array.from(conditions).sort((a, b) => {
+            const aIndex = conditionOrder.indexOf(a.toLowerCase());
+            const bIndex = conditionOrder.indexOf(b.toLowerCase());
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        });
+
+        sortedConditions.forEach(condition => {
+            const option = document.createElement('option');
+            option.value = condition;
+            option.textContent = condition.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            conditionFilter.appendChild(option);
+        });
+
+        console.log(`Populated condition filter with ${conditions.size} conditions:`, Array.from(conditions));
+    }
+
+    getCountryContinent(country) {
+        const continentMap = {
+            // Europe
+            'Sweden': 'europe', 'Norway': 'europe', 'Denmark': 'europe', 'Finland': 'europe',
+            'Germany': 'europe', 'France': 'europe', 'Italy': 'europe', 'Spain': 'europe',
+            'United Kingdom': 'europe', 'Netherlands': 'europe', 'Belgium': 'europe',
+            'Austria': 'europe', 'Switzerland': 'europe', 'Poland': 'europe', 'Czech Republic': 'europe',
+            
+            // North America
+            'United States': 'north_america', 'Canada': 'north_america', 'Mexico': 'north_america',
+            
+            // Asia
+            'Japan': 'asia', 'China': 'asia', 'South Korea': 'asia', 'India': 'asia',
+            'Singapore': 'asia', 'Thailand': 'asia', 'Malaysia': 'asia', 'Philippines': 'asia',
+            
+            // Oceania
+            'Australia': 'oceania', 'New Zealand': 'oceania',
+            
+            // South America
+            'Brazil': 'south_america', 'Argentina': 'south_america', 'Chile': 'south_america',
+            'Colombia': 'south_america', 'Peru': 'south_america',
+            
+            // Africa
+            'South Africa': 'africa', 'Egypt': 'africa', 'Nigeria': 'africa', 'Kenya': 'africa'
+        };
+        
+        return continentMap[country] || 'other';
+    }
+
+    async saveContinentPreferences() {
+        if (!this.currentUser) return;
+
+        const selectedContinents = Array.from(document.querySelectorAll('[id^="continent-"]:checked'))
+            .map(cb => cb.value);
+
+        try {
+            await this.db.collection('users').doc(this.currentUser.uid).update({
+                marketplacePreferences: {
+                    selectedContinents: selectedContinents,
+                    lastUpdated: new Date()
+                }
+            });
+            console.log('Saved continent preferences:', selectedContinents);
+        } catch (error) {
+            console.error('Error saving continent preferences:', error);
+        }
+    }
+
+    async loadContinentPreferences() {
+        if (!this.currentUser) return;
+
+        try {
+            const userDoc = await this.db.collection('users').doc(this.currentUser.uid).get();
+            const preferences = userDoc.data()?.marketplacePreferences;
+            
+            if (preferences?.selectedContinents) {
+                preferences.selectedContinents.forEach(continent => {
+                    const checkbox = document.getElementById(`continent-${continent.replace('_', '-')}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                console.log('Loaded continent preferences:', preferences.selectedContinents);
+                
+                // Apply filters after loading preferences
+                this.applyFilters();
+            }
+        } catch (error) {
+            console.error('Error loading continent preferences:', error);
+        }
     }
 
     updateStats() {
@@ -857,8 +1077,17 @@ class MarketplaceManager {
             checkbox.checked = false;
         });
 
+        // Clear continent checkboxes
+        const continentCheckboxes = document.querySelectorAll('[id^="continent-"]');
+        continentCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
         // Reset game-specific filters
         this.toggleGameSpecificFilters();
+        
+        // Save cleared continent preferences
+        this.saveContinentPreferences();
         
         // Reapply filters
         this.applyFilters();
