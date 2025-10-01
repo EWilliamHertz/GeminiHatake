@@ -260,6 +260,21 @@ class MarketplaceManager {
             loadingIndicator.classList.remove('hidden');
         }
 
+        // Ensure currency is loaded before proceeding
+        if (!convertAndFormat) {
+            console.log('Waiting for currency module to load...');
+            await new Promise(resolve => {
+                const checkCurrency = () => {
+                    if (convertAndFormat) {
+                        resolve();
+                    } else {
+                        setTimeout(checkCurrency, 100);
+                    }
+                };
+                checkCurrency();
+            });
+        }
+
         if (marketplaceDisplay) {
             marketplaceDisplay.classList.add('hidden');
         }
@@ -295,6 +310,9 @@ class MarketplaceManager {
             this.filteredListings = [...this.allListings];
             console.log(`Loaded ${this.allListings.length} marketplace listings`);
 
+            // Populate dynamic filters
+            this.populateCountryFilter();
+            
             this.updateStats();
             this.applyFilters();
 
@@ -692,7 +710,7 @@ class MarketplaceManager {
             'modal-card-image': cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl,
             'modal-card-name': cardData.name || 'Unknown Card',
             'modal-card-set': cardData.set_name || cardData.set || 'Unknown Set',
-            'modal-card-price': convertAndFormat ? convertAndFormat(listing.price || 0, 'USD') : `$${(listing.price || 0).toFixed(2)}`,
+            'modal-card-price': convertAndFormat ? convertAndFormat(listing.price || 0) : `$${(listing.price || 0).toFixed(2)}`,
             'modal-card-condition': cardData.condition || 'Unknown',
             'modal-seller-name': sellerData.displayName || 'Unknown Seller'
         };
@@ -756,9 +774,45 @@ class MarketplaceManager {
         }
     }
 
+    populateCountryFilter() {
+        const locationFilter = document.getElementById('location-filter');
+        if (!locationFilter) return;
+
+        // Get unique countries from sellers
+        const countries = new Set();
+        this.allListings.forEach(listing => {
+            const country = listing.sellerData?.country;
+            if (country && country.trim()) {
+                countries.add(country.trim());
+            }
+        });
+
+        // Clear existing options except "All Locations"
+        const allOption = locationFilter.querySelector('option[value=""]');
+        locationFilter.innerHTML = '';
+        if (allOption) {
+            locationFilter.appendChild(allOption);
+        } else {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'All Locations';
+            locationFilter.appendChild(defaultOption);
+        }
+
+        // Add country options sorted alphabetically
+        Array.from(countries).sort().forEach(country => {
+            const option = document.createElement('option');
+            option.value = country;
+            option.textContent = country;
+            locationFilter.appendChild(option);
+        });
+
+        console.log(`Populated country filter with ${countries.size} countries:`, Array.from(countries));
+    }
+
     updateStats() {
-        const totalListings = document.getElementById('total-listings');
-        const avgPrice = document.getElementById('avg-price');
+        const totalListings = document.getElementById('stats-total-listings');
+        const avgPrice = document.getElementById('stats-avg-price');
 
         if (totalListings) {
             totalListings.textContent = this.filteredListings.length;
