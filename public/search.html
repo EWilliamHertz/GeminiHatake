@@ -383,10 +383,10 @@
                     // Try multiple search strategies for case-insensitive search
                     let snapshot;
                     try {
-                        // First try with displayNameLower field if it exists
+                        // First try with displayName_lower field if it exists
                         snapshot = await usersRef
-                            .where('displayNameLower', '>=', lowerQuery)
-                            .where('displayNameLower', '<=', lowerQuery + '\uf8ff')
+                            .where('displayName_lower', '>=', lowerQuery)
+                            .where('displayName_lower', '<=', lowerQuery + '\uf8ff')
                             .limit(50)
                             .get();
                     } catch (error) {
@@ -401,7 +401,7 @@
                         const displayName = userData.displayName || 'Unknown User';
                         
                         // Client-side case-insensitive filtering if needed
-                        if (snapshot.size > 50 || !userData.displayNameLower) {
+                        if (snapshot.size > 50 || !userData.displayName_lower) {
                             if (!displayName.toLowerCase().includes(lowerQuery)) {
                                 return; // Skip this user if it doesn't match
                             }
@@ -417,6 +417,7 @@
                         });
                     });
                     
+                    console.log(`Found ${users.length} users matching "${query}"`);
                     return {
                         data: users,
                         has_more: false,
@@ -424,6 +425,7 @@
                     };
                 } catch (error) {
                     console.error('User search error:', error);
+                    console.error('Error details:', error.message);
                     return { data: [], has_more: false, total_cards: 0 };
                 }
             };
@@ -493,9 +495,9 @@
                                 case 'pokemon':
                                     return await searchPokemon(query, page);
                                 case 'lorcana':
-                                    return await searchScryDex(query, 'lorcana', page);
+                                    return await searchScryDx(query, 'lorcana', page);
                                 case 'gundam':
-                                    return await searchScryDex(query, 'gundam', page);
+                                    return await searchScryDx(query, 'gundam', page);
                                 default:
                                     return await searchMTG(query, page);
                             }
