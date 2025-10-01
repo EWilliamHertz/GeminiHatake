@@ -70,10 +70,10 @@ async function loadCardData() {
         document.getElementById('card-content').classList.add('hidden');
         
         // Search for the card using ScryDex - REAL DATA ONLY
-        console.log('Searching ScryDx for:', cardName, 'in game:', game);
-        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDx');
+        console.log('Searching ScryDex for:', cardName, 'in game:', game);
+        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
         const result = await searchScryDexFunction({ cardName: cardName, game: game });
-        console.log('ScryDx search result:', result);
+        console.log('ScryDex search result:', result);
         
         let searchResults = [];
         if (result && result.data) {
