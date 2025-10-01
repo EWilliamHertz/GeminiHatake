@@ -8,13 +8,32 @@ import { getCardDetails } from './modules/api.js';
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const cardId = urlParams.get('id');
-    const game = urlParams.get('game');
+    const cardName = urlParams.get('name');
+    const tcg = urlParams.get('tcg');
     const container = document.getElementById('card-view-container');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const cardDetailsContainer = document.getElementById('card-details-container');
+    const errorContainer = document.getElementById('error-container');
 
-    if (!cardId || !game) {
-        container.innerHTML = '<p class="text-center text-red-500 col-span-full">No card ID or game specified in the URL. Please provide them as query parameters (e.g., ?id=base1-4&game=pokemon).</p>';
+    if (!cardName || !tcg) {
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        if (errorContainer) {
+            errorContainer.classList.remove('hidden');
+            errorContainer.querySelector('p').textContent = 'No card name or TCG specified in the URL.';
+        }
         return;
     }
+
+    // Map TCG names to game codes
+    const gameMap = {
+        'mtg': 'mtg',
+        'magic: the gathering': 'mtg',
+        'pokemon': 'pokemon',
+        'pokémon': 'pokemon',
+        'lorcana': 'lorcana',
+        'gundam': 'gundam'
+    };
+    const game = gameMap[tcg.toLowerCase()] || tcg;
 
     const db = firebase.firestore();
     Currency.initCurrency('SEK');
@@ -34,9 +53,35 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     const loadCardData = async () => {
         try {
-            const cardData = await getCardDetails(cardId, game);
+            let cardData;
+            
+            if (cardId) {
+                // If we have a card ID, try to get details directly
+                cardData = await getCardDetails(cardId, game);
+            } else {
+                        // Search for the card by name using ScryDex
+                        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+                const result = await searchScryDexFunction({ cardName: cardName, game: game });
+                
+                let searchResults = [];
+                if (result && result.data && Array.isArray(result.data.data)) {
+                    searchResults = result.data.data;
+                } else if (result && Array.isArray(result.data)) {
+                    searchResults = result.data;
+                }
+                
+                // Find exact match or first result
+                cardData = searchResults.find(card => 
+                    (card.Name || card.name || '').toLowerCase() === cardName.toLowerCase()
+                ) || searchResults[0];
+                
+                if (!cardData) {
+                    throw new Error('Card not found in search results.');
+                }
+            }
+
             if (!cardData) {
-                throw new Error('Card data could not be fetched from the API.');
+                throw new Error('Card data could not be fetched.');
             }
 
             updatePageWithCardData(cardData);
@@ -44,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (chartCtx) {
                 renderPriceChart(cardData);
             }
-            await fetchAllListingsForCard(cardData.api_id);
+            await fetchAllListingsForCard(cardData.api_id || cardData.id);
 
         } catch (error) {
             console.error("Error loading card view:", error);
@@ -56,9 +101,18 @@ document.addEventListener('DOMContentLoaded', async () => {
      * Updates the page with game-specific card details.
      */
     const updatePageWithCardData = (cardData) => {
-        document.title = `${cardData.name} - HatakeSocial`;
-        cardImageEl.src = cardData.image_uris.large || 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
-        cardImageEl.alt = cardData.name;
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+        if (cardDetailsContainer) cardDetailsContainer.classList.remove('hidden');
+        
+        const name = cardData.name || cardData.Name || 'Unknown Card';
+        document.title = `${name} - HatakeSocial`;
+        
+        // Update the existing card image if it exists
+        if (cardImageEl) {
+            const imageUrl = cardData.image_uris?.large || cardData.image_uris?.normal || cardData.images?.[0]?.large || cardData.images?.[0]?.medium || 'https://placehold.co/370x516/cccccc/969696?text=No+Image';
+            cardImageEl.src = imageUrl;
+            cardImageEl.alt = name;
+        }
 
         let detailsHTML = `<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">${cardData.name}</h1>`;
 
@@ -108,28 +162,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     
     /**
-     * Renders the "Rulings" section.
+     * Renders the rulings for the card.
      */
     const renderRulings = (cardData) => {
+        const rulingsContent = document.getElementById('rulings-content');
+        if (!rulingsContent) return;
+        
         if (!cardData.rulings || cardData.rulings.length === 0) {
-            cardRulingsEl.classList.add('hidden');
+            rulingsContent.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No rulings available for this card.</p>';
             return;
         }
+
+        let rulingsHTML = '<div class="space-y-4">';
         
-        cardRulingsEl.classList.remove('hidden');
-        let rulingsHTML = `<h2 class="text-2xl font-bold mb-4 border-b pb-2 dark:border-gray-700">Rulings</h2><div class="space-y-4">`;
-        
-        cardData.rulings.forEach(rule => {
+        cardData.rulings.forEach(ruling => {
+            const publishedDate = ruling.published_at ? new Date(ruling.published_at).toLocaleDateString() : 'Unknown date';
             rulingsHTML += `
-                <div class="text-sm">
-                    <p class="text-gray-800 dark:text-gray-200">${rule.comment}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">(${new Date(rule.published_at).toLocaleDateString()})</p>
+                <div class="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-r">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">${publishedDate}</p>
+                    <p class="text-gray-800 dark:text-gray-200">${ruling.comment || ruling.text || 'No ruling text available.'}</p>
                 </div>
             `;
         });
         
-        rulingsHTML += `</div>`;
-        cardRulingsEl.innerHTML = rulingsHTML;
+        rulingsHTML += '</div>';
+        rulingsContent.innerHTML = rulingsHTML;
     };
 
     /**
