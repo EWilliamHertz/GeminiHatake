@@ -5,7 +5,15 @@
  * - FIX: Updated getNormalizedPriceUSD to handle ScryDex price structure with variant-based keys.
  */
 
-const functions = firebase.functions();
+// Initialize Firebase functions safely
+let functions = null;
+try {
+    if (typeof firebase !== 'undefined' && firebase.functions) {
+        functions = firebase.functions();
+    }
+} catch (error) {
+    console.warn('Firebase functions not available:', error.message);
+}
 let exchangeRates = null;
 let lastFetchTimestamp = 0;
 const CACHE_DURATION_MS = 1000 * 60 * 60 * 6; // Cache for 6 hours
@@ -24,6 +32,13 @@ export async function initCurrency(base = 'USD') {
     }
 
     try {
+        if (!functions) {
+            console.warn('Firebase functions not available, using default USD rates');
+            exchangeRates = { USD: 1.0 };
+            lastFetchTimestamp = now;
+            return;
+        }
+        
         console.log(`Fetching exchange rates with base ${base}...`);
         const getRates = functions.httpsCallable('getExchangeRates');
         const result = await getRates({ base });
