@@ -20,10 +20,23 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
-window.auth = firebase.auth();
-window.db = firebase.firestore();
-window.functions = firebase.functions();
-window.storage = firebase.storage();
+// Initialize Firebase services safely
+try {
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+    
+    // Only initialize functions if available
+    if (firebase.functions) {
+        window.functions = firebase.functions();
+    }
+    
+    // Only initialize storage if available
+    if (firebase.storage) {
+        window.storage = firebase.storage();
+    }
+} catch (error) {
+    console.warn('Firebase initialization warning:', error.message);
+}
 
 
 // --- Dark Mode Functionality (Integrated) ---

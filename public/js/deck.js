@@ -46,6 +46,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Also initialize if DOM is already loaded
+if (document.readyState === 'loading') {
+    // DOM is still loading, wait for DOMContentLoaded
+} else {
+    // DOM is already loaded, initialize immediately
+    console.log('DOM already loaded, initializing deck builder...');
+    initializeTabs();
+    initializeFormHandlers();
+    initializeFilters();
+    
+    if (typeof firebase !== 'undefined') {
+        db = firebase.firestore();
+    }
+}
+
 // Listen for auth ready
 document.addEventListener('authReady', function(e) {
     console.log('Auth ready, user:', e.detail.user);
