@@ -452,28 +452,7 @@ function createDeckCard(deck, isOwner) {
 }
 
 // Utility functions
-function showToast(message, isSuccess = false) {
-    const toast = document.getElementById('toast-notification');
-    const toastMessage = document.getElementById('toast-message');
-    if (!toast || !toastMessage) {
-        console.log('Toast:', message);
-        return;
-    }
-
-    toastMessage.textContent = message;
-    toast.className = toast.className.replace(/bg-(red|green)-500/, '');
-    toast.classList.add(isSuccess ? 'bg-green-500' : 'bg-red-500');
-    
-    toast.classList.remove('hidden');
-    setTimeout(() => {
-        toast.style.opacity = '1';
-    }, 50);
-    
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.classList.add('hidden'), 500);
-    }, 3000);
-}
+// showToast function is already available globally from auth.js
 
 function openModal(modal) {
     if (!modal) return;
