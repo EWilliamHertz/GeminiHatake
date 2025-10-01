@@ -16,9 +16,15 @@
 // Import centralized API functions
 import { searchCards, debouncedSearchCards } from './modules/api.js';
 
-document.addEventListener('authReady', () => {
+// Initialize search functionality when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
     const db = firebase.firestore();
-    let user = firebase.auth().currentUser;
+    let user = null;
+    
+    // Update user when auth state changes
+    firebase.auth().onAuthStateChanged((authUser) => {
+        user = authUser;
+    });
 
     // --- Configuration ---
     const CONFIG = {
