@@ -1632,8 +1632,7 @@ Object.assign(Analytics, {
             `;
         }).join('');
     }
-}
-});
+};
 
 // Add toggleDashboard function to global scope
 function toggleDashboard() {
