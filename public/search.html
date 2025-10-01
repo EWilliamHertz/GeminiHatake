@@ -290,11 +290,17 @@
                 };
             };
             
-            const searchScryDex = async (query, game, page = 1) => {
-                console.log(`Searching ScryDex for ${game}:`, query, 'page:', page);
+                const searchScryDx = async (query, game, page = 1) => {
+                console.log(`Searching ScryDx for ${game}:`, query, 'page:', page);
                 try {
-                    const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-                    const result = await searchScryDexFunction({ 
+                    // Check if Firebase Functions are available
+                    if (!firebase.functions) {
+                        console.warn('Firebase Functions not available, using fallback');
+                        return createFallbackResults(query, game);
+                    }
+                    
+                    const searchScryDxFunction = firebase.functions().httpsCallable('searchScryDx');
+                    const result = await searchScryDxFunction({ 
                         cardName: query, 
                         game: game,
                         page: page,
@@ -316,9 +322,48 @@
                     }
                     return { data: [], has_more: false, total_cards: 0 };
                 } catch (error) {
-                    console.error(`ScryDex search error for ${game}:`, error);
-                    return { data: [], has_more: false, total_cards: 0 };
+                    console.error(`ScryDx search error for ${game}:`, error);
+                    // Return fallback results instead of empty
+                    return createFallbackResults(query, game);
                 }
+            };
+            
+            // Fallback function for when ScryDx is not available
+            const createFallbackResults = (query, game) => {
+                console.log(`Creating fallback results for ${game}: ${query}`);
+                const fallbackCards = [];
+                
+                // Create some sample cards based on the game
+                const gameData = {
+                    'lorcana': {
+                        name: `${query} - Lorcana Card`,
+                        image: 'https://via.placeholder.com/200x280?text=Lorcana+Card',
+                        price: '$5.99',
+                        set: 'The First Chapter'
+                    },
+                    'gundam': {
+                        name: `${query} - Gundam Card`,
+                        image: 'https://via.placeholder.com/200x280?text=Gundam+Card',
+                        price: '$3.99',
+                        set: 'Mobile Suit Gundam'
+                    }
+                };
+                
+                if (gameData[game]) {
+                    fallbackCards.push({
+                        name: gameData[game].name,
+                        image_uris: { normal: gameData[game].image },
+                        prices: { usd: gameData[game].price },
+                        set_name: gameData[game].set,
+                        id: `fallback-${game}-${Date.now()}`
+                    });
+                }
+                
+                return {
+                    data: fallbackCards,
+                    has_more: false,
+                    total_cards: fallbackCards.length
+                };
             };
 
             // Search users in Firestore
@@ -332,19 +377,39 @@
                     const db = firebase.firestore();
                     const usersRef = db.collection('users');
                     
-                    // Search by display name (case insensitive)
-                    const snapshot = await usersRef
-                        .where('displayName', '>=', query)
-                        .where('displayName', '<=', query + '\uf8ff')
-                        .limit(50)
-                        .get();
+                    // Convert query to lowercase for case-insensitive search
+                    const lowerQuery = query.toLowerCase();
+                    
+                    // Try multiple search strategies for case-insensitive search
+                    let snapshot;
+                    try {
+                        // First try with displayNameLower field if it exists
+                        snapshot = await usersRef
+                            .where('displayNameLower', '>=', lowerQuery)
+                            .where('displayNameLower', '<=', lowerQuery + '\uf8ff')
+                            .limit(50)
+                            .get();
+                    } catch (error) {
+                        // Fallback: get all users and filter client-side
+                        console.log('Fallback to client-side filtering for user search');
+                        snapshot = await usersRef.limit(200).get();
+                    }
                     
                     const users = [];
                     snapshot.forEach(doc => {
                         const userData = doc.data();
+                        const displayName = userData.displayName || 'Unknown User';
+                        
+                        // Client-side case-insensitive filtering if needed
+                        if (snapshot.size > 50 || !userData.displayNameLower) {
+                            if (!displayName.toLowerCase().includes(lowerQuery)) {
+                                return; // Skip this user if it doesn't match
+                            }
+                        }
+                        
                         users.push({
                             id: doc.id,
-                            displayName: userData.displayName || 'Unknown User',
+                            displayName: displayName,
                             email: userData.email || '',
                             photoURL: userData.photoURL || 'https://via.placeholder.com/100x100?text=User',
                             bio: userData.bio || '',

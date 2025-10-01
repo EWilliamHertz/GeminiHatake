@@ -707,9 +707,21 @@ document.addEventListener('authReady', (e) => {
             const username = params.get('user');
             const userIdParam = params.get('uid');
 
-            if (username) { const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get(); if (!userQuery.empty) userDoc = userQuery.docs[0]; } 
-            else if (userIdParam) { userDoc = await db.collection('users').doc(userIdParam).get(); } 
-            else if (currentUser) { userDoc = await db.collection('users').doc(currentUser.uid).get(); } 
+            if (username) { 
+                // First try as user ID, then as handle
+                try {
+                    userDoc = await db.collection('users').doc(username).get();
+                    if (!userDoc.exists) {
+                        const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get(); 
+                        if (!userQuery.empty) userDoc = userQuery.docs[0];
+                    }
+                } catch (error) {
+                    const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get(); 
+                    if (!userQuery.empty) userDoc = userQuery.docs[0];
+                }
+            } 
+            else if (userIdParam) { userDoc = await db.collection('users').doc(userIdParam).get(); } 
+            else if (currentUser) { userDoc = await db.collection('users').doc(currentUser.uid).get(); }
             else { profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold">No Profile to Display</h1><p class="mt-2">Please log in to see your profile or specify a user in the URL.</p></div>`; return; }
 
             if (!userDoc || !userDoc.exists) {
