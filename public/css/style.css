@@ -35,6 +35,21 @@ main {
     overflow-y: auto; /* Changed from 'hidden' to 'auto' */
 }
 
+/* Fix for main content area width issue */
+.flex-1.flex.flex-col.overflow-hidden {
+    width: calc(100% - 256px);
+    min-width: 0; /* Allows flex items to shrink below their content size */
+}
+
+/* Fix for tab navigation width issue */
+.mb-6.border-b.border-gray-200.dark\\:border-gray-700 {
+    width: 100%;
+}
+
+nav[aria-label="Tabs"] {
+    width: 100%;
+}
+
 /* Responsive design adjustments */
 @media (max-width: 768px) {
     /* Styles for mobile devices */
