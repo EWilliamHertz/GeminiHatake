@@ -1614,7 +1614,7 @@ Object.assign(Analytics, {
             return `
                 <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
                     <div class="flex items-center space-x-3">
-                        <img src="${card.imageUrl || 'https://via.placeholder.com/60x84?text=No+Image'}" 
+                        <img src="${card.imageUrl || "https://via.placeholder.com/60x84?text=No+Image"}" 
                              alt="${card.name}" 
                              class="w-12 h-16 object-cover rounded">
                         <div class="flex-1 min-w-0">
