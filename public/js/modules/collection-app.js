@@ -1426,6 +1426,11 @@ Object.assign(Analytics, {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         
+        // Destroy existing chart if it exists
+        if (window.collectionChart && typeof window.collectionChart.destroy === 'function') {
+            window.collectionChart.destroy();
+        }
+        
         // Calculate actual collection value over time (sample data for now)
         const state = Collection.getState();
         const currentValue = state.filteredCollection.reduce((sum, card) => {
@@ -1448,7 +1453,8 @@ Object.assign(Analytics, {
             valueHistory.push(value);
         }
         
-        new Chart(ctx, {
+        // Store chart instance globally for future destruction
+        window.collectionChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
