@@ -1,0 +1,20 @@
+// SIMPLE FIX: Just replace the marketplaceListings section in your Firestore rules with this:
+
+match /marketplaceListings/{listingId} {
+  // Allow anyone to read and list marketplace items (for browsing)
+  allow read, list: if true;
+  
+  // Allow creation if user is authenticated
+  allow create: if isSignedIn();
+  
+  // Allow update/delete if user is the seller (check both possible field structures)
+  allow update, delete: if isSignedIn() && 
+                          (request.auth.uid == resource.data.sellerId ||
+                           request.auth.uid == resource.data.sellerData.uid);
+}
+
+// EXPLANATION:
+// The issue is likely that the new rules are too restrictive for reading marketplace listings.
+// The marketplace page needs to read ALL listings to display them, so we need "allow read, list: if true"
+// This allows anyone (even unauthenticated users) to browse the marketplace.
+// Only creation/update/delete require authentication and ownership verification.
