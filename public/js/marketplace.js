@@ -1033,17 +1033,36 @@ class MarketplaceManager {
     updateStats() {
         const totalListings = document.getElementById('stats-total-listings');
         const avgPrice = document.getElementById('stats-avg-price');
+        const priceRange = document.getElementById('stats-price-range');
 
         if (totalListings) {
             totalListings.textContent = this.filteredListings.length;
         }
 
-        if (avgPrice && this.filteredListings.length > 0) {
-            const total = this.filteredListings.reduce((sum, listing) => sum + (listing.price || 0), 0);
+        if (this.filteredListings.length > 0) {
+            const prices = this.filteredListings.map(listing => listing.price || 0);
+            const total = prices.reduce((sum, price) => sum + price, 0);
             const average = total / this.filteredListings.length;
-            avgPrice.textContent = convertAndFormat ? convertAndFormat(average) : `$${average.toFixed(2)}`;
-        } else if (avgPrice) {
-            avgPrice.textContent = convertAndFormat ? convertAndFormat(0) : '$0.00';
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+
+            if (avgPrice) {
+                avgPrice.textContent = convertAndFormat ? convertAndFormat(average) : `$${average.toFixed(2)}`;
+            }
+
+            if (priceRange) {
+                const minFormatted = convertAndFormat ? convertAndFormat(minPrice) : `$${minPrice.toFixed(2)}`;
+                const maxFormatted = convertAndFormat ? convertAndFormat(maxPrice) : `$${maxPrice.toFixed(2)}`;
+                priceRange.textContent = `${minFormatted} - ${maxFormatted}`;
+            }
+        } else {
+            if (avgPrice) {
+                avgPrice.textContent = convertAndFormat ? convertAndFormat(0) : '$0.00';
+            }
+            if (priceRange) {
+                const zeroFormatted = convertAndFormat ? convertAndFormat(0) : '$0.00';
+                priceRange.textContent = `${zeroFormatted} - ${zeroFormatted}`;
+            }
         }
     }
 
