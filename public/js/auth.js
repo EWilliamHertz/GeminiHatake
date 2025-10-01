@@ -626,3 +626,60 @@ async function showTermsModal() {
         }
     });
 }
+
+// --- Currency Selector Setup Function ---
+function setupCurrencySelector() {
+    const currencySelector = document.getElementById('currency-selector');
+    if (!currencySelector) {
+        console.warn('Currency selector element not found');
+        return;
+    }
+
+    // Import currency functions dynamically
+    import('./modules/currency.js').then(currencyModule => {
+        // Set initial value from localStorage
+        const savedCurrency = currencyModule.getUserCurrency();
+        currencySelector.value = savedCurrency;
+
+        // Add change event listener
+        currencySelector.addEventListener('change', async (e) => {
+            const newCurrency = e.target.value;
+            try {
+                await currencyModule.updateUserCurrency(newCurrency);
+                
+                // Trigger a custom event to notify other parts of the app
+                document.dispatchEvent(new CustomEvent('currencyChanged', { 
+                    detail: { currency: newCurrency } 
+                }));
+                
+                // Show success message
+                if (window.showToast) {
+                    showToast(`Currency changed to ${newCurrency}`, 'success');
+                }
+                
+                // Reload the page to update all prices
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error updating currency:', error);
+                if (window.showToast) {
+                    showToast('Failed to update currency', 'error');
+                }
+                // Revert the selector to the previous value
+                currencySelector.value = savedCurrency;
+            }
+        });
+
+        // Listen for currency change events from other parts of the app
+        document.addEventListener('currencyChanged', (event) => {
+            if (event.detail && event.detail.currency) {
+                currencySelector.value = event.detail.currency;
+            }
+        });
+
+    }).catch(error => {
+        console.error('Failed to load currency module:', error);
+    });
+}
