@@ -368,7 +368,7 @@ const UI = {
         `;
         typeContainer.innerHTML = typeSelect;
     }
-});
+};
 
 // --- ANALYTICS MODULE ---
 const Analytics = {
@@ -407,7 +407,7 @@ const Analytics = {
             if(container) container.innerHTML = '<p class="text-center text-red-500">Error loading price history.</p>';
         }
     }
-});
+};
 
 // --- MAIN APPLICATION LOGIC ---
 function applyAndRender(options = {}) {
@@ -1345,7 +1345,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 }); // End of DOMContentLoaded event listener
 
-window.CollectionApp = { switchTab, switchView, toggleBulkEditMode, clearAllFilters };
+// CollectionApp object for ES6 module export
+const CollectionApp = { 
+    switchTab, 
+    switchView, 
+    toggleBulkEditMode, 
+    clearAllFilters,
+    loadCollection: () => {
+        const user = firebase.auth().currentUser;
+        if (user) {
+            Collection.loadCollection(user.uid);
+        }
+    }
+};
 
 
 // --- ANALYTICS FUNCTIONALITY ---
@@ -1644,13 +1656,12 @@ function handleTopMoverClick(element) {
     }
 }
 
-// Export the toggleDashboard function for global access
-window.toggleDashboard = toggleDashboard;
+// ES6 module exports
+export { CollectionApp, Analytics, toggleDashboard };
+export default CollectionApp;
 
-// ES6 module export
-export default {
-    switchTab,
-    switchView,
-    toggleBulkEditMode,
-    clearAllFilters
-};
+// For backward compatibility, also assign to window
+if (typeof window !== 'undefined') {
+    window.CollectionApp = CollectionApp;
+    window.toggleDashboard = toggleDashboard;
+}
