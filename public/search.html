@@ -256,168 +256,160 @@
             const loadMoreBtn = document.getElementById('load-more');
             const pageInfo = document.getElementById('page-info');
             
-            // Search functions for different APIs
+            // Search functions
             const searchMTG = async (query, page = 1) => {
-                console.log('Searching MTG for:', query, 'page:', page);
-                const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints&page=${page}`);
-                if (!response.ok) {
-                    if (response.status === 404) return { data: [], has_more: false, total_cards: 0 };
-                    throw new Error(`MTG API Error: ${response.status}`);
-                }
-                const data = await response.json();
-                return {
-                    data: data.data || [],
-                    has_more: data.has_more || false,
-                    total_cards: data.total_cards || 0
-                };
-            };
-            
-            const searchPokemon = async (query, page = 1) => {
-                console.log('Searching Pokemon for:', query, 'page:', page);
-                const pageSize = 20;
-                const offset = (page - 1) * pageSize;
-                const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`, {
-                    headers: { 'X-Api-Key': '60a08d4a-3a34-43d8-8f41-827b58cfac6d' }
-                });
-                if (!response.ok) {
-                    throw new Error(`Pokemon API Error: ${response.status}`);
-                }
-                const data = await response.json();
-                return {
-                    data: data.data || [],
-                    has_more: data.data && data.data.length === pageSize,
-                    total_cards: data.totalCount || 0
-                };
-            };
-            
-                const searchScryDx = async (query, game, page = 1) => {
-                console.log(`Searching ScryDx for ${game}:`, query, 'page:', page);
                 try {
-                    // Check if Firebase Functions are available
-                    if (!firebase.functions) {
-                        console.warn('Firebase Functions not available, using fallback');
-                        return createFallbackResults(query, game);
+                    const encodedUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&page=${page}`;
+                    const response = await fetch(encodedUrl);
+                    
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            return { data: [], has_more: false, total_cards: 0 };
+                        }
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
-                    const searchScryDxFunction = firebase.functions().httpsCallable('searchScryDx');
-                    const result = await searchScryDxFunction({ 
-                        cardName: query, 
-                        game: game,
-                        page: page,
-                        limit: RESULTS_PER_PAGE
-                    });
-                    
-                    if (result && result.data && Array.isArray(result.data.data)) {
-                        return {
-                            data: result.data.data,
-                            has_more: result.data.has_more || false,
-                            total_cards: result.data.total || 0
-                        };
-                    } else if (result && Array.isArray(result.data)) {
-                        return {
-                            data: result.data,
-                            has_more: false,
-                            total_cards: result.data.length
-                        };
-                    }
-                    return { data: [], has_more: false, total_cards: 0 };
+                    const data = await response.json();
+                    return {
+                        data: data.data || [],
+                        has_more: data.has_more || false,
+                        total_cards: data.total_cards || 0
+                    };
                 } catch (error) {
-                    console.error(`ScryDx search error for ${game}:`, error);
-                    // Return fallback results instead of empty
-                    return createFallbackResults(query, game);
+                    console.error('MTG search error:', error);
+                    throw error;
                 }
-            };
-            
-            // Fallback function for when ScryDx is not available
-            const createFallbackResults = (query, game) => {
-                console.log(`Creating fallback results for ${game}: ${query}`);
-                const fallbackCards = [];
-                
-                // Create some sample cards based on the game
-                const gameData = {
-                    'lorcana': {
-                        name: `${query} - Lorcana Card`,
-                        image: 'https://via.placeholder.com/200x280?text=Lorcana+Card',
-                        price: '$5.99',
-                        set: 'The First Chapter'
-                    },
-                    'gundam': {
-                        name: `${query} - Gundam Card`,
-                        image: 'https://via.placeholder.com/200x280?text=Gundam+Card',
-                        price: '$3.99',
-                        set: 'Mobile Suit Gundam'
-                    }
-                };
-                
-                if (gameData[game]) {
-                    fallbackCards.push({
-                        name: gameData[game].name,
-                        image_uris: { normal: gameData[game].image },
-                        prices: { usd: gameData[game].price },
-                        set_name: gameData[game].set,
-                        id: `fallback-${game}-${Date.now()}`
-                    });
-                }
-                
-                return {
-                    data: fallbackCards,
-                    has_more: false,
-                    total_cards: fallbackCards.length
-                };
             };
 
-            // Search users in Firestore
-            window.searchUsers = async (query) => {
-                console.log('Searching users for:', query);
-                try {
-                    if (!firebase.firestore) {
-                        throw new Error('Firestore not available');
-                    }
-                    
-                    const db = firebase.firestore();
-                    const usersRef = db.collection('users');
-                    
-                    // Convert query to lowercase for case-insensitive search
-                    const lowerQuery = query.toLowerCase();
-                    
-                    // Try multiple search strategies for case-insensitive search
-                    let snapshot;
+            // Import the API module for proper ScryDex integration
+            const API = window.API || {
+                searchCards: async (query, game) => {
                     try {
-                        // First try with displayName_lower field if it exists
-                        snapshot = await usersRef
-                            .where('displayName_lower', '>=', lowerQuery)
-                            .where('displayName_lower', '<=', lowerQuery + '\uf8ff')
-                            .limit(50)
-                            .get();
+                        console.log(`Searching ${game} for: ${query}`);
+                        
+                        if (game === 'mtg') {
+                            // Use Scryfall for MTG
+                            const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&page=1`);
+                            if (!response.ok) throw new Error('MTG search failed');
+                            const data = await response.json();
+                            return data.data || [];
+                        } else {
+                            // Use Firebase Functions for ScryDex (Pokemon, Lorcana, Gundam)
+                            const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+                            const result = await searchScryDexFunction({ cardName: query, game: game });
+                            
+                            console.log('ScryDex result:', result);
+                            
+                            let cardData = [];
+                            if (result && result.data && Array.isArray(result.data.data)) {
+                                cardData = result.data.data;
+                            } else if (result && Array.isArray(result.data)) {
+                                cardData = result.data;
+                            }
+                            
+                            // Clean the data using the same logic as the API module
+                            return cardData.map(card => cleanScryDexData(card, game));
+                        }
                     } catch (error) {
-                        // Fallback: get all users and filter client-side
-                        console.log('Fallback to client-side filtering for user search');
-                        snapshot = await usersRef.limit(200).get();
+                        console.error(`Search error for ${game}:`, error);
+                        throw error;
                     }
+                }
+            };
+
+            // Clean ScryDex data function (copied from api.js)
+            const cleanScryDexData = (card, game) => {
+                try {
+                    const cleaned = {
+                        api_id: card.id,
+                        name: card.Name || card.name || 'Unknown Card',
+                        set: card.expansion?.id || 'unknown',
+                        set_name: card.expansion?.name || 'Unknown Set',
+                        rarity: card.rarity || 'Common',
+                        image_uris: {
+                            small: card.images?.[0]?.small || null,
+                            normal: card.images?.[0]?.medium || null,
+                            large: card.images?.[0]?.large || null,
+                        },
+                        prices: card.variants?.reduce((acc, variant) => {
+                            if (variant.prices) {
+                                variant.prices.forEach(price => {
+                                    const priceKey = `${variant.name}_${price.condition || price.type}`;
+                                    acc[priceKey] = price.market;
+                                });
+                            }
+                            return acc;
+                        }, {}),
+                        collector_number: card.number || '',
+                        game: game
+                    };
+
+                    switch (game) {
+                        case 'pokemon':
+                            cleaned.types = card.types || [];
+                            cleaned.hp = card.hp || null;
+                            cleaned.supertype = card.supertype || '';
+                            cleaned.subtypes = card.subtypes || [];
+                            break;
+                        case 'lorcana':
+                            cleaned.cost = card.Cost || 0;
+                            cleaned.type = card.Type || '';
+                            cleaned.color = card.Color || '';
+                            cleaned.inkable = card.Inkable || false;
+                            cleaned.strength = card.Strength || null;
+                            cleaned.willpower = card.Willpower || null;
+                            cleaned.lore = card.Lore || null;
+                            break;
+                        case 'gundam':
+                            cleaned.code = card.code || '';
+                            cleaned.cost = card.cost || 0;
+                            cleaned.color = card.color || '';
+                            cleaned.card_type = card.card_type || '';
+                            break;
+                    }
+                    return cleaned;
+                } catch (error) {
+                    console.error(`Error cleaning ScryDex data for ${game}:`, error, card);
+                    return {
+                        api_id: `${game}_error_${Date.now()}`,
+                        name: card.name || 'Error Loading Card',
+                        set_name: 'Unknown Set',
+                        rarity: 'Common',
+                        image_uris: null,
+                        prices: { usd: null, usd_foil: null },
+                        game: game
+                    };
+                }
+            };
+
+            // User search function
+            const searchUsers = async (query) => {
+                try {
+                    console.log('Searching users with query:', query);
+                    const usersRef = firebase.firestore().collection('users');
+                    const queryLower = query.toLowerCase();
+                    
+                    // Search by displayName_lower field for case-insensitive search
+                    const snapshot = await usersRef
+                        .where('displayName_lower', '>=', queryLower)
+                        .where('displayName_lower', '<=', queryLower + '\uf8ff')
+                        .limit(50)
+                        .get();
                     
                     const users = [];
                     snapshot.forEach(doc => {
                         const userData = doc.data();
-                        const displayName = userData.displayName || 'Unknown User';
-                        
-                        // Client-side case-insensitive filtering if needed
-                        if (snapshot.size > 50 || !userData.displayName_lower) {
-                            if (!displayName.toLowerCase().includes(lowerQuery)) {
-                                return; // Skip this user if it doesn't match
-                            }
-                        }
-                        
                         users.push({
                             id: doc.id,
-                            displayName: displayName,
+                            displayName: userData.displayName || 'Unknown User',
                             email: userData.email || '',
                             photoURL: userData.photoURL || 'https://via.placeholder.com/100x100?text=User',
                             bio: userData.bio || '',
-                            joinDate: userData.createdAt ? userData.createdAt.toDate() : new Date()
+                            joinDate: userData.joinDate || null
                         });
                     });
                     
-                    console.log(`Found ${users.length} users matching "${query}"`);
+                    console.log(`Found ${users.length} users`);
                     return {
                         data: users,
                         has_more: false,
@@ -425,28 +417,20 @@
                     };
                 } catch (error) {
                     console.error('User search error:', error);
-                    console.error('Error details:', error.message);
-                    return { data: [], has_more: false, total_cards: 0 };
+                    throw error;
                 }
             };
 
-            // Search articles in Firestore
-            window.searchArticles = async (query) => {
-                console.log('Searching articles for:', query);
+            // Articles search function
+            const searchArticles = async (query) => {
                 try {
-                    if (!firebase.firestore) {
-                        throw new Error('Firestore not available');
-                    }
+                    console.log('Searching articles with query:', query);
+                    const articlesRef = firebase.firestore().collection('articles');
+                    const queryLower = query.toLowerCase();
                     
-                    const db = firebase.firestore();
-                    const articlesRef = db.collection('articles');
-                    
-                    // Search by title (case insensitive)
+                    // Search by title and content
                     const snapshot = await articlesRef
-                        .where('title', '>=', query)
-                        .where('title', '<=', query + '\uf8ff')
-                        .where('published', '==', true)
-                        .orderBy('title')
+                        .where('searchTerms', 'array-contains', queryLower)
                         .orderBy('publishedAt', 'desc')
                         .limit(50)
                         .get();
@@ -457,16 +441,16 @@
                         articles.push({
                             id: doc.id,
                             title: articleData.title || 'Untitled Article',
-                            content: articleData.content || '',
                             excerpt: articleData.excerpt || '',
+                            content: articleData.content || '',
                             author: articleData.author || 'Unknown Author',
-                            publishedAt: articleData.publishedAt ? articleData.publishedAt.toDate() : new Date(),
-                            tags: articleData.tags || [],
-                            type: articleData.type || 'article',
-                            imageUrl: articleData.imageUrl || 'https://via.placeholder.com/400x200?text=Article'
+                            publishedAt: articleData.publishedAt || null,
+                            imageUrl: articleData.imageUrl || 'https://via.placeholder.com/400x200?text=Article',
+                            tags: articleData.tags || []
                         });
                     });
                     
+                    console.log(`Found ${articles.length} articles`);
                     return {
                         data: articles,
                         has_more: false,
@@ -474,37 +458,32 @@
                     };
                 } catch (error) {
                     console.error('Article search error:', error);
-                    return { data: [], has_more: false, total_cards: 0 };
+                    throw error;
                 }
             };
             
             // Main search function
             const searchContent = async (query, category, tcg, page = 1) => {
-                console.log(`Searching for "${query}" in ${category} (${tcg}) page ${page}`);
-                
-                if (!query || query.trim().length < 2) {
-                    throw new Error('Search query must be at least 2 characters long.');
-                }
-
                 try {
                     switch (category) {
                         case 'cards':
-                            switch (tcg) {
-                                case 'mtg':
-                                    return await searchMTG(query, page);
-                                case 'pokemon':
-                                    return await searchPokemon(query, page);
-                                case 'lorcana':
-                                    return await searchScryDx(query, 'lorcana', page);
-                                case 'gundam':
-                                    return await searchScryDx(query, 'gundam', page);
-                                default:
-                                    return await searchMTG(query, page);
-                            }
+                            const gameMap = {
+                                'pokemon': 'pokemon',
+                                'lorcana': 'lorcana', 
+                                'gundam': 'gundam',
+                                'magic: the gathering': 'mtg'
+                            };
+                            const game = gameMap[tcg.toLowerCase()] || 'mtg';
+                            const results = await API.searchCards(query, game);
+                            return {
+                                data: results,
+                                has_more: false,
+                                total_cards: results.length
+                            };
                         case 'users':
-                            return await window.searchUsers(query);
+                            return await searchUsers(query);
                         case 'articles':
-                            return await window.searchArticles(query);
+                            return await searchArticles(query);
                         default:
                             return await searchMTG(query, page);
                     }
@@ -536,12 +515,32 @@
                     }
                     setName = card.set?.name || 'Unknown Set';
                 } else {
-                    // ScryDex data (Lorcana, Gundam)
-                    imageUrl = card.image || card.image_url || imageUrl;
-                    if (card.price) {
+                    // ScryDex data (Pokemon, Lorcana, Gundam)
+                    // Handle image URLs from ScryDex data structure
+                    if (card.image_uris) {
+                        imageUrl = card.image_uris.normal || card.image_uris.large || card.image_uris.small || imageUrl;
+                    } else if (card.images && Array.isArray(card.images) && card.images.length > 0) {
+                        imageUrl = card.images[0].medium || card.images[0].large || card.images[0].small || imageUrl;
+                    } else if (card.image || card.image_url) {
+                        imageUrl = card.image || card.image_url;
+                    }
+                    
+                    // Handle pricing from ScryDex data structure
+                    if (card.prices) {
+                        // Try different price keys that might exist
+                        const priceKeys = Object.keys(card.prices);
+                        if (priceKeys.length > 0) {
+                            const firstPrice = card.prices[priceKeys[0]];
+                            if (firstPrice && !isNaN(parseFloat(firstPrice))) {
+                                price = `$${parseFloat(firstPrice).toFixed(2)}`;
+                            }
+                        }
+                    } else if (card.price && !isNaN(parseFloat(card.price))) {
                         price = `$${parseFloat(card.price).toFixed(2)}`;
                     }
-                    setName = card.set || card.expansion || 'Unknown Set';
+                    
+                    // Handle set name from ScryDex data structure
+                    setName = card.set_name || (card.expansion && card.expansion.name) || card.set || 'Unknown Set';
                 }
                 
                 return `
@@ -567,30 +566,27 @@
             };
 
             const renderUser = (user) => {
-                const joinDate = user.joinDate ? user.joinDate.toLocaleDateString() : 'Unknown';
+                const joinDate = user.joinDate ? user.joinDate.toDate().toLocaleDateString() : 'Unknown';
                 return `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer p-6" 
-                         onclick="openUserProfile('${user.id}')">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer" onclick="window.location.href='profile.html?uid=${user.id}'">
                         <div class="flex items-center space-x-4">
-                            <img src="${user.photoURL}" alt="${user.displayName}" class="w-16 h-16 rounded-full object-cover" 
-                                 onerror="this.src='https://via.placeholder.com/100x100?text=User'">
-                            <div class="flex-1">
-                                <h3 class="font-semibold text-lg text-gray-900 dark:text-white">${user.displayName}</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">${user.email}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-500">Joined ${joinDate}</p>
-                                ${user.bio ? `<p class="text-sm text-gray-700 dark:text-gray-300 mt-2">${user.bio}</p>` : ''}
+                            <img src="${user.photoURL || 'https://via.placeholder.com/50'}" alt="${user.displayName}" class="w-12 h-12 rounded-full object-cover">
+                            <div class="flex-grow">
+                                <h3 class="font-semibold text-lg">${user.displayName}</h3>
+                                <p class="text-gray-600 dark:text-gray-400">${user.email}</p>
+                                <p class="text-sm text-gray-500">Joined ${joinDate}</p>
                             </div>
-                            <button class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                                    onclick="event.stopPropagation(); followUser('${user.id}')">
-                                Follow
-                            </button>
                         </div>
+                        <p class="mt-4 text-gray-700 dark:text-gray-300">${user.bio || 'No bio available.'}</p>
+                        <button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors" onclick="event.stopPropagation(); followUser('${user.id}')">
+                            Follow
+                        </button>
                     </div>
                 `;
             };
 
             const renderArticle = (article) => {
-                const publishDate = article.publishedAt ? article.publishedAt.toLocaleDateString() : 'Unknown';
+                const publishDate = article.publishedAt ? article.publishedAt.toDate().toLocaleDateString() : 'Unknown';
                 const excerpt = article.excerpt || (article.content ? article.content.substring(0, 150) + '...' : 'No preview available');
                 return `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" 
@@ -733,7 +729,7 @@
 
             window.openUserProfile = (userId) => {
                 console.log('Opening user profile:', userId);
-                window.location.href = `profile.html?user=${userId}`;
+                window.location.href = `profile.html?userId=${userId}`;
             };
 
             window.followUser = (userId) => {
