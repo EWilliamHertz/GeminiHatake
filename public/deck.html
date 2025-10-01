@@ -10,7 +10,6 @@
   </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
   <link href="css/style.css" rel="stylesheet"/>
-  <link href="css/deck-builder-fixes.css" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js">
   </script>
   <style>
@@ -282,90 +281,84 @@ border-color: #3b82f6 !important;
            Import Deck List
           </button>
          </div>
-         <form id="deck-builder-form">
+         <form class="deck-builder-form" id="deck-builder-form">
           <input id="editing-deck-id" type="hidden"/>
           
           <!-- Basic Deck Information -->
-          <div class="form-section">
-           <div class="form-row">
-            <div>
-             <label class="form-label" for="deck-name-input">Deck Name *</label>
-             <input class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-name-input" placeholder="Enter Deck Name" required="" type="text"/>
-            </div>
-            <div>
-             <label class="form-label" for="deck-tcg-select">Game *</label>
-             <select class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-tcg-select" required="">
-              <option disabled="" selected="" value="">
-               Select a Game
-              </option>
-              <option value="Magic: The Gathering">
-               Magic: The Gathering
-              </option>
-              <option value="Pokémon">
-               Pokémon
-              </option>
-              <option value="Lorcana">
-               Lorcana
-              </option>
-              <option value="Gundam">
-               Gundam
-              </option>
-             </select>
-            </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+           <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="deck-name-input">Deck Name *</label>
+            <input class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-name-input" placeholder="Enter Deck Name" required="" type="text"/>
+           </div>
+           <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="deck-tcg-select">Game *</label>
+            <select class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-tcg-select" required="">
+             <option disabled="" selected="" value="">
+              Select a Game
+             </option>
+             <option value="Magic: The Gathering">
+              Magic: The Gathering
+             </option>
+             <option value="Pokémon">
+              Pokémon
+             </option>
+             <option value="Lorcana">
+              Lorcana
+             </option>
+             <option value="Gundam">
+              Gundam
+             </option>
+            </select>
            </div>
           </div>
 
           <!-- Format Selection -->
-          <div class="form-section hidden" id="deck-format-select-container">
-           <div class="form-row single">
-            <div>
-             <label class="form-label" for="deck-format-select">Format *</label>
-             <select class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-format-select">
-              <option disabled="" selected="" value="">
-               Select a Format
-              </option>
-             </select>
-            </div>
+          <div class="mb-4 hidden" id="deck-format-select-container">
+           <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="deck-format-select">Format *</label>
+            <select class="w-full p-3 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600" id="deck-format-select">
+             <option disabled="" selected="" value="">
+              Select a Format
+             </option>
+            </select>
            </div>
           </div>
 
           <!-- Deck Description -->
-          <div class="form-section">
-           <div class="form-row single">
-            <div>
-             <label class="form-label" for="deck-bio-input">Deck Description</label>
-             <textarea class="w-full p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" id="deck-bio-input" placeholder="Enter a short description for your deck..." rows="3"></textarea>
-            </div>
+          <div class="mb-4">
+           <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="deck-bio-input">Deck Description</label>
+            <textarea class="w-full p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" id="deck-bio-input" placeholder="Enter a short description for your deck..." rows="3"></textarea>
            </div>
           </div>
 
           <!-- Deck List -->
-          <div class="form-section">
-           <div class="form-row single">
-            <div>
-             <label class="form-label" for="decklist-input">Deck List *</label>
-             <textarea class="w-full h-40 p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="decklist-input" placeholder="Paste your decklist here...
+          <div class="mb-4">
+           <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="decklist-input">Deck List *</label>
+            <textarea class="w-full h-40 p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600 font-mono text-sm" id="decklist-input" placeholder="Paste your decklist here...
 Example:
 4 Sol Ring
 1 Black Lotus" required=""></textarea>
+            <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+             <strong>Format:</strong> Quantity CardName (e.g., "4 Lightning Bolt")<br>
+             <strong>Tip:</strong> One card per line, separate sideboard with "Sideboard:" line
             </div>
            </div>
           </div>
 
           <!-- Deck Primer -->
-          <div class="form-section primer-section">
-           <div class="form-row single">
-            <div>
-             <label class="form-label" for="deck-primer-input">Deck Primer / Guide (Optional)</label>
-             <textarea class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" id="deck-primer-input" placeholder="Explain your deck's strategy, key card choices, mulligan decisions, and sideboard guide..."></textarea>
-            </div>
+          <div class="mb-4">
+           <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="deck-primer-input">Deck Primer / Guide (Optional)</label>
+            <textarea class="w-full h-64 p-3 border border-gray-300 rounded-md resize-y dark:bg-gray-700 dark:border-gray-600" id="deck-primer-input" placeholder="Explain your deck's strategy, key card choices, mulligan decisions, and sideboard guide..."></textarea>
            </div>
           </div>
 
           <!-- Privacy Settings -->
-          <div class="form-section">
-           <div class="checkbox-container">
-            <input checked="" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" id="deck-public-checkbox" type="checkbox"/>
+          <div class="mb-4">
+           <div class="flex items-center">
+            <input checked="" class="h-4 w-4 rounded text-blue-600 focus:ring-blue-500 mr-2" id="deck-public-checkbox" type="checkbox"/>
             <label class="text-gray-700 dark:text-gray-300" for="deck-public-checkbox">
              Make this deck public for the community to see
             </label>
@@ -373,18 +366,18 @@ Example:
           </div>
 
           <!-- Form Actions -->
-          <div class="form-actions">
-           <button class="flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700" id="build-deck-btn" type="submit">
+          <div class="deck-builder-buttons">
+           <button class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors" id="build-deck-btn" type="submit">
             <i class="fas fa-hammer mr-2">
             </i>
             Build &amp; Price Deck
            </button>
-           <button class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center" id="save-deck-btn" type="button">
+           <button class="bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 flex items-center justify-center transition-colors" id="save-deck-btn" type="button">
             <i class="fas fa-save mr-2">
             </i>
             Save Deck
            </button>
-           <button class="hidden w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 flex items-center justify-center" id="write-primer-btn" type="button">
+           <button class="hidden bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 flex items-center justify-center transition-colors" id="write-primer-btn" type="button">
             <i class="fas fa-pen-alt mr-2">
             </i>
             Write a Primer Article
@@ -799,8 +792,6 @@ Example:
     <script src="js/modules/api.js" type="module">
     </script>
     <script src="js/deck.js">
-    </script>
-    <script src="js/deck-builder-enhancements.js">
     </script>
     <script src="js/notifications.js">
     </script>
