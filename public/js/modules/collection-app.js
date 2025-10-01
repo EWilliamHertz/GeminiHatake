@@ -1472,44 +1472,105 @@ Object.assign(Analytics, {
         });
     },
     
-    updateAnalyticsDashboard: () => {
+    updateAnalyticsDashboard: async () => {
         const state = Collection.getState();
-        const cards = state.filteredCollection;
+        const cards = state.cards || [];
         
-        // Calculate current collection value
-        const currentValue = cards.reduce((sum, card) => {
-            return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
-        }, 0);
-        
-        // Update dashboard values
-        const currentValueEl = document.getElementById('analytics-current-value');
-        const change24hEl = document.getElementById('analytics-24h-change');
-        const allTimeHighEl = document.getElementById('analytics-all-time-high');
-        
-        if (currentValueEl) {
-            currentValueEl.textContent = Currency.convertAndFormat({ usd: currentValue });
+        if (cards.length === 0) {
+            // Show empty state
+            const currentValueEl = document.getElementById('analytics-current-value');
+            const change24hEl = document.getElementById('analytics-24h-change');
+            const allTimeHighEl = document.getElementById('analytics-all-time-high');
+            
+            if (currentValueEl) currentValueEl.textContent = '$0.00';
+            if (change24hEl) change24hEl.textContent = '$0.00';
+            if (allTimeHighEl) allTimeHighEl.textContent = '$0.00';
+            return;
         }
         
-        if (change24hEl) {
-            // Sample 24h change calculation (would be real data in production)
-            const change24h = currentValue * (Math.random() - 0.5) * 0.05; // ±2.5% change
-            const isPositive = change24h >= 0;
-            change24hEl.textContent = (isPositive ? '+' : '') + Currency.convertAndFormat({ usd: Math.abs(change24h) });
-            change24hEl.className = `text-2xl font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`;
-        }
-        
-        if (allTimeHighEl) {
-            // Sample all-time high (would be tracked in production)
-            const allTimeHigh = currentValue * 1.2; // 20% higher than current
-            allTimeHighEl.textContent = Currency.convertAndFormat({ usd: allTimeHigh });
-        }
-        
-        // Update top movers (sample data)
+        try {
+            // Use our new collection analytics function
+            const getCollectionAnalyticsFunction = firebase.functions().httpsCallable('getCollectionPriceAnalytics');
+            const analyticsResult = await getCollectionAnalyticsFunction({ days: 30 });
+            
+            if (analyticsResult && analyticsResult.data && analyticsResult.data.success) {
+                const analytics = analyticsResult.data;
+                
+                // Update dashboard values
+                const currentValueEl = document.getElementById('analytics-current-value');
+                const change24hEl = document.getElementById('analytics-24h-change');
+                const allTimeHighEl = document.getElementById('analytics-all-time-high');
+                
+                if (currentValueEl) {
+                    currentValueEl.textContent = Currency.convertAndFormat({ usd: analytics.totalValue });
+                }
+                
+                if (change24hEl) {
+                    const isPositive = analytics.valueChange >= 0;
+                    const changeText = `${isPositive ? '+' : ''}${Currency.convertAndFormat({ usd: Math.abs(analytics.valueChange) })} (${isPositive ? '+' : ''}${analytics.percentChange.toFixed(1)}%)`;
+                    change24hEl.textContent = changeText;
+                    change24hEl.className = `text-2xl font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`;
+                }
+                
+                if (allTimeHighEl) {
+                    // Calculate all-time high from current cards
+                    const allTimeHigh = Math.max(analytics.totalValue, analytics.totalValue + analytics.valueChange);
+                    allTimeHighEl.textContent = Currency.convertAndFormat({ usd: allTimeHigh });
+                }
+                
+                // Update top movers section with real data
+                Analytics.updateTopMovers(analytics.topGainers, analytics.topLosers);
+                
+                console.log('Analytics dashboard updated with real data:', analytics);
+            } else {
+                throw new Error('Failed to get collection analytics');
+            }
+        } catch (error) {
+            console.error('Error updating analytics dashboard:', error);
+            
+            // Fallback to basic calculation
+            const currentValue = cards.reduce((sum, card) => {
+                return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
+            }, 0);
+            
+            const currentValueEl = document.getElementById('analytics-current-value');
+            const change24hEl = document.getElementById('analytics-24h-change');
+            const allTimeHighEl = document.getElementById('analytics-all-time-high');
+            
+            if (currentValueEl) {
+                currentValueEl.textContent = Currency.convertAndFormat({ usd: currentValue });
+            }
+            
+            if (change24hEl) {
+                change24hEl.textContent = 'Data unavailable';
+                change24hEl.className = 'text-2xl font-semibold text-gray-500 dark:text-gray-400';
+            }
+            
+            if (allTimeHighEl) {
+                allTimeHighEl.textContent = Currency.convertAndFormat({ usd: currentValue });
+            }
+            
+            // Update top movers with basic data
+            Analytic    updateTopMovers: (topGainers = [], topLosers = []) => {
         const topMoversContainer = document.getElementById('top-movers-container');
-        if (topMoversContainer && cards.length > 0) {
-            const topCards = cards.slice(0, 6); // Show top 6 cards
-            topMoversContainer.innerHTML = topCards.map(card => {
-                const price = Currency.getNormalizedPriceUSD(card.prices);
+        if (!topMoversContainer) return;
+        
+        // Combine gainers and losers, prioritizing larger absolute changes
+        const allMovers = [...topGainers, ...topLosers]
+            .sort((a, b) => Math.abs(b.percentChange) - Math.abs(a.percentChange))
+            .slice(0, 6);
+        
+        if (allMovers.length === 0) {
+            topMoversContainer.innerHTML = `
+                <div class="col-span-full text-center text-gray-500 dark:text-gray-400 py-8">
+                    <i class="fas fa-chart-line text-2xl mb-2"></i>
+                    <p>No price movement data available</p>
+                </div>
+            `;
+            return;
+        }
+        
+        topMoversContainer.innerHTML = allMovers.map(card => {            const price = Currency.getNormalizedPriceUSD(card.prices);
                 const change = (Math.random() - 0.5) * 0.2; // ±10% change
                 const isPositive = change >= 0;
                 
