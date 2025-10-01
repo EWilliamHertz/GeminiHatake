@@ -566,12 +566,24 @@ const Analytics = {
     renderCollectionChart: async () => {
         const canvas = document.getElementById('value-chart');
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
         
-        // Destroy existing chart if it exists
-        if (window.collectionChart && typeof window.collectionChart.destroy === 'function') {
-            window.collectionChart.destroy();
+        // Destroy existing chart if it exists - more thorough cleanup
+        if (window.collectionChart) {
+            try {
+                window.collectionChart.destroy();
+                window.collectionChart = null;
+            } catch (error) {
+                console.log('Chart cleanup error (non-critical):', error);
+            }
         }
+        
+        // Also check Chart.js registry for existing charts on this canvas
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+        
+        const ctx = canvas.getContext('2d');
         
         try {
             // Get real collection analytics data from Firebase Functions
@@ -1390,6 +1402,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('add-card-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('search-modal')));
         document.getElementById('csv-import-btn')?.addEventListener('click', () => UI.openModal(document.getElementById('csv-import-modal')));
         document.getElementById('analyze-value-btn')?.addEventListener('click', toggleDashboard);
+        
+        // Add refresh prices functionality
+        document.getElementById('refresh-prices-btn')?.addEventListener('click', async () => {
+            const button = document.getElementById('refresh-prices-btn');
+            const originalText = button.textContent;
+            
+            try {
+                button.textContent = 'Refreshing...';
+                button.disabled = true;
+                
+                const updatedCount = await Collection.refreshAllPrices();
+                UI.showToast(`Updated prices for ${updatedCount} cards`, 'success');
+            } catch (error) {
+                console.error('Price refresh failed:', error);
+                UI.showToast('Failed to refresh prices: ' + error.message, 'error');
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        });
         document.querySelectorAll('[data-tab]').forEach(tab => tab.addEventListener('click', (e) => { e.preventDefault(); switchTab(tab.dataset.tab); }));
         document.getElementById('view-toggle-grid')?.addEventListener('click', () => switchView('grid'));
         document.getElementById('view-toggle-list')?.addEventListener('click', () => switchView('list'));
