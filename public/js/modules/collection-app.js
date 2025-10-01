@@ -374,7 +374,11 @@ const UI = {
 const Analytics = {
     renderSingleCardChart: async (card, containerId) => {
         try {
-            console.log(`[Analytics] Rendering chart for card: ${card.name} (${card.api_id}) in container: ${containerId}`);
+            console.log(`[Analytics] === STARTING CHART RENDER ===`);
+            console.log(`[Analytics] Card: ${card.name}`);
+            console.log(`[Analytics] API ID: ${card.api_id}`);
+            console.log(`[Analytics] Game: ${card.game || card.tcg || 'pokemon'}`);
+            console.log(`[Analytics] Container: ${containerId}`);
             
             const container = document.getElementById(containerId);
             if (!container) {
@@ -382,55 +386,90 @@ const Analytics = {
                 return;
             }
             
-            // Clear the container completely and show loading state
-            container.innerHTML = '<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin"></i> Loading price history...</div>';
+            // Destroy any existing charts in this container first
+            const existingCanvas = container.querySelector('canvas');
+            if (existingCanvas) {
+                const existingChart = Chart.getChart(existingCanvas);
+                if (existingChart) {
+                    console.log(`[Analytics] Destroying existing chart`);
+                    existingChart.destroy();
+                }
+            }
             
-            // Use Firebase Functions to get price history with unique request
-            const historyFunction = firebase.functions().httpsCallable('getCardPriceHistory');
-            const historyResult = await historyFunction({ 
+            // Clear the container completely and show loading state
+            container.innerHTML = `<div class="text-center text-gray-500 py-4">
+                <i class="fas fa-spinner fa-spin"></i> 
+                <p>Loading price history for ${card.name}...</p>
+            </div>`;
+            
+            // Create unique request parameters to prevent caching
+            const requestParams = { 
                 cardId: card.api_id || card.id,
+                cardName: card.name, // Add card name for debugging
                 days: 30,
                 game: card.game || card.tcg || 'pokemon',
-                timestamp: Date.now() // Add timestamp to ensure unique requests
-            });
+                timestamp: Date.now(),
+                random: Math.random() // Additional cache buster
+            };
             
-            console.log(`[Analytics] Price history result for ${card.name}:`, historyResult);
+            console.log(`[Analytics] Request params:`, requestParams);
+            
+            // Use Firebase Functions to get price history
+            const historyFunction = firebase.functions().httpsCallable('getCardPriceHistory');
+            const historyResult = await historyFunction(requestParams);
+            
+            console.log(`[Analytics] Raw Firebase response for ${card.name}:`, historyResult);
             
             let historyData = [];
             if (historyResult && historyResult.data && historyResult.data.success) {
                 historyData = historyResult.data.priceHistory || [];
+                console.log(`[Analytics] Extracted ${historyData.length} price points for ${card.name}`);
+            } else {
+                console.warn(`[Analytics] No valid price history data for ${card.name}:`, historyResult);
             }
             
             if (historyData.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500">No price history available for this card.</p>';
+                container.innerHTML = `<p class="text-center text-gray-500">No price history available for ${card.name}.</p>`;
                 return;
             }
             
-            // Create a completely new canvas element with unique ID
-            const canvasId = `chart-${containerId}-${Date.now()}`;
+            // Create a completely new canvas element with unique ID based on card
+            const canvasId = `chart-${card.api_id}-${Date.now()}`;
             const canvas = document.createElement('canvas');
             canvas.id = canvasId;
             canvas.style.maxHeight = '400px';
+            canvas.width = 800;
+            canvas.height = 400;
             
             // Clear container and add new canvas
             container.innerHTML = '';
             container.appendChild(canvas);
             
-            // Create chart with unique data
+            // Process the data to ensure it's unique to this card
+            const processedData = historyData.map(entry => ({
+                date: entry.date,
+                price: parseFloat(entry.market || entry.price || 0)
+            }));
+            
+            console.log(`[Analytics] Processed data for ${card.name}:`, processedData.slice(0, 3)); // Show first 3 entries
+            
+            // Create chart with card-specific data
             const chartInstance = new Chart(canvas, {
                 type: 'line',
                 data: {
-                    labels: historyData.map(entry => {
+                    labels: processedData.map(entry => {
                         const date = new Date(entry.date);
                         return date.toLocaleDateString();
                     }),
                     datasets: [{
                         label: `${card.name} - Price (USD)`,
-                        data: historyData.map(entry => entry.market || entry.price || 0),
+                        data: processedData.map(entry => entry.price),
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.1,
-                        fill: true
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
                     }]
                 },
                 options: {
@@ -439,7 +478,11 @@ const Analytics = {
                     plugins: {
                         title: {
                             display: true,
-                            text: `${card.name} - Price History (30 days)`
+                            text: `${card.name} - Price History (30 days)`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
                         },
                         legend: {
                             display: false
@@ -461,13 +504,17 @@ const Analytics = {
                 }
             });
             
-            console.log(`[Analytics] Chart created successfully for ${card.name} with ${historyData.length} data points`);
+            console.log(`[Analytics] === CHART RENDER COMPLETE ===`);
+            console.log(`[Analytics] Chart created for ${card.name} with ${processedData.length} data points`);
+            console.log(`[Analytics] Price range: $${Math.min(...processedData.map(d => d.price)).toFixed(2)} - $${Math.max(...processedData.map(d => d.price)).toFixed(2)}`);
             
         } catch (error) {
-            console.error(`[Analytics] Error rendering chart for ${card.name}:`, error);
+            console.error(`[Analytics] === ERROR RENDERING CHART ===`);
+            console.error(`[Analytics] Card: ${card.name}`);
+            console.error(`[Analytics] Error:`, error);
             const container = document.getElementById(containerId);
             if(container) {
-                container.innerHTML = `<p class="text-center text-red-500">Error loading price history for ${card.name}.</p>`;
+                container.innerHTML = `<p class="text-center text-red-500">Error loading price history for ${card.name}: ${error.message}</p>`;
             }
         }
     },
