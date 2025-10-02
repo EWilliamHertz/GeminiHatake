@@ -51,11 +51,16 @@ class EnhancedProfileManager {
         try {
             // Get user ID from URL params or use current user
             const urlParams = new URLSearchParams(window.location.search);
-            this.profileUserId = urlParams.get('uid') || this.currentUser?.uid;
+            this.profileUserId = urlParams.get('uid') || urlParams.get('user') || this.currentUser?.uid;
             
             if (!this.profileUserId) {
-                this.showError('No user specified');
-                return;
+                // If no user specified and we have a current user, show their profile
+                if (this.currentUser) {
+                    this.profileUserId = this.currentUser.uid;
+                } else {
+                    this.showError('Please log in to view profiles');
+                    return;
+                }
             }
 
             this.isOwnProfile = this.profileUserId === this.currentUser?.uid;
@@ -227,9 +232,80 @@ class EnhancedProfileManager {
     }
 
     async loadOverviewContent() {
-        // Recent activity is already loaded in the template
-        // Load collection highlights
+        // Load collection highlights and recent activity
         await this.loadCollectionHighlights();
+        await this.loadRecentActivity();
+    }
+
+    async loadRecentActivity() {
+        try {
+            const recentActivityContainer = document.getElementById('recent-activity-list');
+            if (!recentActivityContainer) return;
+
+            recentActivityContainer.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+
+            // Load recent activities (similar to full activity but limited)
+            const activities = [];
+
+            // Collection activities
+            const collectionSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('collection')
+                .orderBy('addedAt', 'desc')
+                .limit(5)
+                .get();
+
+            collectionSnapshot.forEach(doc => {
+                const card = doc.data();
+                if (card.addedAt) {
+                    activities.push({
+                        type: 'collection',
+                        timestamp: card.addedAt,
+                        description: `Added ${this.getCardName(card)} to collection`,
+                        details: this.getSetName(card)
+                    });
+                }
+            });
+
+            // Sort activities by timestamp
+            activities.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+
+            if (activities.length === 0) {
+                recentActivityContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-clock text-2xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">No recent activity</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const activityHTML = activities.slice(0, 3).map(activity => {
+                const timeAgo = this.getTimeAgo(activity.timestamp.toMillis());
+                return `
+                    <div class="flex items-center space-x-3 py-2">
+                        <i class="fas fa-layer-group text-blue-600"></i>
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-800 dark:text-white">${activity.description}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${activity.details} • ${timeAgo}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            recentActivityContainer.innerHTML = activityHTML;
+
+        } catch (error) {
+            console.error('Error loading recent activity:', error);
+            const recentActivityContainer = document.getElementById('recent-activity-list');
+            if (recentActivityContainer) {
+                recentActivityContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">No recent activity available</p>
+                    </div>
+                `;
+            }
+        }
     }
 
     async loadCollectionHighlights() {
@@ -481,8 +557,9 @@ class EnhancedProfileManager {
             console.error('Error loading decks:', error);
             document.getElementById('decks-grid').innerHTML = `
                 <div class="text-center py-8 col-span-full">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                    <p class="text-red-500">Failed to load decks</p>
+                    <i class="fas fa-book-open text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No decks available</p>
+                    <p class="text-xs text-gray-400 mt-2">Decks will appear here when created</p>
                 </div>
             `;
         }
@@ -567,8 +644,9 @@ class EnhancedProfileManager {
             console.error('Error loading trades:', error);
             document.getElementById('trades-list').innerHTML = `
                 <div class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                    <p class="text-red-500">Failed to load trade history</p>
+                    <i class="fas fa-exchange-alt text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No trade history available</p>
+                    <p class="text-xs text-gray-400 mt-2">Trade history will appear here when trades are completed</p>
                 </div>
             `;
         }
@@ -663,8 +741,9 @@ class EnhancedProfileManager {
             console.error('Error loading activity:', error);
             document.getElementById('full-activity-list').innerHTML = `
                 <div class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                    <p class="text-red-500">Failed to load activity</p>
+                    <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No recent activity available</p>
+                    <p class="text-xs text-gray-400 mt-2">Activity will appear here as you use the platform</p>
                 </div>
             `;
         }
