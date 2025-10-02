@@ -139,6 +139,12 @@
             border-radius: 50%; 
             user-select: none; 
             z-index: 10; 
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .gallery-arrow:hover { 
@@ -515,7 +521,12 @@
                     thumb.src = url;
                     thumb.classList.add('gallery-thumbnail');
                     thumb.dataset.index = index;
-                    thumb.addEventListener('click', () => showImage(index));
+                    
+                    // Add click event listener to each thumbnail
+                    thumb.addEventListener('click', function() {
+                        showImage(index);
+                    });
+                    
                     thumbnailsContainer.appendChild(thumb);
                 });
             }
@@ -572,15 +583,31 @@
                 else if (e.key === 'Escape') closeGalleryModal();
             }
 
+            // Event listeners
             openGalleryBtn.addEventListener('click', async () => {
                 await fetchProductImages();
                 openGalleryModal();
             });
             
             closeGalleryBtn.addEventListener('click', closeGalleryModal);
-            galleryBackdrop.addEventListener('click', closeGalleryModal);
-            prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
-            nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
+            
+            // Close gallery when clicking outside the image
+            galleryModal.addEventListener('click', function(e) {
+                if (e.target === galleryModal) {
+                    closeGalleryModal();
+                }
+            });
+            
+            // Arrow navigation
+            prevBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showImage(currentIndex - 1);
+            });
+            
+            nextBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showImage(currentIndex + 1);
+            });
         });
     </script>
 
