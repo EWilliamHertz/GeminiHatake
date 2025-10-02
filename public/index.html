@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -191,102 +191,7 @@
             -webkit-text-fill-color: transparent;
         }
         
-        /* PWA Install Banner Styles */
-        .pwa-install-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            animation: slideDown 0.5s ease-out;
-            display: none;
-        }
-        
-        .install-content {
-            display: flex;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            gap: 1rem;
-        }
-        
-        .install-icon {
-            font-size: 2rem;
-            flex-shrink: 0;
-        }
-        
-        .install-text {
-            flex: 1;
-        }
-        
-        .install-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-        
-        .install-description {
-            font-size: 0.875rem;
-            opacity: 0.9;
-        }
-        
-        .install-actions {
-            display: flex;
-            gap: 0.75rem;
-            flex-shrink: 0;
-        }
-        
-        .install-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        
-        .install-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
-        }
-        
-        .install-btn.primary {
-            background: rgba(255, 255, 255, 0.9);
-            color: #4f46e5;
-        }
-        
-        .install-btn.primary:hover {
-            background: white;
-        }
-        
-        @keyframes slideDown {
-            from {
-                transform: translateY(-100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        
         @media (max-width: 768px) {
-            .install-content {
-                flex-direction: column;
-                text-align: center;
-                gap: 0.75rem;
-            }
-            
-            .install-actions {
-                width: 100%;
-                justify-content: center;
-            }
-            
             .header-content {
                 flex-direction: column;
                 height: auto;
@@ -302,27 +207,6 @@
 </head>
 
 <body class="antialiased bg-white dark:bg-gray-900">
-    <!-- PWA Install Banner -->
-    <div class="pwa-install-banner" id="pwa-install-banner">
-        <div class="install-content">
-            <div class="install-icon">
-                <i class="fas fa-mobile-alt"></i>
-            </div>
-            <div class="install-text">
-                <div class="install-title">Install HatakeSocial</div>
-                <div class="install-description">Get the full app experience with offline access and push notifications</div>
-            </div>
-            <div class="install-actions">
-                <button class="install-btn primary" id="install-app-btn">
-                    <i class="fas fa-download"></i> Install
-                </button>
-                <button class="install-btn" id="dismiss-install-btn">
-                    <i class="fas fa-times"></i> Dismiss
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Header -->
     <header class="header-container border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div class="header-content">
@@ -697,34 +581,6 @@
             galleryBackdrop.addEventListener('click', closeGalleryModal);
             prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
             nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
-        });
-    </script>
-
-    <!-- PWA Script -->
-    <script>
-        // PWA Install functionality
-        let deferredPrompt;
-        const installBanner = document.getElementById('pwa-install-banner');
-        const installBtn = document.getElementById('install-app-btn');
-        const dismissBtn = document.getElementById('dismiss-install-btn');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBanner.style.display = 'block';
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                installBanner.style.display = 'none';
-            }
-        });
-
-        dismissBtn.addEventListener('click', () => {
-            installBanner.style.display = 'none';
         });
     </script>
 
