@@ -264,18 +264,18 @@ class EnhancedProfileManager {
                 
                 if (!mostValuableCard || (parseFloat(cardValue) || 0) > (parseFloat(mostValuableCard.value) || 0)) {
                     mostValuableCard = {
-                        name: card.name || card.card_name || 'Unknown Card',
+                        name: this.getCardName(card),
                         value: parseFloat(cardValue) || 0,
-                        set: card.set_name || card.setName || 'Unknown Set'
+                        set: this.getSetName(card)
                     };
                 }
 
                 // Count sets
-                const setName = card.set_name || card.setName || 'Unknown Set';
+                const setName = this.getSetName(card);
                 setCounts[setName] = (setCounts[setName] || 0) + (card.quantity || 1);
 
                 // Count games
-                const game = card.game || 'Unknown Game';
+                const game = this.getGameName(card);
                 gameCounts[game] = (gameCounts[game] || 0) + (card.quantity || 1);
             });
 
@@ -364,11 +364,11 @@ class EnhancedProfileManager {
 
             const cardsHTML = collectionSnapshot.docs.map(doc => {
                 const card = doc.data();
-                const cardName = card.name || card.card_name || 'Unknown Card';
-                const setName = card.set_name || card.setName || 'Unknown Set';
+                const cardName = this.getCardName(card);
+                const setName = this.getSetName(card);
                 const cardValue = card.sale_price || card.purchase_price || card.value || 0;
-                const imageUrl = card.image_uris?.normal || card.image_uris?.small || card.image_url;
-                const game = card.game || 'Unknown';
+                const imageUrl = this.getCardImageUrl(card);
+                const game = this.getGameName(card);
                 
                 return `
                     <div class="bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -754,6 +754,63 @@ class EnhancedProfileManager {
         if (diff < month) return `${Math.floor(diff / week)} weeks ago`;
         if (diff < year) return `${Math.floor(diff / month)} months ago`;
         return `${Math.floor(diff / year)} years ago`;
+    }
+
+    // Data cleaning helper methods (matching the logic from api.js)
+    getCardName(card) {
+        return card.name || card.card_name || card.Name || 'Unknown Card';
+    }
+
+    getSetName(card) {
+        // Handle different TCG data structures
+        if (card.set_name) return card.set_name;
+        if (card.setName) return card.setName;
+        if (card.expansion?.name) return card.expansion.name;
+        if (card.set) return card.set;
+        
+        // Game-specific fallbacks
+        switch (card.game) {
+            case 'pokemon':
+                return card.expansion?.name || 'Unknown Set';
+            case 'lorcana':
+                return card.expansion?.name || 'Unknown Set';
+            case 'gundam':
+                return card.expansion?.name || 'Unknown Set';
+            case 'mtg':
+            default:
+                return 'Unknown Set';
+        }
+    }
+
+    getGameName(card) {
+        if (card.game) {
+            // Normalize game names for display
+            switch (card.game.toLowerCase()) {
+                case 'mtg':
+                    return 'Magic: The Gathering';
+                case 'pokemon':
+                    return 'Pokémon';
+                case 'lorcana':
+                    return 'Lorcana';
+                case 'gundam':
+                    return 'Gundam';
+                default:
+                    return card.game;
+            }
+        }
+        return 'Unknown Game';
+    }
+
+    getCardImageUrl(card) {
+        // Handle different image URL structures
+        if (card.image_uris) {
+            return card.image_uris.normal || card.image_uris.small || card.image_uris.large;
+        }
+        if (card.image_url) return card.image_url;
+        if (card.images && card.images[0]) {
+            return card.images[0].medium || card.images[0].small || card.images[0].large;
+        }
+        return null;
     }
 
     showError(message) {
