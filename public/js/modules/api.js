@@ -16,7 +16,6 @@ const functions = firebase.functions();
 const searchScryDexFunction = functions.httpsCallable('searchScryDex');
 const getScryDexHistoryFunction = functions.httpsCallable('getScryDexHistory');
 const getGradedPriceFunction = functions.httpsCallable('getGradedPrice'); // New function for graded prices
-
 // --- CARD SEARCH APIS ---
 
 /**
@@ -26,86 +25,48 @@ const getGradedPriceFunction = functions.httpsCallable('getGradedPrice'); // New
  */
 // In public/js/modules/api.js
 
-export async function searchCards(query, game = 'mtg', page = 1, limit = 100) { // Add page and limit
-    const API_BASE_URL = 'https://api.scrydex.com';
-    try {
-        // Construct the URL with pagination parameters
-        const response = await fetch(`${API_BASE_URL}/${game}/cards/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        // The API returns data in a 'data' property
-        return data.data || [];
-    } catch (error) {
-        console.error(`[API] Error searching for cards:`, error);
-        throw error;
-    }
-}
 
-/**
- * Fetches card data directly from Scryfall for EU pricing with improved error handling.
- */
-async function searchScryfall(cardName) {
-    const encodedUrl = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(cardName)}&unique=prints`;
-
-    try {
-        console.log('[API] Making Scryfall request:', encodedUrl);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Respect rate limits
-        const response = await fetch(encodedUrl);
-
-        if (!response.ok) {
-            if (response.status === 404) return []; // A 404 from Scryfall means no cards were found
-            const errorData = await response.json().catch(() => ({ details: 'Unknown error' }));
-            throw new Error(errorData.details || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        if (!data.data || !Array.isArray(data.data)) {
-            return [];
-        }
-
-        console.log(`[API] Scryfall returned ${data.data.length} results`);
-        return data.data.map(card => cleanScryfallData(card));
-    } catch (error) {
-        console.error('[API] Scryfall API error:', error);
-        throw error;
-    }
-}
+const scrydexSearchProxy = firebase.functions().httpsCallable('searchScryDex');
 
 /**
  * FIX: Fetches card data using the cloud function and correctly parses the nested response.
  */
-async function searchScryDex(cardName, game) {
+/**
+ * Searches for cards by calling the backend proxy function, now with pagination.
+ * @param {string} query The card name or search query.
+ * @param {string} game The TCG to search (e.g., 'pokemon', 'mtg').
+ * @param {number} page The page number for pagination.
+ * @param {number} limit The number of results per page.
+ * @returns {Promise<Array>} A promise that resolves to an array of card objects.
+ */
+export async function searchCards(query, game = 'mtg', page = 1, limit = 100) {
     try {
-        console.log(`[API] Calling ScryDex function for ${game} with query: "${cardName}"`);
-        const result = await searchScryDexFunction({ cardName, game });
-        console.log('[API] ScryDex function raw result:', result);
+        console.log(`[API] Proxying search for: "${query}", game: ${game}, page: ${page}`);
+        
+        // This object is securely sent to your Firebase Function.
+        const result = await scrydexSearchProxy({
+            query: query,
+            game: game,
+            page: page,
+            limit: limit
+        });
 
-        let cardData;
-        if (result && result.data && Array.isArray(result.data.data)) {
-            cardData = result.data.data;
-        } else if (result && Array.isArray(result.data)) {
-            cardData = result.data;
-        } else {
-             console.warn('[API] Unexpected ScryDex response format:', result);
-            cardData = [];
+      if (result.data && result.data.success) {
+    const rawData = result.data.data || [];
+    // Return an object instead of just the array
+    return {
+        cards: rawData.map(card => cleanScryDexData(card, game)),
+        has_more: result.data.has_more 
+    };
+}else {
+            // If the backend returned a specific error message, show it.
+            throw new Error(result.data.error || 'The API proxy returned an unspecified error.');
         }
-
-        if (cardData.length === 0) {
-            console.log('[API] ScryDex returned 0 results.');
-            return [];
-        }
-
-        console.log(`[API] ScryDex returned ${cardData.length} results`);
-        return cardData.map(card => cleanScryDexData(card, game));
 
     } catch (error) {
-        console.error(`[API] ScryDex search function error for ${game}:`, error);
-        if (error.code === 'functions/not-found') {
-            throw new Error('ScryDex search service is currently unavailable.');
-        } else if (error.code === 'functions/permission-denied' || error.code === 'functions/unauthenticated') {
-            throw new Error('Authentication required. Please log in again.');
-        }
-        throw new Error(error.message || `Could not fetch ${game} cards from ScryDex.`);
+        console.error(`[API] Error calling the 'scrydexSearch' proxy function:`, error);
+        // Rethrow the error so the UI can display a helpful message.
+        throw error;
     }
 }
 

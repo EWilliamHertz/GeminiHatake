@@ -121,20 +121,26 @@ async function accessSecret(secretName) {
  * Performs a card search using the ScryDex API.
  */
 exports.searchScryDex = functions.https.onCall(async (data, context) => {
-    console.log("--- ScryDex search function invoked ---");
+    console.log("--- ScryDex search function invoked with pagination ---");
 
-    const { cardName, game } = data;
-    if (!cardName || !game) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardName" and "game" arguments.');
+    // Destructure all expected parameters, providing defaults for pagination.
+    const { query, game, page = 1, limit = 100 } = data;
+
+    if (!query || !game) {
+        console.error("Invalid arguments received:", data);
+        // Returning a structured error for the client to handle.
+        return { success: false, error: 'The function must be called with "query" and "game" arguments.' };
     }
 
-    const cacheKey = `${game.toLowerCase()}_${cardName.toLowerCase().trim()}`;
+    // Make the cache key unique for each specific page of results.
+    const cacheKey = `${game.toLowerCase()}_${query.toLowerCase().trim()}_p${page}_l${limit}`;
 
     if (scrydexCache.has(cacheKey)) {
         const cachedItem = scrydexCache.get(cacheKey);
         if (Date.now() - cachedItem.timestamp < SCRYDEX_CACHE_DURATION_MS) {
-            console.log(`Serving '${cardName}' for game '${game}' from cache.`);
-            return { data: cachedItem.data };
+            console.log(`Serving '${query}' for game '${game}' (Page ${page}) from cache.`);
+            // Return the cached data in the expected success format.
+            return { success: true, data: cachedItem.data };
         }
     }
 
@@ -144,7 +150,7 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
         teamId = await accessSecret('scrydex-team-id');
     } catch (secretError) {
         console.error("FATAL: Could not access secrets.", secretError);
-        throw new functions.https.HttpsError('internal', 'Server configuration error: could not access API credentials.');
+        return { success: false, error: 'Server configuration error: could not access API credentials.' };
     }
 
     const gameEndpoints = {
@@ -155,10 +161,11 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
     };
     const apiPath = gameEndpoints[game];
     if (!apiPath) {
-        throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
+        return { success: false, error: `The game '${game}' is not supported.` };
     }
 
-    const url = `https://api.scrydex.com/${apiPath}/cards?q=${encodeURIComponent(cardName)}&include=prices`;
+    // Construct the full URL with all necessary parameters for pagination.
+    const url = `https://api.scrydex.com/${apiPath}/cards?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}&include=prices`;
 
     const options = {
         method: 'GET',
@@ -179,7 +186,7 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
                 errorBody = await response.text();
             } catch (e) { /* ignore */ }
             console.error(`ScryDex API Error: Status ${response.status}. Body: ${errorBody}`);
-            throw new functions.https.HttpsError('internal', `Failed to fetch from ScryDex API. Status: ${response.status}`);
+            return { success: false, error: `Failed to fetch from ScryDex API. Status: ${response.status}` };
         }
 
         const responseData = await response.json();
@@ -190,15 +197,17 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
             data: cardData
         });
 
-        console.log(`Successfully found ${cardData.length} cards for '${cardName}'.`);
-        return { data: cardData };
+        console.log(`Successfully found ${cardData.length} cards for '${query}' on page ${page}.`);
+return { success: true, data: cardData, has_more: responseData.has_more };        
 
     } catch (error) {
         console.error("Cloud Function fetch/processing error:", error);
         const message = error.message || 'An unexpected error occurred.';
-        throw new functions.https.HttpsError('unknown', message);
+        return { success: false, error: message };
     }
 });
+
+
 
 /**
  * Fetches a single card by its ID from the ScryDex API.

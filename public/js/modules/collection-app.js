@@ -988,41 +988,49 @@ async function handleDeleteCard() {
     }
 }
 
+// In public/js/modules/collection-app.js
+
+// Replace the existing fetchAllCards with this one.
 async function fetchAllCards(query, game) {
-  let allCards = [];
-  let currentPage = 1;
-  const limit = 100; // Use the max limit to reduce API calls
-  let hasMore = true;
+    let allCards = [];
+    let currentPage = 1;
+    const limit = 100;
+    let hasMore = true; // Start with the assumption that there's at least one page.
 
-  while (hasMore) {
-    try {
-      // We will use the existing API module to make the request
-      const results = await API.searchCards(query, game, currentPage, limit);
+    console.log(`[fetchAllCards] Starting paginated fetch for "${query}"`);
 
-      if (results && results.length > 0) {
-        // Add the cards from the current page to our main array
-        allCards = allCards.concat(results);
-        // If we get fewer cards than the limit, it's the last page
-        if (results.length < limit) {
-          hasMore = false;
-        } else {
-          currentPage++; // Move to the next page
+    while (hasMore) {
+        try {
+            // API.searchCards now returns an object: { cards: [], has_more: boolean }
+            const response = await API.searchCards(query, game, currentPage, limit);
+            const newCards = response.cards;
+            
+            console.log(`[fetchAllCards] Page ${currentPage}: Found ${newCards.length} cards. API says has_more: ${response.has_more}`);
+
+            if (newCards && newCards.length > 0) {
+                allCards = allCards.concat(newCards);
+            }
+
+            // THIS IS THE CRUCIAL FIX:
+            // We now rely on the API's has_more flag instead of guessing.
+            if (response.has_more) {
+                currentPage++;
+            } else {
+                hasMore = false; // The API says there are no more pages, so we stop.
+            }
+
+        } catch (error) {
+            console.error(`[fetchAllCards] Failed to fetch page ${currentPage}:`, error);
+            hasMore = false; // Stop the loop on any error.
+            throw error;
         }
-      } else {
-        // No more data, so we stop the loop
-        hasMore = false;
-      }
-    } catch (error) {
-      console.error("Failed to fetch cards:", error);
-      hasMore = false; // Stop the loop on error
     }
-  }
 
-  console.log(`Successfully fetched ${allCards.length} cards.`);
-  return allCards;
+    console.log(`[fetchAllCards] Successfully fetched a total of ${allCards.length} cards for "${query}".`);
+    return allCards;
 }
 
-
+// This is the updated search handler that calls fetchAllCards
 let searchTimeout;
 function handleSearchInput() {
     clearTimeout(searchTimeout);
@@ -1035,11 +1043,12 @@ function handleSearchInput() {
         resultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 3 characters.</p>';
         return;
     }
-    resultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+    resultsContainer.innerHTML = '<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Searching all pages...</p>';
+    
     searchTimeout = setTimeout(async () => {
         try {
-            // This now correctly calls the function defined above
-            const results = await fetchAllCards(query, game);
+            const results = await fetchAllCards(query, game); 
+            
             resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
                 results.map(card => `
                     <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
@@ -1056,6 +1065,7 @@ function handleSearchInput() {
         }
     }, 300);
 }
+
 
 function handleSearchResultClick(item) {
     if (item) {

@@ -99,8 +99,7 @@ class TradeWindow {
         if (yourSymbol) yourSymbol.textContent = symbol;
         if (theirSymbol) theirSymbol.textContent = symbol;
     }
-
- // ADDED: Calculate dynamic price based on condition and edition
+    // ADDED: Calculate dynamic price based on condition and edition
 calculateCardPrice(cardData) {
     // Top priority: Use sale_price if it exists and is a valid number
     if (cardData.sale_price) {
@@ -109,6 +108,8 @@ calculateCardPrice(cardData) {
             return salePrice;
         }
     }
+ 
+
 
     // If no prices object, fall back to other possible price fields
     if (!cardData.prices || typeof cardData.prices !== 'object') {
@@ -514,78 +515,95 @@ document.querySelectorAll('.game-filter').forEach(filter => {
             return;
         }
 
-        const cardsHtml = this.currentTrade.yourCards.map(card => {
-            const cardData = card.cardData || card;
-            const price = this.calculateCardPrice(cardData);
-            const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
-            
-            return `
-                <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/40x56'}" 
-                         alt="${cardData.name}" 
-                         class="w-10 h-14 object-cover rounded">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
-                        <div class="flex items-center justify-between mt-1">
-                            <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
-                            <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
-                        </div>
-                    </div>
-                    <button class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" onclick="window.tradeWindow.removeCardFromTrade('${card.id}', 'your')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-        }).join('');
+      const cardsHtml = this.currentTrade.yourCards.map(card => {
+    const cardData = card.cardData || card;
+    const price = this.calculateCardPrice(cardData);
+    const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
+    
+    return `
+      <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+          <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/40x56'}" 
+               alt="${cardData.name}" 
+               class="w-10 h-14 object-cover rounded">
+          <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+              <div class="flex items-center justify-between mt-1">
+                  <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
+                  <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+              </div>
+          </div>
+          <button class="remove-card-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" data-card-id="${card.id}" data-side="your">
+              <i class="fas fa-times"></i>
+          </button>
+      </div>
+    `;
+}).join('');
 
-        container.innerHTML = cardsHtml;
+container.innerHTML = cardsHtml;
+
+ // Add proper event listeners AFTER setting the HTML
+        container.querySelectorAll('.remove-card-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const cardId = event.currentTarget.getAttribute('data-card-id');
+                const side = event.currentTarget.getAttribute('data-side');
+                this.removeCardFromTrade(cardId, side);
+            });
+        });
+    } // This brace closes updateYourTradeDisplay
+
+updateTheirTradeDisplay() { 
+    const container = document.getElementById('their-trade-cards');
+    if (!container) return;
+
+    if (this.currentTrade.theirCards.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+              <i class="fas fa-user-plus text-3xl mb-2"></i>
+              <p>Partner's cards will appear here</p>
+          </div>
+        `;
+        return;
     }
 
-    updateTheirTradeDisplay() {
-        const container = document.getElementById('their-trade-cards');
-        if (!container) return;
+    const cardsHtml = this.currentTrade.theirCards.map(card => {
+        const cardData = card.cardData || card;
+        const price = this.calculateCardPrice(cardData);
+        const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
+        const imageUrl = cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl;
+        
+        return `
+          <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+              <img src="${imageUrl || 'https://via.placeholder.com/40x56'}" 
+                   alt="${cardData.name}" 
+                   class="w-10 h-14 object-cover rounded" 
+                   onerror="this.src='https://via.placeholder.com/40x56?text=?'">
+              <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                  <div class="flex items-center justify-between mt-1">
+                      <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
+                      <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                  </div>
+              </div>
+              <button class="remove-card-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" data-card-id="${card.id}" data-side="their">
+                  <i class="fas fa-times"></i>
+              </button>
+          </div>
+        `;
+    }).join('');
 
-        if (this.currentTrade.theirCards.length === 0) {
-            container.innerHTML = `
-                <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                    <i class="fas fa-user-plus text-3xl mb-2"></i>
-                    <p>Partner's cards will appear here</p>
-                </div>
-            `;
-            return;
-        }
+    container.innerHTML = cardsHtml;
 
-        const cardsHtml = this.currentTrade.theirCards.map(card => {
-            const cardData = card.cardData || card;
-            const price = this.calculateCardPrice(cardData);
-            const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
-            const imageUrl = cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl;
-            
-            return `
-                <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <img src="${imageUrl || 'https://via.placeholder.com/40x56'}" 
-                         alt="${cardData.name}" 
-                         class="w-10 h-14 object-cover rounded" 
-                         onerror="this.src='https://via.placeholder.com/40x56?text=?'">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
-                        <div class="flex items-center justify-between mt-1">
-                            <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
-                            <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
-                        </div>
-                    </div>
-                    <button class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" onclick="window.tradeWindow.removeCardFromTrade('${card.id}', 'their')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-        }).join('');
-
-        container.innerHTML = cardsHtml;
-    }
-
+    // Add proper event listeners AFTER setting the HTML
+    container.querySelectorAll('.remove-card-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const cardId = event.currentTarget.getAttribute('data-card-id');
+            const side = event.currentTarget.getAttribute('data-side');
+            this.removeCardFromTrade(cardId, side);
+        });
+    });
+}
     removeCardFromTrade(cardId, side) {
         if (side === 'your') {
             const index = this.currentTrade.yourCards.findIndex(c => c.id === cardId);
@@ -639,25 +657,24 @@ document.querySelectorAll('.game-filter').forEach(filter => {
             theirValueEl.textContent = formattedValue;
         }
 
-        if (balanceEl) {
-            const difference = yourTotalValue - theirTotalValue;
-            const absValue = Math.abs(difference);
-            
-            if (absValue < 0.01) {
-                balanceEl.textContent = 'Balanced';
-                balanceEl.className = 'text-sm text-green-600 dark:text-green-400 font-medium';
-            } else if (difference > 0) {
-                const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
-                balanceEl.textContent = `You owe ${formattedDiff}`;
-                balanceEl.className = 'text-sm text-red-600 dark:text-red-400 font-medium';
-            } else {
-                const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
-                balanceEl.textContent = `They owe ${formattedDiff}`;
-                balanceEl.className = 'text-sm text-blue-600 dark:text-blue-400 font-medium';
-            }
-        }
+    if (balanceEl) {
+    const difference = yourTotalValue - theirTotalValue;
+    const absValue = Math.abs(difference);
+    
+    if (absValue < 0.01) {
+        balanceEl.textContent = 'Balanced';
+        balanceEl.className = 'text-sm text-green-600 dark:text-green-400 font-medium';
+    } else if (difference > 0) { // Correct: yourTotalValue is GREATER
+        const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
+        balanceEl.textContent = `They owe ${formattedDiff}`; // THEY owe YOU
+        balanceEl.className = 'text-sm text-blue-600 dark:text-blue-400 font-medium';
+    } else { // Correct: yourTotalValue is LESS
+        const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
+        balanceEl.textContent = `You owe ${formattedDiff}`; // YOU owe THEM
+        balanceEl.className = 'text-sm text-red-600 dark:text-red-400 font-medium';
     }
-
+}
+}
     updateProposalButton() {
         const proposeBtn = document.getElementById('propose-trade-btn');
         const autoBalanceBtn = document.getElementById('autobalance-btn');
@@ -675,29 +692,52 @@ document.querySelectorAll('.game-filter').forEach(filter => {
         }
     }
 
-    applyFilters(cards = null) {
+       applyFilters(cards = null) {
         const cardsToFilter = cards || (this.currentBinder === 'your' ? this.yourCollection : this.theirCollection);
         
         // Search filter
         const searchTerm = document.getElementById('binder-search')?.value.toLowerCase() || '';
         
-        // Game filters
+        // Game filters from checkboxes (e.g., ['mtg', 'pokemon'])
         const checkedGames = Array.from(document.querySelectorAll('.game-filter:checked'))
             .map(cb => cb.getAttribute('data-game'));
+
+        // If no games are checked, don't filter by game
+        if (checkedGames.length === 0) {
+            return cardsToFilter.filter(card => {
+                const cardData = card.cardData || card;
+                return !searchTerm || 
+                       (cardData.name || '').toLowerCase().includes(searchTerm) ||
+                       (cardData.set_name || cardData.set || '').toLowerCase().includes(searchTerm);
+            });
+        }
 
         return cardsToFilter.filter(card => {
             const cardData = card.cardData || card;
             
-            // Search filter
+            // Search filter logic
             const matchesSearch = !searchTerm || 
                 (cardData.name || '').toLowerCase().includes(searchTerm) ||
                 (cardData.set_name || cardData.set || '').toLowerCase().includes(searchTerm);
 
-            // Game filter
-            const matchesGame = checkedGames.length === 0 || 
-                checkedGames.includes((cardData.game || '').toLowerCase());
+            if (!matchesSearch) {
+                return false; // Exit early if search doesn't match
+            }
 
-            return matchesSearch && matchesGame;
+            // --- Robust Game Filter Logic ---
+            const cardGame = (cardData.game || '').toLowerCase();
+            let matchesGame = false;
+
+            // Check if the card's game matches any of the selected filters
+            if (checkedGames.includes(cardGame)) {
+                matchesGame = true;
+            } 
+            // Specifically handle the 'mtg' vs 'magic' case
+            else if (checkedGames.includes('mtg') && cardGame === 'magic') {
+                matchesGame = true;
+            }
+
+            return matchesGame;
         });
     }
 
@@ -960,6 +1000,7 @@ toggleLegacyView() {
         // Create a simple modal for user search
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.id = 'user-search-modal-dynamic'; // Add this line
         modal.innerHTML = `
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
@@ -1264,17 +1305,11 @@ class UserSearch {
             regularSearchInput.value = userData.displayName || userData.email;
         }
 
-        // Close the modal if it exists - improved modal detection and removal
-        const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
-        if (modal && modal.parentNode) {
-            try {
-                modal.parentNode.removeChild(modal);
-            } catch (error) {
-                console.warn('Error removing modal:', error);
-                // Fallback: hide the modal
-                modal.style.display = 'none';
-            }
-        }
+      // Close the dynamically created modal by its unique ID
+const modal = document.getElementById('user-search-modal-dynamic');
+if (modal && modal.parentNode) {
+    modal.parentNode.removeChild(modal);
+}
 
         // Show success message
         if (window.Toastify) {
@@ -1334,6 +1369,7 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
 function initializeLegacyTrades(user, db) {
     const tradesPageContainer = document.querySelector('#legacy-trades-section');
     if (!tradesPageContainer) return;
+    tradesPageContainer.classList.remove('hidden'); // Add this line
 
     const incomingContainer = document.getElementById('tab-content-incoming');
     const outgoingContainer = document.getElementById('tab-content-outgoing');
@@ -1360,6 +1396,7 @@ function initializeLegacyTrades(user, db) {
 
     // Load trades
     loadAllTrades(user, db, incomingContainer, outgoingContainer, historyContainer);
+tradesPageContainer.classList.add('hidden'); // Add this line to re-hide it after setup
 }
 
 function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyContainer) {
@@ -1701,7 +1738,7 @@ async function createTradeCard(trade, tradeId, user) {
         </div>
         ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
         <div class="mt-4 text-right space-x-2">${actionButtons}</div>
-    `;
+    `       ;
 
     // Add event listeners for action buttons
     tradeCard.querySelectorAll('.trade-action-btn').forEach(btn => {
@@ -1833,5 +1870,4 @@ function showTradeToast(message, type = 'info') {
         console.log(`${type.toUpperCase()}: ${message}`);
     }
 }
-
 }
