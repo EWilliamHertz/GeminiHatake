@@ -83,7 +83,7 @@ export function renderGridView(cards, activeTab) {
     const isBulkMode = Collection.getState().bulkEdit.isActive;
     const gridHTML = cards.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = Currency.convertAndFormat(card.prices);
+        const price = Currency.convertAndFormat(card.prices, card);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const salePriceDisplay = (card.for_sale && typeof card.sale_price === 'number')
             ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertAndFormat(card.sale_price)}</div>`
@@ -136,7 +136,7 @@ export function renderListView(cards, activeTab) {
         </thead>`;
 
     const tableBody = cards.map(card => {
-        const price = Currency.convertAndFormat(card.prices);
+        const price = Currency.convertAndFormat(card.prices, card);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
         const saleStatus = (card.for_sale && typeof card.sale_price === 'number')
             ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.sale_price)})</span>`
@@ -181,7 +181,7 @@ export function renderSearchResults(results) {
 
     const resultsHTML = results.map(card => {
         const imageUrl = getCardImageUrl(card);
-        const price = Currency.convertAndFormat(card.prices);
+        const price = Currency.convertAndFormat(card.prices, card);
         const collectorInfo = card.collector_number ? ` (#${card.collector_number})` : '';
         const cardDataString = encodeURIComponent(JSON.stringify(card));
 
@@ -245,8 +245,8 @@ export function renderBulkReviewModal(cardIds) {
         const card = Collection.getCardById(cardId);
         if (!card) return;
 
-        const marketPrice = (card.prices && card.prices.usd) ? parseFloat(card.prices.usd) : 0;
-        const displayMarketPrice = Currency.convertAndFormat(marketPrice);
+        const marketPrice = Currency.getNormalizedPriceUSD(card.prices, card) || 0;
+        const displayMarketPrice = Currency.convertAndFormat(marketPrice, card);
 
         const reviewItem = document.createElement('div');
         reviewItem.className = 'grid grid-cols-5 gap-4 items-center p-2 border-b dark:border-gray-700';

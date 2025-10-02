@@ -405,7 +405,7 @@ export function calculateCollectionStats() {
     const uniqueCards = new Set(collectionToCount.map(card => card.api_id)).size;
     
     const totalValue = collectionToCount.reduce((sum, card) => {
-        const priceUSD = getNormalizedPriceUSD(card.prices);
+        const priceUSD = getNormalizedPriceUSD(card.prices, card);
         return sum + (priceUSD * (card.quantity || 1));
     }, 0);
 
@@ -417,7 +417,7 @@ export function calculateWishlistStats() {
     const uniqueCards = state.wishlist.length;
     
     const totalValue = state.wishlist.reduce((sum, card) => {
-        const priceUSD = getNormalizedPriceUSD(card.prices);
+        const priceUSD = getNormalizedPriceUSD(card.prices, card);
         return sum + priceUSD;
     }, 0);
     
