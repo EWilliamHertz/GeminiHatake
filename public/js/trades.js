@@ -426,6 +426,11 @@ class TradeWindow {
         });
     }
 
+    isCardInTrade(cardId) {
+        return this.currentTrade.yourCards.some(c => c.id === cardId) || 
+               this.currentTrade.theirCards.some(c => c.id === cardId);
+    }
+
     toggleCardInTrade(cardId) {
         if (this.currentBinder === 'your') {
             const cardIndex = this.currentTrade.yourCards.findIndex(c => c.id === cardId);
@@ -1571,6 +1576,25 @@ function updateTradeNotifications(notifications) {
     }).join('');
 
     notificationsList.innerHTML = notificationsHtml;
+}
+
+// Helper function to format timestamp
+function formatTimestamp(timestamp) {
+    if (!timestamp) return 'Unknown';
+    
+    let date;
+    if (timestamp.seconds) {
+        // Firestore timestamp
+        date = new Date(timestamp.seconds * 1000);
+    } else if (typeof timestamp === 'number') {
+        // Unix timestamp
+        date = new Date(timestamp);
+    } else {
+        // Already a Date object or string
+        date = new Date(timestamp);
+    }
+    
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
 // Helper function to get time ago string
