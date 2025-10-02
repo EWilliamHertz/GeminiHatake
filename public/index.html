@@ -57,121 +57,68 @@
         body {
             font-family: 'Inter', sans-serif;
             transition: background-color 0.3s ease, color 0.3s ease;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
         }
         
-        /* Light mode styles */
-        .light {
-            background-color: var(--background-light);
-            color: var(--text-light);
+        /* Ensure full width and proper centering */
+        .main-container {
+            width: 100%;
+            max-width: 100vw;
+            margin: 0;
+            padding: 0;
         }
         
-        .light .bg-gray-900 {
-            background-color: var(--background-light) !important;
-        }
-        
-        .light .text-white {
-            color: var(--text-light) !important;
-        }
-        
-        .light .text-gray-400 {
-            color: #6b7280 !important;
-        }
-        
-        .light .border-gray-700 {
-            border-color: var(--border-light) !important;
-        }
-        
-        .light .bg-gray-700 {
-            background-color: var(--card-light) !important;
-        }
-        
-        .light .bg-gray-800 {
-            background-color: var(--background-light) !important;
-        }
-        
-        /* Dark mode styles */
-        .dark {
-            background-color: var(--background-dark);
-            color: var(--text-dark);
-        }
-        
-        .dark .bg-gray-900 {
-            background-color: var(--background-dark) !important;
-        }
-        
-        /* Centered layout */
-        .container {
+        .content-wrapper {
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 1.5rem;
         }
         
-        /* Navigation styles */
-        .nav-dropdown {
-            position: relative;
-            display: inline-block;
+        /* Header full width with centered content */
+        .header-container {
+            width: 100%;
+            background: inherit;
         }
         
-        .nav-dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: white;
-            min-width: 200px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            border-radius: 0.5rem;
-            z-index: 1000;
-            top: 100%;
-            left: 0;
-            margin-top: 0.5rem;
-        }
-        
-        .dark .nav-dropdown-content {
-            background-color: #1f2937;
-            border: 1px solid #374151;
-        }
-        
-        .nav-dropdown:hover .nav-dropdown-content {
-            display: block;
-        }
-        
-        .nav-dropdown-content a {
-            color: #1f2937;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            transition: background-color 0.3s ease;
-        }
-        
-        .dark .nav-dropdown-content a {
-            color: #d1d5db;
-        }
-        
-        .nav-dropdown-content a:hover {
-            background-color: #f3f4f6;
-        }
-        
-        .dark .nav-dropdown-content a:hover {
-            background-color: #374151;
-        }
-        
-        /* Theme toggle button */
-        .theme-toggle {
-            background: none;
-            border: 2px solid currentColor;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
+        .header-content {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
             display: flex;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: currentColor;
+            justify-content: space-between;
+            height: 7rem;
         }
         
-        .theme-toggle:hover {
-            background-color: rgba(79, 70, 229, 0.1);
-            border-color: var(--accent-indigo);
+        /* Navigation styles */
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-menu a {
+            color: #6b7280;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-menu a:hover {
+            color: #4f46e5;
+        }
+        
+        .dark .nav-menu a {
+            color: #9ca3af;
+        }
+        
+        .dark .nav-menu a:hover {
+            color: #6366f1;
         }
         
         /* Gallery styles */
@@ -340,15 +287,21 @@
                 justify-content: center;
             }
             
-            .nav-dropdown-content {
-                right: 0;
-                left: auto;
+            .header-content {
+                flex-direction: column;
+                height: auto;
+                padding: 1rem 1.5rem;
+                gap: 1rem;
+            }
+            
+            .nav-menu {
+                gap: 1rem;
             }
         }
     </style>
 </head>
 
-<body class="antialiased">
+<body class="antialiased bg-white dark:bg-gray-900">
     <!-- PWA Install Banner -->
     <div class="pwa-install-banner" id="pwa-install-banner">
         <div class="install-content">
@@ -371,8 +324,8 @@
     </div>
 
     <!-- Header -->
-    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900">
-        <div class="container mx-auto flex items-center justify-between">
+    <header class="header-container border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div class="header-content">
             <!-- Search Bar -->
             <div class="flex items-center flex-1 max-w-md">
                 <div class="relative w-full">
@@ -385,54 +338,23 @@
             </div>
 
             <!-- Navigation Menu -->
-            <nav class="hidden md:flex items-center space-x-6 mx-8">
-                <div class="nav-dropdown">
-                    <button class="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">
-                        <span>About Us</span>
-                        <i class="fas fa-chevron-down text-xs"></i>
-                    </button>
-                    <div class="nav-dropdown-content">
-                        <a href="/about.html">Our Story</a>
-                        <a href="/team.html">Meet the Team</a>
-                        <a href="/careers.html">Careers</a>
-                        <a href="/contact.html">Contact Us</a>
-                    </div>
-                </div>
-                
-                <div class="nav-dropdown">
-                    <button class="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">
-                        <span>Hatake Blog</span>
-                        <i class="fas fa-chevron-down text-xs"></i>
-                    </button>
-                    <div class="nav-dropdown-content">
-                        <a href="/blog.html">Latest Posts</a>
-                        <a href="/blog/strategy.html">Strategy Guides</a>
-                        <a href="/blog/news.html">TCG News</a>
-                        <a href="/blog/community.html">Community Highlights</a>
-                    </div>
-                </div>
+            <nav class="nav-menu hidden md:flex">
+                <a href="/about.html">About Us</a>
+                <a href="/articles.html?type=blog">Hatake Blog</a>
             </nav>
 
-            <!-- Theme Toggle and User Actions -->
-            <div class="flex items-center space-x-4">
-                <!-- Theme Toggle Button -->
-                <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">
-                    <i class="fas fa-sun" id="theme-icon"></i>
-                </button>
-                
-                <!-- User Actions Container -->
-                <div class="flex items-center space-x-3" id="user-actions">
-                    <!-- This container is dynamically filled by auth.js -->
-                </div>
+            <!-- User Actions Container (populated by auth.js) -->
+            <div class="flex items-center space-x-3" id="user-actions">
+                <!-- This container is dynamically filled by auth.js -->
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="bg-white dark:bg-gray-900">
+    <main class="main-container bg-white dark:bg-gray-900">
         <!-- Hero Section -->
-        <section class="pt-32 pb-20">
-            <div class="container mx-auto text-center">
+        <section class="pt-32 pb-20 bg-white dark:bg-gray-900">
+            <div class="content-wrapper text-center">
                 <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-4">
                     HatakeSocial
                     <span class="block text-3xl md:text-5xl gradient-text mt-2">
@@ -460,109 +382,119 @@
         <!-- Features Section -->
         <section class="py-24 space-y-20 bg-gray-50 dark:bg-gray-800">
             <!-- Social Feed Feature -->
-            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-feed">
-                <div class="md:pr-8">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                        The Heart of the Community: Your Social Feed
-                    </h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
-                        Dive into a dynamic feed buzzing with the latest from the TCG world. Share your latest pack openings, showcase your prized cards, and discuss metagame shifts with friends and followers. Our feed is your central hub for news, community content, and strategy discussions, tailored to the games you love.
-                    </p>
-                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-deckbuilder">
-                        Explore the Deck Builder →
-                    </a>
-                </div>
-                <div class="rounded-lg overflow-hidden shadow-2xl">
-                    <img alt="Screenshot of the HatakeSocial social feed in action." 
-                         class="w-full h-full object-cover" 
-                         src="https://i.imgur.com/tvJEQYU.png"/>
+            <div class="content-wrapper">
+                <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-feed">
+                    <div class="md:pr-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                            The Heart of the Community: Your Social Feed
+                        </h2>
+                        <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                            Dive into a dynamic feed buzzing with the latest from the TCG world. Share your latest pack openings, showcase your prized cards, and discuss metagame shifts with friends and followers. Our feed is your central hub for news, community content, and strategy discussions, tailored to the games you love.
+                        </p>
+                        <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-deckbuilder">
+                            Explore the Deck Builder →
+                        </a>
+                    </div>
+                    <div class="rounded-lg overflow-hidden shadow-2xl">
+                        <img alt="Screenshot of the HatakeSocial social feed in action." 
+                             class="w-full h-full object-cover" 
+                             src="https://i.imgur.com/tvJEQYU.png"/>
+                    </div>
                 </div>
             </div>
 
             <!-- Deck Builder Feature -->
-            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-deckbuilder">
-                <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
-                    <img alt="Screenshot of the intuitive and powerful deck builder interface." 
-                         class="w-full h-full object-cover" 
-                         src="https://i.imgur.com/SLaX140.png"/>
-                </div>
-                <div class="md:pl-8">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                        Advanced Deck Builder
-                    </h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
-                        Unleash your creativity with our state-of-the-art deck building tool. Access comprehensive, up-to-date card databases for popular TCGs. Build and test your creations with an intuitive interface, get detailed analytics on your mana curve and card types, and share your masterpiece with the community or import popular meta decks with a single click.
-                    </p>
-                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-collection">
-                        Track Your Collection →
-                    </a>
+            <div class="content-wrapper">
+                <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-deckbuilder">
+                    <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
+                        <img alt="Screenshot of the intuitive and powerful deck builder interface." 
+                             class="w-full h-full object-cover" 
+                             src="https://i.imgur.com/SLaX140.png"/>
+                    </div>
+                    <div class="md:pl-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                            Advanced Deck Builder
+                        </h2>
+                        <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                            Unleash your creativity with our state-of-the-art deck building tool. Access comprehensive, up-to-date card databases for popular TCGs. Build and test your creations with an intuitive interface, get detailed analytics on your mana curve and card types, and share your masterpiece with the community or import popular meta decks with a single click.
+                        </p>
+                        <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-collection">
+                            Track Your Collection →
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <!-- Collection Feature -->
-            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-collection">
-                <div class="md:pr-8">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                        Your Collection, Digitized
-                    </h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
-                        Digitize your physical collection with our powerful tracking tool. Easily add cards, monitor the value of your entire portfolio with real-time market data, and create detailed wantlists. Our collection tracker makes managing your assets and preparing for trades simpler and more organized than ever before.
-                    </p>
-                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-marketplace">
-                        Visit the Marketplace →
-                    </a>
-                </div>
-                <div class="rounded-lg overflow-hidden shadow-2xl">
-                    <img alt="Screenshot of a user's card collection page with value tracking." 
-                         class="w-full h-full object-cover" 
-                         src="https://i.imgur.com/1ehyX2h.png"/>
+            <div class="content-wrapper">
+                <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-collection">
+                    <div class="md:pr-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                            Your Collection, Digitized
+                        </h2>
+                        <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                            Digitize your physical collection with our powerful tracking tool. Easily add cards, monitor the value of your entire portfolio with real-time market data, and create detailed wantlists. Our collection tracker makes managing your assets and preparing for trades simpler and more organized than ever before.
+                        </p>
+                        <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-marketplace">
+                            Visit the Marketplace →
+                        </a>
+                    </div>
+                    <div class="rounded-lg overflow-hidden shadow-2xl">
+                        <img alt="Screenshot of a user's card collection page with value tracking." 
+                             class="w-full h-full object-cover" 
+                             src="https://i.imgur.com/1ehyX2h.png"/>
+                    </div>
                 </div>
             </div>
 
             <!-- Marketplace Feature -->
-            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-marketplace">
-                <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
-                    <img alt="Screenshot of the secure trading and marketplace interface." 
-                         class="w-full h-full object-cover" 
-                         src="https://i.imgur.com/QyFZZiJ.png"/>
-                </div>
-                <div class="md:pl-8">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                        Marketplace &amp; Secure Trading
-                    </h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
-                        Connect with players to buy, sell, and trade with confidence. Our integrated marketplace allows you to list singles or entire decks. The secure trading system, complete with user reviews and an escrow-like feature, ensures your valuable cards are protected throughout every transaction, fostering a safe and trustworthy community market.
-                    </p>
-                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-events">
-                        Find an Event →
-                    </a>
+            <div class="content-wrapper">
+                <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-marketplace">
+                    <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
+                        <img alt="Screenshot of the secure trading and marketplace interface." 
+                             class="w-full h-full object-cover" 
+                             src="https://i.imgur.com/QyFZZiJ.png"/>
+                    </div>
+                    <div class="md:pl-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                            Marketplace &amp; Secure Trading
+                        </h2>
+                        <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                            Connect with players to buy, sell, and trade with confidence. Our integrated marketplace allows you to list singles or entire decks. The secure trading system, complete with user reviews and an escrow-like feature, ensures your valuable cards are protected throughout every transaction, fostering a safe and trustworthy community market.
+                        </p>
+                        <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-events">
+                            Find an Event →
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <!-- Events Feature -->
-            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-events">
-                <div class="md:pr-8">
-                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                        Find Your Next Tournament
-                    </h2>
-                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
-                        Ready to test your skills? Our tournament finder helps you discover local and online events. Filter by game, format, and location to find your next competition. From Friday Night Magic at your local game store to large-scale online championships, you'll never miss a chance to compete, win prizes, and make a name for yourself.
-                    </p>
-                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#community">
-                        Join the Community →
-                    </a>
-                </div>
-                <div class="rounded-lg overflow-hidden shadow-2xl">
-                    <img alt="Screenshot of the event finder showing local tournaments on a map." 
-                         class="w-full h-full object-cover" 
-                         src="https://placehold.co/600x400/1f2937/4f46e5?text=Event+Finder+Map"/>
+            <div class="content-wrapper">
+                <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-events">
+                    <div class="md:pr-8">
+                        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                            Find Your Next Tournament
+                        </h2>
+                        <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                            Ready to test your skills? Our tournament finder helps you discover local and online events. Filter by game, format, and location to find your next competition. From Friday Night Magic at your local game store to large-scale online championships, you'll never miss a chance to compete, win prizes, and make a name for yourself.
+                        </p>
+                        <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#community">
+                            Join the Community →
+                        </a>
+                    </div>
+                    <div class="rounded-lg overflow-hidden shadow-2xl">
+                        <img alt="Screenshot of the event finder showing local tournaments on a map." 
+                             class="w-full h-full object-cover" 
+                             src="https://placehold.co/600x400/1f2937/4f46e5?text=Event+Finder+Map"/>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Merchandise Gallery Section -->
         <section class="py-20 bg-white dark:bg-gray-900">
-            <div class="container mx-auto text-center">
+            <div class="content-wrapper text-center">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                     Explore Our Merchandise
                 </h2>
@@ -578,7 +510,7 @@
 
         <!-- Community CTA Section -->
         <section class="py-20 bg-gray-50 dark:bg-gray-800" id="community">
-            <div class="container mx-auto text-center">
+            <div class="content-wrapper text-center">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                     Ready to Join the Global TCG Community?
                 </h2>
@@ -595,7 +527,7 @@
 
     <!-- Footer -->
     <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-        <div class="container mx-auto py-8 text-center text-gray-600 dark:text-gray-400">
+        <div class="content-wrapper py-8 text-center text-gray-600 dark:text-gray-400">
             <p>© 2025 HatakeSocial. All rights reserved.</p>
             <div class="mt-4 space-x-6">
                 <a class="hover:text-gray-900 dark:hover:text-white transition-colors" href="about.html">About</a>
@@ -676,41 +608,7 @@
 
     <!-- Scripts -->
     <script src="/js/auth.js"></script>
-    <script src="/js/darkmode.js"></script>
     
-    <!-- Theme Toggle Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const themeToggle = document.getElementById('theme-toggle');
-            const themeIcon = document.getElementById('theme-icon');
-            const html = document.documentElement;
-            
-            // Load saved theme preference or default to dark
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            html.className = savedTheme;
-            updateThemeIcon(savedTheme);
-            
-            themeToggle.addEventListener('click', function() {
-                const currentTheme = html.className;
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                
-                html.className = newTheme;
-                localStorage.setItem('theme', newTheme);
-                updateThemeIcon(newTheme);
-            });
-            
-            function updateThemeIcon(theme) {
-                if (theme === 'dark') {
-                    themeIcon.className = 'fas fa-sun';
-                    themeIcon.title = 'Switch to light mode';
-                } else {
-                    themeIcon.className = 'fas fa-moon';
-                    themeIcon.title = 'Switch to dark mode';
-                }
-            }
-        });
-    </script>
-
     <!-- Gallery Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
