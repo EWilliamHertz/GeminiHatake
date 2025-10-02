@@ -1887,19 +1887,28 @@ exports.removeCardFromTracking = functions.https.onCall(async (data, context) =>
  * Gets price analytics for a user's collection.
  */
 exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, context) => {
+    console.log('=== getCollectionPriceAnalytics FUNCTION CALLED ===');
+    console.log('Request data:', data);
+    
     if (!context.auth) {
+        console.error('Authentication required but not provided');
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
     }
     
     const userId = context.auth.uid;
-    const { days = 30 } = data;
+    const { days = 30, debug = false } = data;
+    
+    console.log(`Processing analytics for user: ${userId}, days: ${days}`);
     
     try {
         // Get user's collection
         const collectionRef = db.collection('users').doc(userId).collection('collection');
         const collectionSnapshot = await collectionRef.get();
         
+        console.log(`Found ${collectionSnapshot.docs.length} documents in user collection`);
+        
         if (collectionSnapshot.empty) {
+            console.log('Collection is empty, returning zero values');
             return { 
                 success: true, 
                 totalValue: 0, 
@@ -1907,7 +1916,8 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
                 percentChange: 0,
                 topGainers: [],
                 topLosers: [],
-                cards: []
+                cards: [],
+                message: 'Collection is empty'
             };
         }
         
@@ -1920,18 +1930,28 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
         };
         
         // Process each card in the collection
+        console.log(`Processing ${collectionSnapshot.docs.length} cards from collection`);
+        
         for (const doc of collectionSnapshot.docs) {
             const cardData = doc.data();
+            
+            // FIX: Use api_id as the primary field, with fallbacks
             const cardId = cardData.api_id || cardData.cardId || cardData.id;
             
-            if (!cardId) continue;
+            console.log(`Processing card: ${cardData.name || 'Unknown'}, api_id: ${cardData.api_id}, cardId: ${cardData.cardId}, id: ${cardData.id}`);
+            
+            if (!cardId) {
+                console.warn(`Skipping card ${cardData.name || 'Unknown'} - no valid ID found`);
+                continue;
+            }
             
             try {
                 // Get price history for this card
                 const priceHistoryResult = await exports.getCardPriceHistory({
                     cardId: cardId,
                     days: days,
-                    game: cardData.tcg || cardData.game || 'pokemon'
+                    game: cardData.tcg || cardData.game || 'pokemon',
+                    cardName: cardData.name // Add card name for debugging
                 }, context);
                 
                 if (priceHistoryResult.success && priceHistoryResult.data.length > 0) {
@@ -1949,12 +1969,12 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
                         priceChange: priceChange,
                         percentChange: percentChange,
                         currency: priceHistory[priceHistory.length - 1].currency || 'USD',
-                        imageUrl: cardData.imageUrl
+                        imageUrl: cardData.imageUrl || cardData.image_uris?.normal || cardData.image_uris?.small
                     };
                     
                     analytics.cards.push(cardAnalytics);
-                    analytics.totalValue += currentPrice;
-                    analytics.totalPreviousValue += previousPrice;
+                    analytics.totalValue += currentPrice * (cardData.quantity || 1);
+                    analytics.totalPreviousValue += previousPrice * (cardData.quantity || 1);
                     
                     // Track top gainers and losers
                     if (priceChange > 0) {
@@ -1962,9 +1982,34 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
                     } else if (priceChange < 0) {
                         analytics.topLosers.push(cardAnalytics);
                     }
+                    
+                    console.log(`Successfully processed ${cardData.name}: $${currentPrice} (${percentChange.toFixed(1)}%)`);
+                } else {
+                    console.warn(`No price history data for ${cardData.name} (${cardId})`);
+                    
+                    // Fallback: Use basic price data if available
+                    if (cardData.prices && cardData.prices.usd) {
+                        const fallbackPrice = parseFloat(cardData.prices.usd) || 0;
+                        const fallbackAnalytics = {
+                            cardId: cardId,
+                            name: cardData.name || cardData.cardName,
+                            currentPrice: fallbackPrice,
+                            previousPrice: fallbackPrice,
+                            priceChange: 0,
+                            percentChange: 0,
+                            currency: 'USD',
+                            imageUrl: cardData.imageUrl || cardData.image_uris?.normal || cardData.image_uris?.small
+                        };
+                        
+                        analytics.cards.push(fallbackAnalytics);
+                        analytics.totalValue += fallbackPrice * (cardData.quantity || 1);
+                        analytics.totalPreviousValue += fallbackPrice * (cardData.quantity || 1);
+                        
+                        console.log(`Used fallback price for ${cardData.name}: $${fallbackPrice}`);
+                    }
                 }
             } catch (cardError) {
-                console.warn(`Error getting price data for card ${cardId}:`, cardError.message);
+                console.warn(`Error getting price data for card ${cardId} (${cardData.name}):`, cardError.message);
             }
         }
         
@@ -1972,6 +2017,11 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
         const totalValueChange = analytics.totalValue - analytics.totalPreviousValue;
         const totalPercentChange = analytics.totalPreviousValue > 0 ? 
             (totalValueChange / analytics.totalPreviousValue) * 100 : 0;
+        
+        console.log(`Analytics summary: ${analytics.cards.length} cards processed`);
+        console.log(`Total value: $${analytics.totalValue.toFixed(2)}`);
+        console.log(`Value change: $${totalValueChange.toFixed(2)} (${totalPercentChange.toFixed(1)}%)`);
+        console.log(`Top gainers: ${analytics.topGainers.length}, Top losers: ${analytics.topLosers.length}`);
         
         // Sort top gainers and losers
         analytics.topGainers.sort((a, b) => b.percentChange - a.percentChange);
@@ -1981,7 +2031,7 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
         analytics.topGainers = analytics.topGainers.slice(0, 5);
         analytics.topLosers = analytics.topLosers.slice(0, 5);
         
-        return {
+        const result = {
             success: true,
             totalValue: analytics.totalValue,
             valueChange: totalValueChange,
@@ -1989,11 +2039,19 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
             topGainers: analytics.topGainers,
             topLosers: analytics.topLosers,
             cards: analytics.cards,
-            period: `${days} days`
+            period: `${days} days`,
+            processedCards: analytics.cards.length,
+            timestamp: new Date().toISOString()
         };
         
+        console.log('=== getCollectionPriceAnalytics FUNCTION COMPLETE ===');
+        console.log('Returning result:', JSON.stringify(result, null, 2));
+        
+        return result;
+        
     } catch (error) {
-        console.error('Error getting collection analytics:', error);
-        throw new functions.https.HttpsError('unknown', error.message);
+        console.error('=== ERROR in getCollectionPriceAnalytics ===');
+        console.error('Error details:', error);
+        throw new functions.https.HttpsError('unknown', `Analytics error: ${error.message}`);
     }
 });

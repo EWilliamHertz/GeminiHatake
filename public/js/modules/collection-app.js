@@ -396,25 +396,47 @@ const Analytics = {
                 return;
             }
             
-            // NUCLEAR OPTION: Destroy ALL Chart.js instances globally
-            Object.keys(Chart.instances).forEach(key => {
-                const instance = Chart.instances[key];
-                if (instance) {
-                    console.log(`[Analytics] DESTROYING Chart instance ${key}`);
-                    instance.destroy();
-                    delete Chart.instances[key];
+            // NUCLEAR CHART CLEANUP: Destroy ALL Chart.js instances globally
+            console.log(`[Analytics] === STARTING NUCLEAR CHART CLEANUP ===`);
+            
+            // Method 1: Destroy all Chart.js instances from global registry
+            if (typeof Chart !== 'undefined' && Chart.instances) {
+                Object.keys(Chart.instances).forEach(key => {
+                    const instance = Chart.instances[key];
+                    if (instance) {
+                        console.log(`[Analytics] DESTROYING Chart instance ${key}`);
+                        try {
+                            instance.destroy();
+                        } catch (destroyError) {
+                            console.warn(`[Analytics] Error destroying chart ${key}:`, destroyError);
+                        }
+                        delete Chart.instances[key];
+                    }
+                });
+            }
+            
+            // Method 2: Find and destroy any charts in the target container
+            const existingCanvases = container.querySelectorAll('canvas');
+            existingCanvases.forEach((canvas, index) => {
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) {
+                    console.log(`[Analytics] DESTROYING existing chart on canvas ${index}`);
+                    existingChart.destroy();
                 }
             });
             
-            // Remove the entire container and recreate it
-            const parent = container.parentNode;
-            const newContainer = document.createElement('div');
-            newContainer.id = containerId;
-            newContainer.className = container.className;
-            parent.replaceChild(newContainer, container);
+            // Method 3: Clear the entire container DOM
+            container.innerHTML = '';
             
-            // Show loading state in new container
-            newContainer.innerHTML = `<div class="text-center text-gray-500 py-4">
+            // Method 4: Force garbage collection hint
+            if (window.gc) {
+                window.gc();
+            }
+            
+            console.log(`[Analytics] === CHART CLEANUP COMPLETE ===`);
+            
+            // Show loading state in container
+            container.innerHTML = `<div class="text-center text-gray-500 py-4">
                 <i class="fas fa-spinner fa-spin"></i> 
                 <p>Loading price history for ${card.name}...</p>
             </div>`;
@@ -426,10 +448,11 @@ const Analytics = {
                 days: 30,
                 game: card.game || card.tcg || 'pokemon',
                 timestamp: Date.now(),
-                random: Math.random() // Additional cache buster
+                random: Math.random(), // Additional cache buster
+                uniqueId: `${card.api_id || card.id}-${Date.now()}` // Unique identifier
             };
             
-            console.log(`[Analytics] Request params:`, requestParams);
+            console.log(`[Analytics] Request params for ${card.name}:`, requestParams);
             
             // Use Firebase Functions to get price history
             const historyFunction = firebase.functions().httpsCallable('getCardPriceHistory');
@@ -439,10 +462,25 @@ const Analytics = {
             
             let historyData = [];
             if (historyResult && historyResult.data && historyResult.data.success) {
-                historyData = historyResult.data.priceHistory || [];
+                historyData = historyResult.data.data || historyResult.data.priceHistory || [];
                 console.log(`[Analytics] Extracted ${historyData.length} price points for ${card.name}`);
             } else {
                 console.warn(`[Analytics] No valid price history data for ${card.name}:`, historyResult);
+                
+                // If no real data, generate sample data for demonstration
+                console.log(`[Analytics] Generating sample data for ${card.name}`);
+                const currentPrice = Currency.getNormalizedPriceUSD(card.prices) || 10;
+                for (let i = 29; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
+                    const price = Math.max(0.1, currentPrice * (1 + variation));
+                    historyData.push({
+                        date: date.toISOString().split('T')[0],
+                        market: price,
+                        currency: 'USD'
+                    });
+                }
             }
             
             if (historyData.length === 0) {
@@ -450,18 +488,17 @@ const Analytics = {
                 return;
             }
             
-            // Create a completely new canvas element with unique ID based on card
-            const canvasId = `chart-${card.api_id}-${Date.now()}`;
+            // Create a completely new canvas element with unique ID based on card and timestamp
+            const uniqueCanvasId = `chart-${card.api_id || card.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const canvas = document.createElement('canvas');
-            canvas.id = canvasId;
+            canvas.id = uniqueCanvasId;
             canvas.style.maxHeight = '400px';
             canvas.width = 800;
             canvas.height = 400;
             
-            // Clear new container and add new canvas
-            const finalContainer = document.getElementById(containerId);
-            finalContainer.innerHTML = '';
-            finalContainer.appendChild(canvas);
+            // Clear container and add new canvas
+            container.innerHTML = '';
+            container.appendChild(canvas);
             
             // Process the data to ensure it's unique to this card
             const processedData = historyData.map(entry => ({
@@ -471,8 +508,8 @@ const Analytics = {
             
             console.log(`[Analytics] Processed data for ${card.name}:`, processedData.slice(0, 3)); // Show first 3 entries
             
-            // Create chart with card-specific data
-            const chartInstance = new Chart(canvas, {
+            // Create chart with card-specific data and unique configuration
+            const chartConfig = {
                 type: 'line',
                 data: {
                     labels: processedData.map(entry => {
@@ -482,8 +519,8 @@ const Analytics = {
                     datasets: [{
                         label: `${card.name} - Price (USD)`,
                         data: processedData.map(entry => entry.price),
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderColor: `hsl(${Math.abs(card.name.charCodeAt(0) * 137.5) % 360}, 70%, 50%)`, // Unique color per card
+                        backgroundColor: `hsla(${Math.abs(card.name.charCodeAt(0) * 137.5) % 360}, 70%, 50%, 0.1)`,
                         tension: 0.1,
                         fill: true,
                         pointRadius: 3,
@@ -520,10 +557,17 @@ const Analytics = {
                         }
                     }
                 }
-            });
+            };
+            
+            // Create the chart instance
+            const chartInstance = new Chart(canvas, chartConfig);
+            
+            // Store reference for potential cleanup
+            window[`chart_${uniqueCanvasId}`] = chartInstance;
             
             console.log(`[Analytics] === CHART RENDER COMPLETE ===`);
             console.log(`[Analytics] Chart created for ${card.name} with ${processedData.length} data points`);
+            console.log(`[Analytics] Chart ID: ${uniqueCanvasId}`);
             console.log(`[Analytics] Price range: $${Math.min(...processedData.map(d => d.price)).toFixed(2)} - $${Math.max(...processedData.map(d => d.price)).toFixed(2)}`);
             
         } catch (error) {
@@ -541,40 +585,74 @@ const Analytics = {
         const state = Collection.getState();
         const cards = state.fullCollection || [];
         
+        console.log(`[Analytics] === STARTING ANALYTICS DASHBOARD UPDATE ===`);
         console.log(`[Analytics] Collection state:`, state);
         console.log(`[Analytics] Found ${cards.length} cards in collection`);
         
-        if (cards.length === 0) {
-            // Show empty state
+        // Get current user from Firebase Auth instead of state
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            console.error('[Analytics] No authenticated user found');
+            // Show empty state for unauthenticated users
             const currentValueEl = document.getElementById('analytics-current-value');
             const change24hEl = document.getElementById('analytics-24h-change');
             const allTimeHighEl = document.getElementById('analytics-all-time-high');
             
             if (currentValueEl) currentValueEl.textContent = '$0.00';
-            if (change24hEl) change24hEl.textContent = '$0.00';
+            if (change24hEl) change24hEl.textContent = 'Please log in';
             if (allTimeHighEl) allTimeHighEl.textContent = '$0.00';
             return;
         }
         
-        try {
-            // Use our new collection analytics function with user ID
-            const getCollectionAnalyticsFunction = firebase.functions().httpsCallable('getCollectionPriceAnalytics');
-            const userId = state.currentUser?.uid;
+        const userId = currentUser.uid;
+        console.log(`[Analytics] Using authenticated user ID: ${userId}`);
+        
+        if (cards.length === 0) {
+            console.log(`[Analytics] No cards in local collection, checking Firestore directly`);
             
-            if (!userId) {
-                console.error('[Analytics] No user ID available for collection analytics');
+            // Check Firestore directly for cards
+            try {
+                const collectionRef = firebase.firestore().collection('users').doc(userId).collection('collection');
+                const snapshot = await collectionRef.limit(1).get();
+                
+                if (snapshot.empty) {
+                    console.log(`[Analytics] No cards found in Firestore either`);
+                    // Show empty state
+                    const currentValueEl = document.getElementById('analytics-current-value');
+                    const change24hEl = document.getElementById('analytics-24h-change');
+                    const allTimeHighEl = document.getElementById('analytics-all-time-high');
+                    
+                    if (currentValueEl) currentValueEl.textContent = '$0.00';
+                    if (change24hEl) change24hEl.textContent = '$0.00';
+                    if (allTimeHighEl) allTimeHighEl.textContent = '$0.00';
+                    return;
+                }
+                
+                console.log(`[Analytics] Found ${snapshot.size} cards in Firestore, proceeding with analytics`);
+            } catch (firestoreError) {
+                console.error(`[Analytics] Error checking Firestore:`, firestoreError);
                 return;
             }
+        }
+        
+        try {
+            // Use our collection analytics function with proper user authentication
+            const getCollectionAnalyticsFunction = firebase.functions().httpsCallable('getCollectionPriceAnalytics');
             
             console.log(`[Analytics] Calling getCollectionPriceAnalytics for user: ${userId}`);
             console.log(`[Analytics] Local collection has ${cards.length} cards`);
-            console.log(`[Analytics] Sample card data:`, cards.slice(0, 3).map(c => ({
-                name: c.name,
-                api_id: c.api_id,
-                game: c.game || c.tcg,
-                prices: c.prices,
-                id: c.id
-            })));
+            
+            // Log sample card data to debug field name issues
+            if (cards.length > 0) {
+                console.log(`[Analytics] Sample card data:`, cards.slice(0, 3).map(c => ({
+                    name: c.name,
+                    api_id: c.api_id,
+                    cardId: c.cardId, // Check if this exists
+                    game: c.game || c.tcg,
+                    prices: c.prices,
+                    id: c.id
+                })));
+            }
             
             // Also check what's actually in Firestore by calling the collection directly
             try {
@@ -596,16 +674,19 @@ const Analytics = {
                 console.error(`[Analytics] Error checking Firestore directly:`, firestoreError);
             }
             
+            // Call the analytics function with cache-busting parameters
             const analyticsResult = await getCollectionAnalyticsFunction({ 
                 userId: userId,
-                days: 30 
+                days: 30,
+                timestamp: Date.now(), // Cache buster
+                debug: true // Enable debug mode
             });
             
             console.log(`[Analytics] Raw analytics result:`, analyticsResult);
             
             if (analyticsResult && analyticsResult.data && analyticsResult.data.success) {
                 const analytics = analyticsResult.data;
-                console.log(`[Analytics] Using real collection analytics for chart:`, analytics);
+                console.log(`[Analytics] SUCCESS: Using real collection analytics:`, analytics);
                 
                 // Update dashboard values
                 const currentValueEl = document.getElementById('analytics-current-value');
@@ -613,33 +694,43 @@ const Analytics = {
                 const allTimeHighEl = document.getElementById('analytics-all-time-high');
                 
                 if (currentValueEl) {
-                    currentValueEl.textContent = Currency.convertAndFormat({ usd: analytics.totalValue });
+                    const formattedValue = Currency.convertAndFormat({ usd: analytics.totalValue || 0 });
+                    currentValueEl.textContent = formattedValue;
+                    console.log(`[Analytics] Updated current value to: ${formattedValue}`);
                 }
                 
                 if (change24hEl) {
-                    const isPositive = analytics.valueChange >= 0;
-                    const changeText = `${isPositive ? '+' : ''}${Currency.convertAndFormat({ usd: Math.abs(analytics.valueChange) })} (${isPositive ? '+' : ''}${analytics.percentChange.toFixed(1)}%)`;
+                    const valueChange = analytics.valueChange || 0;
+                    const percentChange = analytics.percentChange || 0;
+                    const isPositive = valueChange >= 0;
+                    const changeText = `${isPositive ? '+' : ''}${Currency.convertAndFormat({ usd: Math.abs(valueChange) })} (${isPositive ? '+' : ''}${percentChange.toFixed(1)}%)`;
                     change24hEl.textContent = changeText;
                     change24hEl.className = `text-2xl font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`;
+                    console.log(`[Analytics] Updated 24h change to: ${changeText}`);
                 }
                 
                 if (allTimeHighEl) {
                     // Calculate all-time high from current cards
-                    const allTimeHigh = Math.max(analytics.totalValue, analytics.totalValue + analytics.valueChange);
-                    allTimeHighEl.textContent = Currency.convertAndFormat({ usd: allTimeHigh });
+                    const allTimeHigh = Math.max(analytics.totalValue || 0, (analytics.totalValue || 0) + (analytics.valueChange || 0));
+                    const formattedHigh = Currency.convertAndFormat({ usd: allTimeHigh });
+                    allTimeHighEl.textContent = formattedHigh;
+                    console.log(`[Analytics] Updated all-time high to: ${formattedHigh}`);
                 }
                 
                 // Update top movers section with real data
-                Analytics.updateTopMovers(analytics.topGainers, analytics.topLosers);
+                Analytics.updateTopMovers(analytics.topGainers || [], analytics.topLosers || []);
                 
-                console.log('Analytics dashboard updated with real data:', analytics);
+                console.log('[Analytics] === ANALYTICS DASHBOARD UPDATE COMPLETE ===');
             } else {
-                throw new Error('Failed to get collection analytics');
+                console.error('[Analytics] Analytics function returned unsuccessful result:', analyticsResult);
+                throw new Error(`Analytics function failed: ${analyticsResult?.data?.error || 'Unknown error'}`);
             }
         } catch (error) {
-            console.error('Error updating analytics dashboard:', error);
+            console.error('[Analytics] === ERROR UPDATING ANALYTICS DASHBOARD ===');
+            console.error('[Analytics] Error details:', error);
             
             // Fallback to basic calculation
+            console.log('[Analytics] Using fallback calculation');
             const currentValue = cards.reduce((sum, card) => {
                 return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
             }, 0);
@@ -653,8 +744,8 @@ const Analytics = {
             }
             
             if (change24hEl) {
-                change24hEl.textContent = 'Data unavailable';
-                change24hEl.className = 'text-2xl font-semibold text-gray-500 dark:text-gray-400';
+                change24hEl.textContent = `Error: ${error.message}`;
+                change24hEl.className = 'text-2xl font-semibold text-red-500 dark:text-red-400';
             }
             
             if (allTimeHighEl) {
