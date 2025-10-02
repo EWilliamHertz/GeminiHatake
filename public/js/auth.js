@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             verificationTimer = null;
         }
         
-        await initCurrency(user ? user.uid : null);
+        await initCurrency('USD');
 
 
         if (user) {
