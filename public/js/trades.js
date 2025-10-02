@@ -34,17 +34,24 @@ class TradeWindow {
             yourCards: [],
             theirCards: [],
             yourValue: 0,
-            theirValue: 0
+            theirValue: 0,
+            yourCash: 0,
+            theirCash: 0
         };
         this.yourCollection = [];
         this.theirCollection = [];
         this.currentBinder = 'your';
         this.tradeBasket = JSON.parse(localStorage.getItem('tradeBasket') || '[]');
+        this.userCurrency = 'USD'; // Default currency
+        this.currentViewMode = 'grid'; // Default view mode
         
         this.initializeTradeWindow();
     }
 
-    initializeTradeWindow() {
+    async initializeTradeWindow() {
+        // Initialize currency system
+        await this.initializeCurrency();
+        
         this.loadYourCollection();
         this.bindEvents();
         this.updateTradeBasketCounter();
@@ -54,6 +61,42 @@ class TradeWindow {
         // ADDED: Handle URL parameters and pending trades
         this.handleUrlParameters();
         this.processPendingTrade();
+    }
+
+    async initializeCurrency() {
+        try {
+            // Import currency module
+            const { getUserCurrency, convertAndFormat } = await import('./modules/currency.js');
+            this.userCurrency = getUserCurrency();
+            this.convertAndFormat = convertAndFormat;
+            
+            // Update currency symbols in the UI
+            this.updateCurrencySymbols();
+            
+            // Listen for currency changes
+            document.addEventListener('currencyChanged', (e) => {
+                this.userCurrency = e.detail.currency;
+                this.updateCurrencySymbols();
+                this.updateTradeValues();
+            });
+        } catch (error) {
+            console.error('Error initializing currency:', error);
+            this.userCurrency = 'USD';
+        }
+
+    updateCurrencySymbols() {
+        const currencySymbols = {
+            'USD': '$', 'SEK': 'kr', 'EUR': '€', 'GBP': '£', 
+            'NOK': 'kr', 'DKK': 'kr', 'JPY': '¥'
+        };
+        
+        const symbol = currencySymbols[this.userCurrency] || this.userCurrency;
+        
+        const yourSymbol = document.getElementById('your-currency-symbol');
+        const theirSymbol = document.getElementById('their-currency-symbol');
+        
+        if (yourSymbol) yourSymbol.textContent = symbol;
+        if (theirSymbol) theirSymbol.textContent = symbol;
     }
 
     // ADDED: Calculate dynamic price based on condition and edition
@@ -164,6 +207,17 @@ class TradeWindow {
         document.getElementById('trade-partner-name')?.addEventListener('click', () => {
             this.openUserSearchModal();
         });
+
+        // Cash input event listeners
+        document.getElementById('your-cash-input')?.addEventListener('input', (e) => {
+            this.currentTrade.yourCash = parseFloat(e.target.value) || 0;
+            this.updateTradeValues();
+        });
+
+        document.getElementById('their-cash-input')?.addEventListener('input', (e) => {
+            this.currentTrade.theirCash = parseFloat(e.target.value) || 0;
+            this.updateTradeValues();
+        });
     }
 
     async loadYourCollection() {
@@ -211,7 +265,6 @@ class TradeWindow {
                 </div>
             `;
         }
-    }
 
     async loadTheirCollection(partnerId) {
         if (!partnerId) return;
@@ -244,7 +297,6 @@ class TradeWindow {
         } catch (error) {
             console.error('Error loading partner collection:', error);
         }
-    }
 
     switchBinder(binderType) {
         this.currentBinder = binderType;
@@ -286,13 +338,22 @@ class TradeWindow {
             return;
         }
 
-        // Create card grid
+        // Create card display based on view mode
         const cardsHtml = filteredCards.map(card => this.createCardHtml(card)).join('');
-        binderContent.innerHTML = `
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                ${cardsHtml}
-            </div>
-        `;
+        
+        if (this.currentViewMode === 'list') {
+            binderContent.innerHTML = `
+                <div class="space-y-2">
+                    ${cardsHtml}
+                </div>
+            `;
+        } else {
+            binderContent.innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    ${cardsHtml}
+                </div>
+            `;
+        }
 
         // Add click listeners
         this.addCardClickListeners();
@@ -306,42 +367,59 @@ class TradeWindow {
                         cardData.imageUrl || 
                         'https://via.placeholder.com/223x310?text=No+Image';
 
-        // Calculate price using the proper method
+    createCardHtml(card) {
+        const cardData = card.cardData || card;
+        const isSelected = this.isCardInTrade(card.id);
         const price = this.calculateCardPrice(cardData);
-        const isInTrade = this.currentBinder === 'your' 
-            ? this.currentTrade.yourCards.some(c => c.id === card.id)
-            : this.currentTrade.theirCards.some(c => c.id === card.id);
-
-        // Get condition and edition info for display
-        const condition = cardData.condition || 'Unknown';
-        const isFirstEdition = cardData.is_first_edition || false;
-        const editionText = isFirstEdition ? '1st Ed' : 'Unlimited';
-
-        return `
-            <div class="trade-card bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer ${isInTrade ? 'ring-2 ring-blue-500' : ''}" 
-                 data-card-id="${card.id}">
-                <div class="relative">
-                    <img src="${imageUrl}" 
-                         alt="${cardData.name || 'Card'}" 
-                         class="w-full h-32 object-cover"
-                         onerror="this.src='https://via.placeholder.com/223x310?text=No+Image'">
-                    ${isInTrade ? '<div class="absolute top-1 right-1 bg-blue-500 text-white rounded-full p-1"><i class="fas fa-check text-xs"></i></div>' : ''}
-                    ${isFirstEdition ? '<div class="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1 rounded">1st</div>' : ''}
-                </div>
-                <div class="p-2">
-                    <h4 class="font-medium text-sm mb-1 text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h4>
-                    <div class="flex justify-between items-center text-xs mb-1">
-                        <span class="text-gray-600 dark:text-gray-400">${cardData.game || 'Unknown'}</span>
-                        <span class="font-bold text-green-600 dark:text-green-400">$${price.toFixed(2)}</span>
+        const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
+        
+        if (this.currentViewMode === 'list') {
+            // List view layout
+            return `
+                <div class="card-item bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-blue-500' : ''}" 
+                     data-card-id="${card.id}">
+                    <div class="flex items-center p-4">
+                        <div class="w-16 h-20 flex-shrink-0 mr-4">
+                            <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/200x280'}" 
+                                 alt="${cardData.name || 'Card'}" 
+                                 class="w-full h-full object-cover rounded"
+                                 loading="lazy">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
+                            </div>
+                        </div>
+                        ${isSelected ? '<div class="ml-4 bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-check"></i></div>' : ''}
                     </div>
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-gray-500 dark:text-gray-400">${condition}</span>
-                        <span class="text-gray-500 dark:text-gray-400">${editionText}</span>
-                    </div>
-                    ${card.quantity > 1 ? `<div class="text-xs text-gray-500 mt-1">Qty: ${card.quantity}</div>` : ''}
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            // Grid view layout
+            return `
+                <div class="card-item bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow ${isSelected ? 'ring-2 ring-blue-500' : ''}" 
+                     data-card-id="${card.id}">
+                    <div class="aspect-[2.5/3.5] relative">
+                        <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/200x280'}" 
+                             alt="${cardData.name || 'Card'}" 
+                             class="w-full h-full object-cover"
+                             loading="lazy">
+                        ${isSelected ? '<div class="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"><i class="fas fa-check"></i></div>' : ''}
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-medium text-sm text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     addCardClickListeners() {
@@ -379,12 +457,12 @@ class TradeWindow {
                     this.currentTrade.theirCards.push(card);
                 }
             }
-            this.updateTheirTradeDisplay();
         }
 
-        this.displayCards(); // Refresh to show selection state
+        this.updateTheirTradeDisplay();
         this.updateTradeValues();
         this.updateProposalButton();
+        this.displayCards(); // Refresh to show selection state
     }
 
     updateYourTradeDisplay() {
@@ -394,7 +472,7 @@ class TradeWindow {
         if (this.currentTrade.yourCards.length === 0) {
             container.innerHTML = `
                 <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                    <i class="fas fa-plus-circle text-3xl mb-2"></i>
+                    <i class="fas fa-plus text-3xl mb-2"></i>
                     <p>Add cards from your collection</p>
                 </div>
             `;
@@ -403,12 +481,23 @@ class TradeWindow {
 
         const cardsHtml = this.currentTrade.yourCards.map(card => {
             const cardData = card.cardData || card;
-            const imageUrl = cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl;
+            const price = this.calculateCardPrice(cardData);
+            const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
+            
             return `
-                <div class="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                    <img src="${imageUrl}" alt="${cardData.name}" class="w-8 h-8 object-cover rounded" onerror="this.src='https://via.placeholder.com/32x32?text=?'">
-                    <span class="flex-1 text-sm truncate">${cardData.name}</span>
-                    <button class="text-red-500 hover:text-red-700" onclick="tradeWindow.removeCardFromTrade('${card.id}', 'your')">
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/40x56'}" 
+                         alt="${cardData.name}" 
+                         class="w-10 h-14 object-cover rounded">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
+                            <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                        </div>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" onclick="window.tradeWindow.removeCardFromTrade('${card.id}', 'your')">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -434,12 +523,25 @@ class TradeWindow {
 
         const cardsHtml = this.currentTrade.theirCards.map(card => {
             const cardData = card.cardData || card;
+            const price = this.calculateCardPrice(cardData);
+            const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
             const imageUrl = cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl;
+            
             return `
-                <div class="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                    <img src="${imageUrl}" alt="${cardData.name}" class="w-8 h-8 object-cover rounded" onerror="this.src='https://via.placeholder.com/32x32?text=?'">
-                    <span class="flex-1 text-sm truncate">${cardData.name}</span>
-                    <button class="text-red-500 hover:text-red-700" onclick="tradeWindow.removeCardFromTrade('${card.id}', 'their')">
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <img src="${imageUrl || 'https://via.placeholder.com/40x56'}" 
+                         alt="${cardData.name}" 
+                         class="w-10 h-14 object-cover rounded" 
+                         onerror="this.src='https://via.placeholder.com/40x56?text=?'">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
+                            <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                        </div>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" onclick="window.tradeWindow.removeCardFromTrade('${card.id}', 'their')">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -470,6 +572,7 @@ class TradeWindow {
     }
 
     updateTradeValues() {
+        // Calculate card values
         this.currentTrade.yourValue = this.currentTrade.yourCards.reduce((sum, card) => {
             const cardData = card.cardData || card;
             const price = this.calculateCardPrice(cardData);
@@ -482,18 +585,42 @@ class TradeWindow {
             return sum + price;
         }, 0);
 
-        // Update display
+        // Calculate total values including cash
+        const yourTotalValue = this.currentTrade.yourValue + this.currentTrade.yourCash;
+        const theirTotalValue = this.currentTrade.theirValue + this.currentTrade.theirCash;
+
+        // Update display with currency formatting
         const yourValueEl = document.getElementById('your-trade-value');
         const theirValueEl = document.getElementById('their-trade-value');
+        const balanceEl = document.getElementById('trade-balance');
 
         if (yourValueEl) {
-            yourValueEl.textContent = `$${this.currentTrade.yourValue.toFixed(2)}`;
+            const formattedValue = this.convertAndFormat ? this.convertAndFormat(yourTotalValue) : `$${yourTotalValue.toFixed(2)}`;
+            yourValueEl.textContent = formattedValue;
         }
 
         if (theirValueEl) {
-            theirValueEl.textContent = `$${this.currentTrade.theirValue.toFixed(2)}`;
+            const formattedValue = this.convertAndFormat ? this.convertAndFormat(theirTotalValue) : `$${theirTotalValue.toFixed(2)}`;
+            theirValueEl.textContent = formattedValue;
         }
-    }
+
+        if (balanceEl) {
+            const difference = yourTotalValue - theirTotalValue;
+            const absValue = Math.abs(difference);
+            
+            if (absValue < 0.01) {
+                balanceEl.textContent = 'Balanced';
+                balanceEl.className = 'text-sm text-green-600 dark:text-green-400 font-medium';
+            } else if (difference > 0) {
+                const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
+                balanceEl.textContent = `You owe ${formattedDiff}`;
+                balanceEl.className = 'text-sm text-red-600 dark:text-red-400 font-medium';
+            } else {
+                const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
+                balanceEl.textContent = `They owe ${formattedDiff}`;
+                balanceEl.className = 'text-sm text-blue-600 dark:text-blue-400 font-medium';
+            }
+        }
 
     updateProposalButton() {
         const proposeBtn = document.getElementById('propose-trade-btn');
@@ -510,7 +637,6 @@ class TradeWindow {
                               (this.currentTrade.yourCards.length > 0 || this.currentTrade.theirCards.length > 0);
             autoBalanceBtn.disabled = !canBalance;
         }
-    }
 
     applyFilters(cards = null) {
         const cardsToFilter = cards || (this.currentBinder === 'your' ? this.yourCollection : this.theirCollection);
@@ -546,17 +672,24 @@ class TradeWindow {
         const gridToggle = document.getElementById('view-toggle-grid');
         const listToggle = document.getElementById('view-toggle-list');
 
+        // Store the current view mode
+        this.currentViewMode = mode;
+
+        // Update button states
         if (mode === 'grid') {
             gridToggle?.classList.add('bg-blue-600', 'text-white');
-            gridToggle?.classList.remove('bg-gray-300', 'text-gray-700');
+            gridToggle?.classList.remove('bg-gray-300', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-300');
             listToggle?.classList.remove('bg-blue-600', 'text-white');
-            listToggle?.classList.add('bg-gray-300', 'text-gray-700');
+            listToggle?.classList.add('bg-gray-300', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-300');
         } else {
             listToggle?.classList.add('bg-blue-600', 'text-white');
-            listToggle?.classList.remove('bg-gray-300', 'text-gray-700');
+            listToggle?.classList.remove('bg-gray-300', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-300');
             gridToggle?.classList.remove('bg-blue-600', 'text-white');
-            gridToggle?.classList.add('bg-gray-300', 'text-gray-700');
+            gridToggle?.classList.add('bg-gray-300', 'text-gray-700', 'dark:bg-gray-600', 'dark:text-gray-300');
         }
+
+        // Re-render the cards with the new view mode
+        this.displayCards();
     }
 
     setTradePartner(partner) {
@@ -614,7 +747,6 @@ class TradeWindow {
             this.tradeBasket = [];
             this.updateTradeBasketCounter();
         }
-    }
 
     updateTradeBasketCounter() {
         const counter = document.getElementById('trade-basket-counter');
@@ -626,7 +758,6 @@ class TradeWindow {
                 counter.classList.add('hidden');
             }
         }
-    }
 
     bindTradeBasketButton() {
         const tradeBasketBtn = document.getElementById('trade-basket-btn');
@@ -636,7 +767,6 @@ class TradeWindow {
                 document.getElementById('new-trading-interface')?.scrollIntoView({ behavior: 'smooth' });
             });
         }
-    }
 
     toggleLegacyView() {
         const newInterface = document.getElementById('new-trading-interface');
@@ -646,7 +776,6 @@ class TradeWindow {
             newInterface.classList.toggle('hidden');
             legacySection.classList.toggle('hidden');
         }
-    }
 
     async proposeTrade() {
         if (!this.currentTrade.partner) {
@@ -682,8 +811,9 @@ class TradeWindow {
                     game: c.cardData?.game || 'Unknown',
                     condition: c.condition || 'Near Mint'
                 })),
-                proposerMoney: 0,
-                receiverMoney: 0,
+                proposerMoney: this.currentTrade.yourCash || 0,
+                receiverMoney: this.currentTrade.theirCash || 0,
+                currency: this.userCurrency || 'USD',
                 notes: '',
                 status: 'pending',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -719,7 +849,6 @@ class TradeWindow {
                 alert('Failed to send trade proposal. Please try again.');
             }
         }
-    }
 
     resetTrade() {
         this.currentTrade = {
@@ -727,8 +856,17 @@ class TradeWindow {
             yourCards: [],
             theirCards: [],
             yourValue: 0,
-            theirValue: 0
+            theirValue: 0,
+            yourCash: 0,
+            theirCash: 0
         };
+
+        // Reset cash inputs
+        const yourCashInput = document.getElementById('your-cash-input');
+        const theirCashInput = document.getElementById('their-cash-input');
+        
+        if (yourCashInput) yourCashInput.value = '';
+        if (theirCashInput) theirCashInput.value = '';
 
         // Reset UI
         const partnerNameEl = document.getElementById('trade-partner-name');
@@ -764,7 +902,6 @@ class TradeWindow {
                 style: { background: "linear-gradient(to right, #f59e0b, #d97706)" }
             }).showTradeToast();
         }
-    }
 
     // ADDED: Open user search modal for trade partner selection
     openUserSearchModal() {
@@ -825,7 +962,6 @@ class TradeWindow {
             // Load seller information and set as trade partner
             this.loadSellerAsTradePartner(sellerId);
         }
-    }
 
     // ADDED: Process pending trade data from marketplace
     processPendingTrade() {
@@ -856,7 +992,6 @@ class TradeWindow {
                 localStorage.removeItem('pendingTrade');
             }
         }
-    }
 
     // ADDED: Load seller information and set as trade partner
     async loadSellerAsTradePartner(sellerId) {
@@ -886,7 +1021,6 @@ class TradeWindow {
         } catch (error) {
             console.error('Error loading seller information:', error);
         }
-    }
 }
 
 // User Search functionality
@@ -912,7 +1046,6 @@ class UserSearch {
                 this.handleSearch(e.target.value, 'trade-partner-results');
             });
         }
-    }
 
     handleSearch(query, resultsContainerId) {
         clearTimeout(this.searchTimeout);
@@ -932,23 +1065,76 @@ class UserSearch {
 
     async searchUsers(query, resultsContainer) {
         try {
-            // Search users by display name or email
+            const queryLower = query.toLowerCase();
             const usersRef = this.db.collection('users');
             
-            // Firestore doesn't support case-insensitive search, so we'll do a simple starts-with search
-            const snapshot = await usersRef
+            // Search by display name (case-sensitive for exact matches)
+            const displayNameQuery = usersRef
                 .where('displayName', '>=', query)
                 .where('displayName', '<=', query + '\uf8ff')
-                .limit(10)
-                .get();
+                .limit(10);
 
-            const users = [];
-            snapshot.forEach(doc => {
+            // Search by displayName_lower (case-insensitive)
+            const displayNameLowerQuery = usersRef
+                .where('displayName_lower', '>=', queryLower)
+                .where('displayName_lower', '<=', queryLower + '\uf8ff')
+                .limit(10);
+
+            // Search by email (case-insensitive)
+            const emailQuery = usersRef
+                .where('email', '>=', queryLower)
+                .where('email', '<=', queryLower + '\uf8ff')
+                .limit(10);
+
+            const [displayNameSnapshot, displayNameLowerSnapshot, emailSnapshot] = await Promise.all([
+                displayNameQuery.get(),
+                displayNameLowerQuery.get(),
+                emailQuery.get()
+            ]);
+
+            const usersMap = new Map();
+            
+            // Add users from display name search (exact case)
+            displayNameSnapshot.forEach(doc => {
                 const userData = doc.data();
-                users.push({
-                    uid: doc.id,
-                    ...userData
-                });
+                usersMap.set(doc.id, { uid: doc.id, ...userData });
+            });
+
+            // Add users from displayName_lower search (case-insensitive)
+            displayNameLowerSnapshot.forEach(doc => {
+                const userData = doc.data();
+                usersMap.set(doc.id, { uid: doc.id, ...userData });
+            });
+
+            // Add users from email search
+            emailSnapshot.forEach(doc => {
+                const userData = doc.data();
+                usersMap.set(doc.id, { uid: doc.id, ...userData });
+            });
+
+            const users = Array.from(usersMap.values());
+
+            // Sort results by relevance - exact matches first, then partial matches
+            users.sort((a, b) => {
+                const aDisplayName = (a.displayName || '').toLowerCase();
+                const bDisplayName = (b.displayName || '').toLowerCase();
+                const aEmail = (a.email || '').toLowerCase();
+                const bEmail = (b.email || '').toLowerCase();
+                
+                // Exact display name matches first
+                if (aDisplayName === queryLower && bDisplayName !== queryLower) return -1;
+                if (bDisplayName === queryLower && aDisplayName !== queryLower) return 1;
+                
+                // Exact email matches next
+                if (aEmail === queryLower && bEmail !== queryLower) return -1;
+                if (bEmail === queryLower && aEmail !== queryLower) return 1;
+                
+                // Display name starts with query
+                if (aDisplayName.startsWith(queryLower) && !bDisplayName.startsWith(queryLower)) return -1;
+                if (bDisplayName.startsWith(queryLower) && !aDisplayName.startsWith(queryLower)) return 1;
+                
+                // Alphabetical order
+                return aDisplayName.localeCompare(bDisplayName);
             });
 
             this.displaySearchResults(users, resultsContainer);
@@ -958,7 +1144,6 @@ class UserSearch {
             resultsContainer.innerHTML = '<div class="p-2 text-red-500">Error searching users</div>';
             resultsContainer.classList.remove('hidden');
         }
-    }
 
     displaySearchResults(users, resultsContainer) {
         if (users.length === 0) {
@@ -1010,19 +1195,28 @@ class UserSearch {
         // Hide results
         resultsContainer.classList.add('hidden');
 
-        // Clear search input
-        const searchInput = resultsContainer.id === 'user-search-results' 
+        // Clear search input - check for both modal and regular search inputs
+        const modalSearchInput = document.getElementById('partner-search-input');
+        const regularSearchInput = resultsContainer.id === 'user-search-results' 
             ? document.getElementById('user-search-input')
             : document.getElementById('trade-partner-search');
         
-        if (searchInput) {
-            searchInput.value = userData.displayName || userData.email;
+        if (modalSearchInput) {
+            modalSearchInput.value = userData.displayName || userData.email;
+        } else if (regularSearchInput) {
+            regularSearchInput.value = userData.displayName || userData.email;
         }
 
-        // Close the modal if it exists
+        // Close the modal if it exists - improved modal detection and removal
         const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
-        if (modal) {
-            document.body.removeChild(modal);
+        if (modal && modal.parentNode) {
+            try {
+                modal.parentNode.removeChild(modal);
+            } catch (error) {
+                console.warn('Error removing modal:', error);
+                // Fallback: hide the modal
+                modal.style.display = 'none';
+            }
         }
 
         // Show success message
@@ -1033,7 +1227,6 @@ class UserSearch {
                 style: { background: "linear-gradient(to right, #10b981, #059669)" }
             }).showToast();
         }
-    }
 }
 
 // Main initialization
@@ -1120,18 +1313,32 @@ function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyCo
         if (historyContainer) historyContainer.innerHTML = '';
 
         if (snapshot.empty) {
-            const noTradesMsg = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No trades found.</p>';
+            const noTradesMsg = '<div class="text-center py-8"><i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No trades found</h3><p class="text-gray-500 dark:text-gray-400">Your trades will appear here when available.</p></div>';
             if (incomingContainer) incomingContainer.innerHTML = noTradesMsg;
             if (outgoingContainer) outgoingContainer.innerHTML = noTradesMsg;
             if (historyContainer) historyContainer.innerHTML = noTradesMsg;
+            updateTradeStatistics({ incoming: 0, outgoing: 0, completed: 0, totalValue: 0 });
             return;
         }
 
-        let counts = { incoming: 0, outgoing: 0, history: 0 };
+        let counts = { incoming: 0, outgoing: 0, history: 0, completed: 0 };
+        let totalValue = 0;
+        let notifications = [];
+
         for (const doc of snapshot.docs) {
             const trade = doc.data();
             const tradeCard = await createTradeCard(trade, doc.id, user);
             const isReceiver = trade.receiverId === user.uid;
+
+            // Calculate trade value
+            const tradeValue = calculateTradeValue(trade);
+            totalValue += tradeValue;
+
+            // Check for notifications
+            const notification = checkTradeNotification(trade, user.uid);
+            if (notification) {
+                notifications.push(notification);
+            }
 
             if (['pending', 'accepted', 'awaiting_payment', 'funds_authorized', 'shipped', 'disputed'].includes(trade.status)) {
                 if (isReceiver && incomingContainer) {
@@ -1141,22 +1348,236 @@ function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyCo
                     outgoingContainer.appendChild(tradeCard);
                     counts.outgoing++;
                 }
-            } else if (historyContainer) {
-                historyContainer.appendChild(tradeCard);
-                counts.history++;
+            } else {
+                if (historyContainer) {
+                    historyContainer.appendChild(tradeCard);
+                    counts.history++;
+                }
+                if (trade.status === 'completed') {
+                    counts.completed++;
+                }
             }
         }
 
+        // Update empty states with proper styling
         if (counts.incoming === 0 && incomingContainer) {
-            incomingContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No active incoming offers.</p>';
+            incomingContainer.innerHTML = '<div class="text-center py-8"><i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Incoming Offers</h3><p class="text-gray-500 dark:text-gray-400">When someone sends you a trade offer, it will appear here.</p></div>';
         }
         if (counts.outgoing === 0 && outgoingContainer) {
-            outgoingContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No active outgoing offers.</p>';
+            outgoingContainer.innerHTML = '<div class="text-center py-8"><i class="fas fa-paper-plane text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Outgoing Offers</h3><p class="text-gray-500 dark:text-gray-400">Your sent trade offers will appear here.</p></div>';
         }
         if (counts.history === 0 && historyContainer) {
-            historyContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No trade history.</p>';
+            historyContainer.innerHTML = '<div class="text-center py-8"><i class="fas fa-history text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Trade History</h3><p class="text-gray-500 dark:text-gray-400">Your completed, cancelled, and rejected trades will appear here.</p></div>';
         }
+
+        // Update statistics and notifications
+        updateTradeStatistics({
+            incoming: counts.incoming,
+            outgoing: counts.outgoing,
+            completed: counts.completed,
+            totalValue: totalValue
+        });
+
+        updateTradeNotifications(notifications);
+        updateTabBadges(counts.incoming, counts.outgoing, notifications.length);
+
     }, err => console.error("Error loading trades:", err));
+}
+
+// Helper function to calculate trade value
+function calculateTradeValue(trade) {
+    let value = 0;
+    
+    if (trade.proposerCards) {
+        value += trade.proposerCards.reduce((sum, card) => sum + (parseFloat(card.priceUsd) || 0), 0);
+    }
+    
+    if (trade.receiverCards) {
+        value += trade.receiverCards.reduce((sum, card) => sum + (parseFloat(card.priceUsd) || 0), 0);
+    }
+    
+    value += (trade.proposerMoney || 0) + (trade.receiverMoney || 0);
+    
+    return value;
+}
+
+// Helper function to check for trade notifications
+function checkTradeNotification(trade, userId) {
+    const isReceiver = trade.receiverId === userId;
+    const now = Date.now();
+    const tradeTime = trade.createdAt?.seconds ? trade.createdAt.seconds * 1000 : now;
+    const hoursSinceCreated = (now - tradeTime) / (1000 * 60 * 60);
+
+    // Only show notifications for recent trades (within 24 hours)
+    if (hoursSinceCreated > 24) return null;
+
+    switch (trade.status) {
+        case 'pending':
+            if (isReceiver) {
+                return {
+                    type: 'pending_incoming',
+                    message: `New trade offer from ${trade.proposerName}`,
+                    tradeId: trade.id,
+                    timestamp: tradeTime,
+                    priority: 'high'
+                };
+            }
+            break;
+        case 'accepted':
+            if (!isReceiver) {
+                return {
+                    type: 'accepted',
+                    message: `${trade.receiverName} accepted your trade offer`,
+                    tradeId: trade.id,
+                    timestamp: tradeTime,
+                    priority: 'medium'
+                };
+            }
+            break;
+        case 'shipped':
+            return {
+                type: 'shipped',
+                message: `Trade with ${isReceiver ? trade.proposerName : trade.receiverName} has been shipped`,
+                tradeId: trade.id,
+                timestamp: tradeTime,
+                priority: 'medium'
+            };
+        case 'completed':
+            return {
+                type: 'completed',
+                message: `Trade with ${isReceiver ? trade.proposerName : trade.receiverName} completed successfully`,
+                tradeId: trade.id,
+                timestamp: tradeTime,
+                priority: 'low'
+            };
+    }
+    
+    return null;
+}
+
+// Update trade statistics display
+function updateTradeStatistics(stats) {
+    const pendingIncomingEl = document.getElementById('pending-incoming-count');
+    const pendingOutgoingEl = document.getElementById('pending-outgoing-count');
+    const completedTradesEl = document.getElementById('completed-trades-count');
+    const totalTradeValueEl = document.getElementById('total-trade-value');
+
+    if (pendingIncomingEl) pendingIncomingEl.textContent = stats.incoming;
+    if (pendingOutgoingEl) pendingOutgoingEl.textContent = stats.outgoing;
+    if (completedTradesEl) completedTradesEl.textContent = stats.completed;
+    if (totalTradeValueEl) totalTradeValueEl.textContent = `$${stats.totalValue.toFixed(2)}`;
+
+    // Update analytics
+    updateTradeAnalytics(stats);
+}
+
+// Update trade analytics
+function updateTradeAnalytics(stats) {
+    const totalTrades = stats.incoming + stats.outgoing + stats.completed;
+    const successRate = totalTrades > 0 ? (stats.completed / totalTrades) * 100 : 0;
+    const avgTradeValue = stats.completed > 0 ? stats.totalValue / stats.completed : 0;
+
+    const successRateBar = document.getElementById('success-rate-bar');
+    const successRateText = document.getElementById('success-rate-text');
+    const avgTradeValueEl = document.getElementById('avg-trade-value');
+
+    if (successRateBar) successRateBar.style.width = `${successRate}%`;
+    if (successRateText) successRateText.textContent = `${successRate.toFixed(1)}% (${stats.completed} of ${totalTrades} trades completed)`;
+    if (avgTradeValueEl) avgTradeValueEl.textContent = `$${avgTradeValue.toFixed(2)}`;
+}
+
+// Update tab badges
+function updateTabBadges(incoming, outgoing, notifications) {
+    const incomingBadge = document.getElementById('incoming-badge');
+    const outgoingBadge = document.getElementById('outgoing-badge');
+    const notificationsBadge = document.getElementById('notifications-badge');
+
+    if (incomingBadge) {
+        incomingBadge.textContent = incoming;
+        incomingBadge.style.display = incoming > 0 ? 'inline' : 'none';
+    }
+
+    if (outgoingBadge) {
+        outgoingBadge.textContent = outgoing;
+        outgoingBadge.style.display = outgoing > 0 ? 'inline' : 'none';
+    }
+
+    if (notificationsBadge) {
+        notificationsBadge.textContent = notifications;
+        if (notifications > 0) {
+            notificationsBadge.classList.remove('hidden');
+        } else {
+            notificationsBadge.classList.add('hidden');
+        }
+}
+
+// Update trade notifications
+function updateTradeNotifications(notifications) {
+    const notificationsList = document.getElementById('trade-notifications-list');
+    if (!notificationsList) return;
+
+    if (notifications.length === 0) {
+        notificationsList.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-bell text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Notifications</h3>
+                <p class="text-gray-500 dark:text-gray-400">Trade updates and notifications will appear here.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Sort notifications by priority and timestamp
+    notifications.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        return b.timestamp - a.timestamp;
+    });
+
+    const notificationsHtml = notifications.map(notification => {
+        const priorityColors = {
+            high: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20',
+            medium: 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20',
+            low: 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+        };
+
+        const priorityIcons = {
+            high: 'fas fa-exclamation-circle text-red-500',
+            medium: 'fas fa-info-circle text-yellow-500',
+            low: 'fas fa-check-circle text-green-500'
+        };
+
+        const timeAgo = getTimeAgo(notification.timestamp);
+
+        return `
+            <div class="border rounded-lg p-4 ${priorityColors[notification.priority]}">
+                <div class="flex items-start space-x-3">
+                    <i class="${priorityIcons[notification.priority]}"></i>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${notification.message}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${timeAgo}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    notificationsList.innerHTML = notificationsHtml;
+}
+
+// Helper function to get time ago string
+function getTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return 'Just now';
 }
 
 async function createTradeCard(trade, tradeId, user) {
@@ -1224,22 +1645,32 @@ function renderTradeItems(cards, money) {
     
     if (cards && cards.length > 0) {
         html += cards.map(card => `
-            <div class="flex items-center space-x-2">
-                <img src="${card.imageUrl || 'https://via.placeholder.com/32x32?text=?'}" 
-                     alt="${card.name}" 
-                     class="w-8 h-8 object-cover rounded"
-                     onerror="this.src='https://via.placeholder.com/32x32?text=?'">
-                <span class="text-sm">${card.name}</span>
-                <span class="text-xs text-gray-500">$${(parseFloat(card.priceUsd) || 0).toFixed(2)}</span>
+            <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
+                <img src="${card.imageUrl || 'https://via.placeholder.com/40x56'}" 
+                     alt="${card.name}"
+                     class="w-10 h-14 object-cover rounded"
+                     onerror="this.src='https://via.placeholder.com/40x56?text=?'">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name}</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
+                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${(parseFloat(card.priceUsd) || 0).toFixed(2)}</span>
+                    </div>
+                </div>
             </div>
         `).join('');
     }
     
     if (money && money > 0) {
-        html += `<div class="text-sm font-semibold text-green-600">+ $${money.toFixed(2)} cash</div>`;
+        html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
+                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${money.toFixed(2)}</span>
+                    </div>
+                 </div>`;
     }
     
-    return html || '<div class="text-sm text-gray-500">No items</div>';
+    return html || '<div class="text-sm text-gray-500 dark:text-gray-400 p-4 text-center">No items</div>';
 }
 
 function getActionButtons(trade, tradeId, isProposer, user) {
@@ -1287,8 +1718,7 @@ async function handleTradeAction(action, tradeId, db) {
         } else {
              await tradeRef.update({ status: 'funds_authorized' });
              showTradeToast("Trade accepted! Ready for shipment.", 'success');
-        }
-    } else if (action === 'confirm-shipment') {
+        } else if (action === 'confirm-shipment') {
         const user = firebase.auth().currentUser;
         const isProposer = tradeData.proposerId === user.uid;
         const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
