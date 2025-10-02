@@ -58,44 +58,61 @@ class TradeWindow {
 
     // ADDED: Calculate dynamic price based on condition and edition
     calculateCardPrice(cardData) {
-        // Return fallback price if no prices object exists
-        if (!cardData.prices || typeof cardData.prices !== 'object') {
-            return cardData.priceUsd || cardData.price || 0;
+        // Handle different price structures
+        if (cardData.sale_price) {
+            const salePrice = parseFloat(cardData.sale_price);
+            return isNaN(salePrice) ? 0 : salePrice;
         }
 
-        const condition = cardData.condition || 'Near Mint';
-        const isFirstEdition = cardData.is_first_edition || false;
+        // Return fallback price if no prices object exists
+        if (!cardData.prices || typeof cardData.prices !== 'object') {
+            const fallbackPrice = parseFloat(cardData.priceUsd || cardData.price || 0);
+            return isNaN(fallbackPrice) ? 0 : fallbackPrice;
+        }
+
+        const condition = cardData.condition || 'near_mint';
+        const game = cardData.game || 'mtg';
         
-        // Map condition names to price keys
-        const conditionMap = {
-            'Mint': 'NM',
-            'Near Mint': 'NM', 
-            'Excellent': 'NM',
-            'Good': 'LP',
-            'Light Played': 'LP',
-            'Played': 'MP',
-            'Poor': 'HP',
-            'Heavily Played': 'HP',
-            'Damaged': 'DM'
-        };
+        // For MTG cards, use usd price directly
+        if (game === 'mtg' && cardData.prices.usd) {
+            const mtgPrice = parseFloat(cardData.prices.usd);
+            return isNaN(mtgPrice) ? 0 : mtgPrice;
+        }
 
-        const conditionKey = conditionMap[condition] || 'NM';
-        const editionPrefix = isFirstEdition ? 'firstEdition' : 'unlimited';
-        const priceKey = `${editionPrefix}_${conditionKey}`;
+        // For Pokemon cards, map condition to price keys
+        if (game === 'pokemon') {
+            const conditionMap = {
+                'mint': 'NM',
+                'near_mint': 'NM', 
+                'excellent': 'NM',
+                'good': 'LP',
+                'light_played': 'LP',
+                'played': 'MP',
+                'poor': 'HP',
+                'heavily_played': 'HP',
+                'damaged': 'DM'
+            };
 
-        // Try to get the specific price, fallback to NM if not found
-        let price = cardData.prices[priceKey];
-        if (price === undefined || price === null) {
-            price = cardData.prices[`${editionPrefix}_NM`];
+            const conditionKey = conditionMap[condition.toLowerCase()] || 'NM';
+            
+            // Try holofoil first, then regular
+            let price = cardData.prices[`holofoil_${conditionKey}`] || cardData.prices[`regular_${conditionKey}`];
+            
+            // Fallback to any available price
+            if (price === undefined || price === null) {
+                const availablePrices = Object.values(cardData.prices).filter(p => typeof p === 'number' && p > 0);
+                price = availablePrices.length > 0 ? availablePrices[0] : 0;
+            }
+
+            const numericPrice = parseFloat(price);
+            return isNaN(numericPrice) ? 0 : numericPrice;
         }
         
         // Final fallback to any available price
-        if (price === undefined || price === null) {
-            const availablePrices = Object.values(cardData.prices).filter(p => typeof p === 'number' && p > 0);
-            price = availablePrices.length > 0 ? availablePrices[0] : 0;
-        }
-
-        return typeof price === 'number' ? price : 0;
+        const availablePrices = Object.values(cardData.prices).filter(p => typeof p === 'number' && p > 0);
+        const fallbackPrice = availablePrices.length > 0 ? availablePrices[0] : 0;
+        const numericPrice = parseFloat(fallbackPrice);
+        return isNaN(numericPrice) ? 0 : numericPrice;
     }
 
     bindEvents() {
@@ -289,7 +306,7 @@ class TradeWindow {
                         cardData.imageUrl || 
                         'https://via.placeholder.com/223x310?text=No+Image';
 
-        // ENHANCED: Dynamic price calculation based on condition and edition
+        // Calculate price using the proper method
         const price = this.calculateCardPrice(cardData);
         const isInTrade = this.currentBinder === 'your' 
             ? this.currentTrade.yourCards.some(c => c.id === card.id)
@@ -455,12 +472,14 @@ class TradeWindow {
     updateTradeValues() {
         this.currentTrade.yourValue = this.currentTrade.yourCards.reduce((sum, card) => {
             const cardData = card.cardData || card;
-            return sum + (cardData.priceUsd || cardData.price || 0);
+            const price = this.calculateCardPrice(cardData);
+            return sum + price;
         }, 0);
 
         this.currentTrade.theirValue = this.currentTrade.theirCards.reduce((sum, card) => {
             const cardData = card.cardData || card;
-            return sum + (cardData.priceUsd || cardData.price || 0);
+            const price = this.calculateCardPrice(cardData);
+            return sum + price;
         }, 0);
 
         // Update display
@@ -680,7 +699,7 @@ class TradeWindow {
                     text: "Trade proposal sent successfully!",
                     duration: 3000,
                     style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                }).showTradeToast();
+                }).showToast();
             }
 
             // Reset trade
@@ -688,7 +707,17 @@ class TradeWindow {
 
         } catch (error) {
             console.error('Error proposing trade:', error);
-            alert('Failed to send trade proposal. Please try again.');
+            
+            // Show error message
+            if (window.Toastify) {
+                Toastify({
+                    text: "Failed to send trade proposal. Please try again.",
+                    duration: 3000,
+                    style: { background: "linear-gradient(to right, #ef4444, #dc2626)" }
+                }).showToast();
+            } else {
+                alert('Failed to send trade proposal. Please try again.');
+            }
         }
     }
 
@@ -776,12 +805,12 @@ class TradeWindow {
             }
         });
 
-        // Use the existing user search functionality
-        if (window.userSearch) {
-            searchInput.addEventListener('input', (e) => {
-                window.userSearch.handleSearch(e.target.value, 'partner-search-results');
-            });
-        }
+        // Create a temporary user search instance for this modal
+        const modalUserSearch = new UserSearch(this.db);
+        
+        searchInput.addEventListener('input', (e) => {
+            modalUserSearch.handleSearch(e.target.value, 'partner-search-results');
+        });
 
         // Focus the search input
         searchInput.focus();
@@ -816,7 +845,7 @@ class TradeWindow {
                             text: `Trade partner set to ${tradeData.selectedSeller.displayName || tradeData.selectedSeller.email}`,
                             duration: 3000,
                             style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                        }).showTradeToast();
+                        }).showToast();
                     }
                 }
                 
@@ -849,7 +878,7 @@ class TradeWindow {
                         text: `Trade partner set to ${userData.displayName || userData.email}`,
                         duration: 3000,
                         style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                    }).showTradeToast();
+                    }).showToast();
                 }
             } else {
                 console.error('Seller not found:', sellerId);
@@ -990,13 +1019,19 @@ class UserSearch {
             searchInput.value = userData.displayName || userData.email;
         }
 
+        // Close the modal if it exists
+        const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+        if (modal) {
+            document.body.removeChild(modal);
+        }
+
         // Show success message
         if (window.Toastify) {
             Toastify({
                 text: `Selected ${userData.displayName || userData.email} as trade partner`,
                 duration: 3000,
                 style: { background: "linear-gradient(to right, #10b981, #059669)" }
-            }).showTradeToast();
+            }).showToast();
         }
     }
 }
@@ -1195,7 +1230,7 @@ function renderTradeItems(cards, money) {
                      class="w-8 h-8 object-cover rounded"
                      onerror="this.src='https://via.placeholder.com/32x32?text=?'">
                 <span class="text-sm">${card.name}</span>
-                <span class="text-xs text-gray-500">$${(card.priceUsd || 0).toFixed(2)}</span>
+                <span class="text-xs text-gray-500">$${(parseFloat(card.priceUsd) || 0).toFixed(2)}</span>
             </div>
         `).join('');
     }
