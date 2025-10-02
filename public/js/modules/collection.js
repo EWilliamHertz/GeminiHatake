@@ -286,6 +286,7 @@ export async function batchCreateMarketplaceListings(updates) {
                     country: userProfile?.country || 'Unknown'
                 },
                 price: update.data.sale_price,
+                currency: update.data.sale_currency || 'USD',
                 quantity: card.quantity || 1,
                 listedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 originalCollectionCardId: card.id
