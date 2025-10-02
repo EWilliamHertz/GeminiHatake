@@ -1,64 +1,248 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>
-   HatakeSocial - Ultimate TCG Social Platform | Trading Cards
-  </title>
-  <meta content="Join the ultimate TCG social platform for Magic, Pokemon, &amp; Yu-Gi-Oh players. Share decks, find tournaments, and connect with a global trading card game community." name="description"/>
-  <meta content="TCG social platform, trading card game community, TCG deck builder, Pokemon TCG community, Magic the Gathering social, TCG tournament finder, TCG collection tracker" name="keywords"/>
-  <meta content="#9333ea" name="theme-color"/>
-  <meta content="yes" name="apple-mobile-web-app-capable"/>
-  <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
-  <meta content="HatakeSocial" name="apple-mobile-web-app-title"/>
-  <meta content="#9333ea" name="msapplication-TileColor"/>
-  <meta content="/browserconfig.xml" name="msapplication-config"/>
-  <link href="/manifest.json" rel="manifest"/>
-  <link href="/icons/icon-192x192.png" rel="apple-touch-icon" sizes="180x180"/>
-  <link href="/icons/icon-32x32.png" rel="icon" sizes="32x32" type="image/png"/>
-  <link href="/icons/icon-16x16.png" rel="icon" sizes="16x16" type="image/png"/>
-  <link color="#9333ea" href="/icons/safari-pinned-tab.svg" rel="mask-icon"/>
-  <meta content="HatakeSocial - The Ultimate TCG Social Platform" property="og:title"/>
-  <meta content="The social platform every TCG player needs to build decks, find tournaments, and connect with players worldwide." property="og:description"/>
-  <meta content="website" property="og:type"/>
-  <meta content="https://www.hatake.eu" property="og:url"/>
-  <meta content="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b" property="og:image"/>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-  <script src="https://unpkg.com/lucide@latest">
-  </script>
-  <link href="css/style.css" rel="stylesheet"/>
-  <style>
-   :root {
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>HatakeSocial - Ultimate TCG Social Platform | Trading Cards</title>
+    <meta content="Join the ultimate TCG social platform for Magic, Pokemon, &amp; Lorcana players. Share decks, find tournaments, and connect with a global trading card game community." name="description"/>
+    <meta content="TCG social platform, trading card game community, TCG deck builder, Pokemon TCG community, Magic the Gathering social, TCG tournament finder, TCG collection tracker" name="keywords"/>
+    <meta content="#9333ea" name="theme-color"/>
+    <meta content="yes" name="apple-mobile-web-app-capable"/>
+    <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+    <meta content="HatakeSocial" name="apple-mobile-web-app-title"/>
+    <meta content="#9333ea" name="msapplication-TileColor"/>
+    <meta content="/browserconfig.xml" name="msapplication-config"/>
+    <link href="/manifest.json" rel="manifest"/>
+    <link href="/icons/icon-192x192.png" rel="apple-touch-icon" sizes="180x180"/>
+    <link href="/icons/icon-32x32.png" rel="icon" sizes="32x32" type="image/png"/>
+    <link href="/icons/icon-16x16.png" rel="icon" sizes="16x16" type="image/png"/>
+    <link color="#9333ea" href="/icons/safari-pinned-tab.svg" rel="mask-icon"/>
+    <meta content="HatakeSocial - The Ultimate TCG Social Platform" property="og:title"/>
+    <meta content="The social platform every TCG player needs to build decks, find tournaments, and connect with players worldwide." property="og:description"/>
+    <meta content="website" property="og:type"/>
+    <meta content="https://www.hatake.eu" property="og:url"/>
+    <meta content="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b" property="og:image"/>
+    
+    <!-- External CSS and JS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="css/style.css" rel="stylesheet"/>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <style>
+        :root {
+            --background-light: #ffffff;
             --background-dark: #111827;
-            --text-light: #d1d5db;
+            --text-light: #1f2937;
+            --text-dark: #d1d5db;
             --accent-indigo: #4f46e5;
             --accent-pink: #ec4899;
+            --border-light: #e5e7eb;
+            --border-dark: #374151;
+            --card-light: #f9fafb;
+            --card-dark: #1f2937;
         }
-        html { scroll-behavior: smooth; }
+        
+        html { 
+            scroll-behavior: smooth; 
+        }
+        
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--background-dark);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Light mode styles */
+        .light {
+            background-color: var(--background-light);
             color: var(--text-light);
         }
-        .group:hover .group-hover\:block { display: block; }
+        
+        .light .bg-gray-900 {
+            background-color: var(--background-light) !important;
+        }
+        
+        .light .text-white {
+            color: var(--text-light) !important;
+        }
+        
+        .light .text-gray-400 {
+            color: #6b7280 !important;
+        }
+        
+        .light .border-gray-700 {
+            border-color: var(--border-light) !important;
+        }
+        
+        .light .bg-gray-700 {
+            background-color: var(--card-light) !important;
+        }
+        
+        .light .bg-gray-800 {
+            background-color: var(--background-light) !important;
+        }
+        
+        /* Dark mode styles */
+        .dark {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+        }
+        
+        .dark .bg-gray-900 {
+            background-color: var(--background-dark) !important;
+        }
+        
+        /* Centered layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        
+        /* Navigation styles */
+        .nav-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .nav-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 0.5rem;
+            z-index: 1000;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+        }
+        
+        .dark .nav-dropdown-content {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+        }
+        
+        .nav-dropdown:hover .nav-dropdown-content {
+            display: block;
+        }
+        
+        .nav-dropdown-content a {
+            color: #1f2937;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s ease;
+        }
+        
+        .dark .nav-dropdown-content a {
+            color: #d1d5db;
+        }
+        
+        .nav-dropdown-content a:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .dark .nav-dropdown-content a:hover {
+            background-color: #374151;
+        }
+        
+        /* Theme toggle button */
+        .theme-toggle {
+            background: none;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: currentColor;
+        }
+        
+        .theme-toggle:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-color: var(--accent-indigo);
+        }
+        
+        /* Gallery styles */
+        .gallery-main-image { 
+            max-width: 80vw; 
+            max-height: 70vh; 
+            object-fit: contain; 
+        }
+        
+        .gallery-arrow { 
+            position: absolute; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            cursor: pointer; 
+            padding: 1rem; 
+            color: white; 
+            background-color: rgba(0,0,0,0.5); 
+            border-radius: 50%; 
+            user-select: none; 
+            z-index: 10; 
+        }
+        
+        .gallery-arrow:hover { 
+            background-color: rgba(0,0,0,0.8); 
+        }
+        
+        .gallery-arrow.left { 
+            left: 1rem; 
+        }
+        
+        .gallery-arrow.right { 
+            right: 1rem; 
+        }
+        
+        #gallery-thumbnails { 
+            display: flex; 
+            overflow-x: auto; 
+            gap: 0.5rem; 
+            padding: 0.75rem; 
+            width: 100%; 
+            max-width: 80vw; 
+            scrollbar-width: thin; 
+            scrollbar-color: #4f46e5 #1f2937; 
+        }
+        
+        .gallery-thumbnail { 
+            width: 80px; 
+            height: 80px; 
+            object-fit: cover; 
+            cursor: pointer; 
+            border-radius: 0.375rem; 
+            border: 2px solid transparent; 
+            opacity: 0.6; 
+            transition: opacity 0.2s ease, border-color 0.2s ease; 
+            flex-shrink: 0; 
+        }
+        
+        .gallery-thumbnail:hover { 
+            opacity: 1; 
+        }
+        
+        .gallery-thumbnail.active { 
+            opacity: 1; 
+            border-color: #4f46e5; 
+        }
+        
         .gradient-text {
             background: linear-gradient(to right, var(--accent-indigo), var(--accent-pink));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .gallery-main-image { max-width: 80vw; max-height: 70vh; object-fit: contain; }
-        .gallery-arrow { position: absolute; top: 50%; transform: translateY(-50%); cursor: pointer; padding: 1rem; color: white; background-color: rgba(0,0,0,0.5); border-radius: 50%; user-select: none; z-index: 10; }
-        .gallery-arrow:hover { background-color: rgba(0,0,0,0.8); }
-        .gallery-arrow.left { left: 1rem; }
-        .gallery-arrow.right { right: 1rem; }
-        #gallery-thumbnails { display: flex; overflow-x: auto; gap: 0.5rem; padding: 0.75rem; width: 100%; max-width: 80vw; scrollbar-width: thin; scrollbar-color: #4f46e5 #1f2937; }
-        .gallery-thumbnail { width: 80px; height: 80px; object-fit: cover; cursor: pointer; border-radius: 0.375rem; border: 2px solid transparent; opacity: 0.6; transition: opacity 0.2s ease, border-color 0.2s ease; flex-shrink: 0; }
-        .gallery-thumbnail:hover { opacity: 1; }
-        .gallery-thumbnail.active { opacity: 1; border-color: #4f46e5; }
         
         /* PWA Install Banner Styles */
         .pwa-install-banner {
@@ -155,478 +339,500 @@
                 width: 100%;
                 justify-content: center;
             }
+            
+            .nav-dropdown-content {
+                right: 0;
+                left: auto;
+            }
         }
-  </style>
- </head>
- <body class="antialiased bg-gray-900">
-  <div class="pwa-install-banner" id="pwa-install-banner">
-   <div class="install-content">
-    <div class="install-icon">
-     <i class="fas fa-mobile-alt">
-     </i>
+    </style>
+</head>
+
+<body class="antialiased">
+    <!-- PWA Install Banner -->
+    <div class="pwa-install-banner" id="pwa-install-banner">
+        <div class="install-content">
+            <div class="install-icon">
+                <i class="fas fa-mobile-alt"></i>
+            </div>
+            <div class="install-text">
+                <div class="install-title">Install HatakeSocial</div>
+                <div class="install-description">Get the full app experience with offline access and push notifications</div>
+            </div>
+            <div class="install-actions">
+                <button class="install-btn primary" id="install-app-btn">
+                    <i class="fas fa-download"></i> Install
+                </button>
+                <button class="install-btn" id="dismiss-install-btn">
+                    <i class="fas fa-times"></i> Dismiss
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="install-text">
-     <div class="install-title">
-      Install HatakeSocial
-     </div>
-     <div class="install-description">
-      Get the full app experience with offline access and push notifications
-     </div>
+
+    <!-- Header -->
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900">
+        <div class="container mx-auto flex items-center justify-between">
+            <!-- Search Bar -->
+            <div class="flex items-center flex-1 max-w-md">
+                <div class="relative w-full">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100" 
+                           id="main-search-bar" 
+                           placeholder="Search for cards, users, or articles..." 
+                           type="text"/>
+                </div>
+            </div>
+
+            <!-- Navigation Menu -->
+            <nav class="hidden md:flex items-center space-x-6 mx-8">
+                <div class="nav-dropdown">
+                    <button class="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">
+                        <span>About Us</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="/about.html">Our Story</a>
+                        <a href="/team.html">Meet the Team</a>
+                        <a href="/careers.html">Careers</a>
+                        <a href="/contact.html">Contact Us</a>
+                    </div>
+                </div>
+                
+                <div class="nav-dropdown">
+                    <button class="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">
+                        <span>Hatake Blog</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div class="nav-dropdown-content">
+                        <a href="/blog.html">Latest Posts</a>
+                        <a href="/blog/strategy.html">Strategy Guides</a>
+                        <a href="/blog/news.html">TCG News</a>
+                        <a href="/blog/community.html">Community Highlights</a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Theme Toggle and User Actions -->
+            <div class="flex items-center space-x-4">
+                <!-- Theme Toggle Button -->
+                <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode">
+                    <i class="fas fa-sun" id="theme-icon"></i>
+                </button>
+                
+                <!-- User Actions Container -->
+                <div class="flex items-center space-x-3" id="user-actions">
+                    <!-- This container is dynamically filled by auth.js -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="bg-white dark:bg-gray-900">
+        <!-- Hero Section -->
+        <section class="pt-32 pb-20">
+            <div class="container mx-auto text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-4">
+                    HatakeSocial
+                    <span class="block text-3xl md:text-5xl gradient-text mt-2">
+                        The Ultimate TCG Social Platform
+                    </span>
+                </h1>
+                <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-8">
+                    Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Lorcana fans. Your TCG journey starts here.
+                </p>
+                <div class="flex flex-col items-center justify-center mb-8">
+                    <img alt="HatakeSocial Logo" 
+                         class="h-80 w-auto mb-3" 
+                         src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 italic">
+                        Our logo is created by Richard Moreau
+                    </p>
+                </div>
+                <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block" 
+                        id="register-btn-hero">
+                    Join the Community
+                </button>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-24 space-y-20 bg-gray-50 dark:bg-gray-800">
+            <!-- Social Feed Feature -->
+            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-feed">
+                <div class="md:pr-8">
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        The Heart of the Community: Your Social Feed
+                    </h2>
+                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                        Dive into a dynamic feed buzzing with the latest from the TCG world. Share your latest pack openings, showcase your prized cards, and discuss metagame shifts with friends and followers. Our feed is your central hub for news, community content, and strategy discussions, tailored to the games you love.
+                    </p>
+                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-deckbuilder">
+                        Explore the Deck Builder →
+                    </a>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-2xl">
+                    <img alt="Screenshot of the HatakeSocial social feed in action." 
+                         class="w-full h-full object-cover" 
+                         src="https://i.imgur.com/tvJEQYU.png"/>
+                </div>
+            </div>
+
+            <!-- Deck Builder Feature -->
+            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-deckbuilder">
+                <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
+                    <img alt="Screenshot of the intuitive and powerful deck builder interface." 
+                         class="w-full h-full object-cover" 
+                         src="https://i.imgur.com/SLaX140.png"/>
+                </div>
+                <div class="md:pl-8">
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        Advanced Deck Builder
+                    </h2>
+                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                        Unleash your creativity with our state-of-the-art deck building tool. Access comprehensive, up-to-date card databases for popular TCGs. Build and test your creations with an intuitive interface, get detailed analytics on your mana curve and card types, and share your masterpiece with the community or import popular meta decks with a single click.
+                    </p>
+                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-collection">
+                        Track Your Collection →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Collection Feature -->
+            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-collection">
+                <div class="md:pr-8">
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        Your Collection, Digitized
+                    </h2>
+                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                        Digitize your physical collection with our powerful tracking tool. Easily add cards, monitor the value of your entire portfolio with real-time market data, and create detailed wantlists. Our collection tracker makes managing your assets and preparing for trades simpler and more organized than ever before.
+                    </p>
+                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-marketplace">
+                        Visit the Marketplace →
+                    </a>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-2xl">
+                    <img alt="Screenshot of a user's card collection page with value tracking." 
+                         class="w-full h-full object-cover" 
+                         src="https://i.imgur.com/1ehyX2h.png"/>
+                </div>
+            </div>
+
+            <!-- Marketplace Feature -->
+            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-marketplace">
+                <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
+                    <img alt="Screenshot of the secure trading and marketplace interface." 
+                         class="w-full h-full object-cover" 
+                         src="https://i.imgur.com/QyFZZiJ.png"/>
+                </div>
+                <div class="md:pl-8">
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        Marketplace &amp; Secure Trading
+                    </h2>
+                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                        Connect with players to buy, sell, and trade with confidence. Our integrated marketplace allows you to list singles or entire decks. The secure trading system, complete with user reviews and an escrow-like feature, ensures your valuable cards are protected throughout every transaction, fostering a safe and trustworthy community market.
+                    </p>
+                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#feature-events">
+                        Find an Event →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Events Feature -->
+            <div class="container mx-auto grid md:grid-cols-2 gap-12 items-center" id="feature-events">
+                <div class="md:pr-8">
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        Find Your Next Tournament
+                    </h2>
+                    <p class="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-6">
+                        Ready to test your skills? Our tournament finder helps you discover local and online events. Filter by game, format, and location to find your next competition. From Friday Night Magic at your local game store to large-scale online championships, you'll never miss a chance to compete, win prizes, and make a name for yourself.
+                    </p>
+                    <a class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-500 dark:hover:text-indigo-300" href="#community">
+                        Join the Community →
+                    </a>
+                </div>
+                <div class="rounded-lg overflow-hidden shadow-2xl">
+                    <img alt="Screenshot of the event finder showing local tournaments on a map." 
+                         class="w-full h-full object-cover" 
+                         src="https://placehold.co/600x400/1f2937/4f46e5?text=Event+Finder+Map"/>
+                </div>
+            </div>
+        </section>
+
+        <!-- Merchandise Gallery Section -->
+        <section class="py-20 bg-white dark:bg-gray-900">
+            <div class="container mx-auto text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                    Explore Our Merchandise
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mt-4 mb-8">
+                    Click here to view photos of our own merchandise brand, brought to you by top engineers of the TCG industry.
+                </p>
+                <button class="bg-pink-600 hover:bg-pink-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block" 
+                        id="open-gallery-btn">
+                    View Photo Gallery
+                </button>
+            </div>
+        </section>
+
+        <!-- Community CTA Section -->
+        <section class="py-20 bg-gray-50 dark:bg-gray-800" id="community">
+            <div class="container mx-auto text-center">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                    Ready to Join the Global TCG Community?
+                </h2>
+                <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mt-4 mb-8">
+                    Your next favorite deck, your next rival, and your next tournament win are all waiting. Sign up for free and become part of the ultimate TCG social platform today.
+                </p>
+                <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block" 
+                        id="register-btn-cta">
+                    Create Your Free Account
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+        <div class="container mx-auto py-8 text-center text-gray-600 dark:text-gray-400">
+            <p>© 2025 HatakeSocial. All rights reserved.</p>
+            <div class="mt-4 space-x-6">
+                <a class="hover:text-gray-900 dark:hover:text-white transition-colors" href="about.html">About</a>
+                <a class="hover:text-gray-900 dark:hover:text-white transition-colors" href="contact.html">Contact</a>
+                <a class="hover:text-gray-900 dark:hover:text-white transition-colors" href="privacy.html">Privacy</a>
+                <a class="hover:text-gray-900 dark:hover:text-white transition-colors" href="terms.html">Terms</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Gallery Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50" id="gallery-modal">
+        <div class="relative max-w-6xl max-h-full p-4" id="gallery-backdrop">
+            <button class="absolute top-4 right-4 text-white text-3xl font-bold z-20 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-75" 
+                    id="close-gallery-btn">×</button>
+            <div class="gallery-arrow left" id="prev-btn">‹</div>
+            <div class="gallery-arrow right" id="next-btn">›</div>
+            <img alt="Gallery Image" class="gallery-main-image mx-auto" id="gallery-image"/>
+            <div class="flex justify-center mt-4" id="gallery-thumbnails"></div>
+        </div>
     </div>
-    <div class="install-actions">
-     <button class="install-btn primary" id="install-app-btn">
-      <i class="fas fa-download">
-      </i>
-      Install
-     </button>
-     <button class="install-btn" id="dismiss-install-btn">
-      <i class="fas fa-times">
-      </i>
-      Dismiss
-     </button>
+
+    <!-- Login Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Login</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">×</button>
+            </div>
+            <form class="mt-4 space-y-4" id="loginForm">
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="loginEmail" placeholder="Email" required="" type="email"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="loginPassword" placeholder="Password" required="" type="password"/>
+                <p class="text-red-500 text-sm hidden" id="login-error-message"></p>
+                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                    Login
+                </button>
+                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" 
+                        id="googleLoginButton" type="button">
+                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                    Sign in with Google
+                </button>
+            </form>
+        </div>
     </div>
-   </div>
-  </div>
-  <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-   <div class="flex items-center">
-    <div class="relative">
-     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-     </i>
-     <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+
+    <!-- Register Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Register</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">×</button>
+            </div>
+            <form class="mt-4 space-y-4" id="registerForm">
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="registerEmail" placeholder="Email" required="" type="email"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="registerPassword" placeholder="Password" required="" type="password"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="registerCity" placeholder="City" type="text"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="registerCountry" placeholder="Country" type="text"/>
+                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" 
+                       id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+                <p class="text-red-500 text-sm hidden" id="register-error-message"></p>
+                <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+                    Register
+                </button>
+                <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" 
+                        id="googleRegisterButton" type="button">
+                    <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+                    Register with Google
+                </button>
+            </form>
+        </div>
     </div>
-   </div>
-   <div class="flex items-center space-x-5" id="user-actions">
-    <!-- This container is dynamically filled by auth.js -->
-   </div>
-  </header>
-  <main>
-   <section class="pt-32 pb-20 bg-gray-900">
-    <div class="container mx-auto px-6 text-center">
-     <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-4">
-      HatakeSocial
-      <span class="block text-3xl md:text-5xl gradient-text mt-2">
-       The Ultimate TCG Social Platform
-      </span>
-     </h1>
-     <p class="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-8">
-      Built by players, for players. The premier social hub for Trading Card Game enthusiasts. Connect, build, trade, and compete with a global community of Magic, Pokémon, and Yu-Gi-Oh! fans. Your TCG journey starts here.
-     </p>
-     <div class="flex flex-col items-center justify-center mb-8">
-      <img alt="HatakeSocial Logo" class="h-80 w-auto mb-3" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
-      <p class="text-sm text-gray-500 italic">
-       Our logo is created by Richard Moreau
-      </p>
-     </div>
-     <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block" id="register-btn-hero">
-      Join the Community
-     </button>
-    </div>
-   </section>
-   <section class="py-24 space-y-20">
-    <div class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center" id="feature-feed">
-     <div class="md:pr-8">
-      <h2 class="text-3xl font-bold text-white mb-4">
-       The Heart of the Community: Your Social Feed
-      </h2>
-      <p class="text-gray-400 text-lg leading-relaxed mb-6">
-       Dive into a dynamic feed buzzing with the latest from the TCG world. Share your latest pack openings, showcase your prized cards, and discuss metagame shifts with friends and followers. Our feed is your central hub for news, community content, and strategy discussions, tailored to the games you love.
-      </p>
-      <a class="text-indigo-400 font-semibold hover:text-indigo-300" href="#feature-deckbuilder">
-       Explore the Deck Builder →
-      </a>
-     </div>
-     <div class="rounded-lg overflow-hidden shadow-2xl">
-      <img alt="Screenshot of the HatakeSocial social feed in action." class="w-full h-full object-cover" src="https://i.imgur.com/tvJEQYU.png"/>
-     </div>
-    </div>
-    <div class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center" id="feature-deckbuilder">
-     <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
-      <img alt="Screenshot of the intuitive and powerful deck builder interface." class="w-full h-full object-cover" src="https://i.imgur.com/SLaX140.png"/>
-     </div>
-     <div class="md:pl-8">
-      <h2 class="text-3xl font-bold text-white mb-4">
-       Advanced Deck Builder
-      </h2>
-      <p class="text-gray-400 text-lg leading-relaxed mb-6">
-       Unleash your creativity with our state-of-the-art deck building tool. Access comprehensive, up-to-date card databases for popular TCGs. Build and test your creations with an intuitive interface, get detailed analytics on your mana curve and card types, and share your masterpiece with the community or import popular meta decks with a single click.
-      </p>
-      <a class="text-indigo-400 font-semibold hover:text-indigo-300" href="#feature-collection">
-       Track Your Collection →
-      </a>
-     </div>
-    </div>
-    <div class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center" id="feature-collection">
-     <div class="md:pr-8">
-      <h2 class="text-3xl font-bold text-white mb-4">
-       Your Collection, Digitized
-      </h2>
-      <p class="text-gray-400 text-lg leading-relaxed mb-6">
-       Digitize your physical collection with our powerful tracking tool. Easily add cards, monitor the value of your entire portfolio with real-time market data, and create detailed wantlists. Our collection tracker makes managing your assets and preparing for trades simpler and more organized than ever before.
-      </p>
-      <a class="text-indigo-400 font-semibold hover:text-indigo-300" href="#feature-marketplace">
-       Visit the Marketplace →
-      </a>
-     </div>
-     <div class="rounded-lg overflow-hidden shadow-2xl">
-      <img alt="Screenshot of a user's card collection page with value tracking." class="w-full h-full object-cover" src="https://i.imgur.com/1ehyX2h.png"/>
-     </div>
-    </div>
-    <div class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center" id="feature-marketplace">
-     <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
-      <img alt="Screenshot of the secure trading and marketplace interface." class="w-full h-full object-cover" src="https://i.imgur.com/QyFZZiJ.png"/>
-     </div>
-     <div class="md:pl-8">
-      <h2 class="text-3xl font-bold text-white mb-4">
-       Marketplace &amp; Secure Trading
-      </h2>
-      <p class="text-gray-400 text-lg leading-relaxed mb-6">
-       Connect with players to buy, sell, and trade with confidence. Our integrated marketplace allows you to list singles or entire decks. The secure trading system, complete with user reviews and an escrow-like feature, ensures your valuable cards are protected throughout every transaction, fostering a safe and trustworthy community market.
-      </p>
-      <a class="text-indigo-400 font-semibold hover:text-indigo-300" href="#feature-events">
-       Find an Event →
-      </a>
-     </div>
-    </div>
-    <div class="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center" id="feature-events">
-     <div class="md:pr-8">
-      <h2 class="text-3xl font-bold text-white mb-4">
-       Find Your Next Tournament
-      </h2>
-      <p class="text-gray-400 text-lg leading-relaxed mb-6">
-       Ready to test your skills? Our tournament finder helps you discover local and online events. Filter by game, format, and location to find your next competition. From Friday Night Magic at your local game store to large-scale online championships, you'll never miss a chance to compete, win prizes, and make a name for yourself.
-      </p>
-      <a class="text-indigo-400 font-semibold hover:text-indigo-300" href="#community">
-       Join the Community →
-      </a>
-     </div>
-     <div class="rounded-lg overflow-hidden shadow-2xl">
-      <img alt="Screenshot of the event finder showing local tournaments on a map." class="w-full h-full object-cover" src="https://placehold.co/600x400/1f2937/4f46e5?text=Event+Finder+Map"/>
-     </div>
-    </div>
-   </section>
-   <section class="py-20 bg-gray-900">
-    <div class="container mx-auto px-6 text-center">
-     <h2 class="text-3xl md:text-4xl font-bold text-white">
-      Explore Our Merchandise
-     </h2>
-     <p class="text-lg text-gray-400 max-w-2xl mx-auto mt-4 mb-8">
-      Click here to view photos of our own merchandise brand, brought to you by top engineers of the TCG industry.
-     </p>
-     <button class="bg-pink-600 hover:bg-pink-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block" id="open-gallery-btn">
-      View Photo Gallery
-     </button>
-    </div>
-   </section>
-   <section class="py-20 bg-gray-900/50" id="community">
-    <div class="container mx-auto px-6 text-center">
-     <h2 class="text-3xl md:text-4xl font-bold text-white">
-      Ready to Join the Global TCG Community?
-     </h2>
-     <p class="text-lg text-gray-400 max-w-2xl mx-auto mt-4 mb-8">
-      Your next favorite deck, your next rival, and your next tournament win are all waiting. Sign up for free and become part of the ultimate TCG social platform today.
-     </p>
-     <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block" id="register-btn-cta">
-      Create Your Free Account
-     </button>
-    </div>
-   </section>
-  </main>
-  <footer class="bg-gray-900 border-t border-gray-800">
-   <div class="container mx-auto px-6 py-8 text-center text-gray-400">
-    <p>
-     © 2025 HatakeSocial. All rights reserved.
-    </p>
-    <div class="mt-4 space-x-6">
-     <a class="hover:text-white transition-colors" href="about.html">
-      About
-     </a>
-     <a class="hover:text-white transition-colors" href="contact.html">
-      Contact
-     </a>
-     <a class="hover:text-white transition-colors" href="privacy.html">
-      Privacy Policy
-     </a>
-     <a class="hover:text-white transition-colors" href="terms.html">
-      Terms of Service
-     </a>
-    </div>
-   </div>
-  </footer>
-  <div class="fixed inset-0 z-[1002] flex items-center justify-center hidden" id="gallery-modal">
-   <div class="absolute inset-0 bg-black/80" id="gallery-backdrop">
-   </div>
-   <div class="relative flex flex-col items-center justify-center">
-    <button class="absolute -top-12 -right-4 text-white hover:text-gray-300 z-10" id="close-gallery-modal">
-     <i class="w-10 h-10" data-lucide="x-circle">
-     </i>
-    </button>
-    <div class="relative mb-4">
-     <img alt="Product Gallery Image" class="gallery-main-image rounded-lg shadow-xl" id="gallery-image" src=""/>
-     <div class="gallery-arrow left" id="gallery-prev">
-      <i class="w-8 h-8" data-lucide="chevron-left">
-      </i>
-     </div>
-     <div class="gallery-arrow right" id="gallery-next">
-      <i class="w-8 h-8" data-lucide="chevron-right">
-      </i>
-     </div>
-    </div>
-    <div id="gallery-thumbnails">
-    </div>
-   </div>
-  </div>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js">
-  </script>
-  <script src="js/auth.js">
-  </script>
-  <script src="js/darkmode.js">
-  </script>
-  <script>
-   let deferredPrompt;
+
+    <!-- Scripts -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/darkmode.js"></script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const html = document.documentElement;
+            
+            // Load saved theme preference or default to dark
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            html.className = savedTheme;
+            updateThemeIcon(savedTheme);
+            
+            themeToggle.addEventListener('click', function() {
+                const currentTheme = html.className;
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                html.className = newTheme;
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(newTheme);
+            });
+            
+            function updateThemeIcon(theme) {
+                if (theme === 'dark') {
+                    themeIcon.className = 'fas fa-sun';
+                    themeIcon.title = 'Switch to light mode';
+                } else {
+                    themeIcon.className = 'fas fa-moon';
+                    themeIcon.title = 'Switch to dark mode';
+                }
+            }
+        });
+    </script>
+
+    <!-- Gallery Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const galleryModal = document.getElementById('gallery-modal');
+            const galleryImage = document.getElementById('gallery-image');
+            const thumbnailsContainer = document.getElementById('gallery-thumbnails');
+            const openGalleryBtn = document.getElementById('open-gallery-btn');
+            const closeGalleryBtn = document.getElementById('close-gallery-btn');
+            const galleryBackdrop = document.getElementById('gallery-backdrop');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            let imageUrls = [];
+            let currentIndex = 0;
+
+            function populateThumbnails() {
+                thumbnailsContainer.innerHTML = '';
+                imageUrls.forEach((url, index) => {
+                    const thumb = document.createElement('img');
+                    thumb.src = url;
+                    thumb.classList.add('gallery-thumbnail');
+                    thumb.dataset.index = index;
+                    thumb.addEventListener('click', () => showImage(index));
+                    thumbnailsContainer.appendChild(thumb);
+                });
+            }
+
+            async function fetchProductImages() {
+                if (imageUrls.length > 0) return;
+                try {
+                    const productsSnapshot = await firebase.firestore().collection('products').get();
+                    let allUrls = [];
+                    productsSnapshot.forEach(doc => {
+                        const product = doc.data();
+                        if (product.galleryImageUrls && Array.isArray(product.galleryImageUrls)) {
+                            allUrls = allUrls.concat(product.galleryImageUrls.filter(url => typeof url === 'string' && url.startsWith('http')));
+                        }
+                    });
+                    imageUrls = [...new Set(allUrls)]; 
+                    populateThumbnails();
+                } catch (error) {
+                    console.error("Error fetching product images:", error);
+                }
+            }
+
+            function showImage(index) {
+                if (imageUrls.length === 0) return;
+                currentIndex = (index + imageUrls.length) % imageUrls.length;
+                galleryImage.src = imageUrls[currentIndex];
+
+                const thumbnails = thumbnailsContainer.querySelectorAll('.gallery-thumbnail');
+                thumbnails.forEach((thumb, i) => {
+                    thumb.classList.toggle('active', i === currentIndex);
+                });
+            }
+
+            function openGalleryModal() {
+                if (imageUrls.length === 0) {
+                    alert("No merchandise images available yet.");
+                    return;
+                }
+                galleryModal.classList.remove('hidden');
+                galleryModal.classList.add('flex');
+                showImage(0);
+                document.addEventListener('keydown', handleKeyPress);
+            }
+            
+            function closeGalleryModal() {
+                galleryModal.classList.add('hidden');
+                galleryModal.classList.remove('flex');
+                document.removeEventListener('keydown', handleKeyPress);
+            }
+
+            function handleKeyPress(e) {
+                if (e.key === 'ArrowRight') showImage(currentIndex + 1);
+                else if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
+                else if (e.key === 'Escape') closeGalleryModal();
+            }
+
+            openGalleryBtn.addEventListener('click', async () => {
+                await fetchProductImages();
+                openGalleryModal();
+            });
+            
+            closeGalleryBtn.addEventListener('click', closeGalleryModal);
+            galleryBackdrop.addEventListener('click', closeGalleryModal);
+            prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
+            nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
+        });
+    </script>
+
+    <!-- PWA Script -->
+    <script>
+        // PWA Install functionality
+        let deferredPrompt;
         const installBanner = document.getElementById('pwa-install-banner');
         const installBtn = document.getElementById('install-app-btn');
         const dismissBtn = document.getElementById('dismiss-install-btn');
 
-        // Check if app is already installed or dismissed
-        const isInstalled = localStorage.getItem('pwa-installed') === 'true';
-        const isDismissed = localStorage.getItem('pwa-dismissed') === 'true';
-
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            
-            if (!isInstalled && !isDismissed) {
-                setTimeout(() => {
-                    installBanner.style.display = 'block';
-                }, 2000);
-            }
+            installBanner.style.display = 'block';
         });
 
         installBtn.addEventListener('click', async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                
-                if (outcome === 'accepted') {
-                    localStorage.setItem('pwa-installed', 'true');
-                    installBanner.style.display = 'none';
-                }
-                
                 deferredPrompt = null;
-            } else {
-                // Fallback instructions
-                showInstallInstructions();
+                installBanner.style.display = 'none';
             }
         });
 
         dismissBtn.addEventListener('click', () => {
-            localStorage.setItem('pwa-dismissed', 'true');
             installBanner.style.display = 'none';
         });
+    </script>
 
-        function showInstallInstructions() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            let instructions = '';
-            
-            if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
-                instructions = 'To install: Tap the Share button and select "Add to Home Screen"';
-            } else if (userAgent.includes('android')) {
-                instructions = 'To install: Tap the menu button and select "Add to Home Screen" or "Install App"';
-            } else {
-                instructions = 'To install: Look for the install icon in your browser\'s address bar or use "Install App" from the menu';
-            }
-            
-            alert(instructions);
-        }
-
-        // Check if app was launched from home screen
-        window.addEventListener('appinstalled', () => {
-            localStorage.setItem('pwa-installed', 'true');
-            installBanner.style.display = 'none';
-        });
-
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(function(err) {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
-  </script>
-  <script>
-   document.addEventListener('DOMContentLoaded', () => {
-             lucide.createIcons();
-
-             // --- Event Listeners for Buttons ---
-             const registerBtnHero = document.getElementById('register-btn-hero');
-             const registerBtnCta = document.getElementById('register-btn-cta');
-             if (registerBtnHero) {
-                 registerBtnHero.addEventListener('click', () => openModal(document.getElementById('registerModal')));
-             }
-              if (registerBtnCta) {
-                 registerBtnCta.addEventListener('click', () => openModal(document.getElementById('registerModal')));
-             }
-             
-             // --- Gallery Modal Logic ---
-             const galleryModal = document.getElementById('gallery-modal');
-             const openGalleryBtn = document.getElementById('open-gallery-btn');
-             const closeGalleryBtn = document.getElementById('close-gallery-modal');
-             const galleryBackdrop = document.getElementById('gallery-backdrop');
-             const galleryImage = document.getElementById('gallery-image');
-             const prevBtn = document.getElementById('gallery-prev');
-             const nextBtn = document.getElementById('gallery-next');
-             const thumbnailsContainer = document.getElementById('gallery-thumbnails');
-
-             let imageUrls = [];
-             let currentIndex = 0;
-
-             function populateThumbnails() {
-                 thumbnailsContainer.innerHTML = '';
-                 imageUrls.forEach((url, index) => {
-                     const thumb = document.createElement('img');
-                     thumb.src = url;
-                     thumb.classList.add('gallery-thumbnail');
-                     thumb.dataset.index = index;
-                     thumb.addEventListener('click', () => showImage(index));
-                     thumbnailsContainer.appendChild(thumb);
-                 });
-             }
-
-             async function fetchProductImages() {
-                 if (imageUrls.length > 0) return;
-                 try {
-                     const productsSnapshot = await firebase.firestore().collection('products').get();
-                     let allUrls = [];
-                     productsSnapshot.forEach(doc => {
-                         const product = doc.data();
-                         if (product.galleryImageUrls && Array.isArray(product.galleryImageUrls)) {
-                             allUrls = allUrls.concat(product.galleryImageUrls.filter(url => typeof url === 'string' && url.startsWith('http')));
-                         }
-                     });
-                     imageUrls = [...new Set(allUrls)]; 
-                     populateThumbnails();
-                 } catch (error) {
-                     console.error("Error fetching product images:", error);
-                 }
-             }
-
-             function showImage(index) {
-                 if (imageUrls.length === 0) return;
-                 currentIndex = (index + imageUrls.length) % imageUrls.length;
-                 galleryImage.src = imageUrls[currentIndex];
-
-                 const thumbnails = thumbnailsContainer.querySelectorAll('.gallery-thumbnail');
-                 thumbnails.forEach((thumb, i) => {
-                     thumb.classList.toggle('active', i === currentIndex);
-                 });
-             }
-
-             function openGalleryModal() {
-                  if (imageUrls.length === 0) {
-                      showToast("No merchandise images available yet.", "info");
-                      return;
-                  }
-                  galleryModal.classList.remove('hidden');
-                  galleryModal.classList.add('flex');
-                  showImage(0);
-                  document.addEventListener('keydown', handleKeyPress);
-             }
-             
-             function closeGalleryModal() {
-                 galleryModal.classList.add('hidden');
-                 galleryModal.classList.remove('flex');
-                 document.removeEventListener('keydown', handleKeyPress);
-             }
-
-             function handleKeyPress(e) {
-                 if (e.key === 'ArrowRight') showImage(currentIndex + 1);
-                 else if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
-                 else if (e.key === 'Escape') closeGalleryModal();
-             }
-
-             openGalleryBtn.addEventListener('click', async () => {
-                 await fetchProductImages();
-                 openGalleryModal();
-             });
-             
-             closeGalleryBtn.addEventListener('click', closeGalleryModal);
-             galleryBackdrop.addEventListener('click', closeGalleryModal);
-             prevBtn.addEventListener('click', () => showImage(currentIndex - 1));
-             nextBtn.addEventListener('click', () => showImage(currentIndex + 1));
-         });
-  </script>
-  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center">
-     <h2 class="text-xl font-bold">
-      Login
-     </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
-      ×
-     </button>
-    </div>
-    <form class="mt-4 space-y-4" id="loginForm">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
-     <p class="text-red-500 text-sm hidden" id="login-error-message">
-     </p>
-     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-      Login
-     </button>
-     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
-      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-      Sign in with Google
-     </button>
-    </form>
-   </div>
-  </div>
-  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-    <div class="flex justify-between items-center">
-     <h2 class="text-xl font-bold">
-      Register
-     </h2>
-     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
-      ×
-     </button>
-    </div>
-    <form class="mt-4 space-y-4" id="registerForm">
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
-     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
-     <p class="text-red-500 text-sm hidden" id="register-error-message">
-     </p>
-     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
-      Register
-     </button>
-     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
-      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
-      Register with Google
-     </button>
-    </form>
-   </div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js">
-  </script>
-  <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
-  <script src="/js/tour.js" type="module">
-  </script>
- </body>
+    <!-- Tour Script -->
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
+    <script src="/js/tour.js" type="module"></script>
+</body>
 </html>
