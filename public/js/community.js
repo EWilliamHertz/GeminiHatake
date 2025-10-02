@@ -1,958 +1,1454 @@
 /**
- * Enhanced Groups System for HatakeSocial
- * Implements improved group creation, search, and management features
- */
+* HatakeSocial - Community Page Script (v9 - LFG to Messages Page)
+*
+* This script handles all logic for the community.html page.
+* - FIX: The LFG "Message" button now correctly initiates a conversation and redirects to the main messages.html page, making it functional on all devices.
+* - REMOVED: Removed dependency on the messenger widget for starting LFG conversations.
+*/
 
-class EnhancedGroupsManager {
-    constructor(db, currentUser) {
-        this.db = db;
-        this.currentUser = currentUser;
-        this.groupSearchTimeout = null;
-        this.init();
-    }
-
-    init() {
-        this.setupGroupSearch();
-        this.setupEnhancedGroupCreation();
-        this.setupGroupFilters();
-        this.loadEnhancedGroupsList();
-    }
-
-    setupGroupSearch() {
-        const searchInput = document.getElementById('group-search-input');
-        if (!searchInput) return;
-
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(this.groupSearchTimeout);
-            this.groupSearchTimeout = setTimeout(() => {
-                this.searchGroups(e.target.value);
-            }, 300);
-        });
-    }
-
-    async searchGroups(searchTerm) {
-        const resultsContainer = document.getElementById('group-search-results');
-        if (!resultsContainer) return;
-
-        if (searchTerm.length < 2) {
-            resultsContainer.innerHTML = '';
-            resultsContainer.classList.add('hidden');
-            return;
-        }
-
-        try {
-            // Search by name (case-insensitive)
-            const nameQuery = this.db.collection('groups')
-                .where('isPublic', '==', true)
-                .orderBy('name')
-                .startAt(searchTerm.toLowerCase())
-                .endAt(searchTerm.toLowerCase() + '\uf8ff')
-                .limit(10);
-
-            // Search by tags
-            const tagQuery = this.db.collection('groups')
-                .where('isPublic', '==', true)
-                .where('tags', 'array-contains-any', [searchTerm.toLowerCase()])
-                .limit(10);
-
-            const [nameResults, tagResults] = await Promise.all([
-                nameQuery.get(),
-                tagQuery.get()
-            ]);
-
-            const allResults = new Map();
-            
-            nameResults.forEach(doc => {
-                allResults.set(doc.id, { id: doc.id, ...doc.data() });
-            });
-
-            tagResults.forEach(doc => {
-                allResults.set(doc.id, { id: doc.id, ...doc.data() });
-            });
-
-            this.displaySearchResults(Array.from(allResults.values()));
-        } catch (error) {
-            console.error('Error searching groups:', error);
-            resultsContainer.innerHTML = '<p class="text-red-500 p-2">Search error occurred</p>';
-        }
-    }
-
-    displaySearchResults(groups) {
-        const resultsContainer = document.getElementById('group-search-results');
-        if (!resultsContainer) return;
-
-        if (groups.length === 0) {
-            resultsContainer.innerHTML = '<p class="text-gray-500 p-2">No groups found</p>';
-            resultsContainer.classList.remove('hidden');
-            return;
-        }
-
-        resultsContainer.innerHTML = groups.map(group => `
-            <div class="group-search-result p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600" 
-                 data-group-id="${group.id}">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h4 class="font-semibold text-gray-800 dark:text-white">${group.name}</h4>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">${group.description || 'No description'}</p>
-                        <div class="flex items-center mt-1 space-x-2">
-                            <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                                ${group.participantCount || 0} members
-                            </span>
-                            ${group.category ? `<span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">${group.category}</span>` : ''}
-                        </div>
-                    </div>
-                    <button class="join-group-btn bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
-                            data-group-id="${group.id}">
-                        ${group.participants && group.participants.includes(this.currentUser?.uid) ? 'View' : 'Join'}
-                    </button>
-                </div>
-            </div>
-        `).join('');
-
-        resultsContainer.classList.remove('hidden');
-
-        // Add event listeners
-        resultsContainer.querySelectorAll('.group-search-result').forEach(result => {
-            result.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('join-group-btn')) {
-                    this.viewGroupDetails(result.dataset.groupId);
-                }
-            });
-        });
-
-        resultsContainer.querySelectorAll('.join-group-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.handleGroupJoin(btn.dataset.groupId);
-            });
-        });
-    }
-
-    setupEnhancedGroupCreation() {
-        const createGroupForm = document.getElementById('enhanced-create-group-form');
-        if (!createGroupForm) return;
-
-        createGroupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.createEnhancedGroup(new FormData(createGroupForm));
-        });
-
-        // Setup tag input
-        this.setupTagInput();
-    }
-
-    setupTagInput() {
-        const tagInput = document.getElementById('group-tags-input');
-        const tagsContainer = document.getElementById('selected-tags');
-        if (!tagInput || !tagsContainer) return;
-
-        let selectedTags = [];
-
-        tagInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ',') {
-                e.preventDefault();
-                const tag = tagInput.value.trim().toLowerCase();
-                if (tag && !selectedTags.includes(tag) && selectedTags.length < 5) {
-                    selectedTags.push(tag);
-                    this.renderTags(selectedTags, tagsContainer);
-                    tagInput.value = '';
-                }
-            }
-        });
-
-        this.renderTags = (tags, container) => {
-            container.innerHTML = tags.map(tag => `
-                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                    ${tag}
-                    <button type="button" class="ml-1 text-blue-600 hover:text-blue-800" onclick="this.parentElement.remove(); selectedTags = selectedTags.filter(t => t !== '${tag}')">
-                        ×
-                    </button>
-                </span>
-            `).join('');
-            
-            // Update hidden input
-            const hiddenInput = document.getElementById('group-tags-hidden');
-            if (hiddenInput) {
-                hiddenInput.value = JSON.stringify(tags);
-            }
-        };
-    }
-
-    async createEnhancedGroup(formData) {
-        if (!this.currentUser) {
-            alert('Please log in to create a group');
-            return;
-        }
-
-        const submitBtn = document.querySelector('#enhanced-create-group-form button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Creating...';
-        submitBtn.disabled = true;
-
-        try {
-            const tags = JSON.parse(formData.get('tags') || '[]');
-            
-            const groupData = {
-                name: formData.get('name'),
-                description: formData.get('description'),
-                category: formData.get('category'),
-                isPublic: formData.get('visibility') === 'public',
-                creatorId: this.currentUser.uid,
-                participants: [this.currentUser.uid],
-                moderators: [this.currentUser.uid],
-                participantCount: 1,
-                participantInfo: {
-                    [this.currentUser.uid]: {
-                        displayName: this.currentUser.displayName,
-                        photoURL: this.currentUser.photoURL,
-                        role: 'creator',
-                        joinedAt: new Date()
-                    }
-                },
-                tags: tags,
-                chatEnabled: formData.get('chatEnabled') === 'on',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
-                settings: {
-                    allowInvites: formData.get('allowInvites') === 'on',
-                    moderationLevel: formData.get('moderationLevel') || 'medium'
-                }
-            };
-
-            const docRef = await this.db.collection('groups').add(groupData);
-            
-            // Create initial welcome message if chat is enabled
-            if (groupData.chatEnabled) {
-                await this.db.collection('groups').doc(docRef.id).collection('messages').add({
-                    senderId: 'system',
-                    senderName: 'System',
-                    content: `Welcome to ${groupData.name}! This is the beginning of your group chat.`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'system'
-                });
-            }
-
-            alert('Group created successfully!');
-            this.closeModal('enhanced-create-group-modal');
-            this.loadEnhancedGroupsList();
-            
-        } catch (error) {
-            console.error('Error creating group:', error);
-            alert('Failed to create group. Please try again.');
-        } finally {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        }
-    }
-
-    setupGroupFilters() {
-        const categoryFilter = document.getElementById('group-category-filter');
-        const sortFilter = document.getElementById('group-sort-filter');
-
-        if (categoryFilter) {
-            categoryFilter.addEventListener('change', () => this.loadEnhancedGroupsList());
-        }
-
-        if (sortFilter) {
-            sortFilter.addEventListener('change', () => this.loadEnhancedGroupsList());
-        }
-    }
-
-    async loadEnhancedGroupsList() {
-        const myGroupsContainer = document.getElementById('enhanced-my-groups');
-        const discoverGroupsContainer = document.getElementById('enhanced-discover-groups');
-        
-        if (!myGroupsContainer || !discoverGroupsContainer) return;
-
-        try {
-            // Load user's groups
-            if (this.currentUser) {
-                const myGroupsQuery = this.db.collection('groups')
-                    .where('participants', 'array-contains', this.currentUser.uid)
-                    .orderBy('lastActivity', 'desc');
-
-                const myGroupsSnapshot = await myGroupsQuery.get();
-                this.renderGroupsList(myGroupsSnapshot.docs, myGroupsContainer, true);
-            }
-
-            // Load discoverable groups
-            const categoryFilter = document.getElementById('group-category-filter')?.value;
-            const sortFilter = document.getElementById('group-sort-filter')?.value || 'activity';
-
-            let discoverQuery = this.db.collection('groups')
-                .where('isPublic', '==', true);
-
-            if (categoryFilter && categoryFilter !== 'all') {
-                discoverQuery = discoverQuery.where('category', '==', categoryFilter);
-            }
-
-            // Apply sorting
-            switch (sortFilter) {
-                case 'members':
-                    discoverQuery = discoverQuery.orderBy('participantCount', 'desc');
-                    break;
-                case 'newest':
-                    discoverQuery = discoverQuery.orderBy('createdAt', 'desc');
-                    break;
-                case 'activity':
-                default:
-                    discoverQuery = discoverQuery.orderBy('lastActivity', 'desc');
-                    break;
-            }
-
-            const discoverSnapshot = await discoverQuery.limit(20).get();
-            
-            // Filter out groups user is already in
-            const userGroupIds = this.currentUser ? 
-                (await this.db.collection('groups')
-                    .where('participants', 'array-contains', this.currentUser.uid)
-                    .get()).docs.map(doc => doc.id) : [];
-
-            const filteredGroups = discoverSnapshot.docs.filter(doc => 
-                !userGroupIds.includes(doc.id)
-            );
-
-            this.renderGroupsList(filteredGroups, discoverGroupsContainer, false);
-
-        } catch (error) {
-            console.error('Error loading groups:', error);
-        }
-    }
-
-    renderGroupsList(groupDocs, container, isUserGroups = false) {
-        if (groupDocs.length === 0) {
-            container.innerHTML = `
-                <div class="col-span-full text-center py-8">
-                    <p class="text-gray-500 dark:text-gray-400">
-                        ${isUserGroups ? "You haven't joined any groups yet." : "No groups found."}
-                    </p>
-                    ${!isUserGroups ? '<button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700" onclick="document.getElementById(\'enhanced-create-group-modal\').classList.remove(\'hidden\')">Create the first group</button>' : ''}
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = groupDocs.map(doc => {
-            const group = doc.data();
-            const isOwner = group.creatorId === this.currentUser?.uid;
-            const isMember = group.participants?.includes(this.currentUser?.uid);
-            
-            return `
-                <div class="group-card bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer" 
-                     data-group-id="${doc.id}">
-                    <div class="p-6">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="flex-1">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">${group.name}</h3>
-                                <p class="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">${group.description || 'No description available'}</p>
-                                
-                                <div class="flex flex-wrap gap-2 mb-3">
-                                    ${group.category ? `<span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">${group.category}</span>` : ''}
-                                    ${group.tags ? group.tags.slice(0, 3).map(tag => 
-                                        `<span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full">${tag}</span>`
-                                    ).join('') : ''}
-                                </div>
-                            </div>
-                            
-                            <div class="flex flex-col items-end">
-                                <span class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                                    ${group.participantCount || 0} member${(group.participantCount || 0) !== 1 ? 's' : ''}
-                                </span>
-                                ${group.chatEnabled ? '<i class="fas fa-comments text-green-500 text-sm" title="Chat enabled"></i>' : ''}
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-xs px-2 py-1 rounded-full ${group.isPublic ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">
-                                    ${group.isPublic ? 'Public' : 'Private'}
-                                </span>
-                                ${isOwner ? '<span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded-full">Owner</span>' : ''}
-                            </div>
-                            
-                            <div class="flex space-x-2">
-                                ${isMember ? 
-                                    `<button class="view-group-btn bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700" data-group-id="${doc.id}">
-                                        ${group.chatEnabled ? 'Open Chat' : 'View'}
-                                    </button>` :
-                                    `<button class="join-group-btn bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700" data-group-id="${doc.id}">
-                                        Join
-                                    </button>`
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // Add event listeners
-        container.querySelectorAll('.group-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('join-group-btn') && !e.target.classList.contains('view-group-btn')) {
-                    this.viewGroupDetails(card.dataset.groupId);
-                }
-            });
-        });
-
-        container.querySelectorAll('.join-group-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.handleGroupJoin(btn.dataset.groupId);
-            });
-        });
-
-        container.querySelectorAll('.view-group-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.viewGroupDetails(btn.dataset.groupId);
-            });
-        });
-    }
-
-    async handleGroupJoin(groupId) {
-        if (!this.currentUser) {
-            alert('Please log in to join groups');
-            return;
-        }
-
-        try {
-            const groupRef = this.db.collection('groups').doc(groupId);
-            const groupDoc = await groupRef.get();
-            
-            if (!groupDoc.exists) {
-                alert('Group not found');
-                return;
-            }
-
-            const groupData = groupDoc.data();
-            
-            if (groupData.participants?.includes(this.currentUser.uid)) {
-                this.viewGroupDetails(groupId);
-                return;
-            }
-
-            await groupRef.update({
-                participants: firebase.firestore.FieldValue.arrayUnion(this.currentUser.uid),
-                participantCount: firebase.firestore.FieldValue.increment(1),
-                [`participantInfo.${this.currentUser.uid}`]: {
-                    displayName: this.currentUser.displayName,
-                    photoURL: this.currentUser.photoURL,
-                    role: 'member',
-                    joinedAt: new Date()
-                },
-                lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            alert(`Welcome to ${groupData.name}!`);
-            this.loadEnhancedGroupsList();
-            
-        } catch (error) {
-            console.error('Error joining group:', error);
-            alert('Failed to join group. Please try again.');
-        }
-    }
-
-    async viewGroupDetails(groupId) {
-        try {
-            const groupDoc = await this.db.collection('groups').doc(groupId).get();
-            if (!groupDoc.exists) {
-                alert('Group not found');
-                return;
-            }
-
-            const groupData = groupDoc.data();
-            
-            // If chat is enabled and user is a member, open chat
-            if (groupData.chatEnabled && groupData.participants?.includes(this.currentUser?.uid)) {
-                if (window.groupChatManager) {
-                    window.groupChatManager.openGroupChat(groupId);
-                } else {
-                    alert('Chat system is loading...');
-                }
-            } else {
-                // Show group info modal
-                this.showGroupInfoModal(groupId, groupData);
-            }
-        } catch (error) {
-            console.error('Error viewing group details:', error);
-            alert('Failed to load group details');
-        }
-    }
-
-    showGroupInfoModal(groupId, groupData) {
-        const modalHTML = `
-            <div id="group-info-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">${groupData.name}</h2>
-                            <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" onclick="document.getElementById('group-info-modal').remove()">×</button>
-                        </div>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</h3>
-                                <p class="text-gray-600 dark:text-gray-400">${groupData.description || 'No description available'}</p>
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Category</h3>
-                                    <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm">${groupData.category || 'Uncategorized'}</span>
-                                </div>
-                                <div>
-                                    <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Members</h3>
-                                    <span class="text-gray-600 dark:text-gray-400">${groupData.participantCount || 0} members</span>
-                                </div>
-                            </div>
-                            
-                            ${groupData.tags && groupData.tags.length > 0 ? `
-                                <div>
-                                    <h3 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Tags</h3>
-                                    <div class="flex flex-wrap gap-2">
-                                        ${groupData.tags.map(tag => `<span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm">${tag}</span>`).join('')}
-                                    </div>
-                                </div>
-                            ` : ''}
-                            
-                            <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <div class="flex items-center space-x-4">
-                                    <span class="text-sm px-3 py-1 rounded-full ${groupData.isPublic ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">
-                                        ${groupData.isPublic ? 'Public' : 'Private'}
-                                    </span>
-                                    ${groupData.chatEnabled ? '<span class="text-sm px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full">Chat Enabled</span>' : ''}
-                                </div>
-                                
-                                ${!groupData.participants?.includes(this.currentUser?.uid) ? `
-                                    <button onclick="window.enhancedGroupsManager.handleGroupJoin('${groupId}'); document.getElementById('group-info-modal').remove();" 
-                                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                                        Join Group
-                                    </button>
-                                ` : groupData.chatEnabled ? `
-                                    <button onclick="window.groupChatManager?.openGroupChat('${groupId}'); document.getElementById('group-info-modal').remove();" 
-                                            class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-                                        Open Chat
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-    }
-
-    closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-}
-
-// Community Tab Management
-class CommunityManager {
-    constructor(db, currentUser) {
-        this.db = db;
-        this.currentUser = currentUser;
-        this.currentTab = 'groups';
-        this.init();
-    }
-
-    init() {
-        this.setupTabSwitching();
-        this.setupFriendsManagement();
-        
-        // Initialize groups manager
-        this.groupsManager = new EnhancedGroupsManager(this.db, this.currentUser);
-        
-        // Load initial content
-        this.loadFriendsContent();
-    }
-
-    setupTabSwitching() {
-        const tabButtons = document.querySelectorAll('.community-tab-btn');
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.getAttribute('data-tab');
-                this.switchTab(tabId);
-            });
-        });
-    }
-
-    switchTab(tabId) {
-        // Update active tab button
-        document.querySelectorAll('.community-tab-btn').forEach(btn => {
-            btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
-            btn.classList.add('border-transparent', 'text-gray-500');
-        });
-        
-        const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
-        if (activeBtn) {
-            activeBtn.classList.add('active', 'border-blue-500', 'text-blue-600');
-            activeBtn.classList.remove('border-transparent', 'text-gray-500');
-        }
-
-        // Show/hide tab content
-        document.querySelectorAll('.community-tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        const activeContent = document.getElementById(`tab-${tabId}`);
-        if (activeContent) {
-            activeContent.classList.remove('hidden');
-        }
-
-        // Show/hide create group button
-        const createGroupBtn = document.getElementById('create-group-btn');
-        if (createGroupBtn) {
-            if (tabId === 'groups') {
-                createGroupBtn.style.display = 'flex';
-            } else {
-                createGroupBtn.style.display = 'none';
-            }
-        }
-
-        this.currentTab = tabId;
-    }
-
-    setupFriendsManagement() {
-        // Friend search functionality
-        const friendSearchInput = document.getElementById('friend-search-input');
-        if (friendSearchInput) {
-            let searchTimeout;
-            friendSearchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    this.searchUsers(e.target.value);
-                }, 300);
-            });
-        }
-    }
-
-    async searchUsers(query) {
-        if (!query.trim()) {
-            document.getElementById('friend-search-results').classList.add('hidden');
-            return;
-        }
-
-        try {
-            const resultsContainer = document.getElementById('friend-search-results');
-            resultsContainer.innerHTML = '<div class="p-4 text-center"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
-            resultsContainer.classList.remove('hidden');
-
-            const usersSnapshot = await this.db.collection('users')
-                .where('handle', '>=', query.toLowerCase())
-                .where('handle', '<=', query.toLowerCase() + '\uf8ff')
-                .limit(10)
-                .get();
-
-            if (usersSnapshot.empty) {
-                resultsContainer.innerHTML = '<div class="p-4 text-center text-gray-500">No users found</div>';
-                return;
-            }
-
-            const resultsHTML = usersSnapshot.docs.map(doc => {
-                const user = doc.data();
-                return `
-                    <div class="p-4 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <img src="${user.profilePicture || 'https://via.placeholder.com/40'}" 
-                                 alt="${user.handle}" class="w-10 h-10 rounded-full">
-                            <div>
-                                <div class="font-medium">${user.handle}</div>
-                                <div class="text-sm text-gray-500">${user.displayName || ''}</div>
-                            </div>
-                        </div>
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
-                                onclick="communityManager.sendFriendRequest('${doc.id}')">
-                            Add Friend
-                        </button>
-                    </div>
-                `;
-            }).join('');
-
-            resultsContainer.innerHTML = resultsHTML;
-
-        } catch (error) {
-            console.error('Error searching users:', error);
-            document.getElementById('friend-search-results').innerHTML = 
-                '<div class="p-4 text-center text-red-500">Error searching users</div>';
-        }
-    }
-
-    async loadFriendsContent() {
-        await Promise.all([
-            this.loadFriendRequests(),
-            this.loadFriendsList(),
-            this.loadSuggestedFriends()
-        ]);
-    }
-
-    async loadFriendRequests() {
-        try {
-            if (!this.currentUser) return;
-
-            const requestsSnapshot = await this.db.collection('friendRequests')
-                .where('to', '==', this.currentUser.uid)
-                .where('status', '==', 'pending')
-                .get();
-
-            const container = document.getElementById('friend-requests-container');
-            
-            if (requestsSnapshot.empty) {
-                container.innerHTML = `
-                    <div class="text-center py-8">
-                        <i class="fas fa-user-plus text-4xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-500 dark:text-gray-400">No pending friend requests</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const requestsHTML = await Promise.all(requestsSnapshot.docs.map(async doc => {
-                const request = doc.data();
-                const userDoc = await this.db.collection('users').doc(request.from).get();
-                const user = userDoc.data();
-                
-                return `
-                    <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
-                        <div class="flex items-center space-x-3">
-                            <img src="${user?.profilePicture || 'https://via.placeholder.com/40'}" 
-                                 alt="${user?.handle}" class="w-10 h-10 rounded-full">
-                            <div>
-                                <div class="font-medium">${user?.handle || 'Unknown User'}</div>
-                                <div class="text-sm text-gray-500">${user?.displayName || ''}</div>
-                            </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
-                                    onclick="communityManager.acceptFriendRequest('${doc.id}')">
-                                Accept
-                            </button>
-                            <button class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm"
-                                    onclick="communityManager.rejectFriendRequest('${doc.id}')">
-                                Decline
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }));
-
-            container.innerHTML = requestsHTML.join('');
-
-        } catch (error) {
-            console.error('Error loading friend requests:', error);
-        }
-    }
-
-    async loadFriendsList() {
-        try {
-            if (!this.currentUser) return;
-
-            const friendsSnapshot = await this.db.collection('friends')
-                .where('users', 'array-contains', this.currentUser.uid)
-                .where('status', '==', 'accepted')
-                .get();
-
-            const container = document.getElementById('friends-list');
-            
-            if (friendsSnapshot.empty) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-8">
-                        <i class="fas fa-user-friends text-4xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-500 dark:text-gray-400">No friends yet</p>
-                        <p class="text-sm text-gray-400">Start by searching for users to add as friends</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const friendsHTML = await Promise.all(friendsSnapshot.docs.map(async doc => {
-                const friendship = doc.data();
-                const friendId = friendship.users.find(id => id !== this.currentUser.uid);
-                const userDoc = await this.db.collection('users').doc(friendId).get();
-                const user = userDoc.data();
-                
-                return `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <div class="flex items-center space-x-4 mb-4">
-                            <img src="${user?.profilePicture || 'https://via.placeholder.com/60'}" 
-                                 alt="${user?.handle}" class="w-12 h-12 rounded-full">
-                            <div>
-                                <div class="font-medium text-lg">${user?.handle || 'Unknown User'}</div>
-                                <div class="text-sm text-gray-500">${user?.displayName || ''}</div>
-                            </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 text-sm"
-                                    onclick="window.location.href='profile.html?user=${friendId}'">
-                                View Profile
-                            </button>
-                            <button class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm"
-                                    onclick="window.location.href='messages.html?user=${friendId}'">
-                                Message
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }));
-
-            container.innerHTML = friendsHTML.join('');
-
-        } catch (error) {
-            console.error('Error loading friends list:', error);
-        }
-    }
-
-    async loadSuggestedFriends() {
-        try {
-            if (!this.currentUser) return;
-
-            // Simple suggestion: recent users (excluding current user and existing friends)
-            const usersSnapshot = await this.db.collection('users')
-                .orderBy('lastActive', 'desc')
-                .limit(20)
-                .get();
-
-            const container = document.getElementById('suggested-friends');
-            
-            // Filter out current user and existing friends
-            const suggestions = usersSnapshot.docs.filter(doc => doc.id !== this.currentUser.uid);
-            
-            if (suggestions.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-8">
-                        <i class="fas fa-users text-4xl text-gray-400 mb-4"></i>
-                        <p class="text-gray-500 dark:text-gray-400">No suggestions available</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const suggestionsHTML = suggestions.slice(0, 6).map(doc => {
-                const user = doc.data();
-                return `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <div class="flex items-center space-x-4 mb-4">
-                            <img src="${user.profilePicture || 'https://via.placeholder.com/60'}" 
-                                 alt="${user.handle}" class="w-12 h-12 rounded-full">
-                            <div>
-                                <div class="font-medium text-lg">${user.handle || 'Unknown User'}</div>
-                                <div class="text-sm text-gray-500">${user.displayName || ''}</div>
-                            </div>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 text-sm"
-                                    onclick="communityManager.sendFriendRequest('${doc.id}')">
-                                Add Friend
-                            </button>
-                            <button class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 text-sm"
-                                    onclick="window.location.href='profile.html?user=${doc.id}'">
-                                View Profile
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = suggestionsHTML;
-
-        } catch (error) {
-            console.error('Error loading suggested friends:', error);
-        }
-    }
-
-    async sendFriendRequest(userId) {
-        try {
-            if (!this.currentUser) return;
-
-            await this.db.collection('friendRequests').add({
-                from: this.currentUser.uid,
-                to: userId,
-                status: 'pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            // Show success message
-            if (typeof Toastify !== 'undefined') {
-                Toastify({
-                    text: "Friend request sent!",
-                    duration: 3000,
-                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
-                }).showToast();
-            }
-
-        } catch (error) {
-            console.error('Error sending friend request:', error);
-        }
-    }
-
-    async acceptFriendRequest(requestId) {
-        try {
-            const requestDoc = await this.db.collection('friendRequests').doc(requestId).get();
-            const request = requestDoc.data();
-
-            // Create friendship
-            await this.db.collection('friends').add({
-                users: [request.from, request.to],
-                status: 'accepted',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            // Update request status
-            await this.db.collection('friendRequests').doc(requestId).update({
-                status: 'accepted'
-            });
-
-            // Reload friend requests and friends list
-            await this.loadFriendRequests();
-            await this.loadFriendsList();
-
-            if (typeof Toastify !== 'undefined') {
-                Toastify({
-                    text: "Friend request accepted!",
-                    duration: 3000,
-                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
-                }).showToast();
-            }
-
-        } catch (error) {
-            console.error('Error accepting friend request:', error);
-        }
-    }
-
-    async rejectFriendRequest(requestId) {
-        try {
-            await this.db.collection('friendRequests').doc(requestId).update({
-                status: 'rejected'
-            });
-
-            await this.loadFriendRequests();
-
-            if (typeof Toastify !== 'undefined') {
-                Toastify({
-                    text: "Friend request declined",
-                    duration: 3000,
-                    backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)"
-                }).showToast();
-            }
-
-        } catch (error) {
-            console.error('Error rejecting friend request:', error);
-        }
-    }
-}
-
-// Initialize when DOM is loaded and user is authenticated
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const db = firebase.firestore();
-    
-    if (document.getElementById('enhanced-groups-container')) {
-        window.communityManager = new CommunityManager(db, currentUser);
+    const storage = firebase.storage();
+    const communityPageContainer = document.getElementById('community-tabs-nav');
+    if (!communityPageContainer) return;
+
+    // --- Main Tab Switching Logic ---
+    const mainTabs = document.querySelectorAll('.community-tab-button');
+    const mainTabContents = document.querySelectorAll('.community-tab-content');
+
+    mainTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            mainTabs.forEach(item => item.classList.remove('active'));
+            tab.classList.add('active');
+            const targetContentId = `tab-content-${tab.dataset.tab}`;
+            mainTabContents.forEach(content => {
+                content.classList.toggle('hidden', content.id !== targetContentId);
+            });
+        });
+    });
+
+    // =================================================================================
+    // FRIENDS LOGIC
+    // =================================================================================
+    const friendsPageContainer = document.getElementById('friends-page-container');
+    if (friendsPageContainer) {
+        if (!currentUser) {
+            friendsPageContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to manage your friends.</p>';
+            return;
+        }
+
+        const friendsSubTabs = document.querySelectorAll('.friend-tab-button');
+        const friendsSubTabContents = document.querySelectorAll('.friend-sub-tab-content');
+        const requestsListEl = document.getElementById('friend-requests-list');
+        const friendsListEl = document.getElementById('friends-list');
+        const suggestionsListEl = document.getElementById('friend-suggestions-list');
+        const activityFeedEl = document.getElementById('friend-activity-feed');
+        const requestCountBadge = document.getElementById('friend-request-count');
+        const locationSearchInput = document.getElementById('location-search-input');
+
+        const generateIndexCreationLink = (collection, fields) => {
+            const projectId = db.app.options.projectId;
+            let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`;
+            fields.forEach(field => {
+                url += `&fields=${field.name},${field.order.toUpperCase()}`;
+            });
+            return url;
+        };
+
+        const displayIndexError = (container, link) => {
+            const errorMessage = `
+            <div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                <p class="font-bold text-red-700 dark:text-red-300">Database Error</p>
+                <p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing.</p>
+                <a href="${link}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Click Here to Create the Index</a>
+                <p class="text-xs text-gray-500 mt-2">This opens Firebase. Click "Save" to create the index. It may take a few minutes.</p>
+            </div>`;
+            container.innerHTML = errorMessage;
+        };
+
+        const switchFriendSubTab = (tabId) => {
+            friendsSubTabs.forEach(button => button.classList.toggle('active', button.dataset.subTab === tabId));
+            friendsSubTabContents.forEach(content => content.classList.toggle('hidden', content.id !== `friends-content-${tabId}`));
+
+            if (tabId === 'all-friends') loadFriendsList();
+            if (tabId === 'requests') loadFriendRequests();
+            if (tabId === 'suggestions') loadFriendSuggestions();
+            if (tabId === 'activity') loadFriendActivityFeed();
+        };
+
+        friendsSubTabs.forEach(tab => {
+            tab.addEventListener('click', () => switchFriendSubTab(tab.dataset.subTab));
+        });
+
+        const loadFriendRequests = async () => {
+            if (!requestsListEl) return;
+            requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading requests...</p>';
+            try {
+                const requestsSnapshot = await db.collection('friendRequests')
+                    .where('receiverId', '==', currentUser.uid)
+                    .where('status', '==', 'pending')
+                    .get();
+
+                if (requestsSnapshot.empty) {
+                    requestsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No new friend requests.</p>';
+                    requestCountBadge.classList.add('hidden');
+                    return;
+                }
+
+                requestCountBadge.textContent = requestsSnapshot.size;
+                requestCountBadge.classList.remove('hidden');
+
+                requestsListEl.innerHTML = '';
+                for (const doc of requestsSnapshot.docs) {
+                    const request = doc.data();
+                    const senderDoc = await db.collection('users').doc(request.senderId).get();
+                    if (senderDoc.exists) {
+                        const sender = senderDoc.data();
+                        const requestCard = document.createElement('div');
+                        requestCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+                        requestCard.innerHTML = `
+                        <a href="profile.html?uid=${request.senderId}" class="flex items-center space-x-3">
+                            <img src="${sender.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
+                            <div>
+                                <p class="font-semibold text-gray-800 dark:text-white">${sender.displayName}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">@${sender.handle}</p>
+                            </div>
+                        </a>
+                        <div class="flex space-x-2">
+                            <button class="accept-friend-btn bg-green-500 text-white w-8 h-8 rounded-full hover:bg-green-600 transition" data-request-id="${doc.id}" data-sender-id="${request.senderId}"><i class="fas fa-check"></i></button>
+                            <button class="reject-friend-btn bg-red-500 text-white w-8 h-8 rounded-full hover:bg-red-600 transition" data-request-id="${doc.id}"><i class="fas fa-times"></i></button>
+                        </div>
+                        `;
+                        requestsListEl.appendChild(requestCard);
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading friend requests:", error);
+                if (error.code === 'failed-precondition') {
+                    const indexLink = generateIndexCreationLink('friendRequests', [
+                        { name: 'receiverId', order: 'asc' },
+                        { name: 'status', order: 'asc' }
+                    ]);
+                    displayIndexError(requestsListEl, indexLink);
+                } else {
+                    requestsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load friend requests.</p>';
+                }
+            }
+        };
+
+        const loadFriendsList = async (locationQuery = '') => {
+            if (!friendsListEl) return;
+            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friends...</p>';
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                const friendIds = userDoc.data()?.friends || [];
+
+                if (friendIds.length === 0) {
+                    friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\'t added any friends yet.</p>';
+                    return;
+                }
+
+                let friends = [];
+                for (const friendId of friendIds) {
+                    const friendDoc = await db.collection('users').doc(friendId).get();
+                    if (friendDoc.exists) {
+                        friends.push({ id: friendDoc.id, ...friendDoc.data() });
+                    }
+                }
+
+                if (locationQuery) {
+                    friends = friends.filter(friend => {
+                        const city = friend.city || '';
+                        const country = friend.country || '';
+                        return city.toLowerCase().includes(locationQuery) || country.toLowerCase().includes(locationQuery);
+                    });
+                }
+
+                if (friends.length === 0) {
+                    friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No friends found for this location.</p>';
+                    return;
+                }
+                friendsListEl.innerHTML = '';
+                for (const friend of friends) {
+                    const friendCard = document.createElement('a');
+                    friendCard.href = `profile.html?uid=${friend.id}`;
+                    friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
+                    friendCard.innerHTML = `
+                    <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
+                    <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
+                    `;
+                    friendsListEl.appendChild(friendCard);
+                }
+            } catch (error) {
+                console.error("Error loading friends list:", error);
+                friendsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load friends.</p>';
+            }
+        };
+
+        const loadFriendSuggestions = async () => {
+            if (!suggestionsListEl) return;
+            suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Finding potential friends...</p>';
+            try {
+                const currentUserData = (await db.collection('users').doc(currentUser.uid).get()).data();
+                const myFriends = currentUserData.friends || [];
+                const myRequestsSent = (await db.collection('friendRequests').where('senderId', '==', currentUser.uid).get()).docs.map(d => d.data().receiverId);
+                const myRequestsReceived = (await db.collection('friendRequests').where('receiverId', '==', currentUser.uid).get()).docs.map(d => d.data().senderId);
+                const excludedIds = [currentUser.uid, ...myFriends, ...myRequestsSent, ...myRequestsReceived];
+
+                let suggestions = new Map();
+
+                if (currentUserData.country) {
+                    const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
+                    countrySnapshot.forEach(doc => {
+                        if (!excludedIds.includes(doc.id)) {
+                            suggestions.set(doc.id, doc.data());
+                        }
+                    });
+                }
+                suggestionsListEl.innerHTML = '';
+                if (suggestions.size === 0) {
+                    suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No suggestions right now. Try joining some groups!</p>';
+                    return;
+                }
+
+                suggestions.forEach((user, userId) => {
+                    const suggestionCard = document.createElement('div');
+                    suggestionCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+                    suggestionCard.innerHTML = `
+                    <a href="profile.html?uid=${userId}" class="flex items-center space-x-3">
+                        <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
+                        <div>
+                            <p class="font-semibold text-gray-800 dark:text-white">${user.displayName}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>
+                        </div>
+                    </a>
+                    <button class="add-friend-sugg-btn bg-blue-500 text-white w-8 h-8 rounded-full hover:bg-blue-600 transition" data-uid="${userId}"><i class="fas fa-plus"></i></button>
+                    `;
+                    suggestionsListEl.appendChild(suggestionCard);
+                });
+            } catch (error) {
+                console.error("Error loading friend suggestions:", error);
+                suggestionsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load suggestions.</p>';
+            }
+        };
+
+        const loadFriendActivityFeed = async () => {
+            if (!activityFeedEl) return;
+            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friend activity...</p>';
+            const myFriends = (await db.collection('users').doc(currentUser.uid).get()).data()?.friends || [];
+
+            if (myFriends.length === 0) {
+                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Add some friends to see their activity here.</p>';
+                return;
+            }
+
+            try {
+                const postsSnapshot = await db.collection('posts').where('authorId', 'in', myFriends).orderBy('timestamp', 'desc').limit(10).get();
+                let activities = [];
+                postsSnapshot.forEach(doc => activities.push({ type: 'post', data: doc.data(), id: doc.id, timestamp: doc.data().timestamp.toDate() }));
+                activities.sort((a, b) => b.timestamp - a.timestamp);
+
+                if (activities.length === 0) {
+                    activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
+                    return;
+                }
+
+                activityFeedEl.innerHTML = '';
+                activities.forEach(activity => {
+                    const post = activity.data;
+                    const postElement = document.createElement('div');
+                    postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+                    postElement.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                        <div>
+                            <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white">${post.author}</a>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
+                    `;
+                    activityFeedEl.appendChild(postElement);
+                });
+            } catch (error) {
+                console.error("Error loading friend activity:", error);
+                if (error.code === 'failed-precondition') {
+                    const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
+                    displayIndexError(activityFeedEl, indexLink);
+                } else {
+                    activityFeedEl.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred.</p>`;
+                }
+            }
+        };
+
+        if (locationSearchInput) {
+            locationSearchInput.addEventListener('input', (e) => loadFriendsList(e.target.value.toLowerCase()));
+        }
+        friendsPageContainer.addEventListener('click', async (event) => {
+            const button = event.target.closest('button');
+            if (!button) return;
+
+            if (button.classList.contains('accept-friend-btn')) {
+                button.disabled = true;
+                const requestId = button.dataset.requestId;
+                const senderId = button.dataset.senderId;
+
+                try {
+                    const requestRef = db.collection('friendRequests').doc(requestId);
+                    const userRef = db.collection('users').doc(currentUser.uid);
+                    const senderRef = db.collection('users').doc(senderId);
+
+                    const batch = db.batch();
+                    batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
+                    batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
+                    batch.update(requestRef, { status: 'accepted' });
+                    await batch.commit();
+
+                } catch (error) {
+                    console.error("Error accepting friend request:", error);
+                    alert(`Could not accept friend request: ${error.message}`);
+                    button.disabled = false;
+                }
+            }
+
+            if (button.classList.contains('reject-friend-btn')) {
+                button.disabled = true;
+                const requestId = button.dataset.requestId;
+                try {
+                    await db.collection('friendRequests').doc(requestId).delete();
+                } catch(error) {
+                    console.error("Error rejecting friend request:", error);
+                    alert("Could not reject friend request.");
+                    button.disabled = false;
+                }
+            }
+
+            if (button.classList.contains('add-friend-sugg-btn')) {
+                const receiverId = button.dataset.uid;
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                await db.collection('friendRequests').add({
+                    senderId: currentUser.uid,
+                    receiverId: receiverId,
+                    status: 'pending',
+                    createdAt: new Date()
+                });
+                const notificationData = {
+                    message: `${currentUser.displayName} sent you a friend request.`,
+                    link: `/community.html`,
+                    isRead: false,
+                    timestamp: new Date()
+                };
+                await db.collection('users').doc(receiverId).collection('notifications').add(notificationData);
+            }
+        });
+        loadFriendsList();
+        loadFriendRequests();
     }
+
+
+    // =================================================================================
+    // GROUPS LOGIC
+    // =================================================================================
+    const groupsPage = document.getElementById('groups-main-view');
+    if (groupsPage) {
+        if (!currentUser) {
+            groupsPage.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-8">Please log in to see groups.</p>';
+        } else {
+            let userWishlist = [];
+            let userCollection = [];
+            let tradePostDraft = { haves: [], wants: [] };
+            let myGroupsUnsubscribe = null;
+            let discoverGroupsUnsubscribe = null;
+            let selectedGroupMediaFile = null;
+
+            const createGroupBtn = document.getElementById('create-group-btn');
+            const createGroupModal = document.getElementById('create-group-modal');
+            const closeGroupModalBtn = document.getElementById('close-group-modal');
+            const createGroupForm = document.getElementById('create-group-form');
+            const myGroupsList = document.getElementById('my-groups-list');
+            const discoverGroupsList = document.getElementById('discover-groups-list');
+            const groupDetailView = document.getElementById('group-detail-view');
+            const inviteMemberModal = document.getElementById('invite-member-modal');
+            const closeInviteModalBtn = document.getElementById('close-invite-modal');
+            const inviteUserSearchInput = document.getElementById('invite-user-search');
+            const inviteUserResultsContainer = document.getElementById('invite-user-results');
+            const pendingInvitesSection = document.getElementById('pending-invitations-section');
+            const pendingInvitesList = document.getElementById('pending-invitations-list');
+            const tradePostModal = document.getElementById('trade-post-modal');
+            const closeTradePostModalBtn = document.getElementById('close-trade-post-modal');
+            const tradePostForm = document.getElementById('trade-post-form');
+            const tradePostModalTitle = document.getElementById('trade-post-modal-title');
+            const tradePostTypeInput = document.getElementById('trade-post-type');
+            const havesSearchInput = document.getElementById('trade-post-haves-search');
+            const havesResultsContainer = document.getElementById('trade-post-haves-results');
+            const wantsSearchInput = document.getElementById('trade-post-wants-search');
+            const wantsResultsContainer = document.getElementById('trade-post-wants-results');
+            const pollModal = document.getElementById('pollModal');
+            const closePollModalBtn = document.getElementById('closePollModal');
+            const pollForm = document.getElementById('pollForm');
+            const addPollOptionBtn = document.getElementById('addPollOptionBtn');
+            const pollOptionsContainer = document.getElementById('pollOptionsContainer');
+
+            if (createGroupBtn) {
+                createGroupBtn.classList.remove('hidden');
+                db.collection('users').doc(currentUser.uid).collection('collection').get().then(snap => {
+                    userCollection = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                });
+                db.collection('users').doc(currentUser.uid).collection('wishlist').get().then(snap => {
+                    userWishlist = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                });
+                createGroupBtn.addEventListener('click', () => openModal(createGroupModal));
+            }
+            if(closeGroupModalBtn) closeGroupModalBtn.addEventListener('click', () => closeModal(createGroupModal));
+            if(closeInviteModalBtn) closeInviteModalBtn.addEventListener('click', () => closeModal(inviteMemberModal));
+            if(closeTradePostModalBtn) closeTradePostModalBtn.addEventListener('click', () => closeModal(tradePostModal));
+            if(closePollModalBtn) closePollModalBtn.addEventListener('click', () => closeModal(pollModal));
+
+
+            if(createGroupForm) {
+                createGroupForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    if (!currentUser) {
+                        alert("You must be logged in to create a group.");
+                        return;
+                    }
+
+                    const groupName = document.getElementById('groupName').value;
+                    const groupDescription = document.getElementById('groupDescription').value;
+                    const isPublic = document.getElementById('groupPublic').checked;
+                    const groupType = document.getElementById('groupType').value;
+
+                    const submitButton = createGroupForm.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+
+                    try {
+                        const groupData = {
+                            name: groupName,
+                            description: groupDescription,
+                            isPublic: isPublic,
+                            groupType: groupType,
+                            creatorId: currentUser.uid,
+                            creatorName: currentUser.displayName,
+                            participants: [currentUser.uid],
+                            participantInfo: { [currentUser.uid]: { displayName: currentUser.displayName, photoURL: currentUser.photoURL } },
+                            moderators: [currentUser.uid],
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            participantCount: 1,
+                            pinnedPost: null
+                        };
+
+                        await db.collection('groups').add(groupData);
+                        alert("Group created successfully!");
+                        closeModal(createGroupModal);
+                        createGroupForm.reset();
+                    } catch (error) {
+                        console.error("Error creating group:", error);
+                        alert("Could not create group. " + error.message);
+                    } finally {
+                        submitButton.disabled = false;
+                    }
+                });
+            }
+
+            const createGroupCard = (groupData, groupId) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow';
+                let typeIcon = '';
+                switch(groupData.groupType) {
+                    case 'trading_guild': typeIcon = '<i class="fas fa-exchange-alt text-green-500" title="Trading Guild"></i>'; break;
+                    case 'strategy_lab': typeIcon = '<i class="fas fa-brain text-blue-500" title="Strategy Lab"></i>'; break;
+                    case 'regional_hub': typeIcon = '<i class="fas fa-map-marker-alt text-red-500" title="Regional Hub"></i>'; break;
+                    default: typeIcon = '<i class="fas fa-users text-gray-500" title="General Group"></i>';
+                }
+
+                card.innerHTML = `
+                <div class="flex-grow">
+                    <h3 class="font-bold text-xl mb-2 text-gray-800 dark:text-white">${groupData.name}</h3>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">${groupData.description.substring(0, 100)}...</p>
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 flex justify-between items-center mt-auto">
+                    <span><i class="fas fa-users mr-2"></i>${groupData.participantCount || 0} members</span>
+                    <span class="flex items-center gap-x-2">${typeIcon} ${groupData.isPublic ? 'Public' : 'Private'}</span>
+                </div>
+                `;
+                card.addEventListener('click', () => viewGroup(groupId));
+                return card;
+            };
+
+            const loadMyGroups = () => {
+                if (!currentUser || !myGroupsList) return;
+                if(myGroupsUnsubscribe) myGroupsUnsubscribe();
+
+                myGroupsUnsubscribe = db.collection('groups')
+                    .where('participants', 'array-contains', currentUser.uid)
+                    .onSnapshot(snapshot => {
+                        myGroupsList.innerHTML = '';
+                        if (snapshot.empty) {
+                            myGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You are not a member of any groups yet.</p>';
+                            return;
+                        }
+                        snapshot.forEach(doc => {
+                            myGroupsList.appendChild(createGroupCard(doc.data(), doc.id));
+                        });
+                    }, err => {
+                        console.error("Error loading my groups:", err);
+                        myGroupsList.innerHTML = '<p class="text-red-500">Could not load your groups.</p>';
+                    });
+            };
+            const loadDiscoverGroups = () => {
+                if (!discoverGroupsList) return;
+                if(discoverGroupsUnsubscribe) discoverGroupsUnsubscribe();
+
+                discoverGroupsUnsubscribe = db.collection('groups')
+                    .where('isPublic', '==', true)
+                    .limit(10)
+                    .onSnapshot(snapshot => {
+                        discoverGroupsList.innerHTML = '';
+                        if (snapshot.empty) {
+                            discoverGroupsList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No public groups to discover right now.</p>';
+                            return;
+                        }
+                        snapshot.forEach(doc => {
+                            const groupData = doc.data();
+                            if (currentUser && groupData.participants && groupData.participants.includes(currentUser.uid)) {
+                                // Don't show groups the user is already in
+                            } else {
+                                discoverGroupsList.appendChild(createGroupCard(groupData, doc.id));
+                            }
+                        });
+                    }, err => {
+                        console.error("Error loading discover groups:", err);
+                        discoverGroupsList.innerHTML = '<p class="text-red-500">Could not load groups to discover.</p>';
+                    });
+            };
+            const loadPendingInvitations = async () => {
+                if (!currentUser || !pendingInvitesSection) return;
+                const invitesRef = db.collection('groupInvitations').where('inviteeId', '==', currentUser.uid).where('status', '==', 'pending');
+                invitesRef.onSnapshot(snapshot => {
+                    if (snapshot.empty) {
+                        pendingInvitesSection.classList.add('hidden');
+                        return;
+                    }
+                    pendingInvitesSection.classList.remove('hidden');
+                    pendingInvitesList.innerHTML = '';
+
+                    snapshot.forEach(doc => {
+                        const invite = doc.data();
+                        const inviteCard = document.createElement('div');
+                        inviteCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+                        inviteCard.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-gray-800 dark:text-white">${invite.inviterName} invited you to join "${invite.groupName}"</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="accept-invite-btn bg-green-500 text-white px-3 py-1 text-sm rounded-full" data-invite-id="${doc.id}" data-group-id="${invite.groupId}">Accept</button>
+                            <button class="decline-invite-btn bg-red-500 text-white px-3 py-1 text-sm rounded-full" data-invite-id="${doc.id}">Decline</button>
+                        </div>
+                        `;
+                        pendingInvitesList.appendChild(inviteCard);
+                    });
+                });
+            };
+
+            const loadGroupFeed = async (groupId) => {
+                const feedContainer = document.getElementById('group-feed-container');
+                if (!feedContainer) return;
+                feedContainer.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-blue-500"></i></div>';
+                try {
+                    const groupDoc = await db.collection('groups').doc(groupId).get();
+                    if (!groupDoc.exists) {
+                        feedContainer.innerHTML = '<p class="text-red-500">Group not found.</p>';
+                        return;
+                    }
+                    const groupData = groupDoc.data();
+                    const pinnedPostId = groupData.pinnedPost;
+
+                    const postsRef = db.collection('groups').doc(groupId).collection('posts').orderBy('timestamp', 'desc');
+                    postsRef.onSnapshot(async snapshot => {
+                        if (snapshot.empty && !pinnedPostId) {
+                            feedContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">No posts in this group yet. Be the first!</p>';
+                            return;
+                        }
+
+                        feedContainer.innerHTML = '';
+
+                        if (pinnedPostId) {
+                            const pinnedPostDoc = await db.collection('groups').doc(groupId).collection('posts').doc(pinnedPostId).get();
+                            if (pinnedPostDoc.exists) {
+                                const pinnedPostEl = createPostElement(pinnedPostDoc.id, pinnedPostDoc.data(), true);
+                                feedContainer.appendChild(pinnedPostEl);
+                            }
+                        }
+                        snapshot.forEach(doc => {
+                            if (doc.id !== pinnedPostId) {
+                                const postEl = createPostElement(doc.id, doc.data(), false);
+                                feedContainer.appendChild(postEl);
+                            }
+                        });
+                    }, error => {
+                        console.error(`Error loading group feed for ${groupId}:`, error);
+                        feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group posts. Check permissions.</p>';
+                    });
+                } catch (error) {
+                    console.error("Error fetching group data:", error);
+                    feedContainer.innerHTML = '<p class="text-center text-red-500 dark:text-red-400 p-4">Could not load group data.</p>';
+                }
+            };
+
+            const createPostElement = (postId, postData, isPinned) => {
+                const postEl = document.createElement('div');
+                postEl.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md relative post-container';
+                postEl.dataset.id = postId;
+
+                if (postData.postType && ['wts', 'wtb', 'wtt'].includes(postData.postType)) {
+                    postEl.innerHTML = renderTradePost(postData);
+                } else if (postData.poll) {
+                    postEl.innerHTML = renderPollPost(postData);
+                } else {
+                    postEl.innerHTML = renderStandardPost(postData);
+                }
+
+                if (isPinned) {
+                    const pinIcon = document.createElement('div');
+                    pinIcon.innerHTML = `<i class="fas fa-thumbtack text-yellow-500 absolute top-2 right-2"></i>`;
+                    postEl.prepend(pinIcon);
+                }
+
+                return postEl;
+            }
+
+            const renderStandardPost = (post) => {
+                return `
+                <div class="flex items-center mb-4">
+                    <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                    <div>
+                        <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${post.author}</a>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                    </div>
+                </div>
+                <p class="mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${post.content}</p>
+                ${post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">` : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`) : ''}
+                `;
+            };
+
+            const renderTradePost = (post) => {
+                const postTypeColors = {
+                    wts: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+                    wtb: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+                    wtt: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
+                };
+                const renderCardList = (cards) => {
+                    if (!cards || cards.length === 0) return '<p class="text-xs italic text-gray-500">None</p>';
+                    return cards.map(card => `
+                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" target="_blank" class="flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 p-1 rounded-md">
+                        <img src="${card.imageUrl || 'https://placehold.co/32x44'}" class="w-8 h-11 rounded-sm object-cover">
+                        <span class="text-sm dark:text-gray-300">${card.name}</span>
+                    </a>
+                    `).join('');
+                };
+
+                return `
+                <div class="flex items-center mb-4">
+                    <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                    <div>
+                        <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${post.author}</a>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                    </div>
+                </div>
+                <div class="border-t dark:border-gray-700 pt-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-lg font-bold dark:text-white">${post.title}</h4>
+                        <span class="px-2 py-1 text-xs font-bold rounded-full ${postTypeColors[post.postType]}">${post.postType.toUpperCase()}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 mb-4">${post.body}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-semibold mb-2 dark:text-gray-200">Haves:</h5>
+                            <div class="space-y-1">${renderCardList(post.haves)}</div>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold mb-2 dark:text-gray-200">Wants:</h5>
+                            <div class="space-y-1">${renderCardList(post.wants)}</div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            };
+
+            const renderPollPost = (post) => {
+                const totalVotes = post.poll.options.reduce((sum, option) => sum + option.votes, 0);
+                const pollOptionsHTML = post.poll.options.map((option, index) => {
+                    const percentage = totalVotes > 0 ? ((option.votes / totalVotes) * 100).toFixed(1) : 0;
+                    return `
+                        <div class="poll-option relative mt-2 p-2 border dark:border-gray-600 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" data-option-index="${index}">
+                            <div class="absolute top-0 left-0 h-full bg-blue-200 dark:bg-blue-800 rounded-md" style="width: ${percentage}%;"></div>
+                            <div class="relative flex justify-between">
+                                <span>${option.text}</span>
+                                <span>${percentage}% (${option.votes})</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                const mediaHTML = post.mediaUrl
+                    ? (post.mediaType.startsWith('image/')
+                        ? `<img src="${post.mediaUrl}" class="w-full rounded-lg my-2">`
+                        : `<video src="${post.mediaUrl}" controls class="w-full rounded-lg my-2"></video>`)
+                    : '';
+
+                return `
+                    <div class="flex items-center mb-4">
+                        <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${post.author}" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                        <div>
+                            <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${post.author}</a>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <div class="post-body-content">
+                        ${mediaHTML}
+                        <p class="post-content-display mb-2 font-semibold text-gray-800 dark:text-gray-200">${post.poll.question}</p>
+                        <div class="poll-container">${pollOptionsHTML}</div>
+                    </div>
+                `;
+            };
+
+
+            const viewGroup = async (groupId) => {
+                groupsPage.classList.add('hidden');
+                groupDetailView.classList.remove('hidden');
+                groupDetailView.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i></div>';
+
+                const groupRef = db.collection('groups').doc(groupId);
+                const groupDoc = await groupRef.get();
+
+                if (!groupDoc.exists) {
+                    groupDetailView.innerHTML = '<p class="text-red-500 p-4">Group not found.</p>';
+                    return;
+                }
+                groupDetailView.dataset.groupId = groupId;
+
+                const groupData = groupDoc.data();
+                const isMember = currentUser ? groupData.participants.includes(currentUser.uid) : false;
+                const isAdmin = currentUser ? groupData.moderators.includes(currentUser.uid) : false;
+
+                let actionButtonsHTML = '';
+                if (currentUser) {
+                    if (isMember) {
+                        if (isAdmin) {
+                            actionButtonsHTML += `<button id="invite-member-action-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-full text-sm">Invite Member</button>`;
+                        }
+                        actionButtonsHTML += `<button id="leave-group-action-btn" class="ml-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-full text-sm">Leave Group</button>`;
+                    } else if (groupData.isPublic) {
+                        actionButtonsHTML = `<button id="join-group-action-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full text-sm">Join Group</button>`;
+                    }
+                }
+
+                let createPostHTML = '';
+                if (isMember) {
+                    if (groupData.groupType === 'trading_guild') {
+                        createPostHTML = `
+                        <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Create a Trade Post</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <button data-post-type="wts" class="trade-post-btn bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-full">Want to Sell (WTS)</button>
+                                <button data-post-type="wtb" class="trade-post-btn bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-full">Want to Buy (WTB)</button>
+                                <button data-post-type="wtt" class="trade-post-btn bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-full">Want to Trade (WTT)</button>
+                            </div>
+                        </div>
+                        `;
+                    } else {
+                        createPostHTML = `
+                        <div id="create-group-post-container" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Create a Post</h3>
+                            <textarea id="group-post-content" class="w-full p-3 border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y text-gray-900 dark:text-gray-200" rows="3" placeholder="Share something with the group..."></textarea>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="space-x-2">
+                                    <button class="text-blue-500 hover:text-blue-600" id="uploadGroupMediaBtn"><i class="fas fa-image"></i></button>
+                                    <button class="text-blue-500 hover:text-blue-600" id="createGroupPollBtn"><i class="fas fa-poll"></i></button>
+                                    <input type="file" id="groupMediaUpload" class="hidden" accept="image/*,video/*">
+                                </div>
+                                <button id="submit-group-post-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Post</button>
+                            </div>
+                            <p class="text-sm mt-2" id="groupPostStatusMessage"></p>
+                        </div>
+                        `;
+                    }
+                } else {
+                    createPostHTML = '<p class="text-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">Join the group to post.</p>';
+                }
+
+                groupDetailView.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+                    <div class="p-6">
+                        <button id="back-to-groups-list" class="text-blue-600 dark:text-blue-400 hover:underline mb-4"><i class="fas fa-arrow-left mr-2"></i>Back to All Groups</button>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-800 dark:text-white">${groupData.name}</h1>
+                                <p class="text-gray-500 dark:text-gray-400">${groupData.isPublic ? 'Public Group' : 'Private Group'} • ${groupData.participantCount || 0} members</p>
+                            </div>
+                            <div class="flex-shrink-0 flex space-x-2">${actionButtonsHTML}</div>
+                        </div>
+                        <p class="mt-4 text-gray-700 dark:text-gray-300">${groupData.description}</p>
+                    </div>
+                </div>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 space-y-6">${createPostHTML}<div id="group-feed-container" class="space-y-6"></div></div>
+                    <div class="md:col-span-1 space-y-6"><div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"><h3 class="font-bold text-gray-800 dark:text-white mb-2">Members</h3><div id="group-member-list" class="space-y-2"></div></div></div>
+                </div>
+                `;
+                loadGroupFeed(groupId);
+                populateMembersAndSetupListeners(groupId, groupData);
+            };
+            const populateMembersAndSetupListeners = (groupId, groupData) => {
+                const memberListContainer = document.getElementById('group-member-list');
+                memberListContainer.innerHTML = '';
+                const participants = groupData.participantInfo || {};
+                for (const memberId in participants) {
+                    const member = participants[memberId];
+                    const memberEl = document.createElement('a');
+                    memberEl.href = `profile.html?uid=${memberId}`;
+                    memberEl.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+                    memberEl.innerHTML = `
+                    <img src="${member.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-10 h-10 rounded-full object-cover">
+                    <span class="font-semibold text-gray-800 dark:text-white">${member.displayName}</span>
+                    `;
+                    memberListContainer.appendChild(memberEl);
+                }
+
+                document.getElementById('back-to-groups-list')?.addEventListener('click', () => {
+                    groupDetailView.classList.add('hidden');
+                    groupsPage.classList.remove('hidden');
+                });
+
+                document.getElementById('join-group-action-btn')?.addEventListener('click', () => handleAction('join', groupId, groupData.name));
+                document.getElementById('leave-group-action-btn')?.addEventListener('click', () => handleAction('leave', groupId, groupData.name));
+                document.getElementById('invite-member-action-btn')?.addEventListener('click', () => {
+                    document.getElementById('invite-group-id').value = groupId;
+                    inviteUserSearchInput.value = '';
+                    inviteUserResultsContainer.innerHTML = '';
+                    openModal(inviteMemberModal);
+                });
+                document.getElementById('submit-group-post-btn')?.addEventListener('click', async () => {
+                    const content = document.getElementById('group-post-content').value;
+                    const statusMessage = document.getElementById('groupPostStatusMessage');
+                    if (!content.trim() && !selectedGroupMediaFile) {
+                        statusMessage.textContent = "Please write something or select a file.";
+                        return;
+                    }
+
+                    const postData = {
+                        authorId: currentUser.uid,
+                        author: currentUser.displayName,
+                        authorPhotoURL: currentUser.photoURL,
+                        content: content,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        mediaUrl: null,
+                        mediaType: null
+                    };
+
+                    if (selectedGroupMediaFile) {
+                        statusMessage.textContent = 'Uploading...';
+                        const filePath = `groups/${groupId}/${currentUser.uid}/${Date.now()}_${selectedGroupMediaFile.name}`;
+                        const fileRef = firebase.storage().ref(filePath);
+                        const uploadTask = await fileRef.put(selectedGroupMediaFile);
+                        postData.mediaUrl = await uploadTask.ref.getDownloadURL();
+                        postData.mediaType = selectedGroupMediaFile.type;
+                    }
+
+                    try {
+                        await db.collection('groups').doc(groupId).collection('posts').add(postData);
+                        document.getElementById('group-post-content').value = '';
+                        selectedGroupMediaFile = null;
+                        statusMessage.textContent = '';
+                    } catch (error) {
+                        console.error("Error creating post:", error);
+                        alert("Could not create post. Check permissions.");
+                    }
+                });
+
+                document.getElementById('uploadGroupMediaBtn')?.addEventListener('click', () => {
+                    document.getElementById('groupMediaUpload').click();
+                });
+
+                document.getElementById('groupMediaUpload')?.addEventListener('change', (e) => {
+                    selectedGroupMediaFile = e.target.files[0];
+                    if (selectedGroupMediaFile) {
+                        document.getElementById('groupPostStatusMessage').textContent = `Selected: ${selectedGroupMediaFile.name}`;
+                    }
+                });
+
+                document.getElementById('createGroupPollBtn')?.addEventListener('click', () => {
+                    openModal(pollModal);
+                });
+            };
+
+            const handleAction = async (action, groupId, groupName) => {
+                if (!currentUser) {
+                    alert("Please log in first.");
+                    return;
+                }
+
+                const groupRef = db.collection('groups').doc(groupId);
+
+                try {
+                    if (action === 'join') {
+                        await groupRef.update({
+                            participants: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+                            participantCount: firebase.firestore.FieldValue.increment(1),
+                            [`participantInfo.${currentUser.uid}`]: { displayName: currentUser.displayName, photoURL: currentUser.photoURL }
+                        });
+                        alert(`Welcome to ${groupName}!`);
+                    } else if (action === 'leave') {
+                        if (confirm(`Are you sure you want to leave ${groupName}?`)) {
+                            await groupRef.update({
+                                participants: firebase.firestore.FieldValue.arrayRemove(currentUser.uid),
+                                participantCount: firebase.firestore.FieldValue.increment(-1),
+                                [`participantInfo.${currentUser.uid}`]: firebase.firestore.FieldValue.delete()
+                            });
+                            alert(`You have left ${groupName}.`);
+                        }
+                    }
+                    viewGroup(groupId);
+                } catch (error) {
+                    console.error(`Error performing action '${action}':`, error);
+                    alert(`Could not ${action} the group. Please check your permissions and try again.`);
+                }
+            };
+
+            const inviteUserToGroup = async (userIdToInvite, userDataToInvite, groupId, groupName) => {
+                if (!currentUser) return;
+                const invitationData = {
+                    groupId: groupId,
+                    groupName: groupName,
+                    inviterId: currentUser.uid,
+                    inviterName: currentUser.displayName,
+                    inviteeId: userIdToInvite,
+                    status: 'pending',
+                    createdAt: new Date()
+                };
+
+                try {
+                    await db.collection('groupInvitations').add(invitationData);
+                    alert(`Invitation sent to ${userDataToInvite.displayName}.`);
+                } catch (error) {
+                    console.error("Error sending invitation:", error);
+                    alert("Could not send invitation.");
+                }
+            };
+            const openTradePostModal = (type) => {
+                tradePostForm.reset();
+                tradePostDraft = { haves: [], wants: [] };
+                tradePostTypeInput.value = type;
+
+                const havesSection = document.getElementById('trade-post-haves-section');
+                const wantsSection = document.getElementById('trade-post-wants-section');
+                switch(type) {
+                    case 'wts':
+                        tradePostModalTitle.textContent = 'Create "Want to Sell" Post';
+                        havesSection.classList.remove('hidden');
+                        wantsSection.classList.add('hidden');
+                        break;
+                    case 'wtb':
+                        tradePostModalTitle.textContent = 'Create "Want to Buy" Post';
+                        havesSection.classList.add('hidden');
+                        wantsSection.classList.remove('hidden');
+                        break;
+                    case 'wtt':
+                        tradePostModalTitle.textContent = 'Create "Want to Trade" Post';
+                        havesSection.classList.remove('hidden');
+                        wantsSection.classList.remove('hidden');
+                        break;
+                }
+                renderTradePostDraft();
+                openModal(tradePostModal);
+            };
+
+            const renderTradePostDraft = () => {
+                const havesList = document.getElementById('trade-post-haves-list');
+                const wantsList = document.getElementById('trade-post-wants-list');
+                havesList.innerHTML = tradePostDraft.haves.map(c => `<div class="flex items-center justify-between text-sm p-1 bg-white dark:bg-gray-800 rounded"><span>${c.name}</span><button type="button" class="remove-draft-item-btn text-red-500" data-id="${c.id}" data-list="haves">&times;</button></div>`).join('');
+                wantsList.innerHTML = tradePostDraft.wants.map(c => `<div class="flex items-center justify-between text-sm p-1 bg-white dark:bg-gray-800 rounded"><span>${c.name}</span><button type="button" class="remove-draft-item-btn text-red-500" data-id="${c.id}" data-list="wants">&times;</button></div>`).join('');
+            };
+            const handleCardSearch = (e, listType) => {
+                const input = e.target;
+                const resultsContainer = listType === 'haves' ? havesResultsContainer : wantsResultsContainer;
+                const sourceList = listType === 'haves' ? userCollection : userWishlist;
+                const searchTerm = input.value.toLowerCase();
+
+                if (searchTerm.length < 2) {
+                    resultsContainer.classList.add('hidden');
+                    return;
+                }
+                const filtered = sourceList.filter(c => c.name.toLowerCase().includes(searchTerm));
+                resultsContainer.innerHTML = '';
+                if (filtered.length > 0) {
+                    resultsContainer.classList.remove('hidden');
+                    filtered.slice(0, 7).forEach(card => {
+                        const item = document.createElement('div');
+                        item.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-700';
+                        item.textContent = card.name;
+                        item.addEventListener('click', () => {
+                            if (!tradePostDraft[listType].some(c => c.id === card.id)) {
+                                tradePostDraft[listType].push(card);
+                                renderTradePostDraft();
+                            }
+                            input.value = '';
+                            resultsContainer.classList.add('hidden');
+                        });
+                        resultsContainer.appendChild(item);
+                    });
+                }
+            };
+
+            if (inviteUserSearchInput) {
+                inviteUserSearchInput.addEventListener('keyup', async (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const groupId = document.getElementById('invite-group-id').value;
+                    if (searchTerm.length < 2 || !groupId) {
+                        inviteUserResultsContainer.innerHTML = '';
+                        return;
+                    }
+
+                    const groupDoc = await db.collection('groups').doc(groupId).get();
+                    const existingMembers = groupDoc.data().participants || [];
+
+                    const usersRef = db.collection('users');
+                    const snapshot = await usersRef.orderBy('handle').startAt(searchTerm).endAt(searchTerm + '\uf8ff').limit(5).get();
+                    inviteUserResultsContainer.innerHTML = '';
+                    if (snapshot.empty) {
+                        inviteUserResultsContainer.innerHTML = '<p class="p-2 text-sm text-gray-500">No users found.</p>';
+                        return;
+                    }
+
+                    snapshot.forEach(doc => {
+                        const userData = doc.data();
+                        const userId = doc.id;
+
+                        if (existingMembers.includes(userId)) return;
+
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
+                        resultItem.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-8 h-8 rounded-full object-cover">
+                            <span class="dark:text-white">${userData.displayName} (@${userData.handle})</span>
+                        </div>
+                        <button class="invite-user-btn bg-blue-500 text-white px-3 py-1 text-xs rounded-full hover:bg-blue-600" data-uid="${userId}">Invite</button>
+                        `;
+                        resultItem.querySelector('.invite-user-btn').addEventListener('click', (e) => {
+                            e.target.disabled = true;
+                            e.target.textContent = 'Invited';
+                            inviteUserToGroup(userId, userData, groupId, groupDoc.data().name);
+                        });
+                        inviteUserResultsContainer.appendChild(resultItem);
+                    });
+                });
+            }
+            if (tradePostForm) {
+                tradePostForm.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('remove-draft-item-btn')) {
+                        const cardId = e.target.dataset.id;
+                        const listName = e.target.dataset.list;
+                        tradePostDraft[listName] = tradePostDraft[listName].filter(c => c.id !== cardId);
+                        renderTradePostDraft();
+                    }
+                });
+                tradePostForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const groupId = document.getElementById('group-detail-view').dataset.groupId;
+                    if (!groupId || !currentUser) return;
+                    const postData = {
+                        title: document.getElementById('trade-post-title-input').value,
+                        body: document.getElementById('trade-post-body-input').value,
+                        postType: tradePostTypeInput.value,
+                        haves: tradePostDraft.haves.map(c => ({ name: c.name, imageUrl: c.imageUrl || '' })),
+                        wants: tradePostDraft.wants.map(c => ({ name: c.name, imageUrl: c.imageUrl || '' })),
+                        authorId: currentUser.uid,
+                        author: currentUser.displayName,
+                        authorPhotoURL: currentUser.photoURL,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    try {
+                        await db.collection('groups').doc(groupId).collection('posts').add(postData);
+                        alert('Trade post created!');
+                        closeModal(tradePostModal);
+                    } catch (error) {
+                        console.error('Error creating trade post:', error);
+                        alert('Could not create trade post.');
+                    }
+                });
+            }
+
+            if(pollForm) {
+                let selectedGroupPollMediaFile = null;
+                const attachGroupPollMediaBtn = document.getElementById('attachGroupPollMediaBtn');
+                const groupPollMediaUpload = document.getElementById('groupPollMediaUpload');
+                const groupPollMediaFileName = document.getElementById('groupPollMediaFileName');
+
+                attachGroupPollMediaBtn?.addEventListener('click', () => {
+                    groupPollMediaUpload.click();
+                });
+
+                groupPollMediaUpload?.addEventListener('change', (e) => {
+                    selectedGroupPollMediaFile = e.target.files[0];
+                    if (selectedGroupPollMediaFile) {
+                        groupPollMediaFileName.textContent = selectedGroupPollMediaFile.name;
+                    } else {
+                        groupPollMediaFileName.textContent = '';
+                    }
+                });
+
+
+                addPollOptionBtn?.addEventListener('click', () => {
+                    const optionCount = pollOptionsContainer.children.length;
+                    if (optionCount < 10) {
+                        const newOption = document.createElement('div');
+                        newOption.innerHTML = `
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Option ${optionCount + 1}
+                            </label>
+                            <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
+                        `;
+                        pollOptionsContainer.appendChild(newOption);
+                    } else {
+                        alert("You can have a maximum of 10 options.");
+                    }
+                });
+
+                pollForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const groupId = document.getElementById('group-detail-view').dataset.groupId;
+                    const question = document.getElementById('pollQuestion').value.trim();
+                    const options = Array.from(document.querySelectorAll('.poll-option'))
+                        .map(input => input.value.trim())
+                        .filter(text => text.length > 0);
+
+                    if (!question || options.length < 2) {
+                        alert("A poll must have a question and at least two options.");
+                        return;
+                    }
+
+                    const pollData = {
+                        question: question,
+                        options: options.map(optionText => ({ text: optionText, votes: 0 })),
+                        voters: {}
+                    };
+                    
+                    try {
+                        let mediaUrl = null;
+                        let mediaType = null;
+
+                        if (selectedGroupPollMediaFile) {
+                            const filePath = `groups/${groupId}/polls/${currentUser.uid}/${Date.now()}_${selectedGroupPollMediaFile.name}`;
+                            const fileRef = firebase.storage().ref(filePath);
+                            const uploadTask = await fileRef.put(selectedGroupPollMediaFile);
+                            mediaUrl = await uploadTask.ref.getDownloadURL();
+                            mediaType = selectedGroupPollMediaFile.type;
+                        }
+
+                        const postData = {
+                            authorId: currentUser.uid,
+                            author: currentUser.displayName,
+                            authorPhotoURL: currentUser.photoURL,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            poll: pollData,
+                            mediaUrl: mediaUrl,
+                            mediaType: mediaType
+                        };
+
+                        await db.collection('groups').doc(groupId).collection('posts').add(postData);
+                        closeModal(pollModal);
+                        pollForm.reset();
+                        groupPollMediaFileName.textContent = '';
+                        selectedGroupPollMediaFile = null;
+                        alert('Poll created successfully!');
+                    } catch (error) {
+                        console.error("Error creating poll post:", error);
+                        alert(`Error: ${error.message}`);
+                    }
+                });
+            }
+
+
+            if (havesSearchInput) havesSearchInput.addEventListener('input', (e) => handleCardSearch(e, 'haves'));
+            if (wantsSearchInput) wantsSearchInput.addEventListener('input', (e) => handleCardSearch(e, 'wants'));
+            if (groupDetailView) {
+                groupDetailView.addEventListener('click', (e) => {
+                    const button = e.target.closest('.trade-post-btn');
+                    if (button) {
+                        openTradePostModal(button.dataset.postType);
+                    }
+
+                    const pollOption = e.target.closest('.poll-option');
+                    if(pollOption) {
+                        const postElement = e.target.closest('.post-container');
+                        const postId = postElement.dataset.id;
+                        const groupId = document.getElementById('group-detail-view').dataset.groupId;
+                        const optionIndex = parseInt(pollOption.dataset.optionIndex, 10);
+                        const postRef = db.collection('groups').doc(groupId).collection('posts').doc(postId);
+
+                        db.runTransaction(async (transaction) => {
+                            const postDoc = await transaction.get(postRef);
+                            if(!postDoc.exists) throw "Post not found";
+
+                            const postData = postDoc.data();
+                            const poll = postData.poll;
+
+                            if(poll.voters && poll.voters[currentUser.uid] !== undefined){
+                            alert("You have already voted in this poll.");
+                                return;
+                            }
+
+                            poll.options[optionIndex].votes += 1;
+                            poll.voters[currentUser.uid] = optionIndex;
+
+                            transaction.update(postRef, { poll: poll });
+                        }).catch(error => {
+                            console.error("Error voting in poll: ", error);
+                            alert("Could not register your vote.");
+                        });
+                    }
+
+                });
+            }
+            if (pendingInvitesList) {
+                pendingInvitesList.addEventListener('click', async (e) => {
+                    const button = e.target.closest('button');
+                    if (!button) return;
+
+                    const inviteId = button.dataset.inviteId;
+                    const groupId = button.dataset.groupId;
+
+                    if (button.classList.contains('accept-invite-btn')) {
+                        const groupRef = db.collection('groups').doc(groupId);
+                        const inviteRef = db.collection('groupInvitations').doc(inviteId);
+                        const batch = db.batch();
+                        batch.update(groupRef, {
+                            participants: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+                            participantCount: firebase.firestore.FieldValue.increment(1),
+                            [`participantInfo.${currentUser.uid}`]: { displayName: currentUser.displayName, photoURL: currentUser.photoURL }
+                        });
+                        batch.delete(inviteRef);
+                        await batch.commit();
+
+                        alert("Group joined!");
+                    } else if (button.classList.contains('decline-invite-btn')) {
+                        await db.collection('groupInvitations').doc(inviteId).delete();
+                        alert("Invitation declined.");
+                    }
+                });
+            }
+            const checkForUrlParams = () => {
+                const params = new URLSearchParams(window.location.search);
+                const groupId = params.get('groupId');
+                if (groupId) {
+                    viewGroup(groupId);
+                }
+            };
+
+            loadMyGroups();
+            loadDiscoverGroups();
+            loadPendingInvitations();
+            checkForUrlParams();
+        }
+    }
+
+
+    // =================================================================================
+    // LOOKING FOR GAME (LFG) LOGIC
+    // =================================================================================
+    const initializeLfgFeature = (user, db) => {
+        if (!document.getElementById('tab-content-lfg')) return;
+        if (!user) {
+             document.getElementById('tab-content-lfg').innerHTML = '<p class="text-center">Please log in to look for a game.</p>';
+             return;
+        }
+        setupLfgEventListeners(user, db);
+        loadUserLfgStatus(user.uid, db);
+        listenForLfgPlayers(user.uid, db);
+    }
+
+    const setupLfgEventListeners = (user, db) => {
+        const lfgToggle = document.getElementById('lfg-status-toggle');
+        const lfgOptions = document.getElementById('lfg-options');
+        const saveLfgBtn = document.getElementById('save-lfg-status');
+
+        if (!lfgToggle || !lfgOptions || !saveLfgBtn) return;
+
+        lfgToggle.addEventListener('change', () => {
+            lfgOptions.classList.toggle('hidden', !lfgToggle.checked);
+            if (!lfgToggle.checked) {
+                removeLfgStatus(user.uid, db);
+                alert('Your "Looking for Game" status has been removed.');
+            }
+        });
+
+        saveLfgBtn.addEventListener('click', async () => {
+            const gameType = document.getElementById('lfg-type').value;
+            const details = document.getElementById('lfg-details').value.trim();
+
+            if (!gameType) {
+                alert('Please select a game type.');
+                return;
+            }
+
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const lfgData = {
+                        userId: user.uid,
+                        userHandle: userData.handle || 'Anonymous',
+                        userAvatar: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+                        gameType: gameType,
+                        details: details,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await setLfgStatus(user.uid, lfgData, db);
+                } else {
+                     throw new Error("User profile not found.");
+                }
+            } catch (error) {
+                console.error("Error saving LFG status:", error);
+                alert('An error occurred while saving your status.');
+            }
+        });
+    }
+
+    const setLfgStatus = async (uid, data, db) => {
+        try {
+            await db.collection('lfg_status').doc(uid).set(data);
+            alert('Your status has been updated!');
+        } catch (error) {
+            console.error("Error setting LFG status: ", error);
+            alert('Failed to update status. Please try again.');
+        }
+    }
+
+    const removeLfgStatus = async (uid, db) => {
+        try {
+            await db.collection('lfg_status').doc(uid).delete();
+            console.log("LFG status removed for user:", uid);
+        } catch (error) {
+            console.error("Error removing LFG status: ", error);
+        }
+    }
+
+    const loadUserLfgStatus = async (uid, db) => {
+        try {
+            const doc = await db.collection('lfg_status').doc(uid).get();
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById('lfg-status-toggle').checked = true;
+                document.getElementById('lfg-options').classList.remove('hidden');
+                document.getElementById('lfg-type').value = data.gameType || 'Online';
+                document.getElementById('lfg-details').value = data.details || '';
+            }
+        } catch (error) {
+            console.error("Error loading user LFG status:", error);
+        }
+    }
+
+    const listenForLfgPlayers = (currentUserId, db) => {
+        const listContainer = document.getElementById('lfg-players-list');
+        if (!listContainer) return;
+
+        db.collection('lfg_status').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+            listContainer.innerHTML = '';
+            if (snapshot.empty) {
+                listContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No players are currently looking for a game.</p>';
+                return;
+            }
+
+            let playersFound = snapshot.docs.some(doc => doc.data().userId !== currentUserId);
+
+            if (playersFound) {
+                 snapshot.forEach(doc => {
+                    const playerData = doc.data();
+                    if (playerData.userId !== currentUserId) {
+                        const playerCard = createPlayerCardElement(playerData);
+                        listContainer.appendChild(playerCard);
+                    }
+                });
+            } else {
+                listContainer.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You are the only one looking for a game right now. Others will appear here when they set their status.</p>';
+            }
+
+        }, error => {
+            console.error("Error listening for LFG players:", error);
+            listContainer.innerHTML = '<p class="text-red-500">Could not load players list. Please try again later.</p>';
+        });
+    }
+
+    const createPlayerCardElement = (data) => {
+        const card = document.createElement('div');
+        card.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-start space-x-4';
+        const sanitizedDetails = data.details.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        card.innerHTML = `
+            <img src="${data.userAvatar}" alt="${data.userHandle}'s avatar" class="w-16 h-16 rounded-full object-cover border-2 border-blue-500">
+            <div class="flex-1">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-blue-600 dark:text-blue-400">${data.userHandle}</h3>
+                        <span class="text-sm font-semibold px-2 py-1 rounded-full ${data.gameType === 'Online' ? 'bg-green-200 text-green-800' : 'bg-purple-200 text-purple-800'}">${data.gameType}</span>
+                    </div>
+                    <button data-user-id="${data.userId}" class="message-lfg-user-btn px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700">
+                        <i class="fas fa-comments mr-2"></i>Message
+                    </button>
+                </div>
+                <p class="text-gray-600 dark:text-gray-300 mt-2">${sanitizedDetails || 'No additional details provided.'}</p>
+            </div>
+        `;
+        
+        card.querySelector('.message-lfg-user-btn').addEventListener('click', (e) => {
+            const userId = e.currentTarget.dataset.userId;
+            startConversation(userId);
+        });
+        
+        return card;
+    }
+    
+    // Replace the old startConversation function in public/js/community.js with this one.
+
+const startConversation = async (otherUserId) => {
+    if (!currentUser) return alert('You must be logged in to send a message.');
+    if (currentUser.uid === otherUserId) return;
+
+    // Provide immediate feedback to the user that something is happening
+    const lfgButton = document.querySelector(`.message-lfg-user-btn[data-user-id="${otherUserId}"]`);
+    if (lfgButton) {
+        lfgButton.disabled = true;
+        lfgButton.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Starting...`;
+    }
+
+    const ensureConversation = firebase.functions().httpsCallable('ensureConversationExists');
+
+    try {
+        // Call the new backend function to create the conversation securely
+        await ensureConversation({ otherUserId: otherUserId });
+        
+        // If successful, redirect to the messages page
+        window.location.href = `messages.html?userId=${otherUserId}`;
+
+    } catch (error) {
+        console.error("Error starting conversation via Cloud Function:", error);
+        alert(`Could not start conversation: ${error.message}`);
+        
+        // Re-enable the button if an error occurs
+        if (lfgButton) {
+            lfgButton.disabled = false;
+            lfgButton.innerHTML = `<i class="fas fa-comments mr-2"></i>Message`;
+        }
+    }
+};
+    // --- INITIALIZE ALL FEATURES ---
+    if (currentUser) {
+        initializeLfgFeature(currentUser, db);
+    }
+
 });
