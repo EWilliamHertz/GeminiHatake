@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             verificationTimer = null;
         }
         
-         await initCurrency(user ? user.uid : null);
+        await initCurrency('USD');
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
