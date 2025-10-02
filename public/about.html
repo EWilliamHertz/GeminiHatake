@@ -31,9 +31,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
     <link href="css/style.css" rel="stylesheet"/>
    </head>
-   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+   <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
     
-    <div class="flex h-screen">
+    <div class="flex min-h-screen">
      <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
      </div>
      <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
@@ -149,7 +149,7 @@
       </div>
      </aside>
      
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col">
       <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
      <div class="flex items-center">
       <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300" id="sidebar-toggle">
@@ -170,7 +170,7 @@
 
       <!-- Header Section -->
       <!-- Main Content -->
-      
+      <main class="flex-1 overflow-y-auto p-8">
        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
         <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-4 text-center">
          About HatakeSocial
@@ -183,10 +183,10 @@
         <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">
          Our Team
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
          <!-- Team Member Card -->
          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
-          <img alt="Ernst-William Hertz" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/op0pjSl.jpeg"/>
+          <img alt="Ernst-William Hertz" class="w-48 h-48 rounded-lg mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/op0pjSl.jpeg"/>
           <h3 class="text-xl font-bold text-gray-900 dark:text-white">
            Ernst-William Hertz
           </h3>
@@ -199,7 +199,7 @@
          </div>
          <!-- Team Member Card -->
          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
-          <img alt="Patricia Andersson" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/6klWTRC.jpeg"/>
+          <img alt="Patricia Andersson" class="w-48 h-48 rounded-lg mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/6klWTRC.jpeg"/>
           <h3 class="text-xl font-bold text-gray-900 dark:text-white">
            Patricia Andersson
           </h3>
@@ -212,7 +212,7 @@
          </div>
          <!-- Team Member Card -->
          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
-          <img alt="Mark Lange Jensen" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/1Oiiulk.jpeg"/>
+          <img alt="Mark Lange Jensen" class="w-48 h-48 rounded-lg mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/1Oiiulk.jpeg"/>
           <h3 class="text-xl font-bold text-gray-900 dark:text-white">
            Mark Lange Jensen
           </h3>
@@ -225,7 +225,7 @@
          </div>
          <!-- Team Member Card -->
          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
-          <img alt="Virre Van Zarate Abreu" class="w-32 h-32 rounded-full mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/b5cE8AK.jpeg"/>
+          <img alt="Virre Van Zarate Abreu" class="w-48 h-48 rounded-lg mx-auto mb-4 object-cover object-top" src="https://i.imgur.com/b5cE8AK.jpeg"/>
           <h3 class="text-xl font-bold text-gray-900 dark:text-white">
            Virre Van Zarate Abreu
           </h3>
@@ -236,10 +236,37 @@
            A great entrepreneur with a keen business sense, Virre acts as our conventional manager, guiding our strategic growth and operations.
           </p>
          </div>
+         <!-- Team Member Card -->
+         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
+          <img alt="Phoebe Wang" class="w-48 h-48 rounded-lg mx-auto mb-4 object-cover object-top" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_8321.webp?alt=media&token=20ddfeb6-fe17-4435-a4e2-e744a1359da9"/>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+           Phoebe Wang
+          </h3>
+          <p class="text-blue-500 dark:text-blue-400 font-semibold">
+           Partner in Asia
+          </p>
+          <p class="text-gray-600 dark:text-gray-300 mt-2 text-sm">
+           Our Chinese Partner who oversees merchandise production and serves as our key liaison for building our network and presence in China. Phoebe plays a crucial role in our global reach and quality assurance.
+          </p>
+         </div>
+         <!-- Team Member Card -->
+         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow-md p-6 text-center">
+          <img alt="Andrew Backes" class="w-48 h-48 rounded-lg mx-auto mb-4 object-cover object-top" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_8322.jpeg?alt=media&token=f4b1ef39-44be-4a71-9874-e123aac775e5"/>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+           <a href="https://www.linkedin.com/in/andrewbackes/" class="text-blue-500 dark:text-blue-400 hover:underline">Andrew Backes</a>
+          </h3>
+          <p class="text-blue-500 dark:text-blue-400 font-semibold">
+           Creator of ScryDex
+          </p>
+          <p class="text-gray-600 dark:text-gray-300 mt-2 text-sm">
+           We owe an immense debt of gratitude to Andrew Backes, the brilliant creator of ScryDex. When Andrew graciously invited us to integrate his remarkable system into our platform, he transformed our vision into reality. ScryDex provides us with unprecedented access to a comprehensive database containing detailed information, images, and pricing for hundreds of thousands of cards across multiple Trading Card Games. Without Andrew's generosity and the incredible foundation that ScryDex provides, our platform wouldn't be a tenth of what it is today. His innovation and willingness to share his creation with us has been absolutely instrumental in making HatakeSocial the comprehensive TCG platform we are proud to offer our community.
+          </p>
+         </div>
         </div>
        </div>
       </main>
-      <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+      </div>
+      <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
        <div class="container mx-auto py-8 px-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
          <div>

@@ -33,6 +33,24 @@ html {
 /* Ensure the main content area is allowed to scroll */
 main {
     overflow-y: auto; /* Changed from 'hidden' to 'auto' */
+    width: calc(100vw - 256px);
+    flex: 1;
+}
+
+/* Fix for main content area width issue */
+.flex-1.flex.flex-col.overflow-hidden {
+    flex: 1;
+    width: auto;
+    min-width: 0; /* Allows flex items to shrink below their content size */
+}
+
+/* Fix for tab navigation width issue */
+.mb-6.border-b.border-gray-200.dark\\:border-gray-700 {
+    width: 100%;
+}
+
+nav[aria-label="Tabs"] {
+    width: 100%;
 }
 
 /* Responsive design adjustments */
@@ -2077,4 +2095,258 @@ body.dark-mode .close-button:focus {
 /* Ensure top mover cards have a minimum height */
 .top-mover-card {
     min-height: 80px; 
+}
+
+/* --- Deck Builder Form Fixes --- */
+/* === DECK BUILDER FORM STYLING === */
+
+/* Main form container */
+.deck-builder-form {
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
+}
+
+/* Header section with title and import button */
+.deck-builder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.dark .deck-builder-header {
+    border-bottom-color: #374151;
+}
+
+/* Form sections with better visual separation */
+.deck-builder-form .form-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.dark .deck-builder-form .form-section {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+/* Basic info section (Deck Name + Game) */
+.deck-basic-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Format selection styling */
+.deck-format-section {
+    margin-bottom: 1.5rem;
+}
+
+/* Form groups */
+.deck-builder-form .form-group {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.deck-builder-form .form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.dark .deck-builder-form .form-group label {
+    color: #d1d5db;
+}
+
+/* Enhanced input styling */
+.deck-builder-form input,
+.deck-builder-form select,
+.deck-builder-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.875rem 1rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease-in-out;
+    background: white;
+}
+
+.dark .deck-builder-form input,
+.dark .deck-builder-form select,
+.dark .deck-builder-form textarea {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+}
+
+.deck-builder-form input:focus,
+.deck-builder-form select:focus,
+.deck-builder-form textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Game dropdown specific styling */
+.deck-builder-form select {
+    min-width: 200px;
+    cursor: pointer;
+}
+
+/* Deck list textarea specific styling */
+#decklist-input {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    resize: vertical;
+    min-height: 160px;
+}
+
+/* Privacy checkbox styling */
+.deck-privacy-section {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dark .deck-privacy-section {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+}
+
+/* Enhanced button layout */
+.deck-builder-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.dark .deck-builder-buttons {
+    border-top-color: #374151;
+}
+
+.deck-builder-buttons button {
+    flex: 1;
+    min-width: 200px;
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.deck-builder-buttons button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Primary button (Build & Price) */
+#build-deck-btn {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+#build-deck-btn:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+/* Secondary button (Save Deck) */
+#save-deck-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+#save-deck-btn:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+}
+
+/* Tertiary button (Write Primer) */
+#write-primer-btn {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+#write-primer-btn:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+/* Import button styling */
+#import-deck-btn {
+    background: #6b7280;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#import-deck-btn:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .deck-basic-info {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .deck-builder-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .deck-builder-buttons {
+        flex-direction: column;
+    }
+    
+    .deck-builder-buttons button {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .deck-builder-form .form-section {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .deck-builder-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    #import-deck-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }

@@ -20,10 +20,23 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
-window.auth = firebase.auth();
-window.db = firebase.firestore();
-window.functions = firebase.functions();
-window.storage = firebase.storage();
+// Initialize Firebase services safely
+try {
+    window.auth = firebase.auth();
+    window.db = firebase.firestore();
+    
+    // Only initialize functions if available
+    if (firebase.functions) {
+        window.functions = firebase.functions();
+    }
+    
+    // Only initialize storage if available
+    if (firebase.storage) {
+        window.storage = firebase.storage();
+    }
+} catch (error) {
+    console.warn('Firebase initialization warning:', error.message);
+}
 
 
 // --- Dark Mode Functionality (Integrated) ---
@@ -204,7 +217,7 @@ window.openNewConversationModal = (isWidget = false, callback) => {
 
 document.addEventListener('DOMContentLoaded', async () => {
      // Import the currency module
-    const { initCurrency, updateUserCurrency, getUserCurrency } = await import('./modules/currency.js');
+    const { initCurrency, updateUserCurrency, getUserCurrency, loadUserCurrency } = await import('./modules/currency.js');
 
     document.body.style.opacity = '0'; // Hide body until ready
 
@@ -369,14 +382,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         await initCurrency('USD');
-
-
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 userData = userDoc.data();
             }
-
+            
+            // Load user's currency preference from Firestore
+            await loadUserCurrency(user.uid);
+            
             // --- MERGED TOUR TRIGGER ---
             const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
             if (isNewUser || sessionStorage.getItem('tour_step')) {

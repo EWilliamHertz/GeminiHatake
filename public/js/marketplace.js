@@ -106,22 +106,46 @@ class MarketplaceManager {
             checkbox.addEventListener('change', () => this.applyFilters());
         });
 
-        // Other filters
+        // Additional filters
         const filterElements = [
-            'condition-filter', 'min-price', 'max-price', 'sort-filter',
-            'mtg-type-filter', 'pokemon-type-filter', 'pokemon-graded-filter',
-            'lorcana-graded-filter', 'gundam-series-filter'
+            'condition-filter',
+            'min-price',
+            'max-price',
+            'rarity-filter',
+            'location-filter',
+            'set-filter',
+            'sort-filter'
         ];
 
-        filterElements.forEach(id => {
-            const element = document.getElementById(id);
+        filterElements.forEach(filterId => {
+            const element = document.getElementById(filterId);
             if (element) {
-                element.addEventListener('change', () => this.applyFilters());
-                element.addEventListener('input', () => this.applyFilters());
+                const eventType = element.type === 'text' ? 'input' : 'change';
+                element.addEventListener(eventType, () => {
+                    if (filterId === 'min-price' || filterId === 'max-price' || filterId === 'set-filter') {
+                        // Add debounce for text inputs
+                        clearTimeout(this.filterTimeout);
+                        this.filterTimeout = setTimeout(() => this.applyFilters(), 300);
+                    } else {
+                        this.applyFilters();
+                    }
+                });
             }
         });
 
-        // Clear filters
+        // Continent filter checkboxes
+        const continentCheckboxes = document.querySelectorAll('[id^="continent-"]');
+        continentCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                this.saveContinentPreferences();
+                this.applyFilters();
+            });
+        });
+
+        // Load saved continent preferences
+        this.loadContinentPreferences();
+
+        // Clear filters button
         const clearFiltersBtn = document.getElementById('clear-filters-btn');
         if (clearFiltersBtn) {
             clearFiltersBtn.addEventListener('click', () => this.clearFilters());
@@ -248,6 +272,21 @@ class MarketplaceManager {
             loadingIndicator.classList.remove('hidden');
         }
 
+        // Ensure currency is loaded before proceeding
+        if (!convertAndFormat) {
+            console.log('Waiting for currency module to load...');
+            await new Promise(resolve => {
+                const checkCurrency = () => {
+                    if (convertAndFormat) {
+                        resolve();
+                    } else {
+                        setTimeout(checkCurrency, 100);
+                    }
+                };
+                checkCurrency();
+            });
+        }
+
         if (marketplaceDisplay) {
             marketplaceDisplay.classList.add('hidden');
         }
@@ -283,6 +322,14 @@ class MarketplaceManager {
             this.filteredListings = [...this.allListings];
             console.log(`Loaded ${this.allListings.length} marketplace listings`);
 
+            // Clean up orphaned listings
+            await this.cleanupOrphanedListings();
+            
+            // Populate dynamic filters
+            this.populateCountryFilter();
+            this.populateRarityFilter();
+            this.populateConditionFilter();
+            
             this.updateStats();
             this.applyFilters();
 
@@ -367,6 +414,47 @@ class MarketplaceManager {
             const price = listing.price || 0;
             return price >= minPrice && price <= maxPrice;
         });
+
+        // Rarity filter
+        const rarityFilter = document.getElementById('rarity-filter')?.value;
+        if (rarityFilter) {
+            filtered = filtered.filter(listing => {
+                const rarity = (listing.cardData?.rarity || '').toLowerCase();
+                return rarity.includes(rarityFilter.toLowerCase());
+            });
+        }
+
+        // Seller location filter
+        const locationFilter = document.getElementById('location-filter')?.value;
+        if (locationFilter) {
+            filtered = filtered.filter(listing => {
+                const sellerCountry = listing.sellerData?.country || '';
+                return sellerCountry === locationFilter;
+            });
+        }
+
+        // Set filter
+        const setFilter = document.getElementById('set-filter')?.value?.toLowerCase().trim();
+        if (setFilter) {
+            filtered = filtered.filter(listing => {
+                const setName = (listing.cardData?.set_name || listing.cardData?.set || '').toLowerCase();
+                return setName.includes(setFilter);
+            });
+        }
+
+        // Continent filter
+        const selectedContinents = Array.from(document.querySelectorAll('[id^="continent-"]:checked'))
+            .map(cb => cb.value);
+
+        if (selectedContinents.length > 0) {
+            filtered = filtered.filter(listing => {
+                const country = listing.sellerData?.country;
+                if (!country) return false;
+                
+                const continent = this.getCountryContinent(country);
+                return selectedContinents.includes(continent);
+            });
+        }
 
         // Game-specific filters
         filtered = this.applyGameSpecificFilters(filtered);
@@ -502,7 +590,9 @@ class MarketplaceManager {
                         'https://via.placeholder.com/223x310?text=No+Image';
 
         const price = listing.price || 0;
-        const priceDisplay = convertAndFormat ? convertAndFormat(price, 'USD') : `$${price.toFixed(2)}`;
+        console.log(`[Marketplace] Converting price: ${price}, convertAndFormat available:`, !!convertAndFormat);
+        const priceDisplay = convertAndFormat ? convertAndFormat(price) : `$${price.toFixed(2)}`;
+        console.log(`[Marketplace] Price display result: ${priceDisplay}`);
 
         cardDiv.innerHTML = `
             <div class="relative">
@@ -521,14 +611,35 @@ class MarketplaceManager {
             
             <div class="p-4">
                 <h3 class="font-semibold text-lg mb-2 text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                
+                <!-- Price and Game -->
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">${cardData.game || 'Unknown Game'}</span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400 capitalize">${cardData.game || 'Unknown Game'}</span>
                     <span class="text-lg font-bold text-green-600 dark:text-green-400">${priceDisplay}</span>
                 </div>
-                ${cardData.foil ? '<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Foil</span>' : ''}
-                <div class="mt-3">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Seller: <span class="font-medium">${sellerData.displayName || 'Unknown'}</span></p>
-                    ${cardData.condition ? `<p class="text-sm text-gray-600 dark:text-gray-400">Condition: <span class="font-medium">${cardData.condition}</span></p>` : ''}
+                
+                <!-- Set and Rarity -->
+                <div class="mb-2">
+                    ${cardData.set_name ? `<p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name}</p>` : ''}
+                    <div class="flex items-center space-x-2 mt-1">
+                        ${cardData.rarity ? `<span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full capitalize">${cardData.rarity}</span>` : ''}
+                        ${cardData.foil ? '<span class="inline-block bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded-full">Foil</span>' : ''}
+                        ${cardData.condition ? `<span class="inline-block bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded-full capitalize">${cardData.condition.replace('_', ' ')}</span>` : ''}
+                    </div>
+                </div>
+                
+                <!-- Seller Information -->
+                <div class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            ${sellerData.photoURL ? `<img src="${sellerData.photoURL}" alt="Seller" class="w-6 h-6 rounded-full">` : '<div class="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center"><i class="fas fa-user text-xs text-gray-500"></i></div>'}
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">${sellerData.displayName || 'Unknown'}</p>
+                                ${sellerData.country ? `<p class="text-xs text-gray-500 dark:text-gray-400">${sellerData.country}</p>` : ''}
+                            </div>
+                        </div>
+                        ${listing.quantity > 1 ? `<span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">Qty: ${listing.quantity}</span>` : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -632,7 +743,7 @@ class MarketplaceManager {
             'modal-card-image': cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl,
             'modal-card-name': cardData.name || 'Unknown Card',
             'modal-card-set': cardData.set_name || cardData.set || 'Unknown Set',
-            'modal-card-price': convertAndFormat ? convertAndFormat(listing.price || 0, 'USD') : `$${(listing.price || 0).toFixed(2)}`,
+            'modal-card-price': convertAndFormat ? convertAndFormat(listing.price || 0) : `$${(listing.price || 0).toFixed(2)}`,
             'modal-card-condition': cardData.condition || 'Unknown',
             'modal-seller-name': sellerData.displayName || 'Unknown Seller'
         };
@@ -696,36 +807,306 @@ class MarketplaceManager {
         }
     }
 
+    async cleanupOrphanedListings() {
+        console.log('Checking for orphaned marketplace listings...');
+        const orphanedListings = [];
+
+        for (const listing of this.allListings) {
+            try {
+                // Check if the card still exists in the seller's collection
+                const collectionRef = this.db.collection('users').doc(listing.sellerId).collection('collection');
+                const cardQuery = await collectionRef.where('api_id', '==', listing.cardData?.api_id).get();
+                
+                if (cardQuery.empty) {
+                    console.log(`Found orphaned listing: ${listing.cardData?.name} from ${listing.sellerData?.displayName}`);
+                    orphanedListings.push(listing);
+                }
+            } catch (error) {
+                console.error('Error checking listing:', listing.id, error);
+            }
+        }
+
+        // Remove orphaned listings
+        for (const orphaned of orphanedListings) {
+            try {
+                await this.db.collection('marketplaceListings').doc(orphaned.id).delete();
+                console.log(`Removed orphaned listing: ${orphaned.cardData?.name}`);
+                
+                // Remove from local array
+                const index = this.allListings.findIndex(l => l.id === orphaned.id);
+                if (index > -1) {
+                    this.allListings.splice(index, 1);
+                }
+            } catch (error) {
+                console.error('Error removing orphaned listing:', orphaned.id, error);
+            }
+        }
+
+        if (orphanedListings.length > 0) {
+            console.log(`Cleaned up ${orphanedListings.length} orphaned listings`);
+            this.filteredListings = [...this.allListings];
+        }
+    }
+
+    populateCountryFilter() {
+        const locationFilter = document.getElementById('location-filter');
+        if (!locationFilter) return;
+
+        // Get unique countries from sellers
+        const countries = new Set();
+        this.allListings.forEach(listing => {
+            const country = listing.sellerData?.country;
+            if (country && country.trim()) {
+                countries.add(country.trim());
+            }
+        });
+
+        // Clear existing options except "All Locations"
+        const allOption = locationFilter.querySelector('option[value=""]');
+        locationFilter.innerHTML = '';
+        if (allOption) {
+            locationFilter.appendChild(allOption);
+        } else {
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'All Locations';
+            locationFilter.appendChild(defaultOption);
+        }
+
+        // Add country options sorted alphabetically
+        Array.from(countries).sort().forEach(country => {
+            const option = document.createElement('option');
+            option.value = country;
+            option.textContent = country;
+            locationFilter.appendChild(option);
+        });
+
+        console.log(`Populated country filter with ${countries.size} countries:`, Array.from(countries));
+    }
+
+    populateRarityFilter() {
+        const rarityFilter = document.getElementById('rarity-filter');
+        if (!rarityFilter) return;
+
+        // Get unique rarities from cards
+        const rarities = new Set();
+        this.allListings.forEach(listing => {
+            const rarity = listing.cardData?.rarity;
+            if (rarity && rarity.trim()) {
+                rarities.add(rarity.trim().toLowerCase());
+            }
+        });
+
+        // Clear existing options except "All Rarities"
+        rarityFilter.innerHTML = '<option value="">All Rarities</option>';
+
+        // Add rarity options sorted by typical rarity order
+        const rarityOrder = ['common', 'uncommon', 'rare', 'mythic', 'legendary', 'special'];
+        const sortedRarities = Array.from(rarities).sort((a, b) => {
+            const aIndex = rarityOrder.indexOf(a.toLowerCase());
+            const bIndex = rarityOrder.indexOf(b.toLowerCase());
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        });
+
+        sortedRarities.forEach(rarity => {
+            const option = document.createElement('option');
+            option.value = rarity;
+            option.textContent = rarity.charAt(0).toUpperCase() + rarity.slice(1);
+            rarityFilter.appendChild(option);
+        });
+
+        console.log(`Populated rarity filter with ${rarities.size} rarities:`, Array.from(rarities));
+    }
+
+    populateConditionFilter() {
+        const conditionFilter = document.getElementById('condition-filter');
+        if (!conditionFilter) return;
+
+        // Get unique conditions from cards
+        const conditions = new Set();
+        this.allListings.forEach(listing => {
+            const condition = listing.cardData?.condition;
+            if (condition && condition.trim()) {
+                conditions.add(condition.trim());
+            }
+        });
+
+        // Clear existing options except "All Conditions"
+        conditionFilter.innerHTML = '<option value="">All Conditions</option>';
+
+        // Add condition options sorted by typical condition order
+        const conditionOrder = ['mint', 'near_mint', 'excellent', 'good', 'light_played', 'played', 'poor'];
+        const sortedConditions = Array.from(conditions).sort((a, b) => {
+            const aIndex = conditionOrder.indexOf(a.toLowerCase());
+            const bIndex = conditionOrder.indexOf(b.toLowerCase());
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        });
+
+        sortedConditions.forEach(condition => {
+            const option = document.createElement('option');
+            option.value = condition;
+            option.textContent = condition.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            conditionFilter.appendChild(option);
+        });
+
+        console.log(`Populated condition filter with ${conditions.size} conditions:`, Array.from(conditions));
+    }
+
+    getCountryContinent(country) {
+        const continentMap = {
+            // Europe
+            'Sweden': 'europe', 'Norway': 'europe', 'Denmark': 'europe', 'Finland': 'europe',
+            'Germany': 'europe', 'France': 'europe', 'Italy': 'europe', 'Spain': 'europe',
+            'United Kingdom': 'europe', 'Netherlands': 'europe', 'Belgium': 'europe',
+            'Austria': 'europe', 'Switzerland': 'europe', 'Poland': 'europe', 'Czech Republic': 'europe',
+            
+            // North America
+            'United States': 'north_america', 'Canada': 'north_america', 'Mexico': 'north_america',
+            
+            // Asia
+            'Japan': 'asia', 'China': 'asia', 'South Korea': 'asia', 'India': 'asia',
+            'Singapore': 'asia', 'Thailand': 'asia', 'Malaysia': 'asia', 'Philippines': 'asia',
+            
+            // Oceania
+            'Australia': 'oceania', 'New Zealand': 'oceania',
+            
+            // South America
+            'Brazil': 'south_america', 'Argentina': 'south_america', 'Chile': 'south_america',
+            'Colombia': 'south_america', 'Peru': 'south_america',
+            
+            // Africa
+            'South Africa': 'africa', 'Egypt': 'africa', 'Nigeria': 'africa', 'Kenya': 'africa'
+        };
+        
+        return continentMap[country] || 'other';
+    }
+
+    async saveContinentPreferences() {
+        if (!this.currentUser) return;
+
+        const selectedContinents = Array.from(document.querySelectorAll('[id^="continent-"]:checked'))
+            .map(cb => cb.value);
+
+        try {
+            await this.db.collection('users').doc(this.currentUser.uid).update({
+                marketplacePreferences: {
+                    selectedContinents: selectedContinents,
+                    lastUpdated: new Date()
+                }
+            });
+            console.log('Saved continent preferences:', selectedContinents);
+        } catch (error) {
+            console.error('Error saving continent preferences:', error);
+        }
+    }
+
+    async loadContinentPreferences() {
+        if (!this.currentUser) return;
+
+        try {
+            const userDoc = await this.db.collection('users').doc(this.currentUser.uid).get();
+            const preferences = userDoc.data()?.marketplacePreferences;
+            
+            if (preferences?.selectedContinents) {
+                preferences.selectedContinents.forEach(continent => {
+                    const checkbox = document.getElementById(`continent-${continent.replace('_', '-')}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                console.log('Loaded continent preferences:', preferences.selectedContinents);
+                
+                // Apply filters after loading preferences
+                this.applyFilters();
+            }
+        } catch (error) {
+            console.error('Error loading continent preferences:', error);
+        }
+    }
+
     updateStats() {
-        const totalListings = document.getElementById('total-listings');
-        const avgPrice = document.getElementById('avg-price');
+        const totalListings = document.getElementById('stats-total-listings');
+        const avgPrice = document.getElementById('stats-avg-price');
+        const priceRange = document.getElementById('stats-price-range');
 
         if (totalListings) {
             totalListings.textContent = this.filteredListings.length;
         }
 
-        if (avgPrice && this.filteredListings.length > 0) {
-            const total = this.filteredListings.reduce((sum, listing) => sum + (listing.price || 0), 0);
+        if (this.filteredListings.length > 0) {
+            const prices = this.filteredListings.map(listing => listing.price || 0);
+            const total = prices.reduce((sum, price) => sum + price, 0);
             const average = total / this.filteredListings.length;
-            avgPrice.textContent = convertAndFormat ? convertAndFormat(average, 'USD') : `$${average.toFixed(2)}`;
-        } else if (avgPrice) {
-            avgPrice.textContent = '$0.00';
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+
+            if (avgPrice) {
+                avgPrice.textContent = convertAndFormat ? convertAndFormat(average) : `$${average.toFixed(2)}`;
+            }
+
+            if (priceRange) {
+                const minFormatted = convertAndFormat ? convertAndFormat(minPrice) : `$${minPrice.toFixed(2)}`;
+                const maxFormatted = convertAndFormat ? convertAndFormat(maxPrice) : `$${maxPrice.toFixed(2)}`;
+                priceRange.textContent = `${minFormatted} - ${maxFormatted}`;
+            }
+        } else {
+            if (avgPrice) {
+                avgPrice.textContent = convertAndFormat ? convertAndFormat(0) : '$0.00';
+            }
+            if (priceRange) {
+                const zeroFormatted = convertAndFormat ? convertAndFormat(0) : '$0.00';
+                priceRange.textContent = `${zeroFormatted} - ${zeroFormatted}`;
+            }
         }
     }
 
     clearFilters() {
-        // Clear all filter inputs
-        const inputs = document.querySelectorAll('#filters-container input, #filters-container select');
-        inputs.forEach(input => {
-            if (input.type === 'checkbox') {
-                input.checked = input.hasAttribute('data-default-checked');
-            } else {
-                input.value = '';
+        // Clear specific filter elements
+        const filterIds = [
+            'filter-name',
+            'condition-filter',
+            'min-price',
+            'max-price',
+            'rarity-filter',
+            'location-filter',
+            'set-filter',
+            'sort-filter'
+        ];
+
+        filterIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = false;
+                } else {
+                    element.value = '';
+                }
             }
+        });
+
+        // Clear game checkboxes
+        const gameCheckboxes = document.querySelectorAll('#game-filter-container input[type="checkbox"]');
+        gameCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // Clear continent checkboxes
+        const continentCheckboxes = document.querySelectorAll('[id^="continent-"]');
+        continentCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
         });
 
         // Reset game-specific filters
         this.toggleGameSpecificFilters();
+        
+        // Save cleared continent preferences
+        this.saveContinentPreferences();
         
         // Reapply filters
         this.applyFilters();

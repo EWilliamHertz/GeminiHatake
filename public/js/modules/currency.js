@@ -5,7 +5,15 @@
  * - FIX: Updated getNormalizedPriceUSD to handle ScryDex price structure with variant-based keys.
  */
 
-const functions = firebase.functions();
+// Initialize Firebase functions safely
+let functions = null;
+try {
+    if (typeof firebase !== 'undefined' && firebase.functions) {
+        functions = firebase.functions();
+    }
+} catch (error) {
+    console.warn('Firebase functions not available:', error.message);
+}
 let exchangeRates = null;
 let lastFetchTimestamp = 0;
 const CACHE_DURATION_MS = 1000 * 60 * 60 * 6; // Cache for 6 hours
@@ -17,33 +25,43 @@ let userCurrency = localStorage.getItem('userCurrency') || 'USD';
  * @param {string} base - The base currency (e.g., 'USD').
  */
 export async function initCurrency(base = 'USD') {
+    console.log(`[Currency] initCurrency called with base: ${base}`);
     const now = Date.now();
     if (exchangeRates && (now - lastFetchTimestamp < CACHE_DURATION_MS)) {
-        console.log("Using cached exchange rates.");
+        console.log("[Currency] Using cached exchange rates:", exchangeRates);
         return;
     }
 
     try {
-        console.log(`Fetching exchange rates with base ${base}...`);
+        if (!functions) {
+            console.warn('[Currency] Firebase functions not available, using default USD rates');
+            exchangeRates = { USD: 1.0 };
+            lastFetchTimestamp = now;
+            return;
+        }
+        
+        console.log(`[Currency] Fetching exchange rates with base ${base}...`);
         const getRates = functions.httpsCallable('getExchangeRates');
         const result = await getRates({ base });
+        console.log(`[Currency] Raw result from getExchangeRates:`, result);
 
         // CRITICAL FIX: The data from a callable function is in result.data
         if (result.data && result.data.rates && Object.keys(result.data.rates).length > 0) {
             exchangeRates = result.data.rates;
             exchangeRates[base] = 1.0;
             lastFetchTimestamp = now;
-            console.log("Exchange rates loaded successfully.", exchangeRates);
+            console.log("[Currency] Exchange rates loaded successfully:", exchangeRates);
         } else {
             // This case handles a valid response structure but empty rates object
             throw new Error("Received empty or invalid rates object from backend.");
         }
     } catch (error) {
-        console.error("Could not fetch exchange rates:", error);
+        console.error("[Currency] Could not fetch exchange rates:", error);
         // FIX: Graceful fallback. Set a default to prevent the app from crashing.
         // The app will now function but will only show prices in USD.
         exchangeRates = { USD: 1.0 };
-        showToast("Could not fetch currency rates. Prices will be shown in USD.", "error");
+        console.log("[Currency] Using fallback USD-only rates:", exchangeRates);
+        // showToast("Could not fetch currency rates. Prices will be shown in USD.", "error");
     }
 }
 
@@ -120,11 +138,15 @@ export function convertAndFormat(priceData) {
     const targetCurrency = getUserCurrency();
     let priceUSD = 0;
 
+    console.log(`[Currency] convertAndFormat called with:`, priceData, `Target currency: ${targetCurrency}`);
+
     if (typeof priceData === 'number') {
         priceUSD = priceData;
     } else if (typeof priceData === 'object' && priceData !== null) {
         priceUSD = getNormalizedPriceUSD(priceData);
     }
+
+    console.log(`[Currency] Extracted USD price: ${priceUSD}, Exchange rates available:`, !!exchangeRates);
 
     if (typeof priceUSD !== 'number' || isNaN(priceUSD)) {
         priceUSD = 0;
@@ -154,6 +176,36 @@ export function convertAndFormat(priceData) {
 }
 
 export function getUserCurrency() {
+    console.log(`[Currency] getUserCurrency called, returning: ${userCurrency}`);
+    return userCurrency;
+}
+
+export async function loadUserCurrency(userId) {
+    console.log(`[Currency] Loading user currency for userId: ${userId}`);
+    try {
+        const userDoc = await firebase.firestore().collection('users').doc(userId).get();
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            console.log(`[Currency] User data from Firestore:`, userData);
+            const savedCurrency = userData.primaryCurrency || 'USD';
+            userCurrency = savedCurrency;
+            localStorage.setItem('userCurrency', savedCurrency);
+            
+            // Update any existing currency selectors
+            const selector = document.getElementById('currency-selector');
+            if (selector) {
+                selector.value = savedCurrency;
+                console.log(`[Currency] Updated selector to: ${savedCurrency}`);
+            }
+            
+            console.log(`[Currency] Loaded user currency: ${savedCurrency}`);
+            return savedCurrency;
+        } else {
+            console.log(`[Currency] User document does not exist, using default: ${userCurrency}`);
+        }
+    } catch (error) {
+        console.error("Failed to load currency preference from Firestore:", error);
+    }
     return userCurrency;
 }
 
@@ -166,7 +218,7 @@ export async function updateUserCurrency(newCurrency) {
     if (user) {
         try {
             await firebase.firestore().collection('users').doc(user.uid).update({
-                preferredCurrency: newCurrency
+                primaryCurrency: newCurrency
             });
         } catch (error) {
             console.error("Failed to save currency preference to Firestore:", error);

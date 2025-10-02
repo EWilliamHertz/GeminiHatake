@@ -264,76 +264,180 @@ exports.getScryDexCard = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * NEW: Fetches price history for a card from the ScryDex API.
+ * Fetches and stores daily price snapshots for a card from ScryDex API.
+ * This replaces the non-functional history endpoint approach.
  */
-exports.getScryDexHistory = functions.https.onCall(async (data, context) => {
-    console.log("--- ScryDex getHistory function invoked ---");
+exports.collectCardPriceSnapshot = functions.https.onCall(async (data, context) => {
+    console.log("--- ScryDex collectCardPriceSnapshot function invoked ---");
     const { cardId, game } = data;
     if (!cardId || !game) {
         throw new functions.https.HttpsError('invalid-argument', 'The function must be called with "cardId" and "game" arguments.');
     }
 
-    let apiKey, teamId;
     try {
-        apiKey = await accessSecret('scrydex-api-key');
-        teamId = await accessSecret('scrydex-team-id');
-    } catch (secretError) {
-        console.error("FATAL: Could not access secrets.", secretError);
-        throw new functions.https.HttpsError('internal', 'Server configuration error.');
-    }
-
-    const gameEndpoints = {
-        'mtg': 'magicthegathering/v1',
-        'pokemon': 'pokemon/v1',
-        'lorcana': 'lorcana/v1',
-        'gundam': 'gundam/v1'
-    };
-    const apiPath = gameEndpoints[game];
-    if (!apiPath) {
-        throw new functions.https.HttpsError('not-found', `The game '${game}' is not supported.`);
-    }
-
-    // This URL is the most likely point of failure. Please verify it against the official ScryDex documentation.
-    const url = `https://api.scrydex.com/${apiPath}/cards/${cardId}/history`;
-
-    const options = {
-        method: 'GET',
-        headers: {
-            'X-Api-Key': apiKey,
-            'X-Team-ID': teamId,
-            'Content-Type': 'application/json'
-        }
-    };
-
-    try {
-        console.log(`Fetching price history from ScryDex with URL: ${url}`);
-        const response = await fetch(url, options);
-
-        if (!response.ok) {
-            // FIX: Gracefully handle 404 Not Found errors, as some cards may not have price history.
-            if (response.status === 404) {
-                console.warn(`[ScryDex] No price history found for card ${cardId} (404 Not Found). Returning empty array.`);
-                return { data: [] }; // Return empty array, not an error, to prevent the client from crashing.
-            }
-            // For all other errors, throw an exception so we know something is wrong.
-            let errorBody = 'Could not read error body.';
-            try { errorBody = await response.text(); } catch (e) { /* ignore */ }
-            console.error(`ScryDex History API Error: Status ${response.status}. Body: ${errorBody}`);
-            throw new functions.https.HttpsError('internal', `Failed to fetch history from ScryDex. Status: ${response.status}`);
+        // Get current card data with prices from ScryDex
+        const getScryDexCardFunction = exports.getScryDexCard;
+        const cardResult = await getScryDexCardFunction({ cardId, game }, context);
+        
+        if (!cardResult || !cardResult.data) {
+            throw new functions.https.HttpsError('not-found', 'Card data not found.');
         }
 
-        const responseData = await response.json();
-        // Assuming ScryDex returns data in the format { success: true, history: [['YYYY-MM-DD', price], ...] }
-        if (responseData && responseData.success && Array.isArray(responseData.history)) {
-             return { data: responseData.history };
-        } else {
-            console.error("Invalid history data format from ScryDex:", responseData);
-            return { data: [] }; // Return empty array on unexpected format
+        const cardData = cardResult.data;
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+        // Extract price data from variants
+        const priceSnapshots = [];
+        if (cardData.variants && Array.isArray(cardData.variants)) {
+            cardData.variants.forEach(variant => {
+                if (variant.prices && Array.isArray(variant.prices)) {
+                    variant.prices.forEach(priceData => {
+                        priceSnapshots.push({
+                            date: today,
+                            variant: variant.name || 'default',
+                            condition: priceData.condition || 'NM',
+                            type: priceData.type || 'raw',
+                            low: priceData.low || null,
+                            market: priceData.market || null,
+                            currency: priceData.currency || 'USD',
+                            trends: priceData.trends || {},
+                            timestamp: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+                }
+            });
         }
+
+        if (priceSnapshots.length === 0) {
+            console.warn(`No price data found for card ${cardId}`);
+            return { success: true, message: 'No price data to store', snapshots: 0 };
+        }
+
+        // Store in Firestore
+        const batch = db.batch();
+        priceSnapshots.forEach(snapshot => {
+            const docRef = db.collection('priceHistory')
+                .doc(cardId)
+                .collection('daily')
+                .doc(today + '_' + snapshot.variant + '_' + snapshot.condition);
+            batch.set(docRef, snapshot, { merge: true });
+        });
+
+        await batch.commit();
+
+        console.log(`Stored ${priceSnapshots.length} price snapshots for card ${cardId}`);
+        return { 
+            success: true, 
+            message: `Stored ${priceSnapshots.length} price snapshots`, 
+            snapshots: priceSnapshots.length,
+            date: today
+        };
 
     } catch (error) {
-        console.error("Cloud Function fetch/processing error for history:", error);
-        throw new functions.https.HttpsError('unknown', error.message || 'An unexpected error occurred while fetching history.');
+        console.error("Error collecting price snapshot:", error);
+        throw new functions.https.HttpsError('unknown', error.message || 'An unexpected error occurred while collecting price data.');
+    }
+});
+
+/**
+ * Retrieves historical price data for a card from Firestore.
+ */
+exports.getCardPriceHistory = functions.https.onCall(async (data, context) => {
+    console.log("--- getCardPriceHistory function invoked ---");
+    const { cardId, days = 30, variant = 'default', condition = 'NM' } = data;
+    
+    if (!cardId) {
+        throw new functions.https.HttpsError('invalid-argument', 'cardId is required.');
+    }
+
+    try {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+
+        // Query price history from Firestore
+        const historyRef = db.collection('priceHistory')
+            .doc(cardId)
+            .collection('daily')
+            .where('date', '>=', startDateStr)
+            .where('date', '<=', endDateStr)
+            .orderBy('date', 'asc');
+
+        const snapshot = await historyRef.get();
+        const priceHistory = [];
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // Filter by variant and condition if specified
+            if (data.variant === variant && data.condition === condition) {
+                priceHistory.push({
+                    date: data.date,
+                    market: data.market,
+                    low: data.low,
+                    currency: data.currency,
+                    trends: data.trends
+                });
+            }
+        });
+
+        // If no historical data, try to get current price trends from ScryDex
+        if (priceHistory.length === 0) {
+            console.log(`No historical data found for ${cardId}, fetching current trends`);
+            const cardResult = await exports.getScryDexCard({ cardId, game: data.game || 'pokemon' }, context);
+            
+            if (cardResult && cardResult.data && cardResult.data.variants) {
+                const targetVariant = cardResult.data.variants.find(v => v.name === variant);
+                if (targetVariant && targetVariant.prices) {
+                    const targetPrice = targetVariant.prices.find(p => p.condition === condition);
+                    if (targetPrice && targetPrice.trends) {
+                        // Convert trends to historical data points
+                        const currentDate = new Date();
+                        const trendsData = targetPrice.trends;
+                        
+                        Object.keys(trendsData).forEach(period => {
+                            const days = parseInt(period.replace('days_', ''));
+                            const pastDate = new Date(currentDate);
+                            pastDate.setDate(pastDate.getDate() - days);
+                            
+                            const pastPrice = targetPrice.market - trendsData[period].price_change;
+                            priceHistory.push({
+                                date: pastDate.toISOString().split('T')[0],
+                                market: pastPrice,
+                                currency: targetPrice.currency,
+                                estimated: true
+                            });
+                        });
+                        
+                        // Add current price
+                        priceHistory.push({
+                            date: currentDate.toISOString().split('T')[0],
+                            market: targetPrice.market,
+                            currency: targetPrice.currency,
+                            estimated: false
+                        });
+                        
+                        // Sort by date
+                        priceHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    }
+                }
+            }
+        }
+
+        return { 
+            success: true, 
+            data: priceHistory,
+            cardId: cardId,
+            period: `${days} days`,
+            variant: variant,
+            condition: condition
+        };
+
+    } catch (error) {
+        console.error("Error retrieving price history:", error);
+        throw new functions.https.HttpsError('unknown', error.message || 'An unexpected error occurred while retrieving price history.');
     }
 });
 
@@ -1653,5 +1757,301 @@ exports.setUserRole = functions.https.onCall(async (data, context) => {
     } catch (error) {
         console.error('Error setting user role:', error);
         throw new functions.https.HttpsError('internal', error.message);
+    }
+});
+/**
+ * Scheduled function to collect daily price snapshots for all tracked cards.
+ * This should be triggered daily via Cloud Scheduler.
+ */
+exports.dailyPriceCollection = functions.pubsub.schedule('0 6 * * *') // Run daily at 6 AM UTC
+    .timeZone('UTC')
+    .onRun(async (context) => {
+        console.log('--- Daily price collection started ---');
+        
+        try {
+            // Get list of cards to track from Firestore
+            const trackedCardsRef = db.collection('trackedCards');
+            const trackedCardsSnapshot = await trackedCardsRef.get();
+            
+            if (trackedCardsSnapshot.empty) {
+                console.log('No tracked cards found. Skipping daily collection.');
+                return null;
+            }
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            // Process cards in batches to avoid overwhelming the API
+            const batchSize = 10;
+            const cards = [];
+            trackedCardsSnapshot.forEach(doc => {
+                cards.push({ id: doc.id, ...doc.data() });
+            });
+            
+            for (let i = 0; i < cards.length; i += batchSize) {
+                const batch = cards.slice(i, i + batchSize);
+                const promises = batch.map(async (card) => {
+                    try {
+                        await exports.collectCardPriceSnapshot({ 
+                            cardId: card.id, 
+                            game: card.game || 'pokemon' 
+                        }, context);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error collecting price for card ${card.id}:`, error);
+                        errorCount++;
+                        errors.push({ cardId: card.id, error: error.message });
+                    }
+                });
+                
+                await Promise.all(promises);
+                
+                // Add delay between batches to respect rate limits
+                if (i + batchSize < cards.length) {
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+                }
+            }
+            
+            console.log(`Daily price collection completed. Success: ${successCount}, Errors: ${errorCount}`);
+            
+            // Store collection summary
+            await db.collection('priceCollectionLogs').add({
+                date: new Date().toISOString().split('T')[0],
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                totalCards: cards.length,
+                successCount: successCount,
+                errorCount: errorCount,
+                errors: errors
+            });
+            
+            return null;
+            
+        } catch (error) {
+            console.error('Error in daily price collection:', error);
+            throw error;
+        }
+    });
+
+/**
+ * Adds a card to the tracked cards list for daily price collection.
+ */
+exports.addCardToTracking = functions.https.onCall(async (data, context) => {
+    const { cardId, game, cardName } = data;
+    
+    if (!cardId || !game) {
+        throw new functions.https.HttpsError('invalid-argument', 'cardId and game are required.');
+    }
+    
+    try {
+        const cardRef = db.collection('trackedCards').doc(cardId);
+        await cardRef.set({
+            cardId: cardId,
+            game: game,
+            cardName: cardName || 'Unknown Card',
+            addedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastCollected: null
+        }, { merge: true });
+        
+        console.log(`Added card ${cardId} to tracking list`);
+        return { success: true, message: 'Card added to price tracking' };
+        
+    } catch (error) {
+        console.error('Error adding card to tracking:', error);
+        throw new functions.https.HttpsError('unknown', error.message);
+    }
+});
+
+/**
+ * Removes a card from the tracked cards list.
+ */
+exports.removeCardFromTracking = functions.https.onCall(async (data, context) => {
+    const { cardId } = data;
+    
+    if (!cardId) {
+        throw new functions.https.HttpsError('invalid-argument', 'cardId is required.');
+    }
+    
+    try {
+        await db.collection('trackedCards').doc(cardId).delete();
+        console.log(`Removed card ${cardId} from tracking list`);
+        return { success: true, message: 'Card removed from price tracking' };
+        
+    } catch (error) {
+        console.error('Error removing card from tracking:', error);
+        throw new functions.https.HttpsError('unknown', error.message);
+    }
+});
+
+/**
+ * Gets price analytics for a user's collection.
+ */
+exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, context) => {
+    console.log('=== getCollectionPriceAnalytics FUNCTION CALLED ===');
+    console.log('Request data:', data);
+    
+    if (!context.auth) {
+        console.error('Authentication required but not provided');
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
+    }
+    
+    const userId = context.auth.uid;
+    const { days = 30, debug = false } = data;
+    
+    console.log(`Processing analytics for user: ${userId}, days: ${days}`);
+    
+    try {
+        // Get user's collection
+        const collectionRef = db.collection('users').doc(userId).collection('collection');
+        const collectionSnapshot = await collectionRef.get();
+        
+        console.log(`Found ${collectionSnapshot.docs.length} documents in user collection`);
+        
+        if (collectionSnapshot.empty) {
+            console.log('Collection is empty, returning zero values');
+            return { 
+                success: true, 
+                totalValue: 0, 
+                valueChange: 0, 
+                percentChange: 0,
+                topGainers: [],
+                topLosers: [],
+                cards: [],
+                message: 'Collection is empty'
+            };
+        }
+        
+        const analytics = {
+            totalValue: 0,
+            totalPreviousValue: 0,
+            cards: [],
+            topGainers: [],
+            topLosers: []
+        };
+        
+        // Process each card in the collection
+        console.log(`Processing ${collectionSnapshot.docs.length} cards from collection`);
+        
+        for (const doc of collectionSnapshot.docs) {
+            const cardData = doc.data();
+            
+            // FIX: Use api_id as the primary field, with fallbacks
+            const cardId = cardData.api_id || cardData.cardId || cardData.id;
+            
+            console.log(`Processing card: ${cardData.name || 'Unknown'}, api_id: ${cardData.api_id}, cardId: ${cardData.cardId}, id: ${cardData.id}`);
+            
+            if (!cardId) {
+                console.warn(`Skipping card ${cardData.name || 'Unknown'} - no valid ID found`);
+                continue;
+            }
+            
+            try {
+                // Get price history for this card
+                const priceHistoryResult = await exports.getCardPriceHistory({
+                    cardId: cardId,
+                    days: days,
+                    game: cardData.tcg || cardData.game || 'pokemon',
+                    cardName: cardData.name // Add card name for debugging
+                }, context);
+                
+                if (priceHistoryResult.success && priceHistoryResult.data.length > 0) {
+                    const priceHistory = priceHistoryResult.data;
+                    const currentPrice = priceHistory[priceHistory.length - 1].market || 0;
+                    const previousPrice = priceHistory.length > 1 ? priceHistory[0].market : currentPrice;
+                    const priceChange = currentPrice - previousPrice;
+                    const percentChange = previousPrice > 0 ? (priceChange / previousPrice) * 100 : 0;
+                    
+                    const cardAnalytics = {
+                        cardId: cardId,
+                        name: cardData.name || cardData.cardName,
+                        currentPrice: currentPrice,
+                        previousPrice: previousPrice,
+                        priceChange: priceChange,
+                        percentChange: percentChange,
+                        currency: priceHistory[priceHistory.length - 1].currency || 'USD',
+                        imageUrl: cardData.imageUrl || cardData.image_uris?.normal || cardData.image_uris?.small
+                    };
+                    
+                    analytics.cards.push(cardAnalytics);
+                    analytics.totalValue += currentPrice * (cardData.quantity || 1);
+                    analytics.totalPreviousValue += previousPrice * (cardData.quantity || 1);
+                    
+                    // Track top gainers and losers
+                    if (priceChange > 0) {
+                        analytics.topGainers.push(cardAnalytics);
+                    } else if (priceChange < 0) {
+                        analytics.topLosers.push(cardAnalytics);
+                    }
+                    
+                    console.log(`Successfully processed ${cardData.name}: $${currentPrice} (${percentChange.toFixed(1)}%)`);
+                } else {
+                    console.warn(`No price history data for ${cardData.name} (${cardId})`);
+                    
+                    // Fallback: Use basic price data if available
+                    if (cardData.prices && cardData.prices.usd) {
+                        const fallbackPrice = parseFloat(cardData.prices.usd) || 0;
+                        const fallbackAnalytics = {
+                            cardId: cardId,
+                            name: cardData.name || cardData.cardName,
+                            currentPrice: fallbackPrice,
+                            previousPrice: fallbackPrice,
+                            priceChange: 0,
+                            percentChange: 0,
+                            currency: 'USD',
+                            imageUrl: cardData.imageUrl || cardData.image_uris?.normal || cardData.image_uris?.small
+                        };
+                        
+                        analytics.cards.push(fallbackAnalytics);
+                        analytics.totalValue += fallbackPrice * (cardData.quantity || 1);
+                        analytics.totalPreviousValue += fallbackPrice * (cardData.quantity || 1);
+                        
+                        console.log(`Used fallback price for ${cardData.name}: $${fallbackPrice}`);
+                    }
+                }
+            } catch (cardError) {
+                console.warn(`Error getting price data for card ${cardId} (${cardData.name}):`, cardError.message);
+            }
+        }
+        
+        // Calculate overall portfolio metrics
+        const totalValueChange = analytics.totalValue - analytics.totalPreviousValue;
+        const totalPercentChange = analytics.totalPreviousValue > 0 ? 
+            (totalValueChange / analytics.totalPreviousValue) * 100 : 0;
+        
+        console.log(`Analytics summary: ${analytics.cards.length} cards processed`);
+        console.log(`Total value: $${analytics.totalValue.toFixed(2)}`);
+        console.log(`Value change: $${totalValueChange.toFixed(2)} (${totalPercentChange.toFixed(1)}%)`);
+        console.log(`Top gainers: ${analytics.topGainers.length}, Top losers: ${analytics.topLosers.length}`);
+        
+        // Sort top gainers and losers
+        analytics.topGainers.sort((a, b) => b.percentChange - a.percentChange);
+        analytics.topLosers.sort((a, b) => a.percentChange - b.percentChange);
+        
+        // Limit to top 5
+        analytics.topGainers = analytics.topGainers.slice(0, 5);
+        analytics.topLosers = analytics.topLosers.slice(0, 5);
+        
+        const result = {
+            success: true,
+            totalValue: analytics.totalValue,
+            valueChange: totalValueChange,
+            percentChange: totalPercentChange,
+            topGainers: analytics.topGainers,
+            topLosers: analytics.topLosers,
+            cards: analytics.cards,
+            period: `${days} days`,
+            processedCards: analytics.cards.length,
+            timestamp: new Date().toISOString()
+        };
+        
+        console.log('=== getCollectionPriceAnalytics FUNCTION COMPLETE ===');
+        console.log('Returning result:', JSON.stringify(result, null, 2));
+        
+        return result;
+        
+    } catch (error) {
+        console.error('=== ERROR in getCollectionPriceAnalytics ===');
+        console.error('Error details:', error);
+        throw new functions.https.HttpsError('unknown', `Analytics error: ${error.message}`);
     }
 });

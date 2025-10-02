@@ -193,6 +193,66 @@
                                 </div>
                             </div>
 
+                            <!-- Rarity Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Rarity</label>
+                                <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="rarity-filter">
+                                    <option value="">All Rarities</option>
+                                    <option value="common">Common</option>
+                                    <option value="uncommon">Uncommon</option>
+                                    <option value="rare">Rare</option>
+                                    <option value="mythic">Mythic Rare</option>
+                                    <option value="legendary">Legendary</option>
+                                    <option value="special">Special</option>
+                                </select>
+                            </div>
+
+                            <!-- Continent Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Continents</label>
+                                <div class="space-y-2 max-h-32 overflow-y-auto border rounded-md p-2 dark:border-gray-600">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="mr-2" id="continent-europe" value="europe">
+                                        <span class="text-sm">Europe</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="mr-2" id="continent-north-america" value="north_america">
+                                        <span class="text-sm">North America</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="mr-2" id="continent-asia" value="asia">
+                                        <span class="text-sm">Asia</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="mr-2" id="continent-oceania" value="oceania">
+                                        <span class="text-sm">Oceania</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="mr-2" id="continent-south-america" value="south_america">
+                                        <span class="text-sm">South America</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="mr-2" id="continent-africa" value="africa">
+                                        <span class="text-sm">Africa</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Seller Location Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Seller Location</label>
+                                <select class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="location-filter">
+                                    <option value="">All Locations</option>
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+
+                            <!-- Set Filter -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Set</label>
+                                <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="set-filter" placeholder="Search by set name..." type="text"/>
+                            </div>
+
                             <!-- Game-Specific Filters -->
                             <div id="game-specific-filters">
                                 <!-- MTG Filters -->

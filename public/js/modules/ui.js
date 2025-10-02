@@ -85,8 +85,8 @@ export function renderGridView(cards, activeTab) {
         const imageUrl = getCardImageUrl(card);
         const price = Currency.convertAndFormat(card.prices);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
-        const salePriceDisplay = (card.forSale && typeof card.salePrice === 'number')
-            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertAndFormat(card.salePrice)}</div>`
+        const salePriceDisplay = (card.for_sale && typeof card.sale_price === 'number')
+            ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">${Currency.convertAndFormat(card.sale_price)}</div>`
             : '';
 
         const bulkCheckbox = isBulkMode
@@ -138,8 +138,8 @@ export function renderListView(cards, activeTab) {
     const tableBody = cards.map(card => {
         const price = Currency.convertAndFormat(card.prices);
         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
-        const saleStatus = (card.forSale && typeof card.salePrice === 'number')
-            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.salePrice)})</span>`
+        const saleStatus = (card.for_sale && typeof card.sale_price === 'number')
+            ? `<span class="text-green-500 font-semibold">For Sale (${Currency.convertAndFormat(card.sale_price)})</span>`
             : 'In Collection';
 
         return `

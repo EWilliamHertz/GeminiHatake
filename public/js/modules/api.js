@@ -200,8 +200,45 @@ function cleanScryfallData(card) {
     };
 }
 
-function cleanScryDexData(card, game) {
+function cleanScryDxData(card, game) {
     try {
+        console.log('[API] Raw ScryDx card data:', card);
+        
+        // Process prices with better fallback handling
+        let prices = {};
+        
+        // Try to extract prices from variants structure
+        if (card.variants && Array.isArray(card.variants)) {
+            card.variants.forEach(variant => {
+                if (variant.prices && Array.isArray(variant.prices)) {
+                    variant.prices.forEach(price => {
+                        if (price.market && price.market > 0) {
+                            const priceKey = `${variant.name || 'normal'}_${price.condition || price.type || 'market'}`;
+                            prices[priceKey] = price.market;
+                            
+                            // Also set standard USD price for compatibility
+                            if (!prices.usd || price.market > prices.usd) {
+                                prices.usd = price.market;
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Fallback: try direct price fields
+        if (Object.keys(prices).length === 0) {
+            if (card.market_price && card.market_price > 0) {
+                prices.usd = card.market_price;
+            } else if (card.price && card.price > 0) {
+                prices.usd = card.price;
+            } else if (card.marketPrice && card.marketPrice > 0) {
+                prices.usd = card.marketPrice;
+            }
+        }
+        
+        console.log('[API] Processed prices for', card.Name || card.name, ':', prices);
+        
         const cleaned = {
             api_id: card.id,
             name: card.Name || card.name || 'Unknown Card',
@@ -213,15 +250,7 @@ function cleanScryDexData(card, game) {
                 normal: card.images?.[0]?.medium || null,
                 large: card.images?.[0]?.large || null,
             },
-            prices: card.variants?.reduce((acc, variant) => {
-                if (variant.prices) {
-                    variant.prices.forEach(price => {
-                        const priceKey = `${variant.name}_${price.condition || price.type}`;
-                        acc[priceKey] = price.market;
-                    });
-                }
-                return acc;
-            }, {}),
+            prices: prices,
             collector_number: card.number || '',
             game: game
         };

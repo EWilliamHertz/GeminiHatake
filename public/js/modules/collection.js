@@ -166,7 +166,7 @@ export async function addMultipleCards(cardVersions, customImageFile) {
         }
 
         // CRITICAL FIX: Ensure we're using the correct card data for matching
-        // Create a clean copy of the card data to avoid reference issues
+        // Create a clean copy of the card data to avoid reference issues, preserving price data
         const cleanCardData = {
             api_id: cardData.api_id,
             condition: cardData.condition || 'NM',
@@ -177,7 +177,11 @@ export async function addMultipleCards(cardVersions, customImageFile) {
             is_graded: cardData.is_graded || false,
             grading_company: cardData.grading_company || null,
             grade: cardData.grade || null,
-            quantity: cardData.quantity || 1
+            quantity: cardData.quantity || 1,
+            // IMPORTANT: Preserve price data from ScryDx/Scryfall
+            prices: cardData.prices || {},
+            // Also preserve the timestamp for price data freshness
+            priceLastUpdated: cardData.priceLastUpdated || new Date().toISOString()
         };
 
         const matchingCard = findMatchingCard(cleanCardData);
@@ -415,4 +419,54 @@ export function getAvailableFilterOptions(games) {
     }
     
     return { sets, rarities, types };
+}
+
+
+
+
+export async function removeCardFromSale(cardId) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    const card = getCardById(cardId);
+    if (!card || !card.for_sale) {
+        throw new Error("Card is not currently for sale.");
+    }
+    
+    // Update the card in collection
+    await batchUpdateSaleStatus([{
+        id: cardId,
+        data: { for_sale: false, sale_price: null, sale_currency: null }
+    }]);
+    
+    // Remove from marketplace listings
+    await batchRemoveMarketplaceListings([cardId]);
+}
+
+export async function updateCardSalePrice(cardId, newPrice, currency) {
+    if (!state.currentUser) throw new Error("User not logged in.");
+    
+    const card = getCardById(cardId);
+    if (!card) {
+        throw new Error("Card not found.");
+    }
+    
+    // Update the card in collection
+    await batchUpdateSaleStatus([{
+        id: cardId,
+        data: { 
+            for_sale: true, 
+            sale_price: newPrice, 
+            sale_currency: currency 
+        }
+    }]);
+    
+    // Update marketplace listing
+    await batchCreateMarketplaceListings([{
+        id: cardId,
+        data: { 
+            for_sale: true, 
+            sale_price: newPrice, 
+            sale_currency: currency 
+        }
+    }]);
 }
