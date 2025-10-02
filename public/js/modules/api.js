@@ -357,15 +357,27 @@ export async function batchUpdateCards(userId, updates) {
 }
 
 export async function batchCreateMarketplaceListings(listings) {
+    if (!listings || listings.length === 0) {
+        console.log('[API] No listings to create');
+        return;
+    }
+
+    console.log('[API] Creating', listings.length, 'marketplace listings');
     const batch = db.batch();
     const marketplaceRef = db.collection('marketplaceListings');
     
     listings.forEach(listing => {
-        const docRef = marketplaceRef.doc();
-        batch.set(docRef, listing);
+        const docRef = marketplaceRef.doc(); // Auto-generate ID
+        console.log('[API] Adding listing to batch:', listing.cardData?.name);
+        batch.set(docRef, {
+            ...listing,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
     });
     
     await batch.commit();
+    console.log('[API] Successfully created', listings.length, 'marketplace listings');
 }
 
 export async function batchRemoveMarketplaceListings(userId, collectionCardIds) {

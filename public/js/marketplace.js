@@ -294,9 +294,9 @@ class MarketplaceManager {
         try {
             console.log('Querying marketplaceListings collection...');
 
-            // Query the marketplaceListings collection
-            // FIXED: Removed orderBy to work with existing indexes - we'll sort manually
+            // FIXED: Simple query without orderBy to avoid index issues
             const snapshot = await this.db.collection('marketplaceListings')
+                .where('status', '==', 'active') // Only get active listings
                 .get();
 
             this.allListings = [];
@@ -307,6 +307,7 @@ class MarketplaceManager {
                 const data = doc.data();
                 console.log('Processing listing:', doc.id, data);
 
+                // FIXED: Ensure proper data structure with all required fields
                 const listing = {
                     id: doc.id,
                     ...data,
@@ -314,7 +315,9 @@ class MarketplaceManager {
                     cardData: data.cardData || data,
                     sellerData: data.sellerData || { displayName: 'Unknown Seller' },
                     price: data.price || 0,
-                    listedAt: data.listedAt?.toDate() || new Date()
+                    currency: data.currency || 'USD',
+                    listedAt: data.listedAt?.toDate() || new Date(),
+                    sellerId: data.sellerId || data.sellerData?.uid
                 };
                 this.allListings.push(listing);
             });

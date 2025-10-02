@@ -251,13 +251,17 @@ export async function batchUpdateSaleStatus(updates) {
 export async function batchCreateMarketplaceListings(updates) {
     if (!state.currentUser) throw new Error("User not logged in.");
     
+    console.log('[Collection] Creating marketplace listings for', updates.length, 'cards');
     const userProfile = await API.getUserProfile(state.currentUser.uid);
     const listings = [];
     
     for (const update of updates) {
         const card = state.fullCollection.find(c => c.id === update.id);
         if (card && update.data.for_sale) {
+            console.log('[Collection] Processing card for marketplace:', card.name);
+            
             const listing = {
+                // Card information
                 cardData: {
                     name: card.name || '',
                     game: card.game || 'mtg',
@@ -273,30 +277,41 @@ export async function batchCreateMarketplaceListings(updates) {
                     image_uris: card.image_uris || {},
                     prices: card.prices || {},
                     language: card.language || 'en',
-                    is_foil: card.is_foil || card.isFoil || false,
+                    foil: card.is_foil || card.isFoil || false,
                     isGraded: card.is_graded || card.isGraded || false,
                     gradingCompany: card.grading_company || null,
                     grade: card.grade || null,
                     api_id: card.api_id || ''
                 },
+                // Seller information
                 sellerData: {
                     uid: state.currentUser.uid,
                     displayName: userProfile?.displayName || 'Unknown Seller',
                     photoURL: userProfile?.photoURL || null,
                     country: userProfile?.country || 'Unknown'
                 },
+                // Listing details
+                sellerId: state.currentUser.uid,
                 price: update.data.sale_price,
                 currency: update.data.sale_currency || 'USD',
                 quantity: card.quantity || 1,
                 listedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                originalCollectionCardId: card.id
+                originalCollectionCardId: card.id,
+                // Additional fields for marketplace functionality
+                status: 'active',
+                views: 0,
+                watchers: []
             };
             listings.push(listing);
         }
     }
     
     if (listings.length > 0) {
+        console.log('[Collection] Sending', listings.length, 'listings to API');
         await API.batchCreateMarketplaceListings(listings);
+        console.log('[Collection] Successfully created marketplace listings');
+    } else {
+        console.log('[Collection] No valid listings to create');
     }
 }
 
