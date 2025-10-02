@@ -102,8 +102,59 @@ class EnhancedProfileManager {
         // Bio
         document.getElementById('profile-bio').textContent = this.profileData.bio || 'No bio available.';
 
+        // Display gaming accounts
+        this.displayGamingAccounts();
+
         // Show appropriate action buttons
         this.setupActionButtons();
+    }
+
+    displayGamingAccounts() {
+        const gamingAccountsContainer = document.getElementById('gaming-accounts');
+        const gamingAccounts = this.profileData.gamingAccounts || {};
+        const privacy = this.profileData.privacy || {};
+        
+        // Check if gaming accounts should be shown
+        if (!privacy.showGamingAccounts && !this.isOwnProfile) {
+            gamingAccountsContainer.classList.add('hidden');
+            return;
+        }
+
+        const accountsHTML = [];
+        
+        // Platform configurations with icons and colors
+        const platforms = {
+            mtgArena: { name: 'Arena', icon: 'fas fa-magic', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+            mtgo: { name: 'MTGO', icon: 'fas fa-desktop', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+            untap: { name: 'Untap.in', icon: 'fas fa-globe', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+            ptcgo: { name: 'PTCGO', icon: 'fas fa-bolt', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+            ptcgLive: { name: 'TCG Live', icon: 'fas fa-mobile-alt', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+            masterDuel: { name: 'Master Duel', icon: 'fas fa-eye', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
+            duelingBook: { name: 'Dueling Book', icon: 'fas fa-book', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' },
+            tabletopSim: { name: 'Tabletop Sim', icon: 'fas fa-cube', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' },
+            cockatrice: { name: 'Cockatrice', icon: 'fas fa-dragon', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+            discord: { name: 'Discord', icon: 'fab fa-discord', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' }
+        };
+
+        Object.entries(gamingAccounts).forEach(([platform, username]) => {
+            if (username && platforms[platform]) {
+                const config = platforms[platform];
+                accountsHTML.push(`
+                    <div class="flex items-center space-x-2 px-3 py-2 rounded-full ${config.color} text-sm">
+                        <i class="${config.icon}"></i>
+                        <span class="font-medium">${config.name}:</span>
+                        <span class="font-mono">${username}</span>
+                    </div>
+                `);
+            }
+        });
+
+        if (accountsHTML.length > 0) {
+            gamingAccountsContainer.innerHTML = accountsHTML.join('');
+            gamingAccountsContainer.classList.remove('hidden');
+        } else {
+            gamingAccountsContainer.classList.add('hidden');
+        }
     }
 
     setupActionButtons() {
@@ -186,8 +237,6 @@ class EnhancedProfileManager {
             const collectionSnapshot = await this.db.collection('users')
                 .doc(this.profileUserId)
                 .collection('collection')
-                .orderBy('value', 'desc')
-                .limit(10)
                 .get();
 
             if (collectionSnapshot.empty) {
@@ -200,25 +249,41 @@ class EnhancedProfileManager {
                 return;
             }
 
-            // Calculate collection stats
+            // Calculate collection stats from actual data structure
             let totalValue = 0;
             let mostValuableCard = null;
             const setCounts = {};
+            const gameCounts = {};
 
             collectionSnapshot.forEach(doc => {
                 const card = doc.data();
-                totalValue += card.value || 0;
                 
-                if (!mostValuableCard || (card.value || 0) > (mostValuableCard.value || 0)) {
-                    mostValuableCard = card;
+                // Handle different value fields
+                const cardValue = card.sale_price || card.purchase_price || card.value || 0;
+                totalValue += parseFloat(cardValue) || 0;
+                
+                if (!mostValuableCard || (parseFloat(cardValue) || 0) > (parseFloat(mostValuableCard.value) || 0)) {
+                    mostValuableCard = {
+                        name: card.name || card.card_name || 'Unknown Card',
+                        value: parseFloat(cardValue) || 0,
+                        set: card.set_name || card.setName || 'Unknown Set'
+                    };
                 }
 
-                const setName = card.setName || 'Unknown Set';
-                setCounts[setName] = (setCounts[setName] || 0) + 1;
+                // Count sets
+                const setName = card.set_name || card.setName || 'Unknown Set';
+                setCounts[setName] = (setCounts[setName] || 0) + (card.quantity || 1);
+
+                // Count games
+                const game = card.game || 'Unknown Game';
+                gameCounts[game] = (gameCounts[game] || 0) + (card.quantity || 1);
             });
 
-            // Find favorite set
+            // Find favorite set and game
             const favoriteSet = Object.entries(setCounts)
+                .sort(([,a], [,b]) => b - a)[0];
+            
+            const favoriteGame = Object.entries(gameCounts)
                 .sort(([,a], [,b]) => b - a)[0];
 
             // Update highlights
@@ -227,9 +292,10 @@ class EnhancedProfileManager {
                     <div>
                         <div class="font-medium">Most Valuable Card</div>
                         <div class="text-sm text-gray-600 dark:text-gray-400">${mostValuableCard?.name || 'No cards'}</div>
+                        ${mostValuableCard?.set ? `<div class="text-xs text-gray-500">${mostValuableCard.set}</div>` : ''}
                     </div>
                     <div class="text-right">
-                        <div class="text-lg font-bold text-green-600">$${(mostValuableCard?.value || 0).toLocaleString()}</div>
+                        <div class="text-lg font-bold text-green-600">$${(mostValuableCard?.value || 0).toFixed(2)}</div>
                     </div>
                 </div>
                 <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -247,15 +313,32 @@ class EnhancedProfileManager {
                         <div class="text-sm text-gray-600 dark:text-gray-400">Total estimated value</div>
                     </div>
                     <div class="text-right">
-                        <div class="text-lg font-bold text-purple-600">$${totalValue.toLocaleString()}</div>
+                        <div class="text-lg font-bold text-purple-600">$${totalValue.toFixed(2)}</div>
                     </div>
                 </div>
+                ${favoriteGame ? `
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                        <div class="font-medium">Favorite Game</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">${favoriteGame[0]}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-orange-600">${favoriteGame[1]} cards</div>
+                    </div>
+                </div>
+                ` : ''}
             `;
 
             document.getElementById('collection-highlights').innerHTML = highlightsHTML;
 
         } catch (error) {
             console.error('Error loading collection highlights:', error);
+            document.getElementById('collection-highlights').innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-500">Failed to load collection highlights</p>
+                </div>
+            `;
         }
     }
 
@@ -267,8 +350,6 @@ class EnhancedProfileManager {
             const collectionSnapshot = await this.db.collection('users')
                 .doc(this.profileUserId)
                 .collection('collection')
-                .orderBy('name')
-                .limit(50)
                 .get();
 
             if (collectionSnapshot.empty) {
@@ -283,19 +364,39 @@ class EnhancedProfileManager {
 
             const cardsHTML = collectionSnapshot.docs.map(doc => {
                 const card = doc.data();
+                const cardName = card.name || card.card_name || 'Unknown Card';
+                const setName = card.set_name || card.setName || 'Unknown Set';
+                const cardValue = card.sale_price || card.purchase_price || card.value || 0;
+                const imageUrl = card.image_uris?.normal || card.image_uris?.small || card.image_url;
+                const game = card.game || 'Unknown';
+                
                 return `
                     <div class="bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                        <div class="aspect-w-3 aspect-h-4">
-                            <img src="${card.imageUrl || 'https://via.placeholder.com/200x280?text=No+Image'}" 
-                                 alt="${card.name}" 
-                                 class="w-full h-48 object-cover">
+                        <div class="aspect-w-3 aspect-h-4" style="aspect-ratio: 3/4;">
+                            ${imageUrl ? 
+                                `<img src="${imageUrl}" alt="${cardName}" class="w-full h-48 object-cover">` :
+                                `<div class="w-full h-48 bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                    <i class="fas fa-image text-4xl text-gray-400"></i>
+                                </div>`
+                            }
                         </div>
                         <div class="p-4">
-                            <h4 class="font-semibold text-gray-800 dark:text-white mb-1 truncate">${card.name}</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">${card.setName || 'Unknown Set'}</p>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-green-600">$${(card.value || 0).toFixed(2)}</span>
-                                <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded">${card.condition || 'NM'}</span>
+                            <h4 class="font-semibold text-gray-800 dark:text-white mb-1 truncate" title="${cardName}">${cardName}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2 truncate" title="${setName}">${setName}</p>
+                            <div class="flex justify-between items-center mb-2">
+                                ${cardValue > 0 ? 
+                                    `<span class="text-sm font-medium text-green-600">$${parseFloat(cardValue).toFixed(2)}</span>` :
+                                    `<span class="text-sm text-gray-500">No price</span>`
+                                }
+                                <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">${game}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                ${card.quantity && card.quantity > 1 ? `<span class="text-blue-600">Qty: ${card.quantity}</span>` : '<span></span>'}
+                                <div class="flex space-x-1">
+                                    ${card.is_signed ? '<i class="fas fa-signature text-purple-600" title="Signed"></i>' : ''}
+                                    ${card.is_altered ? '<i class="fas fa-paint-brush text-orange-600" title="Altered"></i>' : ''}
+                                    ${card.grade ? `<span class="text-yellow-600" title="Grade">${card.grade}</span>` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -628,8 +729,11 @@ class EnhancedProfileManager {
     }
 
     openEditProfileModal() {
-        // This would open a modal for editing profile
-        alert('Edit profile functionality would be implemented here');
+        if (window.profileEditor) {
+            window.profileEditor.openModal(this.profileData);
+        } else {
+            alert('Profile editor is loading...');
+        }
     }
 
     getTimeAgo(timestamp) {
