@@ -83,6 +83,7 @@ class TradeWindow {
             console.error('Error initializing currency:', error);
             this.userCurrency = 'USD';
         }
+    }
 
     updateCurrencySymbols() {
         const currencySymbols = {
@@ -265,6 +266,7 @@ class TradeWindow {
                 </div>
             `;
         }
+    }
 
     async loadTheirCollection(partnerId) {
         if (!partnerId) return;
@@ -297,6 +299,7 @@ class TradeWindow {
         } catch (error) {
             console.error('Error loading partner collection:', error);
         }
+    }
 
     switchBinder(binderType) {
         this.currentBinder = binderType;
@@ -358,14 +361,6 @@ class TradeWindow {
         // Add click listeners
         this.addCardClickListeners();
     }
-
-    createCardHtml(card) {
-        const cardData = card.cardData || card;
-        const imageUrl = cardData.image_uris?.normal || 
-                        cardData.image_uris?.large || 
-                        cardData.images?.large || 
-                        cardData.imageUrl || 
-                        'https://via.placeholder.com/223x310?text=No+Image';
 
     createCardHtml(card) {
         const cardData = card.cardData || card;
@@ -621,6 +616,7 @@ class TradeWindow {
                 balanceEl.className = 'text-sm text-blue-600 dark:text-blue-400 font-medium';
             }
         }
+    }
 
     updateProposalButton() {
         const proposeBtn = document.getElementById('propose-trade-btn');
@@ -637,6 +633,7 @@ class TradeWindow {
                               (this.currentTrade.yourCards.length > 0 || this.currentTrade.theirCards.length > 0);
             autoBalanceBtn.disabled = !canBalance;
         }
+    }
 
     applyFilters(cards = null) {
         const cardsToFilter = cards || (this.currentBinder === 'your' ? this.yourCollection : this.theirCollection);
@@ -747,6 +744,7 @@ class TradeWindow {
             this.tradeBasket = [];
             this.updateTradeBasketCounter();
         }
+    }
 
     updateTradeBasketCounter() {
         const counter = document.getElementById('trade-basket-counter');
@@ -758,6 +756,7 @@ class TradeWindow {
                 counter.classList.add('hidden');
             }
         }
+    }
 
     bindTradeBasketButton() {
         const tradeBasketBtn = document.getElementById('trade-basket-btn');
@@ -767,6 +766,7 @@ class TradeWindow {
                 document.getElementById('new-trading-interface')?.scrollIntoView({ behavior: 'smooth' });
             });
         }
+    }
 
     toggleLegacyView() {
         const newInterface = document.getElementById('new-trading-interface');
@@ -776,6 +776,7 @@ class TradeWindow {
             newInterface.classList.toggle('hidden');
             legacySection.classList.toggle('hidden');
         }
+    }
 
     async proposeTrade() {
         if (!this.currentTrade.partner) {
@@ -849,6 +850,7 @@ class TradeWindow {
                 alert('Failed to send trade proposal. Please try again.');
             }
         }
+    }
 
     resetTrade() {
         this.currentTrade = {
@@ -900,8 +902,9 @@ class TradeWindow {
                 text: `Value difference: $${valueDiff.toFixed(2)}. Auto-balance feature coming soon!`,
                 duration: 3000,
                 style: { background: "linear-gradient(to right, #f59e0b, #d97706)" }
-            }).showTradeToast();
+            }).showToast();
         }
+    }
 
     // ADDED: Open user search modal for trade partner selection
     openUserSearchModal() {
@@ -962,6 +965,7 @@ class TradeWindow {
             // Load seller information and set as trade partner
             this.loadSellerAsTradePartner(sellerId);
         }
+    }
 
     // ADDED: Process pending trade data from marketplace
     processPendingTrade() {
@@ -992,6 +996,7 @@ class TradeWindow {
                 localStorage.removeItem('pendingTrade');
             }
         }
+    }
 
     // ADDED: Load seller information and set as trade partner
     async loadSellerAsTradePartner(sellerId) {
@@ -1021,6 +1026,7 @@ class TradeWindow {
         } catch (error) {
             console.error('Error loading seller information:', error);
         }
+    }
 }
 
 // User Search functionality
@@ -1046,6 +1052,7 @@ class UserSearch {
                 this.handleSearch(e.target.value, 'trade-partner-results');
             });
         }
+    }
 
     handleSearch(query, resultsContainerId) {
         clearTimeout(this.searchTimeout);
@@ -1144,6 +1151,7 @@ class UserSearch {
             resultsContainer.innerHTML = '<div class="p-2 text-red-500">Error searching users</div>';
             resultsContainer.classList.remove('hidden');
         }
+    }
 
     displaySearchResults(users, resultsContainer) {
         if (users.length === 0) {
@@ -1227,6 +1235,7 @@ class UserSearch {
                 style: { background: "linear-gradient(to right, #10b981, #059669)" }
             }).showToast();
         }
+    }
 }
 
 // Main initialization
@@ -1447,8 +1456,6 @@ function checkTradeNotification(trade, userId) {
                 type: 'completed',
                 message: `Trade with ${isReceiver ? trade.proposerName : trade.receiverName} completed successfully`,
                 tradeId: trade.id,
-                timestamp: tradeTime,
-                priority: 'low'
             };
     }
     
@@ -1718,7 +1725,8 @@ async function handleTradeAction(action, tradeId, db) {
         } else {
              await tradeRef.update({ status: 'funds_authorized' });
              showTradeToast("Trade accepted! Ready for shipment.", 'success');
-        } else if (action === 'confirm-shipment') {
+        }
+    } else if (action === 'confirm-shipment') {
         const user = firebase.auth().currentUser;
         const isProposer = tradeData.proposerId === user.uid;
         const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
@@ -1752,8 +1760,10 @@ function showTradeToast(message, type = 'info') {
             text: message,
             duration: 3000,
             style: { background: backgrounds[type] || backgrounds.info }
-        }).showTradeToast();
+        }).showToast();
     } else {
         console.log(`${type.toUpperCase()}: ${message}`);
     }
+}
+
 }
