@@ -2,8 +2,7 @@
  * currency.js
  * Handles fetching, caching, and applying currency exchange rates.
  * - FIX: Now gracefully handles failures from the backend, defaulting to USD instead of crashing.
- * - FIX: Updated getNormalizedPriceUSD to handle ScryDx price structure with variant-based keys.
- * - FIX: Added proper JPY detection and conversion for Japanese cards.
+ * - FIX: Updated getNormalizedPriceUSD to handle ScryDex price structure with variant-based keys.
  */
 
 // Initialize Firebase functions safely
@@ -36,7 +35,7 @@ export async function initCurrency(base = 'USD') {
     try {
         if (!functions) {
             console.warn('[Currency] Firebase functions not available, using default USD rates');
-            exchangeRates = { USD: 1.0, JPY: 150.0, EUR: 0.85 }; // Default fallback rates
+            exchangeRates = { USD: 1.0 };
             lastFetchTimestamp = now;
             return;
         }
@@ -60,77 +59,35 @@ export async function initCurrency(base = 'USD') {
         console.error("[Currency] Could not fetch exchange rates:", error);
         // FIX: Graceful fallback. Set a default to prevent the app from crashing.
         // The app will now function but will only show prices in USD.
-        exchangeRates = { USD: 1.0, JPY: 150.0, EUR: 0.85 }; // Default fallback rates
-        console.log("[Currency] Using fallback rates:", exchangeRates);
+        exchangeRates = { USD: 1.0 };
+        console.log("[Currency] Using fallback USD-only rates:", exchangeRates);
         // showToast("Could not fetch currency rates. Prices will be shown in USD.", "error");
     }
 }
 
 /**
- * Detects if a price value is likely in Japanese Yen based on magnitude and context.
- * @param {number} price - The price value to check
- * @param {object} cardData - The card data for context (optional)
- * @returns {boolean} - True if the price is likely in JPY
- */
-function isLikelyJPY(price, cardData = null) {
-    // If price is over 50 and we have card context indicating Japanese origin
-    if (price > 50 && cardData) {
-        // Check if card has Japanese language indicators
-        if (cardData.language_code === 'JA' || 
-            cardData.language === 'Japanese' ||
-            (cardData.expansion && cardData.expansion.language_code === 'JA')) {
-            return true;
-        }
-    }
-    
-    // If price is suspiciously high for USD (over 200), likely JPY
-    if (price > 200) {
-        return true;
-    }
-    
-    return false;
-}
-
-/**
  * Converts a card's prices object to a single normalized USD value.
- * FIXED: Now handles both Scryfall format (usd, eur, jpy) and ScryDx format (variant_condition keys).
- * FIXED: Added proper JPY detection and conversion for Japanese cards.
+ * FIXED: Now handles both Scryfall format (usd, eur, jpy) and ScryDex format (variant_condition keys).
  * @param {object} prices - The prices object from the card data (e.g., { usd: '10.00', jpy: '1500.00' } or { normal_NM: 5.99, reverseHolofoil_NM: 12.50 }).
- * @param {object} cardData - The full card data for context (optional)
  * @returns {number} - The price in USD.
  */
-export function getNormalizedPriceUSD(prices, cardData = null) {
+export function getNormalizedPriceUSD(prices) {
     if (!prices || typeof prices !== 'object') return 0;
 
-    console.log('[Currency] Processing prices:', prices, 'Card context:', cardData?.name || 'unknown');
-
-    // Handle explicit JPY prices first
-    if (prices.jpy && exchangeRates && exchangeRates.JPY) {
-        const jpyRate = exchangeRates.JPY;
-        const convertedPrice = (parseFloat(prices.jpy) / jpyRate) || 0;
-        console.log(`[Currency] Converting JPY ${prices.jpy} to USD: ${convertedPrice}`);
-        return convertedPrice;
-    }
-
-    // Handle Scryfall format (MTG cards) - but check if it's actually JPY
-    if (prices.usd) {
-        const usdPrice = parseFloat(prices.usd);
-        
-        // CRITICAL FIX: Check if this "USD" price is actually JPY
-        if (isLikelyJPY(usdPrice, cardData) && exchangeRates && exchangeRates.JPY) {
-            const jpyRate = exchangeRates.JPY;
-            const convertedPrice = (usdPrice / jpyRate) || 0;
-            console.log(`[Currency] Detected JPY disguised as USD: ${usdPrice} -> ${convertedPrice} USD`);
-            return convertedPrice;
-        }
-        
-        return usdPrice || 0;
-    }
+    // Handle Scryfall format (MTG cards)
+    if (prices.usd) return parseFloat(prices.usd) || 0;
 
     // This check is now safer because exchangeRates will never be null after initCurrency runs.
     if (!exchangeRates) {
         console.warn("Exchange rates not initialized, cannot convert price.");
         return 0;
+    }
+
+    if (prices.jpy && exchangeRates.JPY) {
+        // Fix: JPY to USD conversion - divide by exchange rate since JPY is typically > 100 per USD
+        // For example: 300 JPY / 150 (JPY per USD) = 2 USD
+        const jpyRate = exchangeRates.JPY;
+        return (parseFloat(prices.jpy) / jpyRate) || 0;
     }
     
     if (prices.eur && exchangeRates.EUR) {
@@ -155,16 +112,7 @@ export function getNormalizedPriceUSD(prices, cardData = null) {
         // Find the first available price in priority order
         for (const priorityKey of priorityOrder) {
             if (prices[priorityKey] && typeof prices[priorityKey] === 'number') {
-                const price = prices[priorityKey];
-                
-                // Check if this price is likely in JPY and convert if needed
-                if (isLikelyJPY(price, cardData) && exchangeRates.JPY) {
-                    const convertedPrice = (price / exchangeRates.JPY) || 0;
-                    console.log(`[Currency] Converting ScryDx JPY ${price} to USD: ${convertedPrice}`);
-                    return convertedPrice;
-                }
-                
-                return price;
+                return prices[priorityKey];
             }
         }
         
@@ -172,13 +120,6 @@ export function getNormalizedPriceUSD(prices, cardData = null) {
         for (const key of priceKeys) {
             const price = prices[key];
             if (typeof price === 'number' && price > 0) {
-                // Check if this price is likely in JPY and convert if needed
-                if (isLikelyJPY(price, cardData) && exchangeRates.JPY) {
-                    const convertedPrice = (price / exchangeRates.JPY) || 0;
-                    console.log(`[Currency] Converting fallback JPY ${price} to USD: ${convertedPrice}`);
-                    return convertedPrice;
-                }
-                
                 return price;
             }
         }
@@ -191,10 +132,9 @@ export function getNormalizedPriceUSD(prices, cardData = null) {
  * Formats a price value into a display string for the target currency.
  * Accepts either a raw prices object or a pre-calculated USD value.
  * @param {object|number} priceData - The prices object or a number in USD.
- * @param {object} cardData - The full card data for context (optional)
  * @returns {string} - The formatted price string (e.g., "105.50 kr" or "$10.00").
  */
-export function convertAndFormat(priceData, cardData = null) {
+export function convertAndFormat(priceData) {
     const targetCurrency = getUserCurrency();
     let priceUSD = 0;
 
@@ -203,7 +143,7 @@ export function convertAndFormat(priceData, cardData = null) {
     if (typeof priceData === 'number') {
         priceUSD = priceData;
     } else if (typeof priceData === 'object' && priceData !== null) {
-        priceUSD = getNormalizedPriceUSD(priceData, cardData);
+        priceUSD = getNormalizedPriceUSD(priceData);
     }
 
     console.log(`[Currency] Extracted USD price: ${priceUSD}, Exchange rates available:`, !!exchangeRates);

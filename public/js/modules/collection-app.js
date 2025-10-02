@@ -469,7 +469,7 @@ const Analytics = {
                 
                 // If no real data, generate sample data for demonstration
                 console.log(`[Analytics] Generating sample data for ${card.name}`);
-                const currentPrice = Currency.getNormalizedPriceUSD(card.prices) || 10;
+                const currentPrice = Currency.getNormalizedPriceUSD(card.prices, card) || 10;
                 for (let i = 29; i >= 0; i--) {
                     const date = new Date();
                     date.setDate(date.getDate() - i);
@@ -732,7 +732,7 @@ const Analytics = {
             // Fallback to basic calculation
             console.log('[Analytics] Using fallback calculation');
             const currentValue = cards.reduce((sum, card) => {
-                return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
+                return sum + (Currency.getNormalizedPriceUSD(card.prices, card) * (card.quantity || 1));
             }, 0);
             
             const currentValueEl = document.getElementById('analytics-current-value');
@@ -863,7 +863,7 @@ const Analytics = {
                 console.log('Analytics failed, using fallback calculation');
                 const state = Collection.getState();
                 const currentValue = state.filteredCollection.reduce((sum, card) => {
-                    return sum + (Currency.getNormalizedPriceUSD(card.prices) * (card.quantity || 1));
+                    return sum + (Currency.getNormalizedPriceUSD(card.prices, card) * (card.quantity || 1));
                 }, 0);
                 
                 // Generate basic 6 months of data
@@ -1569,7 +1569,7 @@ async function openBulkReviewModal() {
     }
     
     reviewList.innerHTML = cards.map(card => {
-        const marketPrice = Currency.getNormalizedPriceUSD(card.prices) || 0;
+        const marketPrice = Currency.getNormalizedPriceUSD(card.prices, card) || 0;
         return `
             <div class="bulk-sale-item grid grid-cols-6 gap-4 items-center p-2 border-b dark:border-gray-600" data-card-id="${card.id}" data-market-price="${marketPrice}">
                 <div class="col-span-2">
@@ -2003,7 +2003,7 @@ Object.assign(Analytics, {
         const ctx = canvas.getContext('2d');
         
         // Generate sample price history data based on current price
-        const currentPrice = Currency.getNormalizedPriceUSD(card.prices) || 10;
+        const currentPrice = Currency.getNormalizedPriceUSD(card.prices, card) || 10;
         const priceHistory = [];
         const labels = [];
         
@@ -2121,8 +2121,8 @@ function openIndividualSaleModal(cardId) {
     document.getElementById('individual-sale-card-condition').textContent = `Condition: ${card.condition || 'N/A'}`;
     
     // Set market price
-    const marketPrice = Currency.getNormalizedPriceUSD(card.prices) || 0;
-    document.getElementById('individual-sale-market-price').textContent = Currency.convertAndFormat(card.prices);
+    const marketPrice = Currency.getNormalizedPriceUSD(card.prices, card) || 0;
+    document.getElementById('individual-sale-market-price').textContent = Currency.convertAndFormat(card.prices, card);
 
     // Show/hide quantity section for cards with multiple copies
     const quantitySection = document.getElementById('individual-sale-quantity-section');
@@ -2175,7 +2175,7 @@ function resetIndividualSaleForm() {
 function updateIndividualSaleFinalPrice() {
     if (!currentIndividualSaleCard) return;
 
-    const marketPriceUSD = Currency.getNormalizedPriceUSD(currentIndividualSaleCard.prices) || 0;
+    const marketPriceUSD = Currency.getNormalizedPriceUSD(currentIndividualSaleCard.prices, currentIndividualSaleCard) || 0;
     const percentageInput = document.getElementById('individual-sale-percentage');
     const fixedPriceInput = document.getElementById('individual-sale-fixed-price');
     const finalPriceEl = document.getElementById('individual-sale-final-price');
@@ -2236,7 +2236,7 @@ async function handleIndividualSaleConfirm() {
         UI.setButtonLoading(confirmBtn, true);
 
         // Get final price in USD
-        const marketPriceUSD = Currency.getNormalizedPriceUSD(currentIndividualSaleCard.prices) || 0;
+        const marketPriceUSD = Currency.getNormalizedPriceUSD(currentIndividualSaleCard.prices, currentIndividualSaleCard) || 0;
         const percentageInput = document.getElementById('individual-sale-percentage');
         const fixedPriceInput = document.getElementById('individual-sale-fixed-price');
         
@@ -2346,8 +2346,8 @@ async function updateCardSalePrice(cardId) {
     document.getElementById('individual-sale-card-set').textContent = card.set_name;
     document.getElementById('individual-sale-card-condition').textContent = `Condition: ${card.condition || 'N/A'}`;
     
-    const marketPrice = Currency.getNormalizedPriceUSD(card.prices) || 0;
-    document.getElementById('individual-sale-market-price').textContent = Currency.convertAndFormat(card.prices);
+    const marketPrice = Currency.getNormalizedPriceUSD(card.prices, card) || 0;
+    document.getElementById('individual-sale-market-price').textContent = Currency.convertAndFormat(card.prices, card);
 
     // Set currency information
     const userCurrency = Currency.getUserCurrency();
