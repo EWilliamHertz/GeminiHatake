@@ -988,6 +988,41 @@ async function handleDeleteCard() {
     }
 }
 
+async function fetchAllCards(query, game) {
+  let allCards = [];
+  let currentPage = 1;
+  const limit = 100; // Use the max limit to reduce API calls
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      // We will use the existing API module to make the request
+      const results = await API.searchCards(query, game, currentPage, limit);
+
+      if (results && results.length > 0) {
+        // Add the cards from the current page to our main array
+        allCards = allCards.concat(results);
+        // If we get fewer cards than the limit, it's the last page
+        if (results.length < limit) {
+          hasMore = false;
+        } else {
+          currentPage++; // Move to the next page
+        }
+      } else {
+        // No more data, so we stop the loop
+        hasMore = false;
+      }
+    } catch (error) {
+      console.error("Failed to fetch cards:", error);
+      hasMore = false; // Stop the loop on error
+    }
+  }
+
+  console.log(`Successfully fetched ${allCards.length} cards.`);
+  return allCards;
+}
+
+
 let searchTimeout;
 function handleSearchInput() {
     clearTimeout(searchTimeout);
@@ -1003,7 +1038,8 @@ function handleSearchInput() {
     resultsContainer.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
     searchTimeout = setTimeout(async () => {
         try {
-            const results = await API.searchCards(query, game);
+            // This now correctly calls the function defined above
+            const results = await fetchAllCards(query, game);
             resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
                 results.map(card => `
                     <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>

@@ -24,26 +24,20 @@ const getGradedPriceFunction = functions.httpsCallable('getGradedPrice'); // New
  * For MTG, it checks the user's preference for EU (Scryfall) or US (ScryDex) prices.
  * For all other games, it defaults to ScryDex.
  */
-export async function searchCards(cardName, game) {
-    console.log(`[API] Searching for "${cardName}" in game: ${game}`);
+// In public/js/modules/api.js
 
-    if (!cardName || cardName.trim().length < 2) {
-        throw new Error('Card name must be at least 2 characters long.');
-    }
-
-    const priceProvider = localStorage.getItem('priceProvider') || 'scryfall';
-
+export async function searchCards(query, game = 'mtg', page = 1, limit = 100) { // Add page and limit
+    const API_BASE_URL = 'https://api.scrydex.com';
     try {
-        if (game === 'mtg' && priceProvider === 'scryfall') {
-            console.log('[API] Using Scryfall for MTG with EU prices');
-            return await searchScryfall(cardName);
-        }
-
-        console.log(`[API] Using ScryDex for ${game}`);
-        return await searchScryDex(cardName, game);
+        // Construct the URL with pagination parameters
+        const response = await fetch(`${API_BASE_URL}/${game}/cards/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        // The API returns data in a 'data' property
+        return data.data || [];
     } catch (error) {
-        console.error(`[API] Search failed for "${cardName}" in ${game}:`, error);
-        throw new Error(`Failed to search for cards: ${error.message}`);
+        console.error(`[API] Error searching for cards:`, error);
+        throw error;
     }
 }
 
@@ -200,9 +194,9 @@ function cleanScryfallData(card) {
     };
 }
 
-function cleanScryDxData(card, game) {
+function cleanScryDexData(card, game) {
     try {
-        console.log('[API] Raw ScryDx card data:', card);
+        console.log('[API] Raw ScryDex card data:', card);
         
         // Process prices with better fallback handling
         let prices = {};

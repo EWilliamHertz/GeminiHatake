@@ -1,0 +1,410 @@
+--- a/public/js/trades.js
++++ b/public/js/trades.js
+@@ -1318,6 +1318,211 @@
+     initializeLegacyTrades(user, db);
+ });
+ 
++// Helper function to get time ago string
++function getTimeAgo(timestamp) {
++    const now = Date.now();
++    const diff = now - timestamp;
++    const minutes = Math.floor(diff / (1000 * 60));
++    const hours = Math.floor(diff / (1000 * 60 * 60));
++    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
++
++    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
++    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
++    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
++    return 'Just now';
++}
++
++async function createTradeCard(trade, tradeId, user) {
++    const tradeCard = document.createElement('div');
++    tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
++    tradeCard.setAttribute('data-trade-id', tradeId);
++    const isProposer = trade.proposerId === user.uid;
++
++    const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
++    const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
++
++    const statusColors = {
++        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
++        accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
++        awaiting_payment: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
++        funds_authorized: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300',
++        shipped: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300',
++        completed: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
++        rejected: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
++        cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
++        disputed: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
++    };
++    const statusColor = statusColors[trade.status] || 'bg-gray-100 dark:bg-gray-700';
++
++    const actionButtons = getActionButtons(trade, tradeId, isProposer, user);
++
++    tradeCard.innerHTML = `
++        <div class="flex justify-between items-start mb-4">
++            <div>
++                <p class="text-sm text-gray-500 dark:text-gray-400">
++                    ${isProposer ? `Offer to: <strong>${trade.receiverName}</strong>` : `Offer from: <strong>${trade.proposerName}</strong>`}
++                </p>
++                <p class="text-xs text-gray-400 dark:text-gray-500">On: ${formatTimestamp(trade.createdAt)}</p>
++            </div>
++            <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusColor}">${(trade.status || 'unknown').replace('_', ' ')}</span>
++        </div>
++        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
++            <div class="border dark:border-gray-600 p-4 rounded-md">
++                <h4 class="font-bold mb-2 dark:text-white">${trade.proposerName} Offers:</h4>
++                <div class="space-y-2">${proposerItemsHtml}</div>
++            </div>
++            <div class="border dark:border-gray-600 p-4 rounded-md">
++                <h4 class="font-bold mb-2 dark:text-white">${trade.receiverName} Offers:</h4>
++                <div class="space-y-2">${receiverItemsHtml}</div>
++            </div>
++        </div>
++        ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
++        <div class="mt-4 text-right space-x-2">${actionButtons}</div>
++    `;
++
++    // Add event listeners for action buttons
++    tradeCard.querySelectorAll('.trade-action-btn').forEach(btn => {
++        btn.addEventListener('click', () => {
++            const action = btn.getAttribute('data-action');
++            const id = btn.getAttribute('data-id');
++            handleTradeAction(action, id, firebase.firestore());
++        });
++    });
++
++    return tradeCard;
++}
++
++function renderTradeItems(cards, money) {
++    let html = '';
++
++    if (cards && cards.length > 0) {
++        html += cards.map(card => `
++            <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
++                <img src="${card.imageUrl || 'https://via.placeholder.com/40x56'}" 
++                     alt="${card.name}"
++                     class="w-10 h-14 object-cover rounded"
++                     onerror="this.src='https://via.placeholder.com/40x56?text=?'">
++                <div class="flex-1 min-w-0">
++                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name}</p>
++                    <div class="flex items-center justify-between mt-1">
++                        <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
++                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${(parseFloat(card.priceUsd) || 0).toFixed(2)}</span>
++                    </div>
++                </div>
++            </div>
++        `).join('');
++    }
++
++    if (money && money > 0) {
++        html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
++                    <div class="flex items-center space-x-2">
++                        <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
++                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${money.toFixed(2)}</span>
++                    </div>
++                 </div>`;
++    }
++
++    return html || '<div class="text-sm text-gray-500 dark:text-gray-400 p-4 text-center">No items</div>';
++}
++
++function getActionButtons(trade, tradeId, isProposer, user) {
++    const isPayer = (trade.proposerMoney > 0 && isProposer) || (trade.receiverMoney > 0 && !isProposer);
++    const buyerUid = (trade.proposerMoney || 0) > 0 ? trade.proposerId : trade.receiverId;
++    const isBuyer = user.uid === buyerUid;
++
++    switch (trade.status) {
++        case 'pending':
++            return isProposer
++                ? `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Cancel</button>`
++                : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2">Decline</button>
++                   <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Accept</button>`;
++        case 'awaiting_payment':
++             return isPayer
++                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com</button>`
++                : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
++        case 'funds_authorized':
++            const userHasShipped = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
++            return userHasShipped
++                ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
++                : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirm Shipment</button>`;
++        case 'shipped':
++             if (isBuyer) {
++                 return `<button data-id="${tradeId}" data-action="confirm-receipt" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirm Delivery & Release Funds</button>`;
++             } else {
++                 return `<span class="text-sm text-gray-500">Waiting for buyer to confirm receipt...</span>`;
++             }
++        default:
++            return '';
++    }
++}
++
++async function handleTradeAction(action, tradeId, db) {
++    const tradeRef = db.collection('trades').doc(tradeId);
++    const tradeDoc = await tradeRef.get();
++    if (!tradeDoc.exists) return;
++    const tradeData = tradeDoc.data();
++
++    if (action === 'accepted') {
++        const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
++        if (moneyInvolved) {
++             await tradeRef.update({ status: 'accepted' });
++             // initiateEscrowTransaction(tradeId, tradeData); // Implement if needed
++        } else {
++             await tradeRef.update({ status: 'funds_authorized' });
++             showTradeToast("Trade accepted! Ready for shipment.", 'success');
++        }
++    } else if (action === 'confirm-shipment') {
++        const user = firebase.auth().currentUser;
++        const isProposer = tradeData.proposerId === user.uid;
++        const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
++        await tradeRef.update({ [fieldToUpdate]: true });
++
++        const updatedDoc = await tradeRef.get();
++        if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
++            await tradeRef.update({ status: 'shipped' });
++        }
++        showTradeToast("Shipment confirmed!", 'success');
++    } else if (action === 'confirm-receipt') {
++        await tradeRef.update({ status: 'completed' });
++        showTradeToast("Trade completed successfully!", 'success');
++    } else if (['rejected', 'cancelled'].includes(action)) {
++        await tradeRef.update({ status: action });
++        showTradeToast("Trade offer has been updated.", 'info');
++    }
++}
++
++// Utility function for showing toast notifications
++function showTradeToast(message, type = 'info') {
++    if (window.Toastify) {
++        const backgrounds = {
++            success: "linear-gradient(to right, #10b981, #059669)",
++            error: "linear-gradient(to right, #ef4444, #dc2626)",
++            warning: "linear-gradient(to right, #f59e0b, #d97706)",
++            info: "linear-gradient(to right, #3b82f6, #2563eb)"
++        };
++
++        Toastify({
++            text: message,
++            duration: 3000,
++            style: { background: backgrounds[type] || backgrounds.info }
++        }).showToast();
++    } else {
++        console.log(`${type.toUpperCase()}: ${message}`);
++    }
++}
++
+ // Legacy trades functionality (existing code)
+ function initializeLegacyTrades(user, db) {
+     const tradesPageContainer = document.querySelector('#legacy-trades-section');
+@@ -1652,126 +1857,6 @@
+     }).join('');
+ 
+     notificationsList.innerHTML = notificationsHtml;
+-}
+-
+-// Helper function to format timestamp
+-function formatTimestamp(timestamp) {
+-    if (!timestamp) return 'Unknown';
+-    
+-    let date;
+-    if (timestamp.seconds) {
+-        // Firestore timestamp
+-        date = new Date(timestamp.seconds * 1000);
+-    } else if (typeof timestamp === 'number') {
+-        // Unix timestamp
+-        date = new Date(timestamp);
+-    } else {
+-        // Already a Date object or string
+-        date = new Date(timestamp);
+-    }
+-    
+-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+-}
+-
+-// Helper function to get time ago string
+-function getTimeAgo(timestamp) {
+-    const now = Date.now();
+-    const diff = now - timestamp;
+-    const minutes = Math.floor(diff / (1000 * 60));
+-    const hours = Math.floor(diff / (1000 * 60 * 60));
+-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+-
+-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+-    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+-    return 'Just now';
+-}
+-
+-async function createTradeCard(trade, tradeId, user) {
+-    const tradeCard = document.createElement('div');
+-    tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
+-    tradeCard.setAttribute('data-trade-id', tradeId);
+-    const isProposer = trade.proposerId === user.uid;
+-
+-    const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
+-    const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
+-
+-    const statusColors = {
+-        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+-        accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+-        awaiting_payment: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+-        funds_authorized: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300',
+-        shipped: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300',
+-        completed: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+-        rejected: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+-        cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+-        disputed: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+-    };
+-    const statusColor = statusColors[trade.status] || 'bg-gray-100 dark:bg-gray-700';
+-
+-    const actionButtons = getActionButtons(trade, tradeId, isProposer, user);
+-
+-    tradeCard.innerHTML = `
+-        <div class="flex justify-between items-start mb-4">
+-            <div>
+-                <p class="text-sm text-gray-500 dark:text-gray-400">
+-                    ${isProposer ? `Offer to: <strong>${trade.receiverName}</strong>` : `Offer from: <strong>${trade.proposerName}</strong>`}
+-                </p>
+-                <p class="text-xs text-gray-400 dark:text-gray-500">On: ${formatTimestamp(trade.createdAt)}</p>
+-            </div>
+-            <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusColor}">${(trade.status || 'unknown').replace('_', ' ')}</span>
+-        </div>
+-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+-            <div class="border dark:border-gray-600 p-4 rounded-md">
+-                <h4 class="font-bold mb-2 dark:text-white">${trade.proposerName} Offers:</h4>
+-                <div class="space-y-2">${proposerItemsHtml}</div>
+-            </div>
+-            <div class="border dark:border-gray-600 p-4 rounded-md">
+-                <h4 class="font-bold mb-2 dark:text-white">${trade.receiverName} Offers:</h4>
+-                <div class="space-y-2">${receiverItemsHtml}</div>
+-            </div>
+-        </div>
+-        ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
+-        <div class="mt-4 text-right space-x-2">${actionButtons}</div>
+-    `;
+-
+-    // Add event listeners for action buttons
+-    tradeCard.querySelectorAll('.trade-action-btn').forEach(btn => {
+-        btn.addEventListener('click', () => {
+-            const action = btn.getAttribute('data-action');
+-            const id = btn.getAttribute('data-id');
+-            handleTradeAction(action, id, firebase.firestore());
+-        });
+-    });
+-
+-    return tradeCard;
+-}
+-
+-function renderTradeItems(cards, money) {
+-    let html = '';
+-    
+-    if (cards && cards.length > 0) {
+-        html += cards.map(card => `
+-            <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
+-                <img src="${card.imageUrl || 'https://via.placeholder.com/40x56'}" 
+-                     alt="${card.name}"
+-                     class="w-10 h-14 object-cover rounded"
+-                     onerror="this.src='https://via.placeholder.com/40x56?text=?'">
+-                <div class="flex-1 min-w-0">
+-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name}</p>
+-                    <div class="flex items-center justify-between mt-1">
+-                        <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
+-                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${(parseFloat(card.priceUsd) || 0).toFixed(2)}</span>
+-                    </div>
+-                </div>
+-            </div>
+-        `).join('');
+-    }
+-    
+-    if (money && money > 0) {
+-        html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
+-                    <div class="flex items-center space-x-2">
+-                        <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
+-                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${money.toFixed(2)}</span>
+-                    </div>
+-                 </div>`;
+-    }
+-    
+-    return html || '<div class="text-sm text-gray-500 dark:text-gray-400 p-4 text-center">No items</div>';
+-}
+-
+-function getActionButtons(trade, tradeId, isProposer, user) {
+-    const isPayer = (trade.proposerMoney > 0 && isProposer) || (trade.receiverMoney > 0 && !isProposer);
+-    const buyerUid = (trade.proposerMoney || 0) > 0 ? trade.proposerId : trade.receiverId;
+-    const isBuyer = user.uid === buyerUid;
+-
+-    switch (trade.status) {
+-        case 'pending':
+-            return isProposer
+-                ? `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Cancel</button>`
+-                : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2">Decline</button>
+-                   <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Accept</button>`;
+-        case 'awaiting_payment':
+-             return isPayer
+-                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com</button>`
+-                : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+-        case 'funds_authorized':
+-            const userHasShipped = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
+-            return userHasShipped
+-                ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
+-                : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirm Shipment</button>`;
+-        case 'shipped':
+-             if (isBuyer) {
+-                 return `<button data-id="${tradeId}" data-action="confirm-receipt" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirm Delivery & Release Funds</button>`;
+-             } else {
+-                 return `<span class="text-sm text-gray-500">Waiting for buyer to confirm receipt...</span>`;
+-             }
+-        default:
+-            return '';
+-    }
+ }
+ 
+ async function handleTradeAction(action, tradeId, db) {
+@@ -1794,20 +1879,3 @@
+              showTradeToast("Trade accepted! Ready for shipment.", 'success');
+         }
+     } else if (action === 'confirm-shipment') {
+-        const user = firebase.auth().currentUser;
+-        const isProposer = tradeData.proposerId === user.uid;
+-        const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
+-        await tradeRef.update({ [fieldToUpdate]: true });
+-
+-        const updatedDoc = await tradeRef.get();
+-        if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
+-            await tradeRef.update({ status: 'shipped' });
+-        }
+-        showTradeToast("Shipment confirmed!", 'success');
+-    } else if (action === 'confirm-receipt') {
+-        await tradeRef.update({ status: 'completed' });
+-        showTradeToast("Trade completed successfully!", 'success');
+-    } else if (['rejected', 'cancelled'].includes(action)) {
+-        await tradeRef.update({ status: action });
+-        showTradeToast("Trade offer has been updated.", 'info');
+-    }
+-}
+-
+-// Utility function for showing toast notifications
+-function showTradeToast(message, type = 'info') {
+-    if (window.Toastify) {
+-        const backgrounds = {
+-            success: "linear-gradient(to right, #10b981, #059669)",
+-            error: "linear-gradient(to right, #ef4444, #dc2626)",
+-            warning: "linear-gradient(to right, #f59e0b, #d97706)",
+-            info: "linear-gradient(to right, #3b82f6, #2563eb)"
+-        };
+-
+-        Toastify({
+-            text: message,
+-            duration: 3000,
+-            style: { background: backgrounds[type] || backgrounds.info }
+-        }).showToast();
+-    } else {
+-        console.log(`${type.toUpperCase()}: ${message}`);
+-    }
+-}
+-
+-}

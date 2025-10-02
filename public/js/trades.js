@@ -100,64 +100,100 @@ class TradeWindow {
         if (theirSymbol) theirSymbol.textContent = symbol;
     }
 
-    // ADDED: Calculate dynamic price based on condition and edition
-    calculateCardPrice(cardData) {
-        // Handle different price structures
-        if (cardData.sale_price) {
-            const salePrice = parseFloat(cardData.sale_price);
-            return isNaN(salePrice) ? 0 : salePrice;
+ // ADDED: Calculate dynamic price based on condition and edition
+calculateCardPrice(cardData) {
+    // Top priority: Use sale_price if it exists and is a valid number
+    if (cardData.sale_price) {
+        const salePrice = parseFloat(cardData.sale_price);
+        if (!isNaN(salePrice)) {
+            return salePrice;
         }
+    }
 
-        // Return fallback price if no prices object exists
-        if (!cardData.prices || typeof cardData.prices !== 'object') {
-            const fallbackPrice = parseFloat(cardData.priceUsd || cardData.price || 0);
-            return isNaN(fallbackPrice) ? 0 : fallbackPrice;
-        }
+    // If no prices object, fall back to other possible price fields
+    if (!cardData.prices || typeof cardData.prices !== 'object') {
+        const fallbackPrice = parseFloat(cardData.priceUsd || cardData.price || 0);
+        return isNaN(fallbackPrice) ? 0 : fallbackPrice;
+    }
 
-        const condition = cardData.condition || 'near_mint';
-        const game = cardData.game || 'mtg';
-        
-        // For MTG cards, use usd price directly
-        if (game === 'mtg' && cardData.prices.usd) {
-            const mtgPrice = parseFloat(cardData.prices.usd);
+    const prices = cardData.prices;
+    const game = cardData.game ? cardData.game.toLowerCase() : 'mtg';
+
+    // --- MTG Pricing Logic ---
+    if (game === 'mtg') {
+        if (prices.usd) {
+            const mtgPrice = parseFloat(prices.usd);
             return isNaN(mtgPrice) ? 0 : mtgPrice;
         }
+    }
 
-        // For Pokemon cards, map condition to price keys
-        if (game === 'pokemon') {
-            const conditionMap = {
-                'mint': 'NM',
-                'near_mint': 'NM', 
-                'excellent': 'NM',
-                'good': 'LP',
-                'light_played': 'LP',
-                'played': 'MP',
-                'poor': 'HP',
-                'heavily_played': 'HP',
-                'damaged': 'DM'
-            };
+    // --- Pokémon Pricing Logic ---
+    if (game === 'pokemon') {
+        const conditionMap = {
+            'mint': 'NM',
+            'near mint': 'NM',
+            'excellent': 'NM',
+            'good': 'LP',
+            'light played': 'LP',
+            'played': 'MP',
+            'poor': 'HP',
+            'heavily played': 'HP',
+            'damaged': 'DM'
+        };
 
-            const conditionKey = conditionMap[condition.toLowerCase()] || 'NM';
-            
-            // Try holofoil first, then regular
-            let price = cardData.prices[`holofoil_${conditionKey}`] || cardData.prices[`regular_${conditionKey}`];
-            
-            // Fallback to any available price
-            if (price === undefined || price === null) {
-                const availablePrices = Object.values(cardData.prices).filter(p => typeof p === 'number' && p > 0);
-                price = availablePrices.length > 0 ? availablePrices[0] : 0;
+        const condition = cardData.condition ? cardData.condition.toLowerCase() : 'near mint';
+        const conditionKey = conditionMap[condition] || 'NM'; // Default to NM
+
+        const isFoil = cardData.is_foil || false;
+        const isFirstEdition = cardData.is_first_edition || false;
+
+        let priceKey;
+
+        // Build the price key based on the card's specific properties
+        if (isFirstEdition) {
+            priceKey = isFoil ? `firstEditionHolofoil_${conditionKey}` : `firstEdition_${conditionKey}`;
+        } else {
+            priceKey = isFoil ? `unlimitedHolofoil_${conditionKey}` : `unlimited_${conditionKey}`;
+        }
+
+        // Check if a price exists for that specific key
+        if (prices[priceKey] !== undefined && prices[priceKey] !== null) {
+            const specificPrice = parseFloat(prices[priceKey]);
+            if (!isNaN(specificPrice)) {
+                return specificPrice;
             }
-
-            const numericPrice = parseFloat(price);
-            return isNaN(numericPrice) ? 0 : numericPrice;
         }
         
-        // Final fallback to any available price
-        const availablePrices = Object.values(cardData.prices).filter(p => typeof p === 'number' && p > 0);
-        const fallbackPrice = availablePrices.length > 0 ? availablePrices[0] : 0;
-        const numericPrice = parseFloat(fallbackPrice);
-        return isNaN(numericPrice) ? 0 : numericPrice;
+        // If no direct match, check for a graded price of the same type as a fallback
+        let gradedKey;
+        if (isFirstEdition) {
+            gradedKey = isFoil ? 'firstEditionHolofoil_graded' : 'firstEdition_graded';
+        } else {
+            gradedKey = isFoil ? 'unlimitedHolofoil_graded' : 'unlimitedHolofoil_graded';
+        }
+        
+        if (prices[gradedKey] !== undefined && prices[gradedKey] !== null) {
+            const gradedPrice = parseFloat(prices[gradedKey]);
+            if (!isNaN(gradedPrice)) {
+                return gradedPrice;
+            }
+        }
     }
+
+    // --- Final Fallback for All Games ---
+    // If no specific price was found, find the most likely "main" price from what's available
+    const availablePrices = Object.values(prices)
+                                  .filter(p => typeof p === 'number' && p > 0)
+                                  .sort((a, b) => b - a); // Sort by highest price first
+
+    if (availablePrices.length > 0) {
+        return availablePrices[0];
+    }
+
+    // If no valid price can be found, return 0
+    return 0;
+}       
+   
 
     bindEvents() {
         // Binder tab switching
@@ -174,12 +210,12 @@ class TradeWindow {
             this.filterCards(e.target.value);
         });
 
-        // Game filters
-        document.querySelectorAll('.game-filter').forEach(filter => {
-            filter.addEventListener('change', () => {
-                this.applyFilters();
-            });
-        });
+  // Game filters
+document.querySelectorAll('.game-filter').forEach(filter => {
+    filter.addEventListener('change', () => {
+        this.displayCards();
+    });
+});
 
         // View toggles
         document.getElementById('view-toggle-grid')?.addEventListener('click', () => {
@@ -417,15 +453,14 @@ class TradeWindow {
         }
     }
 
-    addCardClickListeners() {
-        document.querySelectorAll('.trade-card').forEach(cardElement => {
-            cardElement.addEventListener('click', () => {
-                const cardId = cardElement.getAttribute('data-card-id');
-                this.toggleCardInTrade(cardId);
-            });
+  addCardClickListeners() {
+    document.querySelectorAll('.card-item').forEach(cardElement => {
+        cardElement.addEventListener('click', () => {
+            const cardId = cardElement.getAttribute('data-card-id');
+            this.toggleCardInTrade(cardId);
         });
-    }
-
+    });
+}
     isCardInTrade(cardId) {
         return this.currentTrade.yourCards.some(c => c.id === cardId) || 
                this.currentTrade.theirCards.some(c => c.id === cardId);
@@ -773,13 +808,22 @@ class TradeWindow {
         }
     }
 
-    toggleLegacyView() {
+toggleLegacyView() {
+        const toggleBtn = document.getElementById('toggle-legacy-view');
         const newInterface = document.getElementById('new-trading-interface');
         const legacySection = document.getElementById('legacy-trades-section');
 
-        if (newInterface && legacySection) {
+        if (newInterface && legacySection && toggleBtn) {
+            const isLegacyHidden = legacySection.classList.toggle('hidden');
             newInterface.classList.toggle('hidden');
-            legacySection.classList.toggle('hidden');
+
+            if (isLegacyHidden) {
+                // We are now showing the new trade interface
+                toggleBtn.innerHTML = '<i class="fas fa-list mr-2"></i>View All Trades';
+            } else {
+                // We are now showing the legacy trade history
+                toggleBtn.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i>New Trade';
+            }
         }
     }
 

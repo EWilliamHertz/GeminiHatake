@@ -945,36 +945,10 @@
   <script src="js/messenger.js">
   </script>
 
-  <!-- Tour.js Integration -->
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
 
-  <!-- Toggle between new and legacy trading interfaces -->
-  <script>
-      document.addEventListener('DOMContentLoaded', () => {
-          const toggleBtn = document.getElementById('toggle-legacy-view');
-          const newInterface = document.getElementById('new-trading-interface');
-          const legacySection = document.getElementById('legacy-trades-section');
-          
-          if (toggleBtn) {
-              toggleBtn.addEventListener('click', () => {
-                  const isLegacyVisible = !legacySection.classList.contains('hidden');
-                  
-                  if (isLegacyVisible) {
-                      // Switch to new interface
-                      legacySection.classList.add('hidden');
-                      newInterface.classList.remove('hidden');
-                      toggleBtn.innerHTML = '<i class="fas fa-list mr-2"></i>View All Trades';
-                  } else {
-                      // Switch to legacy interface
-                      newInterface.classList.add('hidden');
-                      legacySection.classList.remove('hidden');
-                      toggleBtn.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i>New Trade';
-                  }
-              });
-          }
-      });
-  </script>
+  
   <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[1001]" id="new-conversation-modal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
     <h2 class="text-2xl font-bold mb-4">
