@@ -1260,7 +1260,18 @@ class MarketplaceManager {
             window.location.href = 'trades.html?seller=' + encodeURIComponent(this.selectedCard.sellerData.uid);
         }, 1500);
     }
+
+    // Add refresh method for automatic marketplace updates
+    async refreshMarketplace() {
+        console.log('Refreshing marketplace data...');
+        await this.loadMarketplaceData();
+        this.updateDisplay();
+        console.log('Marketplace refreshed successfully');
+    }
 }
 
 // Initialize the marketplace manager
 const marketplaceManager = new MarketplaceManager();
+
+// Make marketplace manager globally accessible for refresh calls
+window.marketplaceManager = marketplaceManager;

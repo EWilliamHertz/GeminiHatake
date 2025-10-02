@@ -288,7 +288,9 @@ export async function batchCreateMarketplaceListings(updates) {
                     uid: state.currentUser.uid,
                     displayName: userProfile?.displayName || 'Unknown Seller',
                     photoURL: userProfile?.photoURL || null,
-                    country: userProfile?.country || 'Unknown'
+                    country: userProfile?.address?.country || 'Unknown',
+                    city: userProfile?.address?.city || '',
+                    state: userProfile?.address?.state || ''
                 },
                 // Listing details
                 sellerId: state.currentUser.uid,
@@ -310,6 +312,14 @@ export async function batchCreateMarketplaceListings(updates) {
         console.log('[Collection] Sending', listings.length, 'listings to API');
         await API.batchCreateMarketplaceListings(listings);
         console.log('[Collection] Successfully created marketplace listings');
+        
+        // Automatically refresh marketplace if it's loaded
+        if (window.marketplaceManager && typeof window.marketplaceManager.refreshMarketplace === 'function') {
+            console.log('[Collection] Refreshing marketplace after creating listings');
+            setTimeout(() => {
+                window.marketplaceManager.refreshMarketplace();
+            }, 1000); // Small delay to ensure Firestore has processed the changes
+        }
     } else {
         console.log('[Collection] No valid listings to create');
     }
@@ -318,6 +328,14 @@ export async function batchCreateMarketplaceListings(updates) {
 export async function batchRemoveMarketplaceListings(collectionCardIds) {
     if (!state.currentUser) throw new Error("User not logged in.");
     await API.batchRemoveMarketplaceListings(state.currentUser.uid, collectionCardIds);
+    
+    // Automatically refresh marketplace if it's loaded
+    if (window.marketplaceManager && typeof window.marketplaceManager.refreshMarketplace === 'function') {
+        console.log('[Collection] Refreshing marketplace after removing listings');
+        setTimeout(() => {
+            window.marketplaceManager.refreshMarketplace();
+        }, 1000); // Small delay to ensure Firestore has processed the changes
+    }
 }
 
 export async function deleteCard(cardId) {
