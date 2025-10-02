@@ -181,30 +181,31 @@ class EnhancedProfileManager {
 
     async loadProfileStats() {
         try {
-            // Load collection count
+            // Load collection count from user's collection subcollection
             const collectionSnapshot = await this.db.collection('users')
                 .doc(this.profileUserId)
                 .collection('collection')
                 .get();
             document.getElementById('stat-collection-count').textContent = collectionSnapshot.size;
 
-            // Load deck count
-            const decksSnapshot = await this.db.collection('users')
-                .doc(this.profileUserId)
-                .collection('decks')
+            // Load deck count from publicDecks collection
+            const decksSnapshot = await this.db.collection('publicDecks')
+                .where('userId', '==', this.profileUserId)
                 .get();
             document.getElementById('stat-deck-count').textContent = decksSnapshot.size;
 
-            // Load trade count
+            // Load trade count from trades collection
             const tradesSnapshot = await this.db.collection('trades')
                 .where('participants', 'array-contains', this.profileUserId)
-                .where('status', '==', 'completed')
                 .get();
             document.getElementById('stat-trade-count').textContent = tradesSnapshot.size;
 
-            // Load friend count
-            const friendCount = this.profileData.friends?.length || 0;
-            document.getElementById('stat-friend-count').textContent = friendCount;
+            // Load friend count from friends collection
+            const friendsSnapshot = await this.db.collection('friends')
+                .where('users', 'array-contains', this.profileUserId)
+                .where('status', '==', 'accepted')
+                .get();
+            document.getElementById('stat-friend-count').textContent = friendsSnapshot.size;
 
         } catch (error) {
             console.error('Error loading profile stats:', error);
@@ -247,12 +248,31 @@ class EnhancedProfileManager {
             // Load recent activities (similar to full activity but limited)
             const activities = [];
 
+            // Posts activities
+            const postsSnapshot = await this.db.collection('posts')
+                .where('userId', '==', this.profileUserId)
+                .orderBy('createdAt', 'desc')
+                .limit(3)
+                .get();
+
+            postsSnapshot.forEach(doc => {
+                const post = doc.data();
+                if (post.createdAt) {
+                    activities.push({
+                        type: 'post',
+                        timestamp: post.createdAt,
+                        description: `Created a post: "${post.content?.substring(0, 30) || 'New post'}${post.content?.length > 30 ? '...' : ''}"`,
+                        details: post.type || 'Post'
+                    });
+                }
+            });
+
             // Collection activities
             const collectionSnapshot = await this.db.collection('users')
                 .doc(this.profileUserId)
                 .collection('collection')
                 .orderBy('addedAt', 'desc')
-                .limit(5)
+                .limit(3)
                 .get();
 
             collectionSnapshot.forEach(doc => {
@@ -282,9 +302,15 @@ class EnhancedProfileManager {
 
             const activityHTML = activities.slice(0, 3).map(activity => {
                 const timeAgo = this.getTimeAgo(activity.timestamp.toMillis());
+                const iconMap = {
+                    'post': 'fas fa-comment',
+                    'collection': 'fas fa-layer-group',
+                    'deck': 'fas fa-book-open',
+                    'trade': 'fas fa-exchange-alt'
+                };
                 return `
                     <div class="flex items-center space-x-3 py-2">
-                        <i class="fas fa-layer-group text-blue-600"></i>
+                        <i class="${iconMap[activity.type] || 'fas fa-circle'} text-blue-600"></i>
                         <div class="flex-1">
                             <p class="text-sm text-gray-800 dark:text-white">${activity.description}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">${activity.details} • ${timeAgo}</p>
@@ -497,9 +523,8 @@ class EnhancedProfileManager {
             const decksGrid = document.getElementById('decks-grid');
             decksGrid.innerHTML = '<div class="text-center py-8 col-span-full"><i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Loading decks...</p></div>';
 
-            const decksSnapshot = await this.db.collection('users')
-                .doc(this.profileUserId)
-                .collection('decks')
+            const decksSnapshot = await this.db.collection('publicDecks')
+                .where('userId', '==', this.profileUserId)
                 .orderBy('createdAt', 'desc')
                 .get();
 
@@ -660,6 +685,25 @@ class EnhancedProfileManager {
             // Load various activity types
             const activities = [];
 
+            // Posts activities
+            const postsSnapshot = await this.db.collection('posts')
+                .where('userId', '==', this.profileUserId)
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get();
+
+            postsSnapshot.forEach(doc => {
+                const post = doc.data();
+                if (post.createdAt) {
+                    activities.push({
+                        type: 'post',
+                        timestamp: post.createdAt,
+                        description: `Created a post: "${post.content?.substring(0, 50) || 'New post'}${post.content?.length > 50 ? '...' : ''}"`,
+                        details: post.type || 'Post'
+                    });
+                }
+            });
+
             // Collection activities
             const collectionSnapshot = await this.db.collection('users')
                 .doc(this.profileUserId)
@@ -674,16 +718,15 @@ class EnhancedProfileManager {
                     activities.push({
                         type: 'collection',
                         timestamp: card.addedAt,
-                        description: `Added ${card.name} to collection`,
-                        details: card.setName || 'Unknown Set'
+                        description: `Added ${this.getCardName(card)} to collection`,
+                        details: this.getSetName(card)
                     });
                 }
             });
 
-            // Deck activities
-            const decksSnapshot = await this.db.collection('users')
-                .doc(this.profileUserId)
-                .collection('decks')
+            // Deck activities from publicDecks
+            const decksSnapshot = await this.db.collection('publicDecks')
+                .where('userId', '==', this.profileUserId)
                 .orderBy('createdAt', 'desc')
                 .limit(10)
                 .get();
@@ -696,6 +739,25 @@ class EnhancedProfileManager {
                         timestamp: deck.createdAt,
                         description: `Created deck: "${deck.name}"`,
                         details: deck.format || 'Unknown format'
+                    });
+                }
+            });
+
+            // Trade activities
+            const tradesSnapshot = await this.db.collection('trades')
+                .where('participants', 'array-contains', this.profileUserId)
+                .orderBy('createdAt', 'desc')
+                .limit(5)
+                .get();
+
+            tradesSnapshot.forEach(doc => {
+                const trade = doc.data();
+                if (trade.createdAt) {
+                    activities.push({
+                        type: 'trade',
+                        timestamp: trade.createdAt,
+                        description: `${trade.status === 'completed' ? 'Completed' : 'Started'} a trade`,
+                        details: `Status: ${trade.status || 'pending'}`
                     });
                 }
             });
@@ -716,6 +778,7 @@ class EnhancedProfileManager {
             const activityHTML = activities.map(activity => {
                 const timeAgo = this.getTimeAgo(activity.timestamp.toMillis());
                 const iconMap = {
+                    'post': 'fas fa-comment',
                     'collection': 'fas fa-layer-group',
                     'deck': 'fas fa-book-open',
                     'trade': 'fas fa-exchange-alt'
