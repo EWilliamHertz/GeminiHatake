@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Enhanced Profile - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+    <link href="css/style.css" rel="stylesheet"/>
+    <script src="js/darkmode.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css"/>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js" type="text/javascript"></script>
+    <link href="/manifest.json" rel="manifest"/>
+    <style>
+        .profile-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .collection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .deck-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .deck-card:hover {
+            border-left-color: #3b82f6;
+            transform: translateX(4px);
+        }
+        .activity-timeline {
+            position: relative;
+        }
+        .activity-timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e5e7eb;
+        }
+        .activity-item {
+            position: relative;
+            padding-left: 50px;
+        }
+        .activity-item::before {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 8px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+                <a class="flex flex-col items-center space-y-1" href="app.html">
+                    <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+                </a>
+            </div>
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+                    <i class="fas fa-home w-6 text-center"></i>
+                    <span class="ml-3">Feed</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+                    <i class="fas fa-comments w-6 text-center"></i>
+                    <span class="ml-3">Messages</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="enhanced-community.html">
+                    <i class="fas fa-users w-6 text-center"></i>
+                    <span class="ml-3">Community</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+                    <i class="fas fa-newspaper w-6 text-center"></i>
+                    <span class="ml-3">TCG Articles</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+                    <i class="fas fa-blog w-6 text-center"></i>
+                    <span class="ml-3">Hatake Blog</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+                    <i class="fas fa-calendar-alt w-6 text-center"></i>
+                    <span class="ml-3">Events</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+                    <i class="fas fa-layer-group w-6 text-center"></i>
+                    <span class="ml-3">My Collection</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+                    <i class="fas fa-book-open w-6 text-center"></i>
+                    <span class="ml-3">Deck Builder</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+                    <i class="fas fa-shopping-cart w-6 text-center"></i>
+                    <span class="ml-3">Shop</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+                    <i class="fas fa-store w-6 text-center"></i>
+                    <span class="ml-3">Marketplace</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+                    <i class="fas fa-exchange-alt w-6 text-center"></i>
+                    <span class="ml-3">Trades</span>
+                </a>
+                <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md" href="enhanced-profile.html">
+                    <i class="fas fa-user w-6 text-center"></i>
+                    <span class="ml-3">Profile</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+                    <i class="fas fa-cog w-6 text-center"></i>
+                    <span class="ml-3">Settings</span>
+                </a>
+                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+                    <i class="fas fa-info-circle w-6 text-center"></i>
+                    <span class="ml-3">About Us</span>
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 hidden" id="sidebar-user-info"></div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div class="flex items-center">
+                    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation relative" id="sidebar-toggle" style="min-width: 44px; min-height: 44px; z-index: 1000; position: relative;">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-5" id="user-actions"></div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto">
+                <div class="container mx-auto px-4 py-8" id="enhanced-profile-container">
+                    <!-- Profile Header -->
+                    <div class="profile-card rounded-lg shadow-lg p-8 mb-8 text-white">
+                        <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+                            <div class="relative">
+                                <img id="profile-avatar" src="https://i.imgur.com/B06rBhI.png" 
+                                     class="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover">
+                                <div class="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white" title="Online"></div>
+                            </div>
+                            
+                            <div class="flex-1 text-center md:text-left">
+                                <h1 id="profile-display-name" class="text-3xl font-bold mb-2">Loading...</h1>
+                                <p id="profile-handle" class="text-xl opacity-90 mb-4">@loading</p>
+                                
+                                <div class="flex flex-wrap justify-center md:justify-start gap-4 mb-4">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span id="profile-location">Loading...</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span id="profile-joined">Joined Loading...</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-heart"></i>
+                                        <span id="profile-favorite-tcg">Loading...</span>
+                                    </div>
+                                </div>
+                                
+                                <p id="profile-bio" class="opacity-90 max-w-2xl">Loading profile information...</p>
+                            </div>
+                            
+                            <div class="flex flex-col space-y-2">
+                                <button id="edit-profile-btn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-6 py-2 rounded-lg transition-all duration-200 hidden">
+                                    <i class="fas fa-edit mr-2"></i>Edit Profile
+                                </button>
+                                <button id="add-friend-btn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-6 py-2 rounded-lg transition-all duration-200 hidden">
+                                    <i class="fas fa-user-plus mr-2"></i>Add Friend
+                                </button>
+                                <button id="message-user-btn" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-6 py-2 rounded-lg transition-all duration-200 hidden">
+                                    <i class="fas fa-envelope mr-2"></i>Message
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <div class="text-3xl font-bold text-blue-600 mb-2" id="stat-collection-count">0</div>
+                            <div class="text-gray-600 dark:text-gray-400">Cards Collected</div>
+                        </div>
+                        <div class="stat-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <div class="text-3xl font-bold text-green-600 mb-2" id="stat-deck-count">0</div>
+                            <div class="text-gray-600 dark:text-gray-400">Decks Built</div>
+                        </div>
+                        <div class="stat-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <div class="text-3xl font-bold text-purple-600 mb-2" id="stat-trade-count">0</div>
+                            <div class="text-gray-600 dark:text-gray-400">Trades Completed</div>
+                        </div>
+                        <div class="stat-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <div class="text-3xl font-bold text-orange-600 mb-2" id="stat-friend-count">0</div>
+                            <div class="text-gray-600 dark:text-gray-400">Friends</div>
+                        </div>
+                    </div>
+
+                    <!-- Content Tabs -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                        <div class="border-b border-gray-200 dark:border-gray-700">
+                            <nav class="flex space-x-8 px-6" id="profile-tabs">
+                                <button class="profile-tab-btn active py-4 px-2 border-b-2 border-blue-500 text-blue-600 font-medium" data-tab="overview">
+                                    <i class="fas fa-chart-line mr-2"></i>Overview
+                                </button>
+                                <button class="profile-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium" data-tab="collection">
+                                    <i class="fas fa-layer-group mr-2"></i>Collection
+                                </button>
+                                <button class="profile-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium" data-tab="decks">
+                                    <i class="fas fa-book-open mr-2"></i>Decks
+                                </button>
+                                <button class="profile-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium" data-tab="trades">
+                                    <i class="fas fa-exchange-alt mr-2"></i>Trade History
+                                </button>
+                                <button class="profile-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 font-medium" data-tab="activity">
+                                    <i class="fas fa-clock mr-2"></i>Activity
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Tab Content -->
+                        <div class="p-6">
+                            <!-- Overview Tab -->
+                            <div id="tab-overview" class="profile-tab-content">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <!-- Recent Activity -->
+                                    <div>
+                                        <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Recent Activity</h3>
+                                        <div class="activity-timeline space-y-4" id="recent-activity-list">
+                                            <div class="activity-item">
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">2 hours ago</div>
+                                                <div class="font-medium">Added 5 new cards to collection</div>
+                                                <div class="text-sm text-gray-600 dark:text-gray-400">Magic: The Gathering - Commander Legends</div>
+                                            </div>
+                                            <div class="activity-item">
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">1 day ago</div>
+                                                <div class="font-medium">Created new deck: "Atraxa Superfriends"</div>
+                                                <div class="text-sm text-gray-600 dark:text-gray-400">Commander format</div>
+                                            </div>
+                                            <div class="activity-item">
+                                                <div class="text-sm text-gray-500 dark:text-gray-400">3 days ago</div>
+                                                <div class="font-medium">Completed trade with @cardmaster</div>
+                                                <div class="text-sm text-gray-600 dark:text-gray-400">Traded 3 cards for 2 cards</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Collection Highlights -->
+                                    <div>
+                                        <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Collection Highlights</h3>
+                                        <div class="space-y-4" id="collection-highlights">
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                <div>
+                                                    <div class="font-medium">Most Valuable Card</div>
+                                                    <div class="text-sm text-gray-600 dark:text-gray-400">Black Lotus (Alpha)</div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="text-lg font-bold text-green-600">$25,000</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                <div>
+                                                    <div class="font-medium">Favorite Set</div>
+                                                    <div class="text-sm text-gray-600 dark:text-gray-400">Commander Legends</div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="text-lg font-bold text-blue-600">156 cards</div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                <div>
+                                                    <div class="font-medium">Collection Value</div>
+                                                    <div class="text-sm text-gray-600 dark:text-gray-400">Total estimated value</div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="text-lg font-bold text-purple-600">$45,230</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Collection Tab -->
+                            <div id="tab-collection" class="profile-tab-content hidden">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-white">Card Collection</h3>
+                                    <div class="flex space-x-2">
+                                        <select id="collection-filter" class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700">
+                                            <option value="all">All Games</option>
+                                            <option value="mtg">Magic: The Gathering</option>
+                                            <option value="pokemon">Pokémon</option>
+                                            <option value="yugioh">Yu-Gi-Oh!</option>
+                                        </select>
+                                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                            <i class="fas fa-plus mr-2"></i>Add Cards
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="collection-grid" id="collection-grid">
+                                    <!-- Collection items will be loaded here -->
+                                    <div class="text-center py-8 col-span-full">
+                                        <i class="fas fa-layer-group text-4xl text-gray-400 mb-4"></i>
+                                        <p class="text-gray-500 dark:text-gray-400">Loading collection...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Decks Tab -->
+                            <div id="tab-decks" class="profile-tab-content hidden">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-white">Deck Collection</h3>
+                                    <button class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                                        <i class="fas fa-plus mr-2"></i>Create Deck
+                                    </button>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="decks-grid">
+                                    <!-- Deck items will be loaded here -->
+                                    <div class="text-center py-8 col-span-full">
+                                        <i class="fas fa-book-open text-4xl text-gray-400 mb-4"></i>
+                                        <p class="text-gray-500 dark:text-gray-400">Loading decks...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trades Tab -->
+                            <div id="tab-trades" class="profile-tab-content hidden">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-xl font-bold text-gray-800 dark:text-white">Trade History</h3>
+                                    <div class="flex space-x-2">
+                                        <select id="trade-filter" class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700">
+                                            <option value="all">All Trades</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-4" id="trades-list">
+                                    <!-- Trade items will be loaded here -->
+                                    <div class="text-center py-8">
+                                        <i class="fas fa-exchange-alt text-4xl text-gray-400 mb-4"></i>
+                                        <p class="text-gray-500 dark:text-gray-400">Loading trade history...</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Activity Tab -->
+                            <div id="tab-activity" class="profile-tab-content hidden">
+                                <h3 class="text-xl font-bold mb-6 text-gray-800 dark:text-white">Activity Timeline</h3>
+                                
+                                <div class="activity-timeline space-y-6" id="full-activity-list">
+                                    <!-- Activity items will be loaded here -->
+                                    <div class="text-center py-8">
+                                        <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
+                                        <p class="text-gray-500 dark:text-gray-400">Loading activity...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/mobile-navigation.js"></script>
+    <script src="js/enhanced-profile.js"></script>
+
+    <!-- Sidebar Toggle Script -->
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    sidebarOverlay.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                    sidebarOverlay.classList.add('hidden');
+                }
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+        }
+    </script>
+</body>
+</html>

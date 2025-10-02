@@ -1,0 +1,200 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+    function isContentCreator() {
+        return isSignedIn() && request.auth.token.contentCreator == true;
+    }
+    function isGroupParticipant(groupId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.participants;
+    }
+    function isGroupModerator(groupId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.moderators;
+    }
+
+    // --- USER PROFILES & SUBCOLLECTIONS ---
+    match /users/{userId} {
+      allow read: if true;
+      allow update: if (isUser(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isContentCreator', 'email'])) || isAdmin();
+      allow create: if isUser(userId);
+
+      match /referrals/{referralId} {
+        allow read: if isUser(userId);
+      }
+      match /private/{docId} {
+        allow read, write, delete: if isUser(userId);
+      }
+      match /collection/{cardId} {
+        allow read, list: if true;
+        allow create: if isSignedIn();
+        allow update, delete: if isUser(userId);
+      }
+      match /wishlist/{docId} {
+        allow read, write, delete: if isUser(userId);
+      }
+      match /decks/{deckId} {
+        allow read, write, delete: if isUser(userId);
+      }
+      match /notifications/{notificationId} {
+        allow read, write, delete: if isUser(userId);
+        allow create: if isSignedIn();
+      }
+      match /badges/{badgeId} {
+        allow read: if true;
+        allow write: if isUser(userId);
+      }
+    }
+    
+    // --- COLLECTION GROUP QUERIES ---
+    match /{path=**}/collection/{cardId} {
+      allow list, read: if true;
+    }
+
+    // --- PUBLIC & SOCIAL COLLECTIONS ---
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if (isUser(resource.data.authorId)) ||
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']));
+      allow delete: if isUser(resource.data.authorId) || isAdmin();
+    }
+    
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /publicDecks/{deckId} {
+      allow read: if true;
+      allow create: if isUser(request.resource.data.authorId);
+      allow update: if (isUser(resource.data.authorId)) || 
+                      (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'averageRating']));
+      allow delete: if isUser(resource.data.authorId);
+
+      match /ratings/{userId} {
+        allow read: if true;
+        allow write: if isUser(userId);
+      }
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isSignedIn();
+      }
+    }
+    
+    match /articles/{articleId} {
+      allow read: if resource.data.status == 'published';
+      allow create: if isSignedIn() && (isAdmin() || isContentCreator());
+      allow update, delete: if isUser(resource.data.authorId) || isAdmin() || isContentCreator();
+    }
+
+    match /groups/{groupId} {
+      allow list: if isSignedIn();
+      allow get: if resource.data.isPublic == true || isGroupParticipant(groupId);
+      allow create: if isSignedIn();
+      allow update: if isGroupModerator(groupId) || (isSignedIn()
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'participantCount', 'participantInfo', 'lastActivity']));
+      allow delete: if isUser(resource.data.creatorId);
+
+      match /messages/{messageId} {
+        allow read, create: if isGroupParticipant(groupId);
+        allow update, delete: if isUser(resource.data.senderId) || isGroupModerator(groupId);
+      }
+
+      match /typing/{userId} {
+        allow read: if isGroupParticipant(groupId);
+        allow write: if isUser(userId);
+      }
+    }
+
+    // --- TRADING & TRANSACTIONS ---
+    match /trades/{tradeId} {
+      allow read: if request.auth.uid in resource.data.participants;
+      allow create: if isUser(request.resource.data.proposerId);
+      allow update: if request.auth.uid in resource.data.participants;
+    }
+    
+    match /feedback/{feedbackId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+    }
+    
+    match /disputes/{disputeId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // --- MESSAGING ---
+    match /conversations/{conversationId} {
+      allow read, update, delete: if request.auth.uid in resource.data.participants;
+      allow create: if request.auth.uid in request.resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid]);
+        allow create: if get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants.hasAny([request.auth.uid])
+                            && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+
+    // --- OTHER COLLECTIONS ---
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isUser(resource.data.organizerId) || isAdmin();
+
+      match /participants/{participantId} {
+        allow read: if true;
+        allow write: if isUser(participantId) || isUser(get(/databases/$(database)/documents/events/$(eventId)).data.organizerId) || isAdmin();
+      }
+    }
+
+    match /friendRequests/{requestId} {
+      allow create: if isUser(request.resource.data.senderId);
+      allow read, update, delete: if isUser(resource.data.senderId) || isUser(resource.data.receiverId);
+    }
+    
+    match /groupInvitations/{inviteId} {
+      allow create: if isUser(request.resource.data.inviterId);
+      allow read, delete: if isUser(resource.data.inviteeId);
+    }
+
+    // --- LOOKING FOR GAME (FIX) ---
+    match /lfg_status/{statusId} {
+      // Any signed-in user can see who is looking for a game.
+      allow read: if isSignedIn();
+      
+      // A user can only create, update, or delete their OWN status.
+      // The document ID (statusId) must match their user ID.
+      allow write: if isUser(statusId);
+    }
+
+    // --- ADMIN-ONLY ---
+    match /reports/{reportId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // --- MARKETPLACE ---
+    match /marketplace/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isUser(resource.data.sellerId);
+    }
+    
+    match /marketplaceListings/{listingId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isUser(resource.data.sellerId);
+    }
+  }
+}
