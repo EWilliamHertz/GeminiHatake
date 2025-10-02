@@ -48,11 +48,12 @@ class MobileNavigation {
         this.overlay = document.getElementById('sidebar-overlay');
 
         if (!this.sidebar || !this.hamburgerButton || !this.overlay) {
-            console.error('Mobile navigation elements not found:', {
+            console.log('Mobile navigation elements not found - skipping initialization (this is normal for landing pages):', {
                 sidebar: !!this.sidebar,
                 hamburgerButton: !!this.hamburgerButton,
                 overlay: !!this.overlay
             });
+            // Don't mark as initialized so it doesn't interfere with other functionality
             return;
         }
 
