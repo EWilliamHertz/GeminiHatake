@@ -553,12 +553,406 @@ class EnhancedGroupsManager {
     }
 }
 
+// Community Tab Management
+class CommunityManager {
+    constructor(db, currentUser) {
+        this.db = db;
+        this.currentUser = currentUser;
+        this.currentTab = 'groups';
+        this.init();
+    }
+
+    init() {
+        this.setupTabSwitching();
+        this.setupFriendsManagement();
+        
+        // Initialize groups manager
+        this.groupsManager = new EnhancedGroupsManager(this.db, this.currentUser);
+        
+        // Load initial content
+        this.loadFriendsContent();
+    }
+
+    setupTabSwitching() {
+        const tabButtons = document.querySelectorAll('.community-tab-btn');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                this.switchTab(tabId);
+            });
+        });
+    }
+
+    switchTab(tabId) {
+        // Update active tab button
+        document.querySelectorAll('.community-tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'border-blue-500', 'text-blue-600');
+            activeBtn.classList.remove('border-transparent', 'text-gray-500');
+        }
+
+        // Show/hide tab content
+        document.querySelectorAll('.community-tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        const activeContent = document.getElementById(`tab-${tabId}`);
+        if (activeContent) {
+            activeContent.classList.remove('hidden');
+        }
+
+        // Show/hide create group button
+        const createGroupBtn = document.getElementById('create-group-btn');
+        if (createGroupBtn) {
+            if (tabId === 'groups') {
+                createGroupBtn.style.display = 'flex';
+            } else {
+                createGroupBtn.style.display = 'none';
+            }
+        }
+
+        this.currentTab = tabId;
+    }
+
+    setupFriendsManagement() {
+        // Friend search functionality
+        const friendSearchInput = document.getElementById('friend-search-input');
+        if (friendSearchInput) {
+            let searchTimeout;
+            friendSearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.searchUsers(e.target.value);
+                }, 300);
+            });
+        }
+    }
+
+    async searchUsers(query) {
+        if (!query.trim()) {
+            document.getElementById('friend-search-results').classList.add('hidden');
+            return;
+        }
+
+        try {
+            const resultsContainer = document.getElementById('friend-search-results');
+            resultsContainer.innerHTML = '<div class="p-4 text-center"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+            resultsContainer.classList.remove('hidden');
+
+            const usersSnapshot = await this.db.collection('users')
+                .where('handle', '>=', query.toLowerCase())
+                .where('handle', '<=', query.toLowerCase() + '\uf8ff')
+                .limit(10)
+                .get();
+
+            if (usersSnapshot.empty) {
+                resultsContainer.innerHTML = '<div class="p-4 text-center text-gray-500">No users found</div>';
+                return;
+            }
+
+            const resultsHTML = usersSnapshot.docs.map(doc => {
+                const user = doc.data();
+                return `
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${user.profilePicture || 'https://via.placeholder.com/40'}" 
+                                 alt="${user.handle}" class="w-10 h-10 rounded-full">
+                            <div>
+                                <div class="font-medium">${user.handle}</div>
+                                <div class="text-sm text-gray-500">${user.displayName || ''}</div>
+                            </div>
+                        </div>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm"
+                                onclick="communityManager.sendFriendRequest('${doc.id}')">
+                            Add Friend
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            resultsContainer.innerHTML = resultsHTML;
+
+        } catch (error) {
+            console.error('Error searching users:', error);
+            document.getElementById('friend-search-results').innerHTML = 
+                '<div class="p-4 text-center text-red-500">Error searching users</div>';
+        }
+    }
+
+    async loadFriendsContent() {
+        await Promise.all([
+            this.loadFriendRequests(),
+            this.loadFriendsList(),
+            this.loadSuggestedFriends()
+        ]);
+    }
+
+    async loadFriendRequests() {
+        try {
+            if (!this.currentUser) return;
+
+            const requestsSnapshot = await this.db.collection('friendRequests')
+                .where('to', '==', this.currentUser.uid)
+                .where('status', '==', 'pending')
+                .get();
+
+            const container = document.getElementById('friend-requests-container');
+            
+            if (requestsSnapshot.empty) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-user-plus text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No pending friend requests</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const requestsHTML = await Promise.all(requestsSnapshot.docs.map(async doc => {
+                const request = doc.data();
+                const userDoc = await this.db.collection('users').doc(request.from).get();
+                const user = userDoc.data();
+                
+                return `
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center space-x-3">
+                            <img src="${user?.profilePicture || 'https://via.placeholder.com/40'}" 
+                                 alt="${user?.handle}" class="w-10 h-10 rounded-full">
+                            <div>
+                                <div class="font-medium">${user?.handle || 'Unknown User'}</div>
+                                <div class="text-sm text-gray-500">${user?.displayName || ''}</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
+                                    onclick="communityManager.acceptFriendRequest('${doc.id}')">
+                                Accept
+                            </button>
+                            <button class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm"
+                                    onclick="communityManager.rejectFriendRequest('${doc.id}')">
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }));
+
+            container.innerHTML = requestsHTML.join('');
+
+        } catch (error) {
+            console.error('Error loading friend requests:', error);
+        }
+    }
+
+    async loadFriendsList() {
+        try {
+            if (!this.currentUser) return;
+
+            const friendsSnapshot = await this.db.collection('friends')
+                .where('users', 'array-contains', this.currentUser.uid)
+                .where('status', '==', 'accepted')
+                .get();
+
+            const container = document.getElementById('friends-list');
+            
+            if (friendsSnapshot.empty) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <i class="fas fa-user-friends text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No friends yet</p>
+                        <p class="text-sm text-gray-400">Start by searching for users to add as friends</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const friendsHTML = await Promise.all(friendsSnapshot.docs.map(async doc => {
+                const friendship = doc.data();
+                const friendId = friendship.users.find(id => id !== this.currentUser.uid);
+                const userDoc = await this.db.collection('users').doc(friendId).get();
+                const user = userDoc.data();
+                
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <img src="${user?.profilePicture || 'https://via.placeholder.com/60'}" 
+                                 alt="${user?.handle}" class="w-12 h-12 rounded-full">
+                            <div>
+                                <div class="font-medium text-lg">${user?.handle || 'Unknown User'}</div>
+                                <div class="text-sm text-gray-500">${user?.displayName || ''}</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 text-sm"
+                                    onclick="window.location.href='profile.html?user=${friendId}'">
+                                View Profile
+                            </button>
+                            <button class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm"
+                                    onclick="window.location.href='messages.html?user=${friendId}'">
+                                Message
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }));
+
+            container.innerHTML = friendsHTML.join('');
+
+        } catch (error) {
+            console.error('Error loading friends list:', error);
+        }
+    }
+
+    async loadSuggestedFriends() {
+        try {
+            if (!this.currentUser) return;
+
+            // Simple suggestion: recent users (excluding current user and existing friends)
+            const usersSnapshot = await this.db.collection('users')
+                .orderBy('lastActive', 'desc')
+                .limit(20)
+                .get();
+
+            const container = document.getElementById('suggested-friends');
+            
+            // Filter out current user and existing friends
+            const suggestions = usersSnapshot.docs.filter(doc => doc.id !== this.currentUser.uid);
+            
+            if (suggestions.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <i class="fas fa-users text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No suggestions available</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const suggestionsHTML = suggestions.slice(0, 6).map(doc => {
+                const user = doc.data();
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <img src="${user.profilePicture || 'https://via.placeholder.com/60'}" 
+                                 alt="${user.handle}" class="w-12 h-12 rounded-full">
+                            <div>
+                                <div class="font-medium text-lg">${user.handle || 'Unknown User'}</div>
+                                <div class="text-sm text-gray-500">${user.displayName || ''}</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 text-sm"
+                                    onclick="communityManager.sendFriendRequest('${doc.id}')">
+                                Add Friend
+                            </button>
+                            <button class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 text-sm"
+                                    onclick="window.location.href='profile.html?user=${doc.id}'">
+                                View Profile
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = suggestionsHTML;
+
+        } catch (error) {
+            console.error('Error loading suggested friends:', error);
+        }
+    }
+
+    async sendFriendRequest(userId) {
+        try {
+            if (!this.currentUser) return;
+
+            await this.db.collection('friendRequests').add({
+                from: this.currentUser.uid,
+                to: userId,
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Show success message
+            if (typeof Toastify !== 'undefined') {
+                Toastify({
+                    text: "Friend request sent!",
+                    duration: 3000,
+                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
+                }).showToast();
+            }
+
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+        }
+    }
+
+    async acceptFriendRequest(requestId) {
+        try {
+            const requestDoc = await this.db.collection('friendRequests').doc(requestId).get();
+            const request = requestDoc.data();
+
+            // Create friendship
+            await this.db.collection('friends').add({
+                users: [request.from, request.to],
+                status: 'accepted',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Update request status
+            await this.db.collection('friendRequests').doc(requestId).update({
+                status: 'accepted'
+            });
+
+            // Reload friend requests and friends list
+            await this.loadFriendRequests();
+            await this.loadFriendsList();
+
+            if (typeof Toastify !== 'undefined') {
+                Toastify({
+                    text: "Friend request accepted!",
+                    duration: 3000,
+                    backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
+                }).showToast();
+            }
+
+        } catch (error) {
+            console.error('Error accepting friend request:', error);
+        }
+    }
+
+    async rejectFriendRequest(requestId) {
+        try {
+            await this.db.collection('friendRequests').doc(requestId).update({
+                status: 'rejected'
+            });
+
+            await this.loadFriendRequests();
+
+            if (typeof Toastify !== 'undefined') {
+                Toastify({
+                    text: "Friend request declined",
+                    duration: 3000,
+                    backgroundColor: "linear-gradient(to right, #ff5f6d, #ffc371)"
+                }).showToast();
+            }
+
+        } catch (error) {
+            console.error('Error rejecting friend request:', error);
+        }
+    }
+}
+
 // Initialize when DOM is loaded and user is authenticated
 document.addEventListener('authReady', (e) => {
     const currentUser = e.detail.user;
     const db = firebase.firestore();
     
     if (document.getElementById('enhanced-groups-container')) {
-        window.enhancedGroupsManager = new EnhancedGroupsManager(db, currentUser);
+        window.communityManager = new CommunityManager(db, currentUser);
     }
 });

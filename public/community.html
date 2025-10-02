@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Enhanced Community - HatakeSocial</title>
+    <title>Community - HatakeSocial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
     <link href="css/style.css" rel="stylesheet"/>
@@ -46,7 +46,7 @@
                     <i class="fas fa-comments w-6 text-center"></i>
                     <span class="ml-3">Messages</span>
                 </a>
-                <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md" href="enhanced-community.html">
+                <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-md" href="community.html">
                     <i class="fas fa-users w-6 text-center"></i>
                     <span class="ml-3">Community</span>
                 </a>
@@ -117,72 +117,137 @@
             <main class="flex-1 overflow-y-auto">
                 <div class="container mx-auto px-4 py-8" id="enhanced-groups-container">
                     <div class="flex justify-between items-center mb-8">
-                        <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Enhanced Community</h1>
-                        <button class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2" onclick="document.getElementById('enhanced-create-group-modal').classList.remove('hidden')">
+                        <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white">Community</h1>
+                        <button class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2" onclick="document.getElementById('enhanced-create-group-modal').classList.remove('hidden')" id="create-group-btn">
                             <i class="fas fa-plus"></i>
                             <span>Create Group</span>
                         </button>
                     </div>
 
-                    <!-- Group Search Section -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-                        <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Find Groups</h2>
-                        <div class="relative">
-                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="text" id="group-search-input" 
-                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                   placeholder="Search groups by name, category, or tags..."/>
-                        </div>
-                        <div id="group-search-results" class="mt-4 bg-white dark:bg-gray-700 rounded-lg shadow-lg hidden max-h-96 overflow-y-auto"></div>
-                    </div>
-
-                    <!-- Filters Section -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-                        <div class="flex flex-wrap gap-4 items-center">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-                                <select id="group-category-filter" class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700">
-                                    <option value="all">All Categories</option>
-                                    <option value="Magic: The Gathering">Magic: The Gathering</option>
-                                    <option value="Pokemon">Pokémon</option>
-                                    <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
-                                    <option value="Lorcana">Lorcana</option>
-                                    <option value="Trading">Trading</option>
-                                    <option value="Local Play">Local Play</option>
-                                    <option value="Competitive">Competitive</option>
-                                    <option value="Casual">Casual</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
-                                <select id="group-sort-filter" class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700">
-                                    <option value="activity">Recent Activity</option>
-                                    <option value="members">Most Members</option>
-                                    <option value="newest">Newest</option>
-                                </select>
-                            </div>
+                    <!-- Community Tabs -->
+                    <div class="mb-8">
+                        <div class="border-b border-gray-200 dark:border-gray-700">
+                            <nav class="-mb-px flex space-x-8">
+                                <button class="community-tab-btn active border-blue-500 text-blue-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" data-tab="groups">
+                                    <i class="fas fa-users mr-2"></i>Groups
+                                </button>
+                                <button class="community-tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" data-tab="friends">
+                                    <i class="fas fa-user-friends mr-2"></i>Friends
+                                </button>
+                            </nav>
                         </div>
                     </div>
 
-                    <!-- My Groups Section -->
-                    <div class="mb-12">
-                        <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">My Groups</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="enhanced-my-groups">
-                            <div class="col-span-full text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p class="text-gray-500 dark:text-gray-400 mt-2">Loading your groups...</p>
+                    <!-- Tab Content -->
+                    <div class="community-tab-content" id="tab-groups">
+                        <!-- Group Search Section -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                            <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Find Groups</h2>
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="group-search-input" 
+                                       class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       placeholder="Search groups by name, category, or tags..."/>
+                            </div>
+                            <div id="group-search-results" class="mt-4 bg-white dark:bg-gray-700 rounded-lg shadow-lg hidden max-h-96 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Filters Section -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                            <div class="flex flex-wrap gap-4 items-center">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                                    <select id="group-category-filter" class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700">
+                                        <option value="all">All Categories</option>
+                                        <option value="Magic: The Gathering">Magic: The Gathering</option>
+                                        <option value="Pokemon">Pokémon</option>
+                                        <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
+                                        <option value="Lorcana">Lorcana</option>
+                                        <option value="Trading">Trading</option>
+                                        <option value="Local Play">Local Play</option>
+                                        <option value="Competitive">Competitive</option>
+                                        <option value="Casual">Casual</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
+                                    <select id="group-sort-filter" class="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700">
+                                        <option value="activity">Recent Activity</option>
+                                        <option value="members">Most Members</option>
+                                        <option value="newest">Newest</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- My Groups Section -->
+                        <div class="mb-12">
+                            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">My Groups</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="enhanced-my-groups">
+                                <div class="col-span-full text-center py-8">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading your groups...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Discover Groups Section -->
+                        <div>
+                            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Discover Groups</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="enhanced-discover-groups">
+                                <div class="col-span-full text-center py-8">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading groups...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Discover Groups Section -->
-                    <div>
-                        <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Discover Groups</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="enhanced-discover-groups">
-                            <div class="col-span-full text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p class="text-gray-500 dark:text-gray-400 mt-2">Loading groups...</p>
+                    <!-- Friends Tab Content -->
+                    <div class="community-tab-content hidden" id="tab-friends">
+                        <!-- Friends Search -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+                            <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Find Friends</h2>
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" id="friend-search-input" 
+                                       class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       placeholder="Search for users to add as friends..."/>
+                            </div>
+                            <div id="friend-search-results" class="mt-4 bg-white dark:bg-gray-700 rounded-lg shadow-lg hidden max-h-96 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Friend Requests -->
+                        <div class="mb-8">
+                            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Friend Requests</h2>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" id="friend-requests-container">
+                                <div class="text-center py-8">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading friend requests...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Current Friends -->
+                        <div class="mb-8">
+                            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">My Friends</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="friends-list">
+                                <div class="col-span-full text-center py-8">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading your friends...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Suggested Friends -->
+                        <div>
+                            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Suggested Friends</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="suggested-friends">
+                                <div class="col-span-full text-center py-8">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading suggestions...</p>
+                                </div>
                             </div>
                         </div>
                     </div>
