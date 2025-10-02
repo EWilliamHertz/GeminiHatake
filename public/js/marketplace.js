@@ -295,8 +295,8 @@ class MarketplaceManager {
             console.log('Querying marketplaceListings collection...');
 
             // Query the marketplaceListings collection
+            // FIXED: Removed orderBy to work with existing indexes - we'll sort manually
             const snapshot = await this.db.collection('marketplaceListings')
-                .orderBy('listedAt', 'desc')
                 .get();
 
             this.allListings = [];
@@ -317,6 +317,14 @@ class MarketplaceManager {
                     listedAt: data.listedAt?.toDate() || new Date()
                 };
                 this.allListings.push(listing);
+            });
+
+            // FIXED: Manual sorting by listedAt descending (newest first)
+            // This replaces the orderBy query that required a specific index
+            this.allListings.sort((a, b) => {
+                const dateA = a.listedAt || new Date(0);
+                const dateB = b.listedAt || new Date(0);
+                return dateB - dateA;
             });
 
             this.filteredListings = [...this.allListings];
