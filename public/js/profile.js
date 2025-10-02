@@ -971,12 +971,26 @@ class EnhancedProfileManager {
 
 // Initialize when DOM is loaded and user is authenticated
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Profile page DOM loaded');
+    
     firebase.auth().onAuthStateChanged((user) => {
+        console.log('Auth state changed:', user ? 'User logged in' : 'No user');
+        
         if (user) {
             const db = firebase.firestore();
-            const container = document.getElementById('enhanced-profile-container') || document.getElementById('profile-container');
+            
+            // Check for profile container
+            const container = document.getElementById('enhanced-profile-container') || 
+                            document.getElementById('profile-main-content') || 
+                            document.getElementById('profile-container');
+            
+            console.log('Profile container found:', !!container);
+            
             if (container) {
+                console.log('Initializing profile manager for user:', user.uid);
                 window.enhancedProfileManager = new EnhancedProfileManager(db, user.uid);
+            } else {
+                console.error('No profile container found');
             }
         }
     });
