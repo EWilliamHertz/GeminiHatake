@@ -1,873 +1,841 @@
 /**
- * HatakeSocial - Profile Page Script (v29 - Privacy Implemented & Fully Merged)
- *
- * - UPDATE: Integrated privacy settings for profile and collection visibility.
- * - The script now checks the `privacy` field on a user's document before loading their data.
- * - If a profile is 'Private' or 'Friends Only' (and the viewer is not a friend), a privacy message is displayed instead of the full profile.
- * - The collection, wishlist, and trade binder tabs will also show a privacy message if the user's settings restrict access.
- * - All previous interactive feed, modal, and reply functionalities (v28) are retained and fully implemented.
- */
+ * Enhanced Profile System for HatakeSocial
+ * Implements unified profile pages with collection, deck, and trade history showcase
+ */
 
-// --- Helper Functions ---
-const formatTimestamp = (timestamp) => {
-    if (!timestamp || !timestamp.seconds) {
-        if (timestamp && timestamp.toDate) { // Handle Firestore Server Timestamp
-             const date = timestamp.toDate();
-             const day = String(date.getDate()).padStart(2, '0');
-             const month = String(date.getMonth() + 1).padStart(2, '0');
-             const year = date.getFullYear();
-             return localStorage.getItem('userDateFormat') === 'mdy' ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
-        }
-        return 'Unknown date';
-    }
-    const date = new Date(timestamp.seconds * 1000);
-    const userDateFormat = localStorage.getItem('userDateFormat') || 'dmy';
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return userDateFormat === 'mdy' ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
-};
+class EnhancedProfileManager {
+    constructor(db, currentUser) {
+        this.db = db;
+        this.currentUser = currentUser;
+        this.profileUserId = null;
+        this.profileData = null;
+        this.isOwnProfile = false;
+        this.init();
+    }
 
-const openModal = (modal) => {
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-};
+    init() {
+        this.setupTabSwitching();
+        this.loadProfileData();
+        this.setupEventListeners();
+    }
 
-const closeModal = (modal) => {
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-};
+    setupTabSwitching() {
+        const tabButtons = document.querySelectorAll('.profile-tab-btn');
+        const tabContents = document.querySelectorAll('.profile-tab-content');
 
-const sanitizeHTML = (str) => {
-    if (!str) return '';
-    const temp = document.createElement('div');
-    temp.textContent = str;
-    return temp.innerHTML;
-};
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and contents
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-gray-500');
+                });
+                tabContents.forEach(content => content.classList.add('hidden'));
 
-const formatContent = (str) => {
-    const sanitized = sanitizeHTML(str);
-    return sanitized
-        .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
-        .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
-        .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
-        .replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
-};
+                // Add active class to clicked button
+                button.classList.add('active', 'border-blue-500', 'text-blue-600');
+                button.classList.remove('border-transparent', 'text-gray-500');
 
-document.addEventListener('authReady', (e) => {
-    const currentUser = e.detail.user;
-    const profileContainer = document.getElementById('profile-container');
-    if (!profileContainer) return;
-    
-    const db = firebase.firestore();
-    let currentUserIsAdmin = false;
-
-    // --- Geocoding and Badge Data ---
-    const cityCoordinates = { "stockholm": [59.3293, 18.0686], "gothenburg": [57.7089, 11.9746], "malmö": [55.6050, 13.0038], "oslo": [59.9139, 10.7522], "copenhagen": [55.6761, 12.5683], "helsinki": [60.1699, 24.9384], "london": [51.5074, -0.1278], "paris": [48.8566, 2.3522], "berlin": [52.5200, 13.4050], "new york": [40.7128, -74.0060], "los angeles": [34.0522, -118.2437], "chicago": [41.8781, -87.6298], "tokyo": [35.6895, 139.6917], "sydney": [-33.8688, 151.2093] };
-    const badgeDefinitions = { pioneer: { name: 'Pioneer', description: 'One of the first 100 users to join HatakeSocial!', icon: 'fa-rocket', color: 'text-purple-500', async check(userData, userId) { const pioneerDate = new Date('2025-07-01'); return userData.createdAt.toDate() < pioneerDate; } }, collector: { name: 'Collector', description: 'Has over 100 cards in their collection.', icon: 'fa-box-open', color: 'text-blue-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('collection').limit(101).get(); return snapshot.size > 100; } }, deck_brewer: { name: 'Deck Brewer', description: 'Has created at least 5 decks.', icon: 'fa-layer-group', color: 'text-green-500', async check(userData, userId) { const snapshot = await db.collection('users').doc(userId).collection('decks').limit(5).get(); return snapshot.size >= 5; } }, socialite: { name: 'Socialite', description: 'Has more than 10 friends.', icon: 'fa-users', color: 'text-pink-500', async check(userData, userId) { return userData.friends && userData.friends.length > 10; } }, trusted_trader: { name: 'Trusted Trader', description: 'Completed 10 trades with positive feedback.', icon: 'fa-handshake', color: 'text-yellow-500', async check(userData, userId) { const avgRating = ((userData.averageAccuracy || 0) + (userData.averagePackaging || 0)) / 2; return (userData.ratingCount || 0) >= 10 && avgRating >= 4.5; } }, first_trade: { name: 'First Trade', description: 'Completed your first trade successfully!', icon: 'fa-medal', color: 'text-red-500', async check(userData, userId) { const tradeQuery = await db.collection('trades').where('participants', 'array-contains', userId).where('status', '==', 'completed').limit(1).get(); return !tradeQuery.empty; } }, top_reviewer: { name: 'Top Reviewer', description: 'Provided helpful feedback on at least 5 trades.', icon: 'fa-star', color: 'text-blue-400', async check(userData, userId) { const feedbackQuery = await db.collection('feedback').where('fromUserId', '==', userId).limit(5).get(); return feedbackQuery.size >= 5; } }, guild_founder: { name: 'Guild Founder', description: 'Founded your first Trading Guild.', icon: 'fa-shield-alt', color: 'text-indigo-500', async check(userData, userId) { const groupQuery = await db.collection('groups').where('creatorId', '==', userId).where('groupType', '==', 'trading_guild').limit(1).get(); return !groupQuery.empty; } } };
-    
-    const generateIndexCreationLink = (collection, fields) => { const projectId = db.app.options.projectId; let url = `https://console.firebase.google.com/project/${projectId}/firestore/indexes/composite/create?collectionId=${collection}`; fields.forEach(field => { url += `&fields=${field.name},${field.order.toUpperCase()}`; }); return url; };
-    const displayIndexError = (container, link) => { container.innerHTML = `<div class="col-span-full text-center p-4 bg-red-100 dark:bg-red-900/50 rounded-lg"><p class="font-bold text-red-700 dark:text-red-300">Database Error</p><p class="text-red-600 dark:text-red-400 mt-2">A required database index is missing for this query.</p><a href="${link}" target="_blank" rel="noopener noreferrer" class="mt-4 inline-block px-6 py-2 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700">Click Here to Create the Index</a><p class="text-xs text-gray-500 mt-2">This will open the Firebase console. Click "Save" to create the index. It may take a few minutes to build.</p></div>`; };
-    const checkAdminStatus = async () => { if (!currentUser) { currentUserIsAdmin = false; return; } const userDoc = await db.collection('users').doc(currentUser.uid).get(); currentUserIsAdmin = userDoc.exists && userDoc.data().isAdmin === true; };
-
-    // --- FEED-RELATED FUNCTIONS ---
-    const renderComments = (container, comments, post) => {
-        container.innerHTML = '';
-        if (!comments || comments.length === 0) {
-            container.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400 px-2">No comments yet.</p>';
-            return;
-        }
-        comments.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
-        const commentsMap = new Map();
-        const topLevelComments = [];
-        comments.forEach(comment => {
-            const commentEl = document.createElement('div');
-            commentEl.className = 'comment-wrapper';
-            const canDeleteComment = currentUser && (comment.authorId === currentUser.uid || post.authorId === currentUser.uid || currentUserIsAdmin);
-            const commentTimestampMillis = comment.timestamp.toMillis();
-            const deleteCommentBtnHTML = canDeleteComment ? `<button class="delete-comment-btn text-xs text-gray-400 hover:text-red-500" title="Delete Comment" data-timestamp="${commentTimestampMillis}"><i class="fas fa-trash"></i></button>` : '';
-            const replyBtnHTML = currentUser ? `<button class="reply-btn text-xs font-semibold text-blue-500 hover:underline" data-parent-timestamp="${commentTimestampMillis}">Reply</button>` : '';
-            commentEl.innerHTML = `<div class="flex items-start space-x-3"><a href="profile.html?uid=${comment.authorId}"><img src="${sanitizeHTML(comment.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(comment.author)}" class="h-8 w-8 rounded-full object-cover"></a><div class="flex-1"><div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2"><a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${sanitizeHTML(comment.author)}</a><p class="text-sm text-gray-700 dark:text-gray-300">${formatContent(comment.content)}</p></div><div class="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1 flex items-center space-x-3"><span>${formatTimestamp(comment.timestamp)}</span>${replyBtnHTML}${deleteCommentBtnHTML}</div><div class="replies-container pl-6 mt-2 space-y-2 border-l-2 border-gray-200 dark:border-gray-700"></div></div></div>`;
-            commentsMap.set(commentTimestampMillis, commentEl);
-            if (comment.replyTo && commentsMap.has(comment.replyTo)) {
-                commentsMap.get(comment.replyTo).querySelector('.replies-container').appendChild(commentEl);
-            } else {
-                topLevelComments.push(commentEl);
-            }
-        });
-        topLevelComments.forEach(el => container.appendChild(el));
-    };
-
-    const createPostElementForProfile = (post) => {
-        const postElement = document.createElement('div');
-        postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md post-container';
-        postElement.dataset.id = post.id;
-        postElement.dataset.rawContent = post.content || '';
-
-        const formattedContent = formatContent(post.content || '');
-        const mediaHTML = post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="max-h-96 w-full object-cover rounded-lg my-2">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`) : '';
-        const postBodyHTML = `<div class="post-body-content post-clickable-area cursor-pointer"><p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>${mediaHTML}</div>`;
-
-        const isLiked = currentUser && Array.isArray(post.likes) && post.likes.includes(currentUser.uid);
-        const likesCount = Array.isArray(post.likes) ? post.likes.length : 0;
-        const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
-        const canDelete = currentUser && (post.authorId === currentUser.uid || currentUserIsAdmin);
-        const deleteButtonHTML = canDelete ? `<button class="delete-post-btn text-gray-400 hover:text-red-500" title="Delete Post"><i class="fas fa-trash"></i></button>` : '';
-
-        postElement.innerHTML = `<div class="flex justify-between items-start"><div class="flex items-center mb-4"><a href="profile.html?uid=${post.authorId}"><img src="${sanitizeHTML(post.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(post.author)}" class="h-10 w-10 rounded-full mr-4 object-cover"></a><div><a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${sanitizeHTML(post.author)}</a><p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p></div></div><div class="post-actions-menu flex space-x-3 text-gray-400">${deleteButtonHTML}</div></div>${postBodyHTML}<div class="flex justify-between items-center mt-4 text-gray-600 dark:text-gray-400"><button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}"><i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i><span class="likes-count-display">${likesCount}</span></button><button class="comment-btn flex items-center hover:text-blue-500"><i class="far fa-comment mr-1"></i><span class="comments-count">${commentsCount}</span></button></div><div class="comments-section hidden mt-4 pt-2"><div class="comments-list space-y-2"></div><form class="comment-form flex mt-4"><input type="text" class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a comment..." required=""><button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg font-semibold hover:bg-blue-600">Post</button></form></div>`;
-        return postElement;
-    };
-
-    const openPostModalForProfile = async (postId) => {
-        const modal = document.getElementById('postDetailModal');
-        if (!modal) return;
-        modal.dataset.postId = postId;
-        modal.querySelector('#modal-post-author').innerHTML = '<div class="h-10 w-10 rounded-full skeleton"></div>';
-        modal.querySelector('#modal-post-content').innerHTML = '<div class="h-4 w-full skeleton"></div>';
-        openModal(modal);
-
-        try {
-            const postDoc = await db.collection('posts').doc(postId).get();
-            if (!postDoc.exists) throw new Error("Post not found.");
-            const post = postDoc.data();
-            const isLiked = currentUser && post.likes?.includes(currentUser.uid);
-
-            modal.querySelector('#modal-post-author').innerHTML = `<a href="profile.html?uid=${post.authorId}"><img src="${sanitizeHTML(post.authorPhotoURL)}" alt="${sanitizeHTML(post.author)}" class="h-10 w-10 rounded-full mr-4 object-cover"></a><div><a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white hover:underline">${sanitizeHTML(post.author)}</a><p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p></div>`;
-            modal.querySelector('#modal-post-content').innerHTML = formatContent(post.content || '');
-            const mediaContainer = modal.querySelector('#modal-post-media-container');
-            if (post.mediaUrl) {
-                mediaContainer.innerHTML = post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" class="max-w-full max-h-full object-contain">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-w-full max-h-full object-contain"></video>`;
-                mediaContainer.classList.remove('hidden');
-                modal.querySelector('#modal-grid-container').classList.add('md:grid-cols-2');
-            } else {
-                mediaContainer.classList.add('hidden');
-                modal.querySelector('#modal-grid-container').classList.remove('md:grid-cols-2');
-            }
-            modal.querySelector('#modal-post-actions').innerHTML = `<button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}"><i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i><span>${post.likes?.length || 0}</span></button><span class="ml-4"><i class="far fa-comment mr-1"></i> ${post.comments?.length || 0}</span>`;
-            renderComments(modal.querySelector('#modal-post-comments-list'), post.comments, post);
-        } catch (error) {
-            console.error("Error loading post modal:", error);
-            modal.querySelector('#modal-post-content').innerHTML = `<p class="text-red-500">Could not load post.</p>`;
-        }
-    };
-    
-    const handleCommentSubmitForProfile = async (form, postId) => {
-        if (!currentUser) {
-            alert("Please log in to comment.");
-            return;
-        }
-        const input = form.querySelector('input');
-        const content = input.value.trim();
-        if (!content) return;
-        const postRef = db.collection('posts').doc(postId);
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        const newComment = { author: userDoc.data().displayName, authorId: currentUser.uid, authorPhotoURL: userDoc.data().photoURL, content: content, timestamp: new Date(), replyTo: form.dataset.replyTo ? parseInt(form.dataset.replyTo, 10) : null };
-        input.disabled = true;
-        try {
-            await db.runTransaction(async (t) => {
-                const doc = await t.get(postRef);
-                const comments = doc.data().comments || [];
-                comments.push(newComment);
-                t.update(postRef, { comments });
-            });
-            if (form.classList.contains('reply-form')) form.remove();
-            else form.reset();
-            const updatedDoc = await postRef.get();
-            const comments = updatedDoc.data().comments;
-            const postElement = document.querySelector(`.post-container[data-id="${postId}"]`);
-            if(postElement) {
-                renderComments(postElement.querySelector('.comments-list'), comments, updatedDoc.data());
-                postElement.querySelector('.comments-count').textContent = comments.length;
-            }
-            const modal = document.getElementById('postDetailModal');
-            if(modal.classList.contains('flex') && modal.dataset.postId === postId) {
-                renderComments(modal.querySelector('#modal-post-comments-list'), comments, updatedDoc.data());
-                modal.querySelector('#modal-post-actions span:last-child').innerHTML = `<i class="far fa-comment mr-1"></i> ${comments.length}`;
-            }
-        } catch (error) { console.error("Error submitting comment:", error); } finally { input.disabled = false; }
-    };
-    
-    // --- PROFILE DATA LOADING FUNCTIONS ---
-    
-    const displayPrivacyMessage = (message) => {
-        profileContainer.innerHTML = `
-            <div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-2xl mx-auto mt-10">
-                <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
-                <h1 class="text-2xl font-bold">${message}</h1>
-                <p class="mt-2 text-gray-500">You do not have permission to view this content.</p>
-            </div>
-        `;
-    };
-    
-    const loadProfileFeed = async (userId) => {
-        const container = document.getElementById('tab-content-feed');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading feed...</p>';
-        try {
-            const snapshot = await db.collection('posts').where('authorId', '==', userId).orderBy('timestamp', 'desc').get();
-            if(snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user hasn\'t posted anything yet.</p>';
-                return;
-            }
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const post = { id: doc.id, ...doc.data() };
-                container.appendChild(createPostElementForProfile(post));
-            });
-        } catch (error) {
-            console.error("Error loading profile feed:", error);
-            if (error.code === 'failed-precondition') {
-                const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
-                displayIndexError(container, indexLink);
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load feed.</p>`;
-            }
-        }
-    };
-    
-    const evaluateAndAwardBadges = async (userId, userData) => {
-        const userBadgesRef = db.collection('users').doc(userId).collection('badges');
-        const existingBadgesSnapshot = await userBadgesRef.get();
-        const existingBadgeIds = existingBadgesSnapshot.docs.map(doc => doc.id);
-
-        for (const badgeId in badgeDefinitions) {
-            if (!existingBadgeIds.includes(badgeId)) {
-                const definition = badgeDefinitions[badgeId];
-                try {
-                    const hasBadge = await definition.check(userData, userId);
-                    if (hasBadge) {
-                        await userBadgesRef.doc(badgeId).set({
-                            awardedAt: new Date(),
-                            name: definition.name,
-                            description: definition.description,
-                            icon: definition.icon,
-                            color: definition.color
-                        });
-                    }
-                } catch (error) {
-                    console.warn(`Could not check for badge "${badgeId}":`, error.message);
-                }
-            }
-        }
-    };
-
-    const loadAndDisplayBadges = async (userId) => {
-        const badgesListContainer = document.getElementById('badges-list');
-        badgesListContainer.innerHTML = '';
-        try {
-            const snapshot = await db.collection('users').doc(userId).collection('badges').get();
-
-            if (snapshot.empty) {
-                badgesListContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No achievements yet.</p>';
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const badge = doc.data();
-                const badgeEl = document.createElement('div');
-                badgeEl.className = 'badge-item';
-                badgeEl.title = badge.description;
-                badgeEl.innerHTML = `
-                    <i class="fas ${badge.icon} ${badge.color} badge-icon"></i>
-                    <span class="badge-name">${badge.name}</span>
-                `;
-                badgesListContainer.appendChild(badgeEl);
-            });
-        } catch (error) {
-            console.error("Error loading badges:", error);
-            badgesListContainer.innerHTML = '<p class="text-sm text-red-500">Could not load achievements.</p>';
-        }
-    };
-    
-    const loadProfileDecks = async (userId, isOwnProfile) => {
-        const container = document.getElementById('tab-content-decks');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading decks...</p>';
-        try {
-            const snapshot = await db.collection('users').doc(userId).collection('decks').orderBy('createdAt', 'desc').get();
-            if (snapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no public decks.</p>';
-                return;
-            }
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const deck = doc.data();
-                const deckCard = document.createElement('div');
-                deckCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col';
-                
-                let pinButtonHTML = '';
-                if (isOwnProfile) {
-                    pinButtonHTML = `<button class="pin-deck-btn text-xs text-blue-500 hover:underline mt-2" data-deck-id="${doc.id}">Pin to Profile</button>`;
-                }
-                
-                deckCard.innerHTML = `
-                    <a href="deck.html?deckId=${doc.id}" class="block hover:opacity-80 flex-grow">
-                        <h3 class="text-xl font-bold truncate dark:text-white">${deck.name}</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
-                    </a>
-                    ${pinButtonHTML}
-                `;
-                container.appendChild(deckCard);
-            });
-        } catch (error) {
-            console.error("Error loading profile decks:", error);
-            if (error.code === 'failed-precondition') {
-                const indexLink = generateIndexCreationLink('decks', [{ name: 'createdAt', order: 'desc' }]);
-                displayIndexError(container, indexLink);
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load decks.</p>`;
-            }
-        }
-    };
-    
-    const loadProfileCollection = async (userId, listType, isOwnProfile, visibility, isFriend) => {
-        const container = document.getElementById(`tab-content-${listType}`);
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading...</p>';
-
-        if (!isOwnProfile && !currentUserIsAdmin) {
-            if (visibility === 'Private') {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4"><i class="fas fa-lock mr-2"></i>This user's ${listType} is private.</p>`;
-                return;
-            }
-            if (visibility === 'Friends Only' && !isFriend) {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4"><i class="fas fa-user-friends mr-2"></i>This user's ${listType} is only visible to friends.</p>`;
-                return;
-            }
-        }
-        
-        try {
-            const snapshot = await db.collection('users').doc(userId).collection(listType).orderBy('name').limit(32).get();
-            if (snapshot.empty) {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user's ${listType} is empty.</p>`;
-                return;
-            }
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const card = doc.data();
-                const cardEl = document.createElement('div');
-                cardEl.className = 'relative group';
-                
-                let pinButtonHTML = '';
-                if (isOwnProfile && listType === 'collection') {
-                     pinButtonHTML = `<button class="pin-card-btn text-white text-xs ml-1" title="Pin to Profile" data-card-id="${doc.id}"><i class="fas fa-thumbtack"></i></button>`;
-                }
-
-                cardEl.innerHTML = `
-                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block">
-                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full ${card.forSale ? 'border-4 border-green-500' : ''}" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
-                    </a>
-                    <div class="absolute top-0 right-0 p-1 bg-black bg-opacity-50 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                        ${pinButtonHTML}
-                    </div>
-                `;
-                container.appendChild(cardEl);
-            });
-        } catch (error) {
-            console.error(`Error loading ${listType}:`, error);
-            if (error.code === 'permission-denied') {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4"><i class="fas fa-lock mr-2"></i>You do not have permission to view this ${listType}.</p>`;
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load this section.</p>`;
-            }
-        }
-    };
-
-    const loadTradeBinder = async (userId, userData, visibility, isFriend) => {
-        const container = document.getElementById('tab-content-trade-binder');
-        const isOwnProfile = currentUser && currentUser.uid === userId;
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading trade binder...</p>';
-
-        if (!isOwnProfile && !currentUserIsAdmin) {
-            if (visibility === 'Private') {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4"><i class="fas fa-lock mr-2"></i>This user's trade binder is private.</p>`;
-                return;
-            }
-            if (visibility === 'Friends Only' && !isFriend) {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4"><i class="fas fa-user-friends mr-2"></i>This user's trade binder is only visible to friends.</p>`;
-                return;
-            }
-        }
-
-        try {
-            const snapshot = await db.collection('users').doc(userId).collection('collection').where('forSale', '==', true).get();
-            if (snapshot.empty) {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no cards listed for trade.</p>`;
-                return;
-            }
-            container.innerHTML = '';
-            snapshot.forEach(doc => {
-                const card = doc.data();
-                const cardEl = document.createElement('div');
-                cardEl.className = 'relative group';
-                
-                const priceUsd = parseFloat(card.isFoil ? card.priceUsdFoil : card.priceUsd) || 0;
-                const formattedPrice = priceUsd > 0 && window.HatakeSocial?.convertAndFormatPrice ? window.HatakeSocial.convertAndFormatPrice(priceUsd, 'USD') : '';
-                const priceTagHTML = formattedPrice 
-                    ? `<div class="absolute top-1 left-1 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">${formattedPrice}</div>`
-                    : '';
-
-                let tradeButtonHTML = '';
-                if (currentUser && !isOwnProfile) {
-                    tradeButtonHTML = `<a href="trades.html?propose_to_card=${doc.id}" class="absolute bottom-0 left-0 right-0 block w-full text-center bg-green-600 text-white text-xs font-bold py-1 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">Start Trade</a>`;
-                }
-
-                cardEl.innerHTML = `
-                    <a href="card-view.html?name=${encodeURIComponent(card.name)}" class="block">
-                        <img src="${card.imageUrl || 'https://placehold.co/223x310'}" alt="${card.name}" class="rounded-lg shadow-md w-full" onerror="this.onerror=null;this.src='https://placehold.co/223x310';">
-                    </a>
-                    ${priceTagHTML}
-                    ${tradeButtonHTML}
-                `;
-                container.appendChild(cardEl);
-            });
-        } catch (error) {
-            console.error("Error loading trade binder: ", error);
-             if (error.code === 'failed-precondition') {
-                const indexLink = generateIndexCreationLink('collection', [{ name: 'forSale', order: 'asc' }]);
-                displayIndexError(container, indexLink);
-            } else if (error.code === 'permission-denied') {
-                container.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 p-4"><i class="fas fa-lock mr-2"></i>You do not have permission to view this trade binder.</p>`;
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load trade binder.</p>`;
-            }
-        }
-    };
-
-    const loadFeaturedItems = async (userId, userData) => {
-        const container = document.getElementById('featured-items-section');
-        container.innerHTML = '';
-        
-        let contentHTML = '';
-
-        if (userData.featuredDeck) {
-            const deckDoc = await db.collection('users').doc(userId).collection('decks').doc(userData.featuredDeck).get();
-            if (deckDoc.exists) {
-                const deck = deckDoc.data();
-                contentHTML += `
-                    <div class="mb-4">
-                        <h4 class="font-semibold text-gray-700 dark:text-gray-300">Featured Deck</h4>
-                        <a href="deck.html?deckId=${deckDoc.id}" class="block bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg mt-1 hover:shadow-md">
-                            <p class="font-bold text-lg text-blue-600 dark:text-blue-400">${deck.name}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${deck.format || deck.tcg}</p>
-                        </a>
-                    </div>
-                `;
-            }
-        }
-
-        if (userData.featuredCards && userData.featuredCards.length > 0) {
-             contentHTML += `<h4 class="font-semibold text-gray-700 dark:text-gray-300 mt-4">Featured Cards</h4>`;
-             contentHTML += `<div class="flex flex-wrap gap-2 mt-2">`;
-             for (const cardId of userData.featuredCards) {
-                const cardDoc = await db.collection('users').doc(userId).collection('collection').doc(cardId).get();
-                if (cardDoc.exists) {
-                    const card = cardDoc.data();
-                    contentHTML += `<a href="card-view.html?name=${encodeURIComponent(card.name)}"><img src="${card.imageUrl}" alt="${card.name}" class="w-20 rounded-md hover:scale-105 transition-transform" onerror="this.onerror=null;this.src='https://placehold.co/80x112';"></a>`;
-                }
-             }
-             contentHTML += `</div>`;
-        }
-
-        if (contentHTML) {
-            container.innerHTML = `<h3 class="font-bold text-lg mb-2 dark:text-white">Featured Items</h3><div class="border-t dark:border-gray-700 pt-4">${contentHTML}</div>`;
-        }
-    };
-
-    const loadMutualConnections = async (profileUserId, profileUserData) => {
-        const container = document.getElementById('mutual-connections-section');
-        if (!currentUser || !profileUserData.friends) return;
-
-        try {
-            const myDoc = await db.collection('users').doc(currentUser.uid).get();
-            const myData = myDoc.data();
-            
-            const myFriends = new Set(myData.friends || []);
-            const theirFriends = new Set(profileUserData.friends || []);
-            const mutualFriends = [...myFriends].filter(friendId => theirFriends.has(friendId));
-
-            if (mutualFriends.length > 0) {
-                container.innerHTML += `<p><i class="fas fa-user-friends mr-2"></i>You have ${mutualFriends.length} mutual friend${mutualFriends.length > 1 ? 's' : ''}.</p>`;
-            }
-        } catch (error) {
-            console.error("Error loading mutual connections:", error);
-        }
-    };
-
-    const loadTradeHistoryAndMap = async (userId) => {
-        const container = document.getElementById('tab-content-trade-history');
-        if (!container) return;
-
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4 text-center">Loading Trade Routes...</p>';
-
-        try {
-            const tradesSnapshot = await db.collection('trades')
-                .where('participants', 'array-contains', userId)
-                .where('status', '==', 'completed')
-                .get();
-
-            const tradeCount = tradesSnapshot.size;
-            
-            const tradeCountSpan = document.querySelector('span[title="Completed Trades"]');
-            if (tradeCountSpan) tradeCountSpan.innerHTML = `<i class="fas fa-handshake text-green-500"></i> ${tradeCount}`;
-
-            if (tradesSnapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has no completed trades.</p>';
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
-                    <h3 class="text-xl font-bold mb-2 dark:text-white">Trade Routes (${tradeCount} Completed)</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Visualizing all successful trades across the globe.</p>
-                    <div id="trade-map" style="height: 450px; border-radius: 0.5rem; background-color: #374151;"></div>
-                </div>
-            `;
-
-            const map = L.map('trade-map').setView([20, 0], 2);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 19
-            }).addTo(map);
-
-            const userIds = new Set();
-            tradesSnapshot.docs.forEach(doc => {
-                doc.data().participants.forEach(id => userIds.add(id));
-            });
-
-            const userPromises = Array.from(userIds).map(id => db.collection('users').doc(id).get());
-            const userDocs = await Promise.all(userPromises);
-            const usersData = new Map(userDocs.map(doc => [doc.id, doc.data()]));
-
-            const locations = new Map();
-            const tradeRoutes = [];
-
-            tradesSnapshot.docs.forEach(doc => {
-                const trade = doc.data();
-                const proposer = usersData.get(trade.proposerId);
-                const receiver = usersData.get(trade.receiverId);
-
-                if (proposer?.city && receiver?.city) {
-                    const proposerCity = proposer.city.toLowerCase();
-                    const receiverCity = receiver.city.toLowerCase();
-
-                    if (cityCoordinates[proposerCity] && cityCoordinates[receiverCity]) {
-                        locations.set(proposerCity, { coords: cityCoordinates[proposerCity], name: proposer.city });
-                        locations.set(receiverCity, { coords: cityCoordinates[receiverCity], name: receiver.city });
-                        tradeRoutes.push([cityCoordinates[proposerCity], cityCoordinates[receiverCity]]);
-                    }
-                }
-            });
-
-            locations.forEach((loc, key) => {
-                L.marker(loc.coords).addTo(map)
-                    .bindPopup(`<b>${loc.name}</b>`);
-            });
-
-            tradeRoutes.forEach(route => {
-                L.polyline(route, { color: '#2563eb', weight: 2, opacity: 0.7 }).addTo(map);
-            });
-
-        } catch(error) {
-            console.error("Error loading trade history map:", error);
-            container.innerHTML = '<p class="text-center text-red-500 p-4">Could not load Trade Routes.</p>';
-        }
-    };
-
-    const loadProfileFeedback = async (userId) => {
-        const container = document.getElementById('tab-content-feedback');
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading feedback...</p>';
-        try {
-            const feedbackSnapshot = await db.collection('feedback').where('forUserId', '==', userId).orderBy('createdAt', 'desc').get();
-
-            if (feedbackSnapshot.empty) {
-                container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 p-4">This user has not received any feedback yet.</p>';
-                return;
-            }
-
-            container.innerHTML = '';
-            feedbackSnapshot.forEach(doc => {
-                const feedback = doc.data();
-                const ratings = feedback.ratings || {};
-                const accuracyStars = '★'.repeat(ratings.accuracy || 0) + '☆'.repeat(5 - (ratings.accuracy || 0));
-                const packagingStars = '★'.repeat(ratings.packaging || 0) + '☆'.repeat(5 - (ratings.packaging || 0));
-
-                const feedbackCard = `
-                    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-                        <div class="flex justify-between items-center mb-2">
-                            <p class="font-semibold dark:text-gray-200">From: <a href="profile.html?uid=${feedback.fromUserId}" class="text-blue-600 hover:underline">${feedback.fromUserName}</a></p>
-                            <div class="text-xs text-gray-400">${formatTimestamp(feedback.createdAt)}</div>
-                        </div>
-                        <div class="text-sm space-y-1 my-2 text-yellow-400">
-                           <p><strong>Accuracy:</strong> ${accuracyStars}</p>
-                           <p><strong>Packaging:</strong> ${packagingStars}</p>
-                        </div>
-                        <p class="text-gray-700 dark:text-gray-300 italic">"${feedback.comment || 'No comment left.'}"</p>
-                    </div>`;
-                container.innerHTML += feedbackCard;
-            });
-        } catch (error) {
-            console.error("Error loading feedback:", error);
-            if (error.code === 'failed-precondition') {
-                const indexLink = generateIndexCreationLink('feedback', [{ name: 'forUserId', order: 'asc' }, { name: 'createdAt', order: 'desc' }]);
-                displayIndexError(container, indexLink);
-            } else {
-                container.innerHTML = `<p class="text-center text-red-500 p-4">Could not load feedback.</p>`;
-            }
-        }
-    };
-    
-    const loadProfileFriends = async (userId) => {
-        const container = document.getElementById('tab-content-friends');
-        if (!container) return;
-
-        container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 p-4">Loading friends...</p>';
-
-        try {
-            const userDoc = await db.collection('users').doc(userId).get();
-            const userData = userDoc.data();
-            const friendIds = userData.friends || [];
-            
-            let friendsHTML = '';
-
-            if (currentUser && currentUser.uid === userId) {
-                 const friendRequests = await db.collection('friendRequests')
-                                           .where('receiverId', '==', userId)
-                                           .where('status', '==', 'pending')
-                                           .get();
-                if (!friendRequests.empty) {
-                    friendsHTML += '<h3 class="text-xl font-bold mb-4 dark:text-white">Friend Requests</h3>';
-                    friendsHTML += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">';
-                    for (const doc of friendRequests.docs) {
-                        const request = doc.data();
-                        const senderDoc = await db.collection('users').doc(request.senderId).get();
-                        if (senderDoc.exists) {
-                            const sender = senderDoc.data();
-                            friendsHTML += `
-                                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between">
-                                    <a href="profile.html?uid=${request.senderId}" class="flex items-center space-x-3">
-                                        <img src="${sender.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
-                                        <div>
-                                            <p class="font-semibold dark:text-white">${sender.displayName}</p>
-                                            <p class="text-sm text-gray-500">@${sender.handle}</p>
-                                        </div>
-                                    </a>
-                                    <div class="flex space-x-2">
-                                        <button class="accept-friend-btn bg-green-500 text-white w-8 h-8 rounded-full" data-request-id="${doc.id}" data-sender-id="${request.senderId}"><i class="fas fa-check"></i></button>
-                                        <button class="reject-friend-btn bg-red-500 text-white w-8 h-8 rounded-full" data-request-id="${doc.id}"><i class="fas fa-times"></i></button>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }
-                    friendsHTML += '</div>';
-                }
-            }
-
-            friendsHTML += `<h3 class="text-xl font-bold mb-4 dark:text-white">All Friends (${friendIds.length})</h3>`;
-            if (friendIds.length === 0) {
-                friendsHTML += '<p class="text-gray-500 dark:text-gray-400 p-4">No friends to display.</p>';
-            } else {
-                friendsHTML += '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
-                for (const friendId of friendIds) {
-                    const friendDoc = await db.collection('users').doc(friendId).get();
-                    if (friendDoc.exists) {
-                        const friend = friendDoc.data();
-                        friendsHTML += `
-                            <a href="profile.html?uid=${friendId}" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center space-x-3 hover:shadow-lg">
-                                <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
-                                <div>
-                                    <p class="font-semibold dark:text-white">${friend.displayName}</p>
-                                    <p class="text-sm text-gray-500">@${friend.handle}</p>
-                                </div>
-                            </a>
-                        `;
-                    }
-                }
-                friendsHTML += '</div>';
-            }
-            container.innerHTML = friendsHTML;
-
-        } catch (error) {
-            console.error("Error loading friends:", error);
-            container.innerHTML = '<p class="text-red-500 p-4">Could not load friends list.</p>';
-        }
-    };
-    
-    // --- MAIN INITIALIZATION AND EVENT LISTENERS ---
-    const initializeProfile = async () => {
-        await checkAdminStatus();
-        
-        profileContainer.innerHTML = '<div class="text-center p-10"><i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i><p class="mt-4">Loading Profile...</p></div>';
-        try {
-            const params = new URLSearchParams(window.location.search);
-            let userDoc;
-            const username = params.get('user');
-            const userIdParam = params.get('uid');
-
-            if (username) { 
-                // First try as user ID, then as handle
-                try {
-                    userDoc = await db.collection('users').doc(username).get();
-                    if (!userDoc.exists) {
-                        const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get(); 
-                        if (!userQuery.empty) userDoc = userQuery.docs[0];
-                    }
-                } catch (error) {
-                    const userQuery = await db.collection('users').where('handle', '==', username).limit(1).get(); 
-                    if (!userQuery.empty) userDoc = userQuery.docs[0];
+                // Show corresponding content
+                const tabId = button.dataset.tab;
+                const content = document.getElementById(`tab-${tabId}`);
+                if (content) {
+                    content.classList.remove('hidden');
+                    this.loadTabContent(tabId);
                 }
-            } 
-            else if (userIdParam) { userDoc = await db.collection('users').doc(userIdParam).get(); } 
-            else if (currentUser) { userDoc = await db.collection('users').doc(currentUser.uid).get(); }
-            else { profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md"><h1 class="text-2xl font-bold">No Profile to Display</h1><p class="mt-2">Please log in to see your profile or specify a user in the URL.</p></div>`; return; }
+            });
+        });
+    }
 
-            if (!userDoc || !userDoc.exists) {
-                // Check if it failed because of permissions
-                if (currentUser) {
-                     displayPrivacyMessage('This profile is private or does not exist.');
-                } else {
-                     throw new Error("User not found.");
-                }
-                return;
-            }
+    async loadProfileData() {
+        try {
+            // Get user ID from URL params or use current user
+            const urlParams = new URLSearchParams(window.location.search);
+            this.profileUserId = urlParams.get('uid') || this.currentUser?.uid;
+            
+            if (!this.profileUserId) {
+                this.showError('No user specified');
+                return;
+            }
 
-            const profileUserId = userDoc.id;
-            const profileUserData = userDoc.data();
-            const isOwnProfile = currentUser && currentUser.uid === profileUserId;
+            this.isOwnProfile = this.profileUserId === this.currentUser?.uid;
 
-            const privacy = profileUserData.privacy || { profileVisibility: 'Public', collectionVisibility: 'Public' };
-            const isFriend = currentUser && Array.isArray(profileUserData.friends) && profileUserData.friends.includes(currentUser.uid);
+            // Load user data
+            const userDoc = await this.db.collection('users').doc(this.profileUserId).get();
+            if (!userDoc.exists) {
+                this.showError('User not found');
+                return;
+            }
 
-            if (!isOwnProfile && !currentUserIsAdmin) {
-                if (privacy.profileVisibility === 'Private') {
-                    displayPrivacyMessage('This profile is private.');
-                    return;
-                }
-                if (privacy.profileVisibility === 'Friends Only' && !isFriend) {
-                    displayPrivacyMessage('This profile is only visible to friends.');
-                    return;
-                }
-            }
+            this.profileData = userDoc.data();
+            this.displayProfileHeader();
+            this.loadProfileStats();
+            this.loadTabContent('overview'); // Load default tab
 
-            let friendStatus = 'none';
-            if (currentUser && !isOwnProfile) {
-                if (isFriend) { friendStatus = 'friends'; } 
-                else {
-                    const requestQuery1 = await db.collection('friendRequests').where('senderId', '==', currentUser.uid).where('receiverId', '==', profileUserId).where('status', '==', 'pending').get();
-                    const requestQuery2 = await db.collection('friendRequests').where('senderId', '==', profileUserId).where('receiverId', '==', currentUser.uid).where('status', '==', 'pending').get();
-                    if (!requestQuery1.empty) friendStatus = 'request_sent';
-                    else if (!requestQuery2.empty) friendStatus = 'request_received';
-                }
-            }
-            
-            let actionButtonHTML = '';
-            if (!isOwnProfile && currentUser) {
-                actionButtonHTML += `<button id="start-trade-btn" class="px-4 py-2 bg-green-600 text-white rounded-full text-sm" data-uid="${profileUserId}">Start Trade</button><button id="message-btn" class="px-4 py-2 bg-gray-500 text-white rounded-full text-sm" data-uid="${profileUserId}">Message</button>`;
-                switch (friendStatus) {
-                    case 'none': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm">Add Friend</button>`; break;
-                    case 'request_sent': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-gray-400 text-white rounded-full text-sm" disabled>Request Sent</button>`; break;
-                    case 'friends': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-green-500 text-white rounded-full text-sm" disabled><i class="fas fa-check mr-2"></i>Friends</button>`; break;
-                    case 'request_received': actionButtonHTML += `<button id="add-friend-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm">Respond to Request</button>`; break;
-                }
-            }
-            
-            const ratingCount = profileUserData.ratingCount || 0, completedTrades = profileUserData.completedTrades || 0, avgAccuracy = profileUserData.averageAccuracy || 0, avgPackaging = profileUserData.averagePackaging || 0, overallAvg = ratingCount > 0 ? (avgAccuracy + avgPackaging) / 2 : 0;
-            let starsHTML = Array.from({length: 5}, (_, i) => i + 1 <= overallAvg ? '<i class="fas fa-star text-yellow-400"></i>' : (i + 0.5 <= overallAvg ? '<i class="fas fa-star-half-alt text-yellow-400"></i>' : '<i class="far fa-star text-gray-300"></i>')).join('');
-            const reputationHTML = `<div class="flex items-center space-x-2 text-sm mt-1"><span class="flex">${starsHTML}</span><span class="font-semibold">${overallAvg.toFixed(1)}</span><span>(${ratingCount} ratings)</span><span class="font-bold">|</span><span title="Completed Trades"><i class="fas fa-handshake text-green-500"></i> ${completedTrades}</span></div><div class="text-xs space-x-3 mt-1"><span>Accuracy: <strong>${avgAccuracy.toFixed(1)}</strong></span><span>Packaging: <strong>${avgPackaging.toFixed(1)}</strong></span></div>`;
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            this.showError('Failed to load profile');
+        }
+    }
 
-            let personalityHTML = '';
-            if (profileUserData.playstyle || profileUserData.favoriteFormat || profileUserData.petCard || profileUserData.nemesisCard) { personalityHTML += '<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">'; if (profileUserData.playstyle) personalityHTML += `<div><p class="font-semibold">Playstyle</p><p>${profileUserData.playstyle}</p></div>`; if (profileUserData.favoriteFormat) personalityHTML += `<div><p class="font-semibold">Favorite Format</p><p>${profileUserData.favoriteFormat}</p></div>`; if (profileUserData.petCard) personalityHTML += `<div><p class="font-semibold">Pet Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.petCard)}" class="text-blue-600 hover:underline">${profileUserData.petCard}</a></div>`; if (profileUserData.nemesisCard) personalityHTML += `<div><p class="font-semibold">Nemesis Card</p><a href="card-view.html?name=${encodeURIComponent(profileUserData.nemesisCard)}" class="text-red-500 hover:underline">${profileUserData.nemesisCard}</a></div>`; personalityHTML += '</div>'; }
-            
-            const referralsTabHTML = isOwnProfile ? `<a href="referrals.html" class="profile-tab-button">Referrals</a>` : '';
+    displayProfileHeader() {
+        if (!this.profileData) return;
 
-            profileContainer.innerHTML = `<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden"><div class="relative"><img id="profile-banner" class="w-full h-48 object-cover" src="${profileUserData.bannerURL || 'https://placehold.co/1200x300'}" alt="Profile banner">${isOwnProfile ? `<div class="absolute top-4 right-4"><a href="settings.html" class="px-4 py-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 text-sm font-semibold">Edit Profile</a></div>` : ''}<div class="absolute bottom-0 left-6 transform translate-y-1/2 flex items-center"><img id="profile-avatar" class="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 object-cover" src="${profileUserData.photoURL || 'https://placehold.co/128x128'}" alt="User avatar"></div></div><div class="pt-20 px-6 pb-6"><div class="flex justify-between items-center"><div><h1 id="profile-displayName" class="text-3xl font-bold">${profileUserData.displayName}</h1><p id="profile-handle" class="text-gray-600 dark:text-gray-400">@${profileUserData.handle}</p>${reputationHTML}</div><div id="profile-action-buttons" class="flex space-x-2">${actionButtonHTML}</div></div><div class="mt-6 border-t dark:border-gray-700 pt-4"><p id="profile-bio" class="mt-2">${profileUserData.bio || 'No bio yet.'}</p><p class="text-sm text-gray-500 mt-2">Joined ${formatTimestamp(profileUserData.createdAt)}</p><div class="mt-2 text-sm"><strong>Favorite TCG:</strong> <span>${profileUserData.favoriteTcg || 'Not set'}</span></div>${personalityHTML}<div id="mutual-connections-section" class="mt-4 text-sm"></div><div id="featured-items-section" class="mt-6"></div><div id="profile-badges-container" class="mt-4"><h3 class="font-bold text-lg mb-2">Achievements</h3><div id="badges-list" class="flex flex-wrap gap-4"></div></div></div></div></div><div class="mt-6"><div class="border-b dark:border-gray-700"><nav id="profile-tabs" class="flex space-x-8" aria-label="Tabs"><button data-tab="feed" class="profile-tab-button active">Feed</button><button data-tab="decks" class="profile-tab-button">Decks</button><button data-tab="trade-binder" class="profile-tab-button">Trade Binder</button><button data-tab="collection" class="profile-tab-button">Collection</button><button data-tab="friends" class="profile-tab-button">Friends</button><button data-tab="wishlist" class="profile-tab-button">Wishlist</button><button data-tab="trade-history" class="profile-tab-button">Trade History</button><button data-tab="feedback" class="profile-tab-button">Feedback</button>${referralsTabHTML}</nav></div><div class="mt-6"><div id="tab-content-feed" class="profile-tab-content space-y-6"></div><div id="tab-content-decks" class="profile-tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div><div id="tab-content-trade-binder" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div><div id="tab-content-collection" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div><div id="tab-content-friends" class="profile-tab-content hidden"></div><div id="tab-content-wishlist" class="profile-tab-content hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div><div id="tab-content-trade-history" class="profile-tab-content hidden space-y-4"></div><div id="tab-content-feedback" class="profile-tab-content hidden space-y-4"></div></div></div>`;
-            
-            const functionsToRun = [
-                () => loadProfileFeed(profileUserId),
-                () => loadProfileDecks(profileUserId, isOwnProfile),
-                () => loadProfileCollection(profileUserId, 'collection', isOwnProfile, privacy.collectionVisibility, isFriend),
-                () => loadProfileCollection(profileUserId, 'wishlist', isOwnProfile, 'Private', isFriend),
-                () => loadTradeBinder(profileUserId, profileUserData, privacy.collectionVisibility, isFriend),
-                () => loadProfileFeedback(profileUserId),
-                () => loadFeaturedItems(profileUserId, profileUserData),
-                () => loadAndDisplayBadges(profileUserId),
-            ];
-            if (currentUser && !isOwnProfile) functionsToRun.push(() => loadMutualConnections(profileUserId, profileUserData));
-            if (isOwnProfile) functionsToRun.push(() => evaluateAndAwardBadges(profileUserId, profileUserData));
-            
-            if(window.location.hash) {
-                const targetTab = document.querySelector(`.profile-tab-button[data-tab="${window.location.hash.substring(1)}"]`);
-                if(targetTab) {
-                     if(targetTab.dataset.tab === 'friends') functionsToRun.push(() => loadProfileFriends(profileUserId));
-                     if(targetTab.dataset.tab === 'trade-history') functionsToRun.push(() => loadTradeHistoryAndMap(profileUserId));
-                     setTimeout(() => targetTab.click(), 100);
-                }
-            }
-            
-            await Promise.all(functionsToRun.map(f => f()));
+        // Update profile header
+        document.getElementById('profile-avatar').src = this.profileData.photoURL || 'https://i.imgur.com/B06rBhI.png';
+        document.getElementById('profile-display-name').textContent = this.profileData.displayName || 'Unknown User';
+        document.getElementById('profile-handle').textContent = `@${this.profileData.handle || 'unknown'}`;
+        
+        // Location
+        const location = [this.profileData.city, this.profileData.country].filter(Boolean).join(', ') || 'Location not specified';
+        document.getElementById('profile-location').textContent = location;
+        
+        // Joined date
+        const joinedDate = this.profileData.createdAt ? 
+            new Date(this.profileData.createdAt.toMillis()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) :
+            'Unknown';
+        document.getElementById('profile-joined').textContent = `Joined ${joinedDate}`;
+        
+        // Favorite TCG
+        document.getElementById('profile-favorite-tcg').textContent = this.profileData.favoriteTcg || 'Not specified';
+        
+        // Bio
+        document.getElementById('profile-bio').textContent = this.profileData.bio || 'No bio available.';
 
-        } catch (error) { 
-            console.error("Error loading profile:", error); 
-            profileContainer.innerHTML = `<div class="text-center p-8 bg-white dark:bg-gray-800 shadow-md"><h1 class="text-2xl font-bold text-red-600">Error</h1><p class="mt-2">${error.message}</p></div>`; 
-        }
-    };
+        // Display gaming accounts
+        this.displayGamingAccounts();
 
-    profileContainer.addEventListener('click', async (event) => {
-        const target = event.target;
-        if (target.id === 'start-trade-btn') { window.location.href = `trades.html?with=${target.dataset.uid}`; return; }
-        if (target.id === 'message-btn') { window.location.href = `messages.html?with=${target.dataset.uid}`; return; }
-        
-        const tab = target.closest('.profile-tab-button');
-        if (tab && (tab.tagName === 'BUTTON' || tab.tagName === 'A')) {
-            if(tab.tagName === 'A') return;
-            event.preventDefault();
-            document.querySelectorAll('.profile-tab-button').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.profile-tab-content').forEach(c => c.classList.add('hidden'));
-            const contentToShow = document.getElementById(`tab-content-${tab.dataset.tab}`);
-            if(contentToShow) contentToShow.classList.remove('hidden');
-            
-            const profileUserId = document.querySelector('#profile-action-buttons [data-uid]')?.dataset.uid || currentUser.uid;
-            
-            if (tab.dataset.tab === 'friends' && !tab.dataset.loaded) { loadProfileFriends(profileUserId); tab.dataset.loaded = true; }
-            if (tab.dataset.tab === 'trade-history' && !tab.dataset.loaded) { loadTradeHistoryAndMap(profileUserId); tab.dataset.loaded = true; }
-            return;
-        }
+        // Show appropriate action buttons
+        this.setupActionButtons();
+    }
 
-        const postElement = target.closest('.post-container');
-        if (!postElement) return;
-        const postId = postElement.dataset.id;
-        const postRef = db.collection('posts').doc(postId);
+    displayGamingAccounts() {
+        const gamingAccountsContainer = document.getElementById('gaming-accounts');
+        const gamingAccounts = this.profileData.gamingAccounts || {};
+        const privacy = this.profileData.privacy || {};
+        
+        // Check if gaming accounts should be shown
+        if (!privacy.showGamingAccounts && !this.isOwnProfile) {
+            gamingAccountsContainer.classList.add('hidden');
+            return;
+        }
 
-        if (target.closest('.post-clickable-area')) { openPostModalForProfile(postId); }
-        if (target.closest('.comment-btn')) { const commentsSection = postElement.querySelector('.comments-section'); const wasHidden = commentsSection.classList.toggle('hidden'); if (!wasHidden) { const doc = await postRef.get(); renderComments(commentsSection.querySelector('.comments-list'), doc.data().comments, doc.data()); }}
-        if (target.closest('.like-btn')) { if(!currentUser) return; const likeBtn = target.closest('.like-btn'); const countSpan = likeBtn.querySelector('span'); const currentLikes = parseInt(countSpan.textContent, 10); const isLiked = likeBtn.classList.contains('text-red-500'); countSpan.textContent = isLiked ? currentLikes - 1 : currentLikes + 1; likeBtn.classList.toggle('text-red-500'); likeBtn.querySelector('i').classList.toggle('fas'); likeBtn.querySelector('i').classList.toggle('far'); await postRef.update({ likes: firebase.firestore.FieldValue.arrayToggle(currentUser.uid) }); }
-        if (target.closest('.delete-post-btn')) { if (confirm('Delete this post?')) { await postRef.delete(); postElement.remove(); }}
-        if (target.closest('.reply-btn')) { const parent = target.closest('.flex-1'); const existing = parent.querySelector('.reply-form'); if(existing) { existing.remove(); return; } const form = document.createElement('form'); form.className = 'reply-form flex mt-2'; form.dataset.replyTo = target.dataset.parentTimestamp; form.innerHTML = `<input type="text" class="w-full border rounded-l-lg p-2 text-sm" placeholder="Write a reply..." required><button type="submit" class="bg-blue-500 text-white px-3 text-sm">Reply</button>`; parent.appendChild(form).querySelector('input').focus(); }
-        if (target.closest('.delete-comment-btn')) { if (!confirm('Delete this comment and all replies?')) return; const timestamp = parseInt(target.closest('[data-timestamp]').dataset.timestamp, 10); await db.runTransaction(async t => { const doc = await t.get(postRef); let comments = doc.data().comments || []; const toDelete = [timestamp]; const findReplies = (id) => comments.forEach(c => c.replyTo === id && (toDelete.push(c.timestamp.toMillis()), findReplies(c.timestamp.toMillis()))); findReplies(timestamp); const updated = comments.filter(c => !toDelete.includes(c.timestamp.toMillis())); t.update(postRef, { comments: updated });}); const finalDoc = await postRef.get(); renderComments(postElement.querySelector('.comments-list'), finalDoc.data().comments, finalDoc.data()); postElement.querySelector('.comments-count').textContent = finalDoc.data().comments.length; }
-    });
+        const accountsHTML = [];
+        
+        // Platform configurations with icons and colors
+        const platforms = {
+            mtgArena: { name: 'Arena', icon: 'fas fa-magic', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
+            mtgo: { name: 'MTGO', icon: 'fas fa-desktop', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+            untap: { name: 'Untap.in', icon: 'fas fa-globe', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+            ptcgo: { name: 'PTCGO', icon: 'fas fa-bolt', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+            ptcgLive: { name: 'TCG Live', icon: 'fas fa-mobile-alt', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+            masterDuel: { name: 'Master Duel', icon: 'fas fa-eye', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
+            duelingBook: { name: 'Dueling Book', icon: 'fas fa-book', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' },
+            tabletopSim: { name: 'Tabletop Sim', icon: 'fas fa-cube', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' },
+            cockatrice: { name: 'Cockatrice', icon: 'fas fa-dragon', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+            discord: { name: 'Discord', icon: 'fab fa-discord', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' }
+        };
 
-    profileContainer.addEventListener('submit', (e) => { e.preventDefault(); if (e.target.matches('.comment-form, .reply-form')) { handleCommentSubmitForProfile(e.target, e.target.closest('.post-container').dataset.id); }});
-    
-    const postDetailModal = document.getElementById('postDetailModal');
-    document.getElementById('closePostDetailModal')?.addEventListener('click', () => closeModal(postDetailModal));
-    postDetailModal?.addEventListener('submit', (e) => { e.preventDefault(); if(e.target.matches('.modal-comment-form, .reply-form')) { handleCommentSubmitForProfile(e.target, postDetailModal.dataset.postId); }});
-    document.body.addEventListener('click', async (event) => {
-        const acceptButton = event.target.closest('.accept-friend-btn');
-        const rejectButton = event.target.closest('.reject-friend-btn');
-        const pinDeckBtn = event.target.closest('.pin-deck-btn');
-        const pinCardBtn = event.target.closest('.pin-card-btn');
-        const addFriendBtn = event.target.closest('#add-friend-btn');
-        
-        if (acceptButton) { const rId = acceptButton.dataset.requestId, sId = acceptButton.dataset.senderId, batch=db.batch(), uRef=db.collection('users').doc(currentUser.uid), sRef=db.collection('users').doc(sId), reqRef=db.collection('friendRequests').doc(rId); batch.update(uRef, {friends: firebase.firestore.FieldValue.arrayUnion(sId)}); batch.update(sRef, {friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)}); batch.delete(reqRef); const notifRef = db.collection('users').doc(sId).collection('notifications').doc(); batch.set(notifRef, {message: `${currentUser.displayName} accepted your friend request.`, link: `/profile.html?uid=${currentUser.uid}`, isRead: false, timestamp: new Date()}); await batch.commit(); loadProfileFriends(currentUser.uid); }
-        if (rejectButton) { await db.collection('friendRequests').doc(rejectButton.dataset.requestId).delete(); loadProfileFriends(currentUser.uid); }
-        if (pinDeckBtn) { await db.collection('users').doc(currentUser.uid).update({ featuredDeck: pinDeckBtn.dataset.deckId }); alert('Deck pinned!'); initializeProfile(); }
-        if (pinCardBtn) { const cardId = pinCardBtn.dataset.cardId; await db.runTransaction(async t=>{ const doc = await t.get(db.collection('users').doc(currentUser.uid)); let f=doc.data().featuredCards||[]; f.includes(cardId)?f=f.filter(id=>id!==cardId):(f.push(cardId),f.length>4&&f.shift()); t.update(db.collection('users').doc(currentUser.uid),{featuredCards:f})}); alert('Featured cards updated!'); initializeProfile(); }
-        if (addFriendBtn && !addFriendBtn.disabled) { const profileUserId = document.querySelector('#profile-action-buttons [data-uid]').dataset.uid; if(addFriendBtn.textContent.includes('Respond')) { window.location.href = '/friends.html'; return; } addFriendBtn.disabled = true; addFriendBtn.textContent = 'Sending...'; await db.collection('friendRequests').add({ senderId: currentUser.uid, receiverId: profileUserId, status: 'pending', createdAt: new Date() }); await db.collection('users').doc(profileUserId).collection('notifications').add({ message: `${currentUser.displayName} sent you a friend request.`, link: `/profile.html?uid=${currentUser.uid}#friends`, isRead: false, timestamp: new Date() }); addFriendBtn.textContent = 'Request Sent'; }
-    });
+        Object.entries(gamingAccounts).forEach(([platform, username]) => {
+            if (username && platforms[platform]) {
+                const config = platforms[platform];
+                accountsHTML.push(`
+                    <div class="flex items-center space-x-2 px-3 py-2 rounded-full ${config.color} text-sm">
+                        <i class="${config.icon}"></i>
+                        <span class="font-medium">${config.name}:</span>
+                        <span class="font-mono">${username}</span>
+                    </div>
+                `);
+            }
+        });
 
-    initializeProfile();
+        if (accountsHTML.length > 0) {
+            gamingAccountsContainer.innerHTML = accountsHTML.join('');
+            gamingAccountsContainer.classList.remove('hidden');
+        } else {
+            gamingAccountsContainer.classList.add('hidden');
+        }
+    }
+
+    setupActionButtons() {
+        const editBtn = document.getElementById('edit-profile-btn');
+        const addFriendBtn = document.getElementById('add-friend-btn');
+        const messageBtn = document.getElementById('message-user-btn');
+
+        if (this.isOwnProfile) {
+            editBtn.classList.remove('hidden');
+            editBtn.addEventListener('click', () => this.openEditProfileModal());
+        } else {
+            addFriendBtn.classList.remove('hidden');
+            messageBtn.classList.remove('hidden');
+            
+            addFriendBtn.addEventListener('click', () => this.sendFriendRequest());
+            messageBtn.addEventListener('click', () => this.startConversation());
+        }
+    }
+
+    async loadProfileStats() {
+        try {
+            // Load collection count
+            const collectionSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('collection')
+                .get();
+            document.getElementById('stat-collection-count').textContent = collectionSnapshot.size;
+
+            // Load deck count
+            const decksSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('decks')
+                .get();
+            document.getElementById('stat-deck-count').textContent = decksSnapshot.size;
+
+            // Load trade count
+            const tradesSnapshot = await this.db.collection('trades')
+                .where('participants', 'array-contains', this.profileUserId)
+                .where('status', '==', 'completed')
+                .get();
+            document.getElementById('stat-trade-count').textContent = tradesSnapshot.size;
+
+            // Load friend count
+            const friendCount = this.profileData.friends?.length || 0;
+            document.getElementById('stat-friend-count').textContent = friendCount;
+
+        } catch (error) {
+            console.error('Error loading profile stats:', error);
+        }
+    }
+
+    async loadTabContent(tabId) {
+        switch (tabId) {
+            case 'overview':
+                await this.loadOverviewContent();
+                break;
+            case 'collection':
+                await this.loadCollectionContent();
+                break;
+            case 'decks':
+                await this.loadDecksContent();
+                break;
+            case 'trades':
+                await this.loadTradesContent();
+                break;
+            case 'activity':
+                await this.loadActivityContent();
+                break;
+        }
+    }
+
+    async loadOverviewContent() {
+        // Recent activity is already loaded in the template
+        // Load collection highlights
+        await this.loadCollectionHighlights();
+    }
+
+    async loadCollectionHighlights() {
+        try {
+            const collectionSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('collection')
+                .get();
+
+            if (collectionSnapshot.empty) {
+                document.getElementById('collection-highlights').innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-layer-group text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No collection data available</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Calculate collection stats from actual data structure
+            let totalValue = 0;
+            let mostValuableCard = null;
+            const setCounts = {};
+            const gameCounts = {};
+
+            collectionSnapshot.forEach(doc => {
+                const card = doc.data();
+                
+                // Handle different value fields
+                const cardValue = card.sale_price || card.purchase_price || card.value || 0;
+                totalValue += parseFloat(cardValue) || 0;
+                
+                if (!mostValuableCard || (parseFloat(cardValue) || 0) > (parseFloat(mostValuableCard.value) || 0)) {
+                    mostValuableCard = {
+                        name: this.getCardName(card),
+                        value: parseFloat(cardValue) || 0,
+                        set: this.getSetName(card)
+                    };
+                }
+
+                // Count sets
+                const setName = this.getSetName(card);
+                setCounts[setName] = (setCounts[setName] || 0) + (card.quantity || 1);
+
+                // Count games
+                const game = this.getGameName(card);
+                gameCounts[game] = (gameCounts[game] || 0) + (card.quantity || 1);
+            });
+
+            // Find favorite set and game
+            const favoriteSet = Object.entries(setCounts)
+                .sort(([,a], [,b]) => b - a)[0];
+            
+            const favoriteGame = Object.entries(gameCounts)
+                .sort(([,a], [,b]) => b - a)[0];
+
+            // Update highlights
+            const highlightsHTML = `
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                        <div class="font-medium">Most Valuable Card</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">${mostValuableCard?.name || 'No cards'}</div>
+                        ${mostValuableCard?.set ? `<div class="text-xs text-gray-500">${mostValuableCard.set}</div>` : ''}
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-green-600">$${(mostValuableCard?.value || 0).toFixed(2)}</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                        <div class="font-medium">Favorite Set</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">${favoriteSet ? favoriteSet[0] : 'No sets'}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-600">${favoriteSet ? favoriteSet[1] : 0} cards</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                        <div class="font-medium">Collection Value</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Total estimated value</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-purple-600">$${totalValue.toFixed(2)}</div>
+                    </div>
+                </div>
+                ${favoriteGame ? `
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                        <div class="font-medium">Favorite Game</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">${favoriteGame[0]}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-orange-600">${favoriteGame[1]} cards</div>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+
+            document.getElementById('collection-highlights').innerHTML = highlightsHTML;
+
+        } catch (error) {
+            console.error('Error loading collection highlights:', error);
+            document.getElementById('collection-highlights').innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-500">Failed to load collection highlights</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadCollectionContent() {
+        try {
+            const collectionGrid = document.getElementById('collection-grid');
+            collectionGrid.innerHTML = '<div class="text-center py-8 col-span-full"><i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Loading collection...</p></div>';
+
+            const collectionSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('collection')
+                .get();
+
+            if (collectionSnapshot.empty) {
+                collectionGrid.innerHTML = `
+                    <div class="text-center py-8 col-span-full">
+                        <i class="fas fa-layer-group text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No cards in collection</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const cardsHTML = collectionSnapshot.docs.map(doc => {
+                const card = doc.data();
+                const cardName = this.getCardName(card);
+                const setName = this.getSetName(card);
+                const cardValue = card.sale_price || card.purchase_price || card.value || 0;
+                const imageUrl = this.getCardImageUrl(card);
+                const game = this.getGameName(card);
+                
+                return `
+                    <div class="bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                        <div class="aspect-w-3 aspect-h-4" style="aspect-ratio: 3/4;">
+                            ${imageUrl ? 
+                                `<img src="${imageUrl}" alt="${cardName}" class="w-full h-48 object-cover">` :
+                                `<div class="w-full h-48 bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                    <i class="fas fa-image text-4xl text-gray-400"></i>
+                                </div>`
+                            }
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-semibold text-gray-800 dark:text-white mb-1 truncate" title="${cardName}">${cardName}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2 truncate" title="${setName}">${setName}</p>
+                            <div class="flex justify-between items-center mb-2">
+                                ${cardValue > 0 ? 
+                                    `<span class="text-sm font-medium text-green-600">$${parseFloat(cardValue).toFixed(2)}</span>` :
+                                    `<span class="text-sm text-gray-500">No price</span>`
+                                }
+                                <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">${game}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                ${card.quantity && card.quantity > 1 ? `<span class="text-blue-600">Qty: ${card.quantity}</span>` : '<span></span>'}
+                                <div class="flex space-x-1">
+                                    ${card.is_signed ? '<i class="fas fa-signature text-purple-600" title="Signed"></i>' : ''}
+                                    ${card.is_altered ? '<i class="fas fa-paint-brush text-orange-600" title="Altered"></i>' : ''}
+                                    ${card.grade ? `<span class="text-yellow-600" title="Grade">${card.grade}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            collectionGrid.innerHTML = cardsHTML;
+
+        } catch (error) {
+            console.error('Error loading collection:', error);
+            document.getElementById('collection-grid').innerHTML = `
+                <div class="text-center py-8 col-span-full">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-500">Failed to load collection</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadDecksContent() {
+        try {
+            const decksGrid = document.getElementById('decks-grid');
+            decksGrid.innerHTML = '<div class="text-center py-8 col-span-full"><i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Loading decks...</p></div>';
+
+            const decksSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('decks')
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            if (decksSnapshot.empty) {
+                decksGrid.innerHTML = `
+                    <div class="text-center py-8 col-span-full">
+                        <i class="fas fa-book-open text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No decks created</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const decksHTML = decksSnapshot.docs.map(doc => {
+                const deck = doc.data();
+                const cardCount = deck.cards?.length || 0;
+                const formatColors = {
+                    'Commander': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                    'Standard': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                    'Modern': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                    'Legacy': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                };
+
+                return `
+                    <div class="deck-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-all">
+                        <div class="flex items-start justify-between mb-4">
+                            <h4 class="font-bold text-lg text-gray-800 dark:text-white">${deck.name}</h4>
+                            <span class="text-xs px-2 py-1 rounded-full ${formatColors[deck.format] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}">
+                                ${deck.format || 'Unknown'}
+                            </span>
+                        </div>
+                        
+                        <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">${deck.description || 'No description'}</p>
+                        
+                        <div class="flex items-center justify-between text-sm">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-layer-group mr-1"></i>${cardCount} cards
+                                </span>
+                                ${deck.colors ? `
+                                    <div class="flex space-x-1">
+                                        ${deck.colors.map(color => `<div class="w-3 h-3 rounded-full bg-${color.toLowerCase()}-500"></div>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <button class="text-blue-600 hover:text-blue-800 font-medium">View Deck</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            decksGrid.innerHTML = decksHTML;
+
+        } catch (error) {
+            console.error('Error loading decks:', error);
+            document.getElementById('decks-grid').innerHTML = `
+                <div class="text-center py-8 col-span-full">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-500">Failed to load decks</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadTradesContent() {
+        try {
+            const tradesList = document.getElementById('trades-list');
+            tradesList.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Loading trades...</p></div>';
+
+            const tradesSnapshot = await this.db.collection('trades')
+                .where('participants', 'array-contains', this.profileUserId)
+                .orderBy('createdAt', 'desc')
+                .limit(20)
+                .get();
+
+            if (tradesSnapshot.empty) {
+                tradesList.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exchange-alt text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No trade history</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tradesHTML = tradesSnapshot.docs.map(doc => {
+                const trade = doc.data();
+                const otherParticipant = trade.participants.find(p => p !== this.profileUserId);
+                const statusColors = {
+                    'completed': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                    'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                    'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                };
+
+                return `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-exchange-alt text-blue-600"></i>
+                                <div>
+                                    <h4 class="font-semibold text-gray-800 dark:text-white">Trade with @${trade.otherUserHandle || 'unknown'}</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                                        ${trade.createdAt ? new Date(trade.createdAt.toMillis()).toLocaleDateString() : 'Unknown date'}
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-sm font-medium ${statusColors[trade.status] || statusColors.pending}">
+                                ${trade.status || 'pending'}
+                            </span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Offered</h5>
+                                <div class="space-y-1">
+                                    ${(trade.userOffers?.[this.profileUserId] || []).slice(0, 3).map(card => 
+                                        `<div class="text-gray-600 dark:text-gray-400">${card.name}</div>`
+                                    ).join('')}
+                                    ${(trade.userOffers?.[this.profileUserId]?.length || 0) > 3 ? 
+                                        `<div class="text-gray-500">+${(trade.userOffers[this.profileUserId].length - 3)} more</div>` : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Received</h5>
+                                <div class="space-y-1">
+                                    ${(trade.userOffers?.[otherParticipant] || []).slice(0, 3).map(card => 
+                                        `<div class="text-gray-600 dark:text-gray-400">${card.name}</div>`
+                                    ).join('')}
+                                    ${(trade.userOffers?.[otherParticipant]?.length || 0) > 3 ? 
+                                        `<div class="text-gray-500">+${(trade.userOffers[otherParticipant].length - 3)} more</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            tradesList.innerHTML = tradesHTML;
+
+        } catch (error) {
+            console.error('Error loading trades:', error);
+            document.getElementById('trades-list').innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-500">Failed to load trade history</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadActivityContent() {
+        try {
+            const activityList = document.getElementById('full-activity-list');
+            activityList.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i><p class="text-gray-500 dark:text-gray-400">Loading activity...</p></div>';
+
+            // Load various activity types
+            const activities = [];
+
+            // Collection activities
+            const collectionSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('collection')
+                .orderBy('addedAt', 'desc')
+                .limit(10)
+                .get();
+
+            collectionSnapshot.forEach(doc => {
+                const card = doc.data();
+                if (card.addedAt) {
+                    activities.push({
+                        type: 'collection',
+                        timestamp: card.addedAt,
+                        description: `Added ${card.name} to collection`,
+                        details: card.setName || 'Unknown Set'
+                    });
+                }
+            });
+
+            // Deck activities
+            const decksSnapshot = await this.db.collection('users')
+                .doc(this.profileUserId)
+                .collection('decks')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get();
+
+            decksSnapshot.forEach(doc => {
+                const deck = doc.data();
+                if (deck.createdAt) {
+                    activities.push({
+                        type: 'deck',
+                        timestamp: deck.createdAt,
+                        description: `Created deck: "${deck.name}"`,
+                        details: deck.format || 'Unknown format'
+                    });
+                }
+            });
+
+            // Sort activities by timestamp
+            activities.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+
+            if (activities.length === 0) {
+                activityList.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No recent activity</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const activityHTML = activities.map(activity => {
+                const timeAgo = this.getTimeAgo(activity.timestamp.toMillis());
+                const iconMap = {
+                    'collection': 'fas fa-layer-group',
+                    'deck': 'fas fa-book-open',
+                    'trade': 'fas fa-exchange-alt'
+                };
+
+                return `
+                    <div class="activity-item">
+                        <div class="flex items-start space-x-3">
+                            <i class="${iconMap[activity.type] || 'fas fa-circle'} text-blue-600 mt-1"></i>
+                            <div class="flex-1">
+                                <div class="text-sm text-gray-500 dark:text-gray-400">${timeAgo}</div>
+                                <div class="font-medium text-gray-800 dark:text-white">${activity.description}</div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">${activity.details}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            activityList.innerHTML = activityHTML;
+
+        } catch (error) {
+            console.error('Error loading activity:', error);
+            document.getElementById('full-activity-list').innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-500">Failed to load activity</p>
+                </div>
+            `;
+        }
+    }
+
+    setupEventListeners() {
+        // Collection filter
+        const collectionFilter = document.getElementById('collection-filter');
+        if (collectionFilter) {
+            collectionFilter.addEventListener('change', () => {
+                this.loadCollectionContent();
+            });
+        }
+
+        // Trade filter
+        const tradeFilter = document.getElementById('trade-filter');
+        if (tradeFilter) {
+            tradeFilter.addEventListener('change', () => {
+                this.loadTradesContent();
+            });
+        }
+    }
+
+    async sendFriendRequest() {
+        if (!this.currentUser) {
+            alert('Please log in to send friend requests');
+            return;
+        }
+
+        try {
+            // Check if already friends or request exists
+            const existingRequest = await this.db.collection('friendRequests')
+                .where('senderId', '==', this.currentUser.uid)
+                .where('receiverId', '==', this.profileUserId)
+                .where('status', '==', 'pending')
+                .get();
+
+            if (!existingRequest.empty) {
+                alert('Friend request already sent');
+                return;
+            }
+
+            // Send friend request
+            await this.db.collection('friendRequests').add({
+                senderId: this.currentUser.uid,
+                receiverId: this.profileUserId,
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            alert('Friend request sent!');
+            
+        } catch (error) {
+            console.error('Error sending friend request:', error);
+            alert('Failed to send friend request');
+        }
+    }
+
+    startConversation() {
+        // Redirect to messages page with user parameter
+        window.location.href = `messages.html?user=${this.profileUserId}`;
+    }
+
+    openEditProfileModal() {
+        if (window.profileEditor) {
+            window.profileEditor.openModal(this.profileData);
+        } else {
+            alert('Profile editor is loading...');
+        }
+    }
+
+    getTimeAgo(timestamp) {
+        const now = Date.now();
+        const diff = now - timestamp;
+        
+        const minute = 60 * 1000;
+        const hour = minute * 60;
+        const day = hour * 24;
+        const week = day * 7;
+        const month = day * 30;
+        const year = day * 365;
+
+        if (diff < minute) return 'Just now';
+        if (diff < hour) return `${Math.floor(diff / minute)} minutes ago`;
+        if (diff < day) return `${Math.floor(diff / hour)} hours ago`;
+        if (diff < week) return `${Math.floor(diff / day)} days ago`;
+        if (diff < month) return `${Math.floor(diff / week)} weeks ago`;
+        if (diff < year) return `${Math.floor(diff / month)} months ago`;
+        return `${Math.floor(diff / year)} years ago`;
+    }
+
+    // Data cleaning helper methods (matching the logic from api.js)
+    getCardName(card) {
+        return card.name || card.card_name || card.Name || 'Unknown Card';
+    }
+
+    getSetName(card) {
+        // Handle different TCG data structures
+        if (card.set_name) return card.set_name;
+        if (card.setName) return card.setName;
+        if (card.expansion?.name) return card.expansion.name;
+        if (card.set) return card.set;
+        
+        // Game-specific fallbacks
+        switch (card.game) {
+            case 'pokemon':
+                return card.expansion?.name || 'Unknown Set';
+            case 'lorcana':
+                return card.expansion?.name || 'Unknown Set';
+            case 'gundam':
+                return card.expansion?.name || 'Unknown Set';
+            case 'mtg':
+            default:
+                return 'Unknown Set';
+        }
+    }
+
+    getGameName(card) {
+        if (card.game) {
+            // Normalize game names for display
+            switch (card.game.toLowerCase()) {
+                case 'mtg':
+                    return 'Magic: The Gathering';
+                case 'pokemon':
+                    return 'Pokémon';
+                case 'lorcana':
+                    return 'Lorcana';
+                case 'gundam':
+                    return 'Gundam';
+                default:
+                    return card.game;
+            }
+        }
+        return 'Unknown Game';
+    }
+
+    getCardImageUrl(card) {
+        // Handle different image URL structures
+        if (card.image_uris) {
+            return card.image_uris.normal || card.image_uris.small || card.image_uris.large;
+        }
+        if (card.image_url) return card.image_url;
+        if (card.images && card.images[0]) {
+            return card.images[0].medium || card.images[0].small || card.images[0].large;
+        }
+        return null;
+    }
+
+    showError(message) {
+        document.getElementById('enhanced-profile-container').innerHTML = `
+            <div class="text-center py-16">
+                <i class="fas fa-exclamation-triangle text-6xl text-red-400 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Error</h2>
+                <p class="text-gray-600 dark:text-gray-400">${message}</p>
+                <button onclick="window.location.reload()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    Try Again
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Initialize when DOM is loaded and user is authenticated
+document.addEventListener('DOMContentLoaded', () => {
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            const db = firebase.firestore();
+            const container = document.getElementById('enhanced-profile-container') || document.getElementById('profile-container');
+            if (container) {
+                window.enhancedProfileManager = new EnhancedProfileManager(db, user.uid);
+            }
+        }
+    });
 });
