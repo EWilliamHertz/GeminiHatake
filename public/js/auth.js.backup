@@ -329,9 +329,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (googleLoginButton) googleLoginButton.addEventListener('click', handleGoogleAuth);
         if (googleRegisterButton) googleRegisterButton.addEventListener('click', handleGoogleAuth);
 
-        // Mobile navigation is now handled by the dedicated mobile-navigation.js module
-        // The module auto-initializes and handles all hamburger menu functionality
-        console.log('Mobile navigation will be handled by mobile-navigation.js module');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (sidebarToggle && sidebar && sidebarOverlay) {
+            const toggleSidebar = () => {
+                // Handle responsive classes properly
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    // Show sidebar
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    sidebarOverlay.classList.remove('hidden');
+                } else {
+                    // Hide sidebar
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                    sidebarOverlay.classList.add('hidden');
+                }
+            };
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+        }
     };
 
     let friendRequestHandshakeListener = null;
