@@ -334,8 +334,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         if (sidebarToggle && sidebar && sidebarOverlay) {
             const toggleSidebar = () => {
-                sidebar.classList.toggle('-translate-x-full');
-                sidebarOverlay.classList.toggle('hidden');
+                // Handle responsive classes properly
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    // Show sidebar
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    sidebarOverlay.classList.remove('hidden');
+                } else {
+                    // Hide sidebar
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                    sidebarOverlay.classList.add('hidden');
+                }
             };
             sidebarToggle.addEventListener('click', toggleSidebar);
             sidebarOverlay.addEventListener('click', toggleSidebar);
