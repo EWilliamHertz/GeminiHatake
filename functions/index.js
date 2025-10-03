@@ -1489,6 +1489,16 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
             }
         });
         
+        // Log specific currency errors if available
+        if (error.response?.data?.errors?.currency) {
+            console.error("Currency Error Details:", error.response.data.errors.currency);
+        }
+        
+        // Log all validation errors if available
+        if (error.response?.data?.errors) {
+            console.error("All Validation Errors:", JSON.stringify(error.response.data.errors, null, 2));
+        }
+        
         let errorMessage = 'Could not create the Escrow.com transaction.';
         if (error.response?.status === 401) {
             errorMessage = 'Escrow API authentication failed. Please check credentials.';
