@@ -1492,8 +1492,8 @@ window.createTradeCard = async function(trade, tradeId, user) {
     tradeCard.setAttribute('data-trade-id', tradeId);
     const isProposer = trade.proposerId === user.uid;
 
-    const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
-    const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
+    const proposerItemsHtml = await renderTradeItems(trade.proposerCards, trade.proposerMoney);
+    const receiverItemsHtml = await renderTradeItems(trade.receiverCards, trade.receiverMoney);
 
     const statusColors = {
         pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
@@ -1546,12 +1546,25 @@ window.createTradeCard = async function(trade, tradeId, user) {
     return tradeCard;
 };
 
-window.renderTradeItems = function(cards, money) {
+window.renderTradeItems = async function(cards, money) {
+    // Import currency functions
+    let convertAndFormat, getUserCurrency;
+    try {
+        const currencyModule = await import('./modules/currency.js');
+        convertAndFormat = currencyModule.convertAndFormat;
+        getUserCurrency = currencyModule.getUserCurrency;
+    } catch (error) {
+        console.warn('Currency module not available, using USD fallback');
+        convertAndFormat = (price) => `$${parseFloat(price).toFixed(2)}`;
+        getUserCurrency = () => 'USD';
+    }
+
     let html = '';
     if (cards && cards.length > 0) {
         html += cards.map(card => {
             const price = card.priceUsd || card.priceUsdFoil || 0;
             const numericPrice = parseFloat(price) || 0;
+            const formattedPrice = convertAndFormat ? convertAndFormat(numericPrice) : `$${numericPrice.toFixed(2)}`;
 
             return `
             <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
@@ -1563,7 +1576,7 @@ window.renderTradeItems = function(cards, money) {
                     <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name || 'Unknown Card'}</p>
                     <div class="flex items-center justify-between mt-1">
                         <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
-                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${numericPrice.toFixed(2)}</span>
+                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
                     </div>
                 </div>
             </div>
@@ -1572,10 +1585,22 @@ window.renderTradeItems = function(cards, money) {
     }
     
     if (money && money > 0) {
+        const formattedMoney = convertAndFormat ? convertAndFormat(parseFloat(money)) : `$${parseFloat(money).toFixed(2)}`;
+        const userCurrency = getUserCurrency ? getUserCurrency() : 'USD';
+        const currencySymbols = {
+            'USD': '$',
+            'SEK': 'kr',
+            'EUR': '€',
+            'GBP': '£',
+            'NOK': 'kr',
+            'DKK': 'kr'
+        };
+        const currencyIcon = currencySymbols[userCurrency] === 'kr' ? 'fas fa-coins' : 'fas fa-dollar-sign';
+        
         html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
                     <div class="flex items-center space-x-2">
-                        <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
-                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${(parseFloat(money) || 0).toFixed(2)}</span>
+                        <i class="${currencyIcon} text-green-600 dark:text-green-400"></i>
+                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: ${formattedMoney}</span>
                     </div>
                  </div>`;
     }
