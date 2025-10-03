@@ -1433,8 +1433,19 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
         inspection_period: 3,
     };
 
+    // Debug logging
+    console.log("Escrow API Configuration:", {
+        hasApiKey: !!ESCROW_API_KEY,
+        hasApiUser: !!ESCROW_API_USER,
+        apiUrl: ESCROW_API_URL,
+        keyLength: ESCROW_API_KEY ? ESCROW_API_KEY.length : 0
+    });
+    
+    console.log("Escrow Transaction Data:", JSON.stringify(transactionData, null, 2));
+
     try {
         const response = await escrowApi.post('transaction', transactionData);
+        console.log("Escrow API Response:", response.data);
         const escrowTransactionId = response.data.id;
 
         await db.collection('trades').doc(tradeId).update({
@@ -1447,8 +1458,28 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
         return { success: true, paymentUrl: paymentUrl };
 
     } catch (error) {
-        console.error("Escrow.com transaction creation failed:", error.response ? error.response.data : error.message);
-        throw new functions.https.HttpsError('internal', 'Could not create the Escrow.com transaction.');
+        console.error("Escrow.com transaction creation failed - Full Error:", {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            config: {
+                url: error.config?.url,
+                method: error.config?.method,
+                headers: error.config?.headers
+            }
+        });
+        
+        let errorMessage = 'Could not create the Escrow.com transaction.';
+        if (error.response?.status === 401) {
+            errorMessage = 'Escrow API authentication failed. Please check credentials.';
+        } else if (error.response?.status === 400) {
+            errorMessage = `Escrow API validation error: ${error.response?.data?.message || 'Invalid request data'}`;
+        } else if (error.response?.data?.message) {
+            errorMessage = `Escrow API error: ${error.response.data.message}`;
+        }
+        
+        throw new functions.https.HttpsError('internal', errorMessage);
     }
 });
 
