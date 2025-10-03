@@ -1416,6 +1416,15 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
     const buyerEmail = buyerDoc.data().email;
     const sellerEmail = sellerDoc.data().email;
 
+    // Validate inputs
+    if (!buyerEmail || !sellerEmail) {
+        throw new functions.https.HttpsError('invalid-argument', 'Buyer or seller email is missing.');
+    }
+    
+    if (isNaN(amount) || amount <= 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid amount provided.');
+    }
+
     const transactionData = {
         parties: [
             { role: 'buyer', customer: buyerEmail },
@@ -1425,10 +1434,10 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
             title: 'HatakeSocial Trade',
             description: description,
             quantity: 1,
-            price: amount.toFixed(2), // amount should be in SEK
+            price: String(amount.toFixed(2)), // Ensure string format
             type: 'general_merchandise'
         }],
-        currency: 'sek',
+        currency: 'SEK', // Try uppercase currency code
         description: `Trade ID: ${tradeId} on HatakeSocial.`,
         inspection_period: 3,
     };
