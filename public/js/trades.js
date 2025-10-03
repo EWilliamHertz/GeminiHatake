@@ -278,12 +278,34 @@ class TradeWindow {
 
         // Cash input event listeners
         document.getElementById('your-cash-input')?.addEventListener('input', (e) => {
-            this.currentTrade.yourCash = parseFloat(e.target.value) || 0;
+            const inputValue = parseFloat(e.target.value) || 0;
+            // Convert the input value from user's currency back to USD for internal storage
+            if (this.userCurrency && this.userCurrency !== 'USD' && window.currencyRates) {
+                const rate = window.currencyRates[this.userCurrency];
+                if (rate) {
+                    this.currentTrade.yourCash = inputValue / rate; // Convert to USD
+                } else {
+                    this.currentTrade.yourCash = inputValue; // Fallback to direct value
+                }
+            } else {
+                this.currentTrade.yourCash = inputValue;
+            }
             this.updateTradeValues();
         });
 
         document.getElementById('their-cash-input')?.addEventListener('input', (e) => {
-            this.currentTrade.theirCash = parseFloat(e.target.value) || 0;
+            const inputValue = parseFloat(e.target.value) || 0;
+            // Convert the input value from user's currency back to USD for internal storage
+            if (this.userCurrency && this.userCurrency !== 'USD' && window.currencyRates) {
+                const rate = window.currencyRates[this.userCurrency];
+                if (rate) {
+                    this.currentTrade.theirCash = inputValue / rate; // Convert to USD
+                } else {
+                    this.currentTrade.theirCash = inputValue; // Fallback to direct value
+                }
+            } else {
+                this.currentTrade.theirCash = inputValue;
+            }
             this.updateTradeValues();
         });
     }
@@ -1067,22 +1089,38 @@ class TradeWindow {
             this.currentTrade.theirCash = Math.abs(difference);
             const theirCashInput = document.getElementById('their-cash-input');
             if (theirCashInput) {
-                // Convert the USD difference to the user's currency for display
-                const convertedValue = this.convertAndFormat ? 
-                    this.convertAndFormat(Math.abs(difference)).replace(/[^\d.,]/g, '') : 
-                    Math.abs(difference).toFixed(2);
-                theirCashInput.value = convertedValue;
+                // For auto-balance, we need to convert the USD amount to the display currency
+                // but store the USD amount in the trade object
+                let displayValue;
+                if (this.convertAndFormat) {
+                    // Get the formatted string and extract just the numeric part
+                    const formatted = this.convertAndFormat(Math.abs(difference));
+                    displayValue = formatted.replace(/[^\d.,]/g, '').replace(',', '.');
+                } else {
+                    displayValue = Math.abs(difference).toFixed(2);
+                }
+                theirCashInput.value = displayValue;
+                // Trigger the input event to update the trade object properly
+                theirCashInput.dispatchEvent(new Event('input'));
             }
         } else {
             // They have more value, you need to add cash
             this.currentTrade.yourCash = Math.abs(difference);
             const yourCashInput = document.getElementById('your-cash-input');
             if (yourCashInput) {
-                // Convert the USD difference to the user's currency for display
-                const convertedValue = this.convertAndFormat ? 
-                    this.convertAndFormat(Math.abs(difference)).replace(/[^\d.,]/g, '') : 
-                    Math.abs(difference).toFixed(2);
-                yourCashInput.value = convertedValue;
+                // For auto-balance, we need to convert the USD amount to the display currency
+                // but store the USD amount in the trade object
+                let displayValue;
+                if (this.convertAndFormat) {
+                    // Get the formatted string and extract just the numeric part
+                    const formatted = this.convertAndFormat(Math.abs(difference));
+                    displayValue = formatted.replace(/[^\d.,]/g, '').replace(',', '.');
+                } else {
+                    displayValue = Math.abs(difference).toFixed(2);
+                }
+                yourCashInput.value = displayValue;
+                // Trigger the input event to update the trade object properly
+                yourCashInput.dispatchEvent(new Event('input'));
             }
         }
 
