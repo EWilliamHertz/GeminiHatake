@@ -1755,11 +1755,27 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
             const moneyInvolved = (trade.proposerMoney || 0) > 0 || (trade.receiverMoney || 0) > 0;
             if (moneyInvolved) {
                 if (isPayer) {
-                    const amount = Math.max(trade.proposerMoney || 0, trade.receiverMoney || 0);
-                    const escrowFee = amount * 0.027;
-                    const totalAmount = amount + escrowFee;
-                    const currency = trade.currency || 'USD';
-                    const currencySymbol = currency === 'SEK' ? 'kr' : currency === 'EUR' ? '€' : '$';
+                    // Get the USD amount and convert to user's currency
+                    const usdAmount = Math.max(trade.proposerMoney || 0, trade.receiverMoney || 0);
+                    
+                    // Import currency conversion to get the actual displayed amount
+                    let convertedAmount = usdAmount;
+                    try {
+                        // Get user's currency and conversion rate
+                        const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+                        const exchangeRates = JSON.parse(localStorage.getItem('exchangeRates') || '{}');
+                        
+                        if (userCurrency !== 'USD' && exchangeRates[userCurrency]) {
+                            convertedAmount = usdAmount * exchangeRates[userCurrency];
+                        }
+                    } catch (error) {
+                        console.warn('Currency conversion failed, using USD amount:', error);
+                    }
+                    
+                    const escrowFee = convertedAmount * 0.027;
+                    const totalAmount = convertedAmount + escrowFee;
+                    const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+                    const currencySymbol = userCurrency === 'SEK' ? 'kr' : userCurrency === 'EUR' ? '€' : '$';
                     
                     return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${totalAmount.toFixed(2)} via Escrow.com <small>(incl. 2.7% fee)</small></button>`;
                 } else {
@@ -1782,11 +1798,27 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
                 : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Mark as Shipped</button>`;
         case 'awaiting_payment':
             if (isPayer) {
-                const amount = Math.max(trade.proposerMoney || 0, trade.receiverMoney || 0);
-                const escrowFee = amount * 0.027;
-                const totalAmount = amount + escrowFee;
-                const currency = trade.currency || 'USD';
-                const currencySymbol = currency === 'SEK' ? 'kr' : currency === 'EUR' ? '€' : '$';
+                // Get the USD amount and convert to user's currency
+                const usdAmount = Math.max(trade.proposerMoney || 0, trade.receiverMoney || 0);
+                
+                // Import currency conversion to get the actual displayed amount
+                let convertedAmount = usdAmount;
+                try {
+                    // Get user's currency and conversion rate
+                    const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+                    const exchangeRates = JSON.parse(localStorage.getItem('exchangeRates') || '{}');
+                    
+                    if (userCurrency !== 'USD' && exchangeRates[userCurrency]) {
+                        convertedAmount = usdAmount * exchangeRates[userCurrency];
+                    }
+                } catch (error) {
+                    console.warn('Currency conversion failed, using USD amount:', error);
+                }
+                
+                const escrowFee = convertedAmount * 0.027;
+                const totalAmount = convertedAmount + escrowFee;
+                const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+                const currencySymbol = userCurrency === 'SEK' ? 'kr' : userCurrency === 'EUR' ? '€' : '$';
                 
                 return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${totalAmount.toFixed(2)} via Escrow.com <small>(incl. 2.7% fee)</small></button>`;
             } else {
@@ -1839,13 +1871,58 @@ window.handleTradeAction = async function(action, tradeId, db) {
             // Determine buyer and seller
             const buyerUid = (tradeData.proposerMoney || 0) > 0 ? tradeData.proposerId : tradeData.receiverId;
             const sellerUid = (tradeData.proposerMoney || 0) > 0 ? tradeData.receiverId : tradeData.proposerId;
-            const amount = Math.max(tradeData.proposerMoney || 0, tradeData.receiverMoney || 0);
+            const usdAmount = Math.max(tradeData.proposerMoney || 0, tradeData.receiverMoney || 0);
             
-            // Calculate total amount including 2.7% Escrow fee
-            const escrowFee = amount * 0.027;
-            const totalAmount = amount + escrowFee;
+            // Convert USD amount to user's currency (SEK for Escrow)
+            let convertedAmount = usdAmount;
+            try {
+                // Get user's currency and conversion rate
+                const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+                const exchangeRates = JSON.parse(localStorage.getItem('exchangeRates') || '{}');
+                
+                if (userCurrency !== 'USD' && exchangeRates[userCurrency]) {
+                    convertedAmount = usdAmount * exchangeRates[userCurrency];
+                }
+            } catch (error) {
+                console.warn('Currency conversion failed, using USD amount:', error);
+            }
+            
+            // Calculate total amount including 2.7% Escrow fee (in converted currency)
+            const escrowFee = convertedAmount * 0.027;
+            const totalAmount = convertedAmount + escrowFee;
             
             const description = `Trade between ${tradeData.proposerName} and ${tradeData.receiverName}`;
+            
+            // Convert to SEK if not already (Escrow function expects SEK)
+            let sekAmount = convertedAmount;
+            const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+            if (userCurrency !== 'SEK') {
+                try {
+                    const exchangeRates = JSON.parse(localStorage.getItem('exchangeRates') || '{}');
+                    if (userCurrency === 'USD' && exchangeRates['SEK']) {
+                        sekAmount = convertedAmount * exchangeRates['SEK'];
+                    } else if (exchangeRates['SEK'] && exchangeRates[userCurrency]) {
+                        // Convert to USD first, then to SEK
+                        const usdValue = convertedAmount / exchangeRates[userCurrency];
+                        sekAmount = usdValue * exchangeRates['SEK'];
+                    }
+                } catch (error) {
+                    console.warn('SEK conversion failed:', error);
+                }
+            }
+            
+            const sekFee = sekAmount * 0.027;
+            const totalSekAmount = sekAmount + sekFee;
+            
+            console.log('Payment Debug:', {
+                usdAmount,
+                convertedAmount,
+                userCurrency,
+                sekAmount,
+                totalSekAmount,
+                buyerUid,
+                sellerUid
+            });
             
             // Call cloud function to create Escrow transaction
             const createEscrowTransaction = firebase.functions().httpsCallable('createEscrowTransaction');
@@ -1853,7 +1930,7 @@ window.handleTradeAction = async function(action, tradeId, db) {
                 tradeId: tradeId,
                 buyerUid: buyerUid,
                 sellerUid: sellerUid,
-                amount: totalAmount, // Include fee in total
+                amount: totalSekAmount, // Send SEK amount to Escrow
                 description: description
             });
             
