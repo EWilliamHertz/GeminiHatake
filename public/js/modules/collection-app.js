@@ -1078,7 +1078,7 @@ function handleSearchInput() {
             <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>
                 <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
                 <div class="flex-grow">
-                    <p class="font-semibold">${card.name}</p>
+                    <p class="font-semibold">${card.name} (${card.collector_number})</p>
                     <p class="text-sm text-gray-500">${card.set_name}</p>
                 </div>
                 <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
