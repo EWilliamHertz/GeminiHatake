@@ -1,10 +1,11 @@
 /**
  * csv.js
  * Handles CSV import and export functionality for the collection.
- * - Merges robust parsing with live progress updates.
- * - Fixed to use Firebase Cloud Functions instead of placeholder URL
+ * - Fixed to work with the actual Firebase backend and API module
+ * - Proper error handling and user feedback
  */
 import * as Collection from './collection.js';
+import * as API from './api.js';
 
 let parsedCsvData = [];
 
@@ -19,30 +20,6 @@ const MANABOX_HEADERS = {
     language: ['language'],
     is_foil: ['foil', 'printing'], // 'printing' can also indicate foil status
 };
-
-async function getCardDataFromBackend(cardName) {
-    try {
-        // Use Firebase Cloud Function instead of placeholder URL
-        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDx');
-        
-        const response = await searchScryDexFunction({
-            query: cardName,
-            game: 'mtg',
-            page: 1,
-            limit: 1
-        });
-
-        if (response && response.data && response.data.cards && response.data.cards.length > 0) {
-            return response.data.cards[0];
-        } else {
-            console.error(`No card found for "${cardName}"`);
-            return null;
-        }
-    } catch (error) {
-        console.error(`Failed to fetch card data for "${cardName}":`, error);
-        return null;
-    }
-}
 
 function findHeaderIndex(headers, possibleNames) {
     for (const name of possibleNames) {
@@ -142,65 +119,93 @@ export function parseCSV(file) {
     });
 }
 
-export async function finalizeImport(UI) {
-    const importButton = document.getElementById('finalize-csv-import-btn');
-    if (!parsedCsvData || parsedCsvData.length === 0) {
-        UI.showToast("No cards to import.", "info");
-        return;
-    }
-
-    UI.setButtonLoading(importButton, true, "Importing...");
-    if (UI.toggleCsvImportProgress) UI.toggleCsvImportProgress(true);
-
-    const totalCards = parsedCsvData.length;
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (let i = 0; i < totalCards; i++) {
-        const card = parsedCsvData[i];
-        if (!card) continue;
-
-        if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'loading');
+export async function processCSVImport(cards, updateCallback) {
+    const results = [];
+    
+    for (let i = 0; i < cards.length; i++) {
+        const card = cards[i];
+        updateCallback && updateCallback(i, 'processing', `Processing ${card.name}...`);
         
         try {
-            const cardData = await getCardDataFromBackend(card.name);
+            // Search for the card using the API module
+            const searchQuery = `!"${card.name}"`;
+            const searchResult = await API.searchCards(searchQuery, 'mtg');
             
-            if (cardData) {
+            if (searchResult && searchResult.cards && searchResult.cards.length > 0) {
+                const foundCard = searchResult.cards[0];
+                
+                // Merge CSV data with found card data
                 const cardToImport = {
-                    ...cardData,
+                    ...foundCard,
                     quantity: card.quantity,
-                    is_foil: card.is_foil,
                     condition: card.condition,
                     language: card.language,
+                    is_foil: card.is_foil,
                     addedAt: new Date()
                 };
                 
-                await Collection.addMultipleCards([cardToImport]);
-                successCount++;
-                if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'success', 'Imported');
+                results.push({
+                    index: i,
+                    status: 'success',
+                    card: cardToImport,
+                    originalName: card.name
+                });
+                
+                updateCallback && updateCallback(i, 'success', 'Found');
             } else {
-                throw new Error("Card not found or backend error");
+                results.push({
+                    index: i,
+                    status: 'error',
+                    error: 'Card not found',
+                    originalName: card.name
+                });
+                
+                updateCallback && updateCallback(i, 'error', 'Not found');
             }
         } catch (error) {
-            errorCount++;
             console.error(`Error processing ${card.name}:`, error);
-            if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'error', error.message || 'Failed');
+            results.push({
+                index: i,
+                status: 'error',
+                error: error.message,
+                originalName: card.name
+            });
+            
+            updateCallback && updateCallback(i, 'error', error.message);
         }
-
-        const progress = Math.round(((i + 1) / totalCards) * 100);
-        if (UI.updateCsvImportProgress) UI.updateCsvImportProgress(i + 1, totalCards, progress);
+        
+        // Small delay to prevent overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
-
-    UI.setButtonLoading(importButton, false, "Import Finished");
-    importButton.disabled = true;
-
-    UI.showToast(`${successCount} cards imported successfully. ${errorCount > 0 ? `${errorCount} failed.` : ''}`, errorCount > 0 ? 'warning' : 'success');
     
-    setTimeout(() => {
-        const modal = document.getElementById('csv-review-modal');
-        if (modal) UI.closeModal(modal);
-        document.dispatchEvent(new CustomEvent('collectionUpdated'));
-    }, 3000);
+    return results;
+}
+
+export async function finalizeImport(results) {
+    const successfulCards = results.filter(r => r.status === 'success').map(r => r.card);
+    
+    if (successfulCards.length === 0) {
+        throw new Error('No cards to import');
+    }
+    
+    try {
+        await Collection.addMultipleCards(successfulCards);
+        return {
+            imported: successfulCards.length,
+            failed: results.length - successfulCards.length
+        };
+    } catch (error) {
+        console.error('Error importing cards:', error);
+        throw error;
+    }
+}
+
+export function getParsedData() {
+    return parsedCsvData;
+}
+
+export function clearParsedData() {
+    parsedCsvData = [];
 }
 
 export function updateReviewedCard(index, field, value) {
@@ -211,8 +216,4 @@ export function updateReviewedCard(index, field, value) {
 
 export function removeReviewedCard(index) {
     parsedCsvData.splice(index, 1);
-}
-
-export function getParsedData() {
-    return parsedCsvData;
 }
