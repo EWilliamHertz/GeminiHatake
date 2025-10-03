@@ -45,7 +45,7 @@ const storage = admin.storage();
 // firebase functions:config:set escrow.key="YOUR_KEY" escrow.user="YOUR_USER"
 const ESCROW_API_KEY = functions.config().escrow.key;
 const ESCROW_API_USER = functions.config().escrow.user;
-const ESCROW_API_URL = "https://api.escrow.com/2023-09-01/";
+const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/";
 
 const escrowApi = axios.create({
     baseURL: ESCROW_API_URL,
