@@ -1425,6 +1425,16 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
         throw new functions.https.HttpsError('invalid-argument', 'Invalid amount provided.');
     }
 
+    // Convert amount back to USD for Escrow (Escrow works in USD, display conversion is frontend-only)
+    // The amount parameter comes in as SEK, so we need to convert back to USD
+    let usdAmount = amount;
+    
+    // If amount seems to be in SEK (> 10), convert back to USD
+    if (amount > 10) {
+        // Rough conversion: SEK to USD (approximately divide by 10-11)
+        usdAmount = amount / 10.5; // Approximate SEK to USD conversion
+    }
+
     const transactionData = {
         parties: [
             { role: 'buyer', customer: buyerEmail },
@@ -1434,10 +1444,10 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
             title: 'HatakeSocial Trade',
             description: description,
             quantity: 1,
-            price: String(amount.toFixed(2)), // Ensure string format
+            price: String(usdAmount.toFixed(2)), // Use USD amount
             type: 'general_merchandise'
         }],
-        currency: 'SEK', // Try uppercase currency code
+        currency: 'USD', // Use USD for Escrow transactions
         description: `Trade ID: ${tradeId} on HatakeSocial.`,
         inspection_period: 3,
     };
