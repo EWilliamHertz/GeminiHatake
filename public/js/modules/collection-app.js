@@ -112,32 +112,35 @@ const UI = {
                 ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">$${card.sale_price.toFixed(2)}</div>`
                 : '';
 
-            const cardHtml = `
-                <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
-                    <div class="relative">
-                        ${forSaleIndicator}
-                        <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-full object-cover" loading="lazy">
-                        ${isBulkMode ? `<input type="checkbox" class="bulk-select-checkbox absolute top-2 right-2 h-5 w-5 z-10" ${isSelected ? 'checked' : ''}>` : ''}
-                        <div class="card-actions absolute bottom-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                            ${card.for_sale 
-                                ? `<button data-action="update-price" title="Update Price" class="p-2 bg-green-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-tag"></i></button>
-                                   <button data-action="remove-sale" title="Remove from Sale" class="p-2 bg-orange-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-store-slash"></i></button>`
-                                : `<button data-action="list-sale" title="List for Sale" class="p-2 bg-green-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-dollar-sign"></i></button>`
-                            }
-                            <button data-action="history" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-chart-line"></i></button>
-                            <button data-action="edit" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-edit"></i></button>
-                            <button data-action="delete" class="p-2 bg-red-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <div class="p-2 text-xs flex-grow flex flex-col justify-between">
-                        <div>
-                            <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
-                            <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
-                        </div>
-                        <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${Currency.convertAndFormat(card.prices)}</p>
-                    </div>
-                </div>
-            `;
+           const foilClass = card.is_foil ? 'foil-effect' : '';
+const priceDisplay = Currency.convertAndFormat(card.prices, card.is_foil);
+const foilPriceIndicator = card.is_foil && (card.prices?.usd_foil || card.prices?.eur_foil) ? '<span class="text-xs text-blue-400"> (Foil)</span>' : '';
+const cardHtml = `
+    <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
+        <div class="relative ${foilClass}">
+            ${forSaleIndicator}
+            <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-full object-cover" loading="lazy">
+            ${isBulkMode ? `<input type="checkbox" class="bulk-select-checkbox absolute top-2 right-2 h-5 w-5 z-10" ${isSelected ? 'checked' : ''}>` : ''}
+            <div class="card-actions absolute bottom-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                ${card.for_sale
+                    ? `<button data-action="update-price" title="Update Price" class="p-2 bg-green-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-tag"></i></button>
+                       <button data-action="remove-sale" title="Remove from Sale" class="p-2 bg-orange-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-store-slash"></i></button>`
+                    : `<button data-action="list-sale" title="List for Sale" class="p-2 bg-green-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-dollar-sign"></i></button>`
+                }
+                <button data-action="history" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-chart-line"></i></button>
+                <button data-action="edit" class="p-2 bg-gray-800 bg-opacity-60 rounded-full text-white hover:bg-opacity-90"><i class="fas fa-edit"></i></button>
+                <button data-action="delete" class="p-2 bg-red-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+        <div class="p-2 text-xs flex-grow flex flex-col justify-between">
+            <div>
+                <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
+                <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
+            </div>
+            <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${priceDisplay}${foilPriceIndicator}</p>
+        </div>
+    </div>
+`;
             grid.insertAdjacentHTML('beforeend', cardHtml);
         });
         container.appendChild(grid);
@@ -165,8 +168,7 @@ const UI = {
                 <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                     ${cards.map(card => {
                         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
-                        const marketValue = Currency.convertAndFormat(card.prices);
-                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
+const marketValue = Currency.convertAndFormat(card.prices, card.is_foil);                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
                             ? `<span class="block text-green-500 font-semibold text-xs">FOR SALE: $${card.sale_price.toFixed(2)}</span>`
                             : '';
                         return `
@@ -235,13 +237,21 @@ const UI = {
         document.getElementById('card-modal-subtitle').textContent = `${card.set_name} (#${card.collector_number})`;
         document.getElementById('card-modal-image').src = getCardImageUrl(card);
         
-        for (const key in card) {
-            const el = form.elements[key.replace(/_([a-z])/g, (g) => g[1].toUpperCase())];
-            if (el) {
-                if (el.type === 'checkbox') el.checked = !!card[key];
-                else el.value = card[key];
-            }
-        }
+       // Correctly populate the form, including quantity and foil status
+document.getElementById('card-quantity').value = card.quantity || 1;
+document.getElementById('card-condition').value = card.condition || 'Near Mint';
+document.getElementById('card-language').value = card.language || 'English';
+document.getElementById('card-purchase-price').value = card.purchase_price || '';
+document.getElementById('card-is-foil').checked = card.is_foil || false;
+document.getElementById('card-is-signed').checked = card.is_signed || false;
+document.getElementById('card-is-altered').checked = card.is_altered || false;
+document.getElementById('card-is-graded').checked = card.is_graded || false;
+document.getElementById('card-notes').value = card.notes || '';
+
+if (card.is_graded) {
+    document.getElementById('grading-company').value = card.grading_company || 'PSA';
+    document.getElementById('grade').value = card.grade || '10';
+}
 
         document.getElementById('save-card-btn').textContent = 'Update Card';
         document.getElementById('delete-card-btn').classList.remove('hidden');
@@ -1050,8 +1060,8 @@ function handleSearchInput() {
             const results = await fetchAllCards(query, game); 
             
             resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
-                results.map(card => `
-                    <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
+     results.map(card => `
+    <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
                         <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
                         <div class="flex-grow">
                             <p class="font-semibold">${card.name}</p>
@@ -1069,7 +1079,7 @@ function handleSearchInput() {
 
 function handleSearchResultClick(item) {
     if (item) {
-        const cardData = JSON.parse(decodeURIComponent(item.dataset.card));
+        const cardData = JSON.parse(decodeURIComponent(item.dataset.card)); // Re-add decodeURIComponent
         UI.closeModal(document.getElementById('search-modal'));
         UI.populateCardModalForAdd(cardData);
     }
