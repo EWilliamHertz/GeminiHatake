@@ -1914,37 +1914,52 @@ window.handleTradeAction = async function(action, tradeId, db) {
             const sekFee = sekAmount * 0.027;
             const totalSekAmount = sekAmount + sekFee;
             
-            console.log('Payment Debug:', {
-                usdAmount,
-                convertedAmount,
-                userCurrency,
-                sekAmount,
-                totalSekAmount,
-                buyerUid,
-                sellerUid
-            });
-            
-            // Call cloud function to create Escrow transaction
-            const createEscrowTransaction = firebase.functions().httpsCallable('createEscrowTransaction');
-            const result = await createEscrowTransaction({
+            const escrowParams = {
                 tradeId: tradeId,
                 buyerUid: buyerUid,
                 sellerUid: sellerUid,
                 amount: totalSekAmount, // Send SEK amount to Escrow
                 description: description
+            };
+            
+            console.log('Payment Debug - Sending to Escrow:', {
+                usdAmount,
+                convertedAmount,
+                userCurrency,
+                sekAmount,
+                totalSekAmount,
+                escrowParams
             });
             
-            if (result.data.success) {
+            // Call cloud function to create Escrow transaction
+            const createEscrowTransaction = firebase.functions().httpsCallable('createEscrowTransaction');
+            const result = await createEscrowTransaction(escrowParams);
+            
+            console.log('Escrow Response:', result);
+            
+            if (result.data && result.data.success) {
                 showTradeToast("Redirecting to Escrow.com for payment...", 'success');
                 // Redirect to Escrow.com payment page
                 window.open(result.data.paymentUrl, '_blank');
             } else {
-                throw new Error('Failed to create Escrow transaction');
+                console.error('Escrow transaction failed:', result.data);
+                throw new Error(result.data?.error || 'Failed to create Escrow transaction');
             }
             
         } catch (error) {
-            console.error('Escrow payment error:', error);
-            showTradeToast("Payment failed. Please try again.", 'error');
+            console.error('Escrow payment error details:', {
+                error: error,
+                message: error.message,
+                code: error.code,
+                details: error.details
+            });
+            
+            let errorMessage = "Payment failed. Please try again.";
+            if (error.message && error.message.includes('Could not create')) {
+                errorMessage = "Escrow service temporarily unavailable. Please contact support.";
+            }
+            
+            showTradeToast(errorMessage, 'error');
         }
         
     } else if (action === 'confirm-shipment') {
