@@ -1059,17 +1059,33 @@ function handleSearchInput() {
         try {
             const results = await fetchAllCards(query, game); 
             
-            resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
-     results.map(card => `
-    <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
-                        <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
-                        <div class="flex-grow">
-                            <p class="font-semibold">${card.name}</p>
-                            <p class="text-sm text-gray-500">${card.set_name}</p>
-                        </div>
-                        <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
-                    </div>
-                `).join('');
+           resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
+    results.map(card => {
+        // --- THIS IS THE FIX ---
+        // 1. Stringify the card object into JSON.
+        const jsonString = JSON.stringify(card);
+
+        // 2. Escape the JSON string to be safely placed inside an HTML attribute.
+        const escapedCardData = jsonString
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        // --- END OF FIX ---
+
+        return `
+            <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>
+                <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
+                <div class="flex-grow">
+                    <p class="font-semibold">${card.name}</p>
+                    <p class="text-sm text-gray-500">${card.set_name}</p>
+                </div>
+                <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
+            </div>
+        `;
+    }).join('');
+
         } catch (error) {
             resultsContainer.innerHTML = `<p class="text-center text-red-500">Error: ${error.message}</p>`;
         }
@@ -1079,7 +1095,12 @@ function handleSearchInput() {
 
 function handleSearchResultClick(item) {
     if (item) {
-        const cardData = JSON.parse(decodeURIComponent(item.dataset.card)); // Re-add decodeURIComponent
+        // --- THIS IS THE CORRESPONDING FIX ---
+        // It simply reads the data attribute. The browser automatically
+        // handles the un-escaping of the HTML characters for us.
+        const cardData = JSON.parse(item.dataset.card);
+        // --- END OF FIX ---
+
         UI.closeModal(document.getElementById('search-modal'));
         UI.populateCardModalForAdd(cardData);
     }
@@ -1836,17 +1857,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Add hover functionality for search results
-        document.getElementById('search-results-container')?.addEventListener('mouseover', (e) => {
-            const searchResultItem = e.target.closest('.search-result-item');
-            if (searchResultItem) {
-                try {
-                    const cardData = JSON.parse(decodeURIComponent(searchResultItem.dataset.card));
-                    showCardPreview(e, cardData);
-                } catch (error) {
-                    console.warn('Failed to parse card data for preview:', error);
-                }
-            }
-        });
+// And REPLACE it with this corrected version:
+document.getElementById('search-results-container')?.addEventListener('mouseover', (e) => {
+    const searchResultItem = e.target.closest('.search-result-item');
+    if (searchResultItem) {
+        try {
+            // --- THIS IS THE FIX ---
+            // Just like the click handler, we simply parse the data attribute.
+            const cardData = JSON.parse(searchResultItem.dataset.card);
+            // --- END OF FIX ---
+            showCardPreview(e, cardData);
+        } catch (error) {
+            console.warn('Failed to parse card data for preview:', error);
+        }
+    }
+});
 
         document.getElementById('search-results-container')?.addEventListener('mouseout', (e) => {
             const searchResultItem = e.target.closest('.search-result-item');
