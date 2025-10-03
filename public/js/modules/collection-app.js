@@ -1629,84 +1629,153 @@ async function bulkDelete() {
     }
 }
 
-// CSV Import Event Handler - Add this to the existing collection-app.js file
+// CSV Import Functions - Fixed implementation
 
-// Add this function to handle CSV file upload
-async function handleCSVUpload(event) {
+// Handle CSV file selection and initial parsing
+async function handleCSVFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    const statusDiv = document.getElementById('csv-import-status');
+    const parseBtn = document.getElementById('start-csv-import-btn');
+    
     try {
-        // Parse the CSV file
+        statusDiv.textContent = 'Parsing CSV file...';
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-blue-100 text-blue-800';
+        
         const parsedData = await CSV.parseCSV(file);
         
-        // Show the CSV review modal
-        const modal = document.getElementById('csv-review-modal');
-        if (modal) {
-            UI.openModal(modal);
-            
-            // Populate the review table
-            await populateCsvReviewTable(parsedData);
-        } else {
-            // If no review modal exists, proceed directly to import
-            UI.showToast(`Parsed ${parsedData.length} cards from CSV. Starting import...`, "info");
-            await CSV.finalizeImport(UI);
-        }
+        statusDiv.textContent = `Found ${parsedData.length} cards in CSV file`;
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-green-100 text-green-800';
+        
+        parseBtn.disabled = false;
+        parseBtn.textContent = `Import ${parsedData.length} Cards`;
+        
+        csvFile = file;
+        
     } catch (error) {
         console.error('CSV parsing error:', error);
-        UI.showToast(`CSV parsing failed: ${error.message}`, "error");
+        statusDiv.textContent = `Error: ${error.message}`;
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-red-100 text-red-800';
+        parseBtn.disabled = true;
     }
 }
 
-// Add this function to populate the CSV review table
+// Handle the actual CSV import process
+async function handleCSVUpload() {
+    if (!csvFile) {
+        UI.showToast('Please select a CSV file first', 'error');
+        return;
+    }
+
+    const parseBtn = document.getElementById('start-csv-import-btn');
+    const statusDiv = document.getElementById('csv-import-status');
+    
+    try {
+        UI.setButtonLoading(parseBtn, true, 'Importing...');
+        statusDiv.textContent = 'Starting import process...';
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-blue-100 text-blue-800';
+
+        // Parse CSV again to get fresh data
+        const parsedData = await CSV.parseCSV(csvFile);
+        
+        // Close the import modal and open review modal
+        const importModal = document.getElementById('csv-import-modal');
+        const reviewModal = document.getElementById('csv-review-modal');
+        
+        UI.closeModal(importModal);
+        UI.openModal(reviewModal);
+        
+        // Populate the review table
+        await populateCsvReviewTable(parsedData);
+        
+    } catch (error) {
+        console.error('CSV import error:', error);
+        UI.showToast(`Import failed: ${error.message}`, 'error');
+        statusDiv.textContent = `Error: ${error.message}`;
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-red-100 text-red-800';
+    } finally {
+        UI.setButtonLoading(parseBtn, false, 'Import Cards');
+    }
+}
+
+// Populate the CSV review table with card validation
 async function populateCsvReviewTable(cards) {
-    const tableBody = document.querySelector('#csv-review-table tbody');
+    const tableBody = document.querySelector('#csv-review-modal tbody');
     if (!tableBody) {
         console.error('CSV review table body not found');
         return;
     }
 
+    // Clear existing content
     tableBody.innerHTML = '';
     let reviewData = [];
-
+    
+    // Add rows for each card
     cards.forEach((card, index) => {
         const row = document.createElement('tr');
         row.dataset.index = index;
         row.innerHTML = `
             <td class="p-3">${card.name}</td>
-            <td>${card.set_name || 'Any'}</td>
-            <td>${card.collector_number || 'N/A'}</td>
-            <td>${card.quantity}</td>
-            <td>${card.condition}</td>
-            <td>${card.language}</td>
-            <td>${card.is_foil ? 'Yes' : 'No'}</td>
-            <td class="status-cell"><i class="fas fa-spinner fa-spin"></i></td>
-            <td><button class="text-red-500 remove-row-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></td>
+            <td class="p-3">${card.set_name || 'Any'}</td>
+            <td class="p-3">${card.collector_number || 'N/A'}</td>
+            <td class="p-3">${card.quantity}</td>
+            <td class="p-3">${card.condition}</td>
+            <td class="p-3">${card.language}</td>
+            <td class="p-3">${card.is_foil ? 'Yes' : 'No'}</td>
+            <td class="p-3 status-cell">
+                <i class="fas fa-spinner fa-spin text-blue-500"></i>
+                <span class="ml-2">Searching...</span>
+            </td>
+            <td class="p-3">
+                <button class="text-red-500 hover:text-red-700 remove-row-btn" data-index="${index}">
+                    <i class="fas fa-times-circle"></i>
+                </button>
+            </td>
         `;
         tableBody.appendChild(row);
         reviewData.push({ raw: card, enriched: null, status: 'pending' });
     });
-    
-    // Process each card to get full data from API
+
+    // Process cards to validate them
     for (let i = 0; i < reviewData.length; i++) {
-        if(reviewData[i].status === 'removed') continue;
-        const statusCell = tableBody.querySelector(`tr[data-index="${i}"] .status-cell`);
+        if (reviewData[i].status === 'removed') continue;
+        
+        const row = tableBody.querySelector(`tr[data-index="${i}"]`);
+        if (!row) continue;
+        
+        const statusCell = row.querySelector('.status-cell');
+        
         try {
+            // Search for the card using the API
             let query = `!"${reviewData[i].raw.name}"`;
             if (reviewData[i].raw.set) query += ` set:${reviewData[i].raw.set}`;
             if (reviewData[i].raw.collector_number) query += ` cn:${reviewData[i].raw.collector_number}`;
             
             const response = await API.searchCards(query, 'mtg');
-            if (response.cards && response.cards.length > 0) {
-                reviewData[i].enriched = { ...response.cards[0], ...reviewData[i].raw };
+            
+            if (response && response.cards && response.cards.length > 0) {
+                // Merge CSV data with found card data
+                reviewData[i].enriched = {
+                    ...response.cards[0],
+                    quantity: reviewData[i].raw.quantity,
+                    condition: reviewData[i].raw.condition,
+                    language: reviewData[i].raw.language,
+                    is_foil: reviewData[i].raw.is_foil,
+                    addedAt: new Date()
+                };
                 reviewData[i].status = 'found';
-                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
-            } else throw new Error("Not found");
+                statusCell.innerHTML = '<i class="fas fa-check-circle text-green-500"></i><span class="ml-2 text-green-600">Found</span>';
+            } else {
+                throw new Error("Card not found");
+            }
         } catch (error) {
             reviewData[i].status = 'error';
-            statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i></span>`;
+            statusCell.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i><span class="ml-2 text-red-600">Not found</span>';
         }
-        await new Promise(resolve => setTimeout(resolve, 110));
+        
+        // Small delay to prevent overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     // Set up the finalize button
@@ -1714,33 +1783,62 @@ async function populateCsvReviewTable(cards) {
     if (finalizeBtn) {
         finalizeBtn.onclick = () => finalizeCsvImport(reviewData);
     }
+
+    // Set up remove buttons
+    tableBody.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-row-btn')) {
+            const index = parseInt(e.target.closest('.remove-row-btn').dataset.index);
+            const row = tableBody.querySelector(`tr[data-index="${index}"]`);
+            if (row) {
+                row.remove();
+                // Mark as removed in reviewData
+                if (reviewData[index]) {
+                    reviewData[index].status = 'removed';
+                }
+            }
+        }
+    });
 }
 
-// Add this function to finalize the CSV import
+// Finalize the CSV import process
 async function finalizeCsvImport(reviewData) {
-    const cardsToImport = reviewData.filter(item => item.status === 'found').map(item => item.enriched);
-    if (cardsToImport.length === 0) return UI.showToast("No valid cards to import.", "error");
-    
-    const importBtn = document.getElementById('finalize-csv-import-btn');
-    UI.setButtonLoading(importBtn, true);
+    const finalizeBtn = document.getElementById('finalize-csv-import-btn');
     
     try {
+        UI.setButtonLoading(finalizeBtn, true, 'Importing...');
+        
+        const cardsToImport = reviewData.filter(item => item.status === 'found').map(item => item.enriched);
+        
+        if (cardsToImport.length === 0) {
+            UI.showToast("No valid cards to import.", "error");
+            return;
+        }
+        
         await Collection.addMultipleCards(cardsToImport);
-        UI.showToast(`Imported ${cardsToImport.length} cards!`, "success");
-        UI.closeModal(document.getElementById('csv-review-modal'));
+        
+        const failedCount = reviewData.filter(item => item.status === 'error').length;
+        UI.showToast(`Successfully imported ${cardsToImport.length} cards!${failedCount > 0 ? ` ${failedCount} cards failed.` : ''}`, 'success');
+        
+        // Close the review modal
+        const reviewModal = document.getElementById('csv-review-modal');
+        UI.closeModal(reviewModal);
+        
+        // Refresh the collection display
         applyAndRender();
+        
     } catch (error) {
-        UI.showToast(`Import failed: ${error.message}`, "error");
+        console.error('Finalize import error:', error);
+        UI.showToast(`Import failed: ${error.message}`, 'error');
     } finally {
-        UI.setButtonLoading(importBtn, false, 'Finalize Import');
+        UI.setButtonLoading(finalizeBtn, false, 'Finalize Import');
     }
 }
 
 // Add this event listener to the existing DOMContentLoaded section
-document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
+document.getElementById('csv-file-input')?.addEventListener('change', handleCSVFileSelect);
 
 // Export the functions for use in other modules
-export { handleCSVUpload, populateCsvReviewTable, finalizeCsvImport };
+export { handleCSVFileSelect, handleCSVUpload, populateCsvReviewTable, finalizeCsvImport };
 
 async function openBulkReviewModal() {
     const selectedIds = Collection.getSelectedCardIds();
@@ -2008,7 +2106,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             openBulkReviewModal();
         });
         document.getElementById('bulk-remove-marketplace-btn')?.addEventListener('click', bulkRemoveFromMarketplace);
-        document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
+        document.getElementById('csv-file-input')?.addEventListener('change', handleCSVFileSelect);
+        document.getElementById('start-csv-import-btn')?.addEventListener('click', handleCSVUpload);
         document.getElementById('finalize-bulk-list-btn')?.addEventListener('click', finalizeBulkSale);
         
         document.getElementById('bulk-review-modal')?.addEventListener('input', (e) => {
