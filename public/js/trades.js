@@ -867,79 +867,77 @@ toggleLegacyView() {
         }
     }
 
-    async proposeTrade() {
-        if (!this.currentTrade.partner) {
-            alert('Please select a trading partner first.');
-            return;
-        }
+      async proposeTrade() {
+    if (!this.currentTrade.partner) {
+        alert('Please select a trading partner first.');
+        return;
+    }
+    if (this.currentTrade.yourCards.length === 0 && this.currentTrade.theirCards.length === 0) {
+        alert('Please add some cards to the trade.');
+        return;
+    }
 
-        if (this.currentTrade.yourCards.length === 0 && this.currentTrade.theirCards.length === 0) {
-            alert('Please add some cards to the trade.');
-            return;
-        }
+    try {
+        const self = this;
 
-        try {
-            const tradeData = {
-                proposerId: this.user.uid,
-                proposerName: this.user.displayName || this.user.email,
-                receiverId: this.currentTrade.partner.uid,
-                receiverName: this.currentTrade.partner.displayName || this.currentTrade.partner.email,
-                participants: [this.user.uid, this.currentTrade.partner.uid],
-                proposerCards: this.currentTrade.yourCards.map(c => ({
-                    id: c.id,
-                    name: c.cardData?.name || 'Unknown Card',
-                    imageUrl: c.cardData?.imageUrl || c.cardData?.image_uris?.normal,
-                    priceUsd: c.cardData?.priceUsd || c.cardData?.price || 0,
-                    game: c.cardData?.game || 'Unknown',
-                    condition: c.condition || 'Near Mint'
-                })),
-                receiverCards: this.currentTrade.theirCards.map(c => ({
-                    id: c.id,
-                    name: c.cardData?.name || 'Unknown Card',
-                    imageUrl: c.cardData?.imageUrl || c.cardData?.image_uris?.normal,
-                    priceUsd: c.cardData?.priceUsd || c.cardData?.price || 0,
-                    game: c.cardData?.game || 'Unknown',
-                    condition: c.condition || 'Near Mint'
-                })),
-                proposerMoney: this.currentTrade.yourCash || 0,
-                receiverMoney: this.currentTrade.theirCash || 0,
-                currency: this.userCurrency || 'USD',
-                notes: '',
-                status: 'pending',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                proposerConfirmedShipment: false,
-                receiverConfirmedShipment: false
+        // Helper to correctly extract data for saving
+        const mapCardForStorage = (card) => {
+            const cardData = card.cardData || card;
+            const imageUrl = cardData.imageUrl || cardData.image_uris?.normal || cardData.images?.large || 'https://via.placeholder.com/40x56';
+            
+            return {
+                id: card.id,
+                name: cardData.name || 'Unknown Card',
+                imageUrl: imageUrl,
+                priceUsd: self.calculateCardPrice(cardData ), // Use robust price calculation
+                game: cardData.game || 'Unknown',
+                condition: card.condition || 'Near Mint'
             };
+        };
 
-            await this.db.collection('trades').add(tradeData);
-            
-            // Show success message
-            if (window.Toastify) {
-                Toastify({
-                    text: "Trade proposal sent successfully!",
-                    duration: 3000,
-                    style: { background: "linear-gradient(to right, #10b981, #059669)" }
-                }).showToast();
-            }
+        const tradeData = {
+            participants: [this.user.uid, this.currentTrade.partner.uid],
+            proposerId: this.user.uid,
+            proposerName: this.user.displayName || this.user.email,
+            receiverId: this.currentTrade.partner.uid,
+            receiverName: this.currentTrade.partner.displayName || this.currentTrade.partner.email,
+            proposerCards: this.currentTrade.yourCards.map(mapCardForStorage),
+            receiverCards: this.currentTrade.theirCards.map(mapCardForStorage),
+            proposerMoney: this.currentTrade.yourCash || 0,
+            receiverMoney: this.currentTrade.theirCash || 0,
+            currency: this.userCurrency || 'USD',
+            notes: document.getElementById('trade-notes-input')?.value || '', // Assuming you have a notes input
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            proposerConfirmedShipment: false,
+            receiverConfirmedShipment: false
+        };
 
-            // Reset trade
-            this.resetTrade();
+        await this.db.collection('trades').add(tradeData);
+        
+        if (window.Toastify) {
+            Toastify({
+                text: "Trade proposal sent successfully!",
+                duration: 3000,
+                style: { background: "linear-gradient(to right, #10b981, #059669)" }
+            }).showToast();
+        }
 
-        } catch (error) {
-            console.error('Error proposing trade:', error);
-            
-            // Show error message
-            if (window.Toastify) {
-                Toastify({
-                    text: "Failed to send trade proposal. Please try again.",
-                    duration: 3000,
-                    style: { background: "linear-gradient(to right, #ef4444, #dc2626)" }
-                }).showToast();
-            } else {
-                alert('Failed to send trade proposal. Please try again.');
-            }
+        this.resetTrade();
+
+    } catch (error) {
+        console.error('CRITICAL: Error proposing trade:', error);
+        if (window.Toastify) {
+            Toastify({
+                text: "Failed to send trade proposal. Please try again.",
+                duration: 3000,
+                style: { background: "linear-gradient(to right, #ef4444, #dc2626)" }
+            }).showToast();
         }
     }
+}
+
+
 
     resetTrade() {
         this.currentTrade = {
@@ -1420,39 +1418,50 @@ function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyCo
         let totalValue = 0;
         let notifications = [];
 
+                // ... inside the onSnapshot callback, after clearing the containers
         for (const doc of snapshot.docs) {
-            const trade = doc.data();
-            const tradeCard = await createTradeCard(trade, doc.id, user);
-            const isReceiver = trade.receiverId === user.uid;
-
-            // Calculate trade value
-            const tradeValue = calculateTradeValue(trade);
-            totalValue += tradeValue;
-
-            // Check for notifications
-            const notification = checkTradeNotification(trade, user.uid);
-            if (notification) {
-                notifications.push(notification);
-            }
-
-            if (['pending', 'accepted', 'awaiting_payment', 'funds_authorized', 'shipped', 'disputed'].includes(trade.status)) {
-                if (isReceiver && incomingContainer) {
-                    incomingContainer.appendChild(tradeCard);
-                    counts.incoming++;
-                } else if (!isReceiver && outgoingContainer) {
-                    outgoingContainer.appendChild(tradeCard);
-                    counts.outgoing++;
+            try { // --- START of the robust block ---
+                const trade = doc.data();
+                if (!trade || !trade.status) {
+                    console.warn(`[Trades] Document ${doc.id} is missing data or status. Skipping.`);
+                    continue; // Skip to the next iteration
                 }
-            } else {
-                if (historyContainer) {
-                    historyContainer.appendChild(tradeCard);
-                    counts.history++;
+
+                const tradeCard = await createTradeCard(trade, doc.id, user);
+                const isReceiver = trade.receiverId === user.uid;
+
+                // Calculate trade value
+                const tradeValue = calculateTradeValue(trade);
+                totalValue += tradeValue;
+
+                // Check for notifications
+                const notification = checkTradeNotification(trade, user.uid);
+                if (notification) {
+                    notifications.push(notification);
                 }
-                if (trade.status === 'completed') {
-                    counts.completed++;
+
+                if (['pending', 'accepted', 'awaiting_payment', 'funds_authorized', 'shipped', 'disputed'].includes(trade.status)) {
+                    if (isReceiver && incomingContainer) {
+                        incomingContainer.appendChild(tradeCard);
+                        counts.incoming++;
+                    } else if (!isReceiver && outgoingContainer) {
+                        outgoingContainer.appendChild(tradeCard);
+                        counts.outgoing++;
+                    }
+                } else {
+                    if (historyContainer) {
+                        historyContainer.appendChild(tradeCard);
+                        counts.history++;
+                    }
+                    if (trade.status === 'completed') {
+                        counts.completed++;
+                    }
                 }
+            } catch (error) { // --- CATCH block to handle errors ---
+                console.error(`[Trades] Failed to process and render trade ID: ${doc.id}. This trade will be skipped. Error:`, error);
             }
         }
+
 
         // Update empty states with proper styling
         if (counts.incoming === 0 && incomingContainer) {
@@ -1482,19 +1491,23 @@ function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyCo
 // Helper function to calculate trade value
 function calculateTradeValue(trade) {
     let value = 0;
+    const getCardValue = (card) => {
+        // Handles price from priceUsd, priceUsdFoil, or defaults to 0
+        const price = card.priceUsd || card.priceUsdFoil || 0;
+        return parseFloat(price) || 0;
+    };
     
     if (trade.proposerCards) {
-        value += trade.proposerCards.reduce((sum, card) => sum + (parseFloat(card.priceUsd) || 0), 0);
+        value += trade.proposerCards.reduce((sum, card) => sum + getCardValue(card), 0);
     }
-    
     if (trade.receiverCards) {
-        value += trade.receiverCards.reduce((sum, card) => sum + (parseFloat(card.priceUsd) || 0), 0);
+        value += trade.receiverCards.reduce((sum, card) => sum + getCardValue(card), 0);
     }
     
-    value += (trade.proposerMoney || 0) + (trade.receiverMoney || 0);
-    
+    value += (parseFloat(trade.proposerMoney) || 0) + (parseFloat(trade.receiverMoney) || 0);
     return value;
 }
+
 
 // Helper function to check for trade notifications
 function checkTradeNotification(trade, userId) {
@@ -1754,36 +1767,41 @@ async function createTradeCard(trade, tradeId, user) {
 
 function renderTradeItems(cards, money) {
     let html = '';
-    
     if (cards && cards.length > 0) {
-        html += cards.map(card => `
+        html += cards.map(card => {
+            const price = card.priceUsd || card.priceUsdFoil || 0;
+            const numericPrice = parseFloat(price) || 0;
+
+            return `
             <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
                 <img src="${card.imageUrl || 'https://via.placeholder.com/40x56'}" 
                      alt="${card.name}"
                      class="w-10 h-14 object-cover rounded"
                      onerror="this.src='https://via.placeholder.com/40x56?text=?'">
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name}</p>
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name || 'Unknown Card'}</p>
                     <div class="flex items-center justify-between mt-1">
                         <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
-                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${(parseFloat(card.priceUsd) || 0).toFixed(2)}</span>
+                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${numericPrice.toFixed(2 )}</span>
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
     
     if (money && money > 0) {
         html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
                     <div class="flex items-center space-x-2">
                         <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
-                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${money.toFixed(2)}</span>
+                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${(parseFloat(money) || 0).toFixed(2)}</span>
                     </div>
                  </div>`;
     }
     
     return html || '<div class="text-sm text-gray-500 dark:text-gray-400 p-4 text-center">No items</div>';
 }
+
 
 function getActionButtons(trade, tradeId, isProposer, user) {
     const isPayer = (trade.proposerMoney > 0 && isProposer) || (trade.receiverMoney > 0 && !isProposer);

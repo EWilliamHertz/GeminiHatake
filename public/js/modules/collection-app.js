@@ -1522,12 +1522,12 @@ async function openCsvReviewModal(cards) {
             let query = `!"${reviewData[i].raw.name}"`;
             if (reviewData[i].raw.set) query += ` set:${reviewData[i].raw.set}`;
             if (reviewData[i].raw.collector_number) query += ` cn:${reviewData[i].raw.collector_number}`;
-            const results = await API.searchCards(query, 'mtg');
-            if (results.length > 0) {
-                reviewData[i].enriched = { ...results[0], ...reviewData[i].raw };
-                reviewData[i].status = 'found';
-                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
-            } else throw new Error("Not found");
+            const response = await API.searchCards(query, 'mtg'); // Changed variable name for clarity
+            if (response.cards && response.cards.length > 0) {
+                reviewData[i].enriched = { ...response.cards[0], ...reviewData[i].raw };
+                reviewData[i].status = 'found';
+                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
+            } else throw new Error("Not found");
         } catch (error) {
             reviewData[i].status = 'error';
             statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i></span>`;
