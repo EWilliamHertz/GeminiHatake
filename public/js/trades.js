@@ -1754,9 +1754,17 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
             // Check if money is involved - if so, go to payment flow
             const moneyInvolved = (trade.proposerMoney || 0) > 0 || (trade.receiverMoney || 0) > 0;
             if (moneyInvolved) {
-                return isPayer
-                    ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com <small>(+2.7% fee)</small></button>`
-                    : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+                if (isPayer) {
+                    const amount = Math.max(trade.proposerMoney || 0, trade.receiverMoney || 0);
+                    const escrowFee = amount * 0.027;
+                    const totalAmount = amount + escrowFee;
+                    const currency = trade.currency || 'USD';
+                    const currencySymbol = currency === 'SEK' ? 'kr' : currency === 'EUR' ? '€' : '$';
+                    
+                    return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${totalAmount.toFixed(2)} via Escrow.com <small>(incl. 2.7% fee)</small></button>`;
+                } else {
+                    return `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+                }
             }
             
             // For card-only trades, check if user has cards to ship
@@ -1773,9 +1781,17 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
                 ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
                 : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Mark as Shipped</button>`;
         case 'awaiting_payment':
-             return isPayer
-                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com <small>(+2.7% fee)</small></button>`
-                : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+            if (isPayer) {
+                const amount = Math.max(trade.proposerMoney || 0, trade.receiverMoney || 0);
+                const escrowFee = amount * 0.027;
+                const totalAmount = amount + escrowFee;
+                const currency = trade.currency || 'USD';
+                const currencySymbol = currency === 'SEK' ? 'kr' : currency === 'EUR' ? '€' : '$';
+                
+                return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${totalAmount.toFixed(2)} via Escrow.com <small>(incl. 2.7% fee)</small></button>`;
+            } else {
+                return `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+            }
         case 'funds_authorized':
             // Check if user has cards to ship
             const userCardsAuth = isProposer ? trade.proposerCards : trade.receiverCards;
@@ -1816,16 +1832,43 @@ window.handleTradeAction = async function(action, tradeId, db) {
              showTradeToast("Trade accepted! Ready for shipment.", 'success');
         }
     } else if (action === 'pay') {
-        // ADDED: Handle Escrow.com payment
-        await tradeRef.update({ status: 'awaiting_payment' });
-        showTradeToast("Redirecting to Escrow.com for payment...", 'info');
+        // INTEGRATED: Handle Escrow.com payment via cloud function
+        showTradeToast("Creating Escrow.com transaction...", 'info');
         
-        // TODO: Integrate with actual Escrow.com API
-        // For now, simulate payment completion after a delay
-        setTimeout(async () => {
-            await tradeRef.update({ status: 'funds_authorized' });
-            showTradeToast("Payment authorized! Ready for shipment.", 'success');
-        }, 2000);
+        try {
+            // Determine buyer and seller
+            const buyerUid = (tradeData.proposerMoney || 0) > 0 ? tradeData.proposerId : tradeData.receiverId;
+            const sellerUid = (tradeData.proposerMoney || 0) > 0 ? tradeData.receiverId : tradeData.proposerId;
+            const amount = Math.max(tradeData.proposerMoney || 0, tradeData.receiverMoney || 0);
+            
+            // Calculate total amount including 2.7% Escrow fee
+            const escrowFee = amount * 0.027;
+            const totalAmount = amount + escrowFee;
+            
+            const description = `Trade between ${tradeData.proposerName} and ${tradeData.receiverName}`;
+            
+            // Call cloud function to create Escrow transaction
+            const createEscrowTransaction = firebase.functions().httpsCallable('createEscrowTransaction');
+            const result = await createEscrowTransaction({
+                tradeId: tradeId,
+                buyerUid: buyerUid,
+                sellerUid: sellerUid,
+                amount: totalAmount, // Include fee in total
+                description: description
+            });
+            
+            if (result.data.success) {
+                showTradeToast("Redirecting to Escrow.com for payment...", 'success');
+                // Redirect to Escrow.com payment page
+                window.open(result.data.paymentUrl, '_blank');
+            } else {
+                throw new Error('Failed to create Escrow transaction');
+            }
+            
+        } catch (error) {
+            console.error('Escrow payment error:', error);
+            showTradeToast("Payment failed. Please try again.", 'error');
+        }
         
     } else if (action === 'confirm-shipment') {
         const user = firebase.auth().currentUser;
@@ -1843,12 +1886,37 @@ window.handleTradeAction = async function(action, tradeId, db) {
         
         showTradeToast("Shipment confirmed!", 'success');
     } else if (action === 'confirm-receipt') {
-        await tradeRef.update({ status: 'completed' });
+        // INTEGRATED: Handle Escrow fund release if money is involved
+        const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
         
-        // ADDED: Update card quantities in user collections when trade is completed
-        await updateCardQuantitiesOnTradeCompletion(tradeData, db);
-        
-        showTradeToast("Trade completed successfully!", 'success');
+        if (moneyInvolved && tradeData.escrowTransactionId) {
+            try {
+                showTradeToast("Releasing Escrow funds...", 'info');
+                
+                // Call cloud function to release Escrow funds
+                const releaseEscrowFunds = firebase.functions().httpsCallable('releaseEscrowFunds');
+                const result = await releaseEscrowFunds({ tradeId: tradeId });
+                
+                if (result.data.success) {
+                    showTradeToast("Funds released and trade completed!", 'success');
+                } else {
+                    throw new Error('Failed to release Escrow funds');
+                }
+                
+            } catch (error) {
+                console.error('Escrow fund release error:', error);
+                showTradeToast("Error releasing funds. Please contact support.", 'error');
+                return; // Don't complete trade if fund release fails
+            }
+        } else {
+            // No money involved, just complete the trade
+            await tradeRef.update({ status: 'completed' });
+            
+            // ADDED: Update card quantities in user collections when trade is completed
+            await updateCardQuantitiesOnTradeCompletion(tradeData, db);
+            
+            showTradeToast("Trade completed successfully!", 'success');
+        }
     } else {
         await tradeRef.update({ status: action });
         showTradeToast(`Trade ${action}!`, action === 'rejected' || action === 'cancelled' ? 'error' : 'success');
