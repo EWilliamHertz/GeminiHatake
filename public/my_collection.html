@@ -208,6 +208,15 @@
          </div>
         </div>
         <div class="relative" id="filter-rarity-container">
+         <button class="w-full text-left flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="rarity-filter-dropdown-btn">
+          <span id="rarity-filter-label">Select Rarities</span>
+          <i class="fas fa-chevron-down transition-transform" id="rarity-filter-chevron"></i>
+         </button>
+         <div class="absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 hidden max-h-60 overflow-y-auto" id="rarity-filter-dropdown">
+          <div class="p-2 text-sm text-gray-500 dark:text-gray-400" id="rarity-filter-empty">
+           Select games first to see available rarities
+          </div>
+         </div>
         </div>
         <div id="game-specific-filters">
         </div>

@@ -111,13 +111,18 @@ const UI = {
             const forSaleIndicator = (card.for_sale && typeof card.sale_price === 'number')
                 ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">$${card.sale_price.toFixed(2)}</div>`
                 : '';
-const foilOverlay = card.is_foil ? `<div class="absolute inset-0 bg-gradient-to-br from-purple-500/30 via-blue-500/30 to-green-500/30 opacity-70 mix-blend-overlay group-hover:opacity-100 transition-opacity" title="Foil"></div>` : '';
+const foilOverlay = card.is_foil ? `
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-blue-500/20 via-green-500/20 to-yellow-500/20 opacity-60 mix-blend-overlay group-hover:opacity-80 transition-opacity animate-pulse" title="Foil"></div>
+                        <div class="absolute ${card.for_sale ? 'top-8 left-2' : 'top-2 left-2'} bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10 flex items-center">
+                            <i class="fas fa-star mr-1"></i>FOIL
+                        </div>` : '';
 
             const cardHtml = `
                 <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
                     <div class="relative">
                         ${forSaleIndicator}
                         <img src="${getCardImageUrl(card)}" alt="${card.name}" class="w-full object-cover" loading="lazy">
+                        ${foilOverlay}
                         ${isBulkMode ? `<input type="checkbox" class="bulk-select-checkbox absolute top-2 right-2 h-5 w-5 z-10" ${isSelected ? 'checked' : ''}>` : ''}
                         <div class="card-actions absolute bottom-2 right-2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                             ${card.for_sale 
@@ -176,8 +181,10 @@ const foilOverlay = card.is_foil ? `<div class="absolute inset-0 bg-gradient-to-
 <td class="px-4 py-3 whitespace-nowrap">
     <div class="flex items-center">
         <img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="">
-        ${card.name}
-        ${card.is_foil ? '<i class="fas fa-star text-yellow-400 ml-2" title="Foil"></i>' : ''}
+        <div class="flex items-center">
+            ${card.name}
+            ${card.is_foil ? '<span class="ml-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center"><i class="fas fa-star mr-1"></i>FOIL</span>' : ''}
+        </div>
     </div>
 </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.set_name}</td>
@@ -304,8 +311,9 @@ UI.openModal(document.getElementById('card-modal'));
     },
     populateFilters: (sets, rarities) => {
         const setContainer = document.getElementById('filter-set-container');
-        const rarityContainer = document.getElementById('filter-rarity-container');
+        const rarityDropdown = document.getElementById('rarity-filter-dropdown');
 
+        // Update set filter dropdown (already exists)
         if(setContainer) {
             const setOptionsHtml = sets.map(item => `
                 <label class="flex items-center space-x-2 text-sm p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
@@ -328,19 +336,58 @@ UI.openModal(document.getElementById('card-modal'));
             `;
         }
         
-        if (rarityContainer) {
-            const rarityCheckboxes = rarities.map(item => `
-                <label class="flex items-center space-x-2 text-sm">
-                    <input type="checkbox" value="${item}" data-filter-type="rarity" class="form-checkbox h-4 w-4 rounded text-blue-600">
-                    <span>${item}</span>
-                </label>
-            `).join('');
+        // Update rarity filter dropdown
+        if (rarityDropdown && rarities.length > 0) {
+            const currentRarityFilters = Collection.getFilters().rarity || [];
+            const sortedRarities = Array.from(new Set(rarities)).sort();
             
-            rarityContainer.innerHTML = `
-                <h4 class="font-semibold mb-2">Rarity</h4>
-                <div class="space-y-2">${rarityCheckboxes}</div>
+            // Add "Select All" option for multiple selection
+            let selectAllChecked = sortedRarities.length > 0 && sortedRarities.every(rarity => currentRarityFilters.includes(rarity));
+            
+            rarityDropdown.innerHTML = `
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600">
+                    <input type="checkbox" id="select-all-rarities" ${selectAllChecked ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600">
+                    <span class="text-sm font-semibold">Select All Rarities</span>
+                </label>
+                ${sortedRarities.map(rarity => {
+                    const isChecked = currentRarityFilters.includes(rarity);
+                    return `
+                        <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                            <input type="checkbox" data-filter-type="rarity" value="${rarity}" ${isChecked ? 'checked' : ''} class="form-checkbox h-4 w-4 text-blue-600">
+                            <span class="text-sm capitalize">${rarity}</span>
+                        </label>
+                    `;
+                }).join('')}
             `;
+            
+            // Add event listener for "Select All" functionality
+            const selectAllCheckbox = rarityDropdown.querySelector('#select-all-rarities');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', (e) => {
+                    const rarityCheckboxes = rarityDropdown.querySelectorAll('input[data-filter-type="rarity"]');
+                    const currentFilters = Collection.getFilters();
+                    
+                    if (e.target.checked) {
+                        // Select all rarities
+                        const allRarities = [...sortedRarities];
+                        Collection.setFilters({ ...currentFilters, rarity: allRarities });
+                        rarityCheckboxes.forEach(checkbox => checkbox.checked = true);
+                    } else {
+                        // Deselect all rarities
+                        Collection.setFilters({ ...currentFilters, rarity: [] });
+                        rarityCheckboxes.forEach(checkbox => checkbox.checked = false);
+                    }
+                    
+                    updateRarityFilterLabel();
+                    applyAndRender({});
+                });
+            }
+        } else if (rarityDropdown) {
+            rarityDropdown.innerHTML = '<div class="p-2 text-sm text-gray-500 dark:text-gray-400">No rarities available</div>';
         }
+        
+        // Update rarity filter label
+        updateRarityFilterLabel();
     },
     populateGameFilters: (games) => {
         const gameContainer = document.getElementById('filter-game-container');
@@ -378,14 +425,71 @@ UI.openModal(document.getElementById('card-modal'));
     populateTypeFilters: (types) => {
         const typeContainer = document.getElementById('game-specific-filters');
         if (!typeContainer) return;
-        const typeSelect = `
-            <h4 class="font-semibold mb-2">Type (Pokémon)</h4>
-            <select id="type-filter-select" class="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600">
-                <option value="">All Types</option>
-                ${types.map(type => `<option value="${type}">${type}</option>`).join('')}
-            </select>
-        `;
-        typeContainer.innerHTML = typeSelect;
+        
+        // Check if Pokémon is selected in the games filter
+        const selectedGames = Collection.getFilters().games || [];
+        const isPokemonSelected = selectedGames.includes('pokemon');
+        
+        if (isPokemonSelected && types.length > 0) {
+            const currentTypeFilter = Collection.getFilters().type || '';
+            const typeSelect = `
+                <div class="relative" id="filter-type-container">
+                    <button class="w-full text-left flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="type-filter-dropdown-btn">
+                        <span id="type-filter-label">${currentTypeFilter || 'Select Pokémon Type'}</span>
+                        <i class="fas fa-chevron-down transition-transform" id="type-filter-chevron"></i>
+                    </button>
+                    <div class="absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-10 hidden max-h-60 overflow-y-auto" id="type-filter-dropdown">
+                        <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                            <input type="radio" name="type-filter" value="" ${!currentTypeFilter ? 'checked' : ''} class="form-radio h-4 w-4 text-blue-600">
+                            <span class="text-sm">All Types</span>
+                        </label>
+                        ${types.map(type => `
+                            <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                <input type="radio" name="type-filter" value="${type}" ${currentTypeFilter === type ? 'checked' : ''} class="form-radio h-4 w-4 text-blue-600">
+                                <span class="text-sm">${type}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            typeContainer.innerHTML = typeSelect;
+            
+            // Add event listeners for the type filter dropdown
+            const typeDropdownBtn = document.getElementById('type-filter-dropdown-btn');
+            const typeDropdown = document.getElementById('type-filter-dropdown');
+            const typeChevron = document.getElementById('type-filter-chevron');
+            
+            if (typeDropdownBtn && typeDropdown && typeChevron) {
+                typeDropdownBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = typeDropdown.classList.contains('hidden');
+                    typeDropdown.classList.toggle('hidden');
+                    typeChevron.classList.toggle('rotate-180', !isHidden);
+                });
+                
+                // Handle type selection
+                typeDropdown.addEventListener('change', (e) => {
+                    if (e.target.type === 'radio') {
+                        const selectedType = e.target.value;
+                        Collection.setFilters({ ...Collection.getFilters(), type: selectedType });
+                        document.getElementById('type-filter-label').textContent = selectedType || 'Select Pokémon Type';
+                        typeDropdown.classList.add('hidden');
+                        typeChevron.classList.remove('rotate-180');
+                        applyAndRender({});
+                    }
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!typeDropdownBtn.contains(e.target) && !typeDropdown.contains(e.target)) {
+                        typeDropdown.classList.add('hidden');
+                        typeChevron.classList.remove('rotate-180');
+                    }
+                });
+            }
+        } else {
+            typeContainer.innerHTML = '';
+        }
     }
 };
 
@@ -1205,9 +1309,11 @@ function handleFilterChange(e) {
     }
     Collection.setFilters(currentFilters);
     
-    // Update the label for set filters
+    // Update the labels for multi-select filters
     if (filterType === 'set') {
         updateSetFilterLabel();
+    } else if (filterType === 'rarity') {
+        updateRarityFilterLabel();
     }
     
     applyAndRender({});
@@ -1350,6 +1456,21 @@ function updateSetFilterLabel() {
     }
 }
 
+function updateRarityFilterLabel() {
+    const currentRarityFilters = Collection.getFilters().rarity || [];
+    const label = document.getElementById('rarity-filter-label');
+    
+    if (!label) return;
+    
+    if (currentRarityFilters.length === 0) {
+        label.textContent = 'Select Rarities';
+    } else if (currentRarityFilters.length === 1) {
+        label.textContent = currentRarityFilters[0];
+    } else {
+        label.textContent = `${currentRarityFilters.length} rarities selected`;
+    }
+}
+
 function showCardPreview(event, card) {
     const tooltip = document.getElementById('card-preview-tooltip');
     if (!tooltip) return;
@@ -1422,13 +1543,29 @@ function handleNameFilterInput(e) {
 }
 
 function clearAllFilters() {
-    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '' });
+    Collection.clearFilters();
     document.getElementById('filter-name').value = '';
     document.querySelectorAll('input[data-filter-type]').forEach(input => input.checked = false);
-    document.querySelectorAll('input[data-game]').forEach(input => input.checked = false);
-    document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-blue-500'));
-    const typeFilterSelect = document.getElementById('type-filter-select');
-    if(typeFilterSelect) typeFilterSelect.value = '';
+    document.querySelectorAll('.color-filter-btn').forEach(btn => {
+        btn.classList.remove('ring-4', 'ring-blue-500');
+    });
+    
+    // Clear type filter radio buttons
+    document.querySelectorAll('input[name="type-filter"]').forEach(input => {
+        input.checked = input.value === '';
+    });
+    
+    // Clear "Select All" checkboxes
+    document.getElementById('select-all-sets')?.checked = false;
+    document.getElementById('select-all-rarities')?.checked = false;
+    
+    // Update filter labels
+    updateSetFilterLabel();
+    updateRarityFilterLabel();
+    const typeLabel = document.getElementById('type-filter-label');
+    if (typeLabel) typeLabel.textContent = 'Select Pokémon Type';
+    
+    updateSetFilterDropdown();
     applyAndRender({});
 }
 
@@ -1828,13 +1965,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
         
-        // Close dropdown when clicking outside
+        // Rarity filter dropdown functionality
+        document.getElementById('rarity-filter-dropdown-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = document.getElementById('rarity-filter-dropdown');
+            const chevron = document.getElementById('rarity-filter-chevron');
+            if (dropdown && chevron) {
+                const isHidden = dropdown.classList.contains('hidden');
+                dropdown.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-180', !isHidden);
+            }
+        });
+        
+        // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('set-filter-dropdown');
-            const button = document.getElementById('set-filter-dropdown-btn');
-            if (dropdown && button && !button.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
+            // Close set filter dropdown
+            const setDropdown = document.getElementById('set-filter-dropdown');
+            const setButton = document.getElementById('set-filter-dropdown-btn');
+            if (setDropdown && setButton && !setButton.contains(e.target) && !setDropdown.contains(e.target)) {
+                setDropdown.classList.add('hidden');
                 document.getElementById('set-filter-chevron')?.classList.remove('rotate-180');
+            }
+            
+            // Close rarity filter dropdown
+            const rarityDropdown = document.getElementById('rarity-filter-dropdown');
+            const rarityButton = document.getElementById('rarity-filter-dropdown-btn');
+            if (rarityDropdown && rarityButton && !rarityButton.contains(e.target) && !rarityDropdown.contains(e.target)) {
+                rarityDropdown.classList.add('hidden');
+                document.getElementById('rarity-filter-chevron')?.classList.remove('rotate-180');
             }
         });
         document.getElementById('bulk-edit-btn')?.addEventListener('click', toggleBulkEditMode);
