@@ -1089,8 +1089,7 @@ class TradeWindow {
             this.currentTrade.theirCash = Math.abs(difference);
             const theirCashInput = document.getElementById('their-cash-input');
             if (theirCashInput) {
-                // For auto-balance, we need to convert the USD amount to the display currency
-                // but store the USD amount in the trade object
+                // For auto-balance, convert USD difference to display currency
                 let displayValue;
                 if (this.convertAndFormat) {
                     // Get the formatted string and extract just the numeric part
@@ -1100,16 +1099,14 @@ class TradeWindow {
                     displayValue = Math.abs(difference).toFixed(2);
                 }
                 theirCashInput.value = displayValue;
-                // Trigger the input event to update the trade object properly
-                theirCashInput.dispatchEvent(new Event('input'));
+                // Don't trigger input event to avoid double conversion - we already set the USD value
             }
         } else {
             // They have more value, you need to add cash
             this.currentTrade.yourCash = Math.abs(difference);
             const yourCashInput = document.getElementById('your-cash-input');
             if (yourCashInput) {
-                // For auto-balance, we need to convert the USD amount to the display currency
-                // but store the USD amount in the trade object
+                // For auto-balance, convert USD difference to display currency
                 let displayValue;
                 if (this.convertAndFormat) {
                     // Get the formatted string and extract just the numeric part
@@ -1119,8 +1116,7 @@ class TradeWindow {
                     displayValue = Math.abs(difference).toFixed(2);
                 }
                 yourCashInput.value = displayValue;
-                // Trigger the input event to update the trade object properly
-                yourCashInput.dispatchEvent(new Event('input'));
+                // Don't trigger input event to avoid double conversion - we already set the USD value
             }
         }
 
@@ -1736,12 +1732,123 @@ window.handleTradeAction = async function(action, tradeId, db) {
         showTradeToast("Shipment confirmed!", 'success');
     } else if (action === 'confirm-receipt') {
         await tradeRef.update({ status: 'completed' });
+        
+        // ADDED: Update card quantities in user collections when trade is completed
+        await updateCardQuantitiesOnTradeCompletion(tradeData, db);
+        
         showTradeToast("Trade completed successfully!", 'success');
     } else {
         await tradeRef.update({ status: action });
         showTradeToast(`Trade ${action}!`, action === 'rejected' || action === 'cancelled' ? 'error' : 'success');
     }
 };
+
+// ADDED: Update card quantities when trade is completed
+async function updateCardQuantitiesOnTradeCompletion(tradeData, db) {
+    try {
+        console.log('Updating card quantities for completed trade:', tradeData);
+        
+        // Get user collections
+        const proposerCollectionRef = db.collection('users').doc(tradeData.proposerId).collection('cards');
+        const receiverCollectionRef = db.collection('users').doc(tradeData.receiverId).collection('cards');
+        
+        // Process proposer's cards (going to receiver)
+        if (tradeData.proposerCards && tradeData.proposerCards.length > 0) {
+            for (const card of tradeData.proposerCards) {
+                const cardId = card.id || card.cardId;
+                if (!cardId) continue;
+                
+                // Remove from proposer's collection
+                const proposerCardRef = proposerCollectionRef.doc(cardId);
+                const proposerCardDoc = await proposerCardRef.get();
+                
+                if (proposerCardDoc.exists) {
+                    const proposerCardData = proposerCardDoc.data();
+                    const currentQuantity = proposerCardData.quantity || 1;
+                    
+                    if (currentQuantity > 1) {
+                        // Decrease quantity
+                        await proposerCardRef.update({ quantity: currentQuantity - 1 });
+                    } else {
+                        // Remove card entirely
+                        await proposerCardRef.delete();
+                    }
+                }
+                
+                // Add to receiver's collection
+                const receiverCardRef = receiverCollectionRef.doc(cardId);
+                const receiverCardDoc = await receiverCardRef.get();
+                
+                if (receiverCardDoc.exists) {
+                    // Increase quantity
+                    const receiverCardData = receiverCardDoc.data();
+                    const currentQuantity = receiverCardData.quantity || 1;
+                    await receiverCardRef.update({ quantity: currentQuantity + 1 });
+                } else {
+                    // Add new card to collection
+                    const cardData = card.cardData || card;
+                    await receiverCardRef.set({
+                        ...cardData,
+                        quantity: 1,
+                        condition: card.condition || 'Near Mint',
+                        addedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
+        }
+        
+        // Process receiver's cards (going to proposer)
+        if (tradeData.receiverCards && tradeData.receiverCards.length > 0) {
+            for (const card of tradeData.receiverCards) {
+                const cardId = card.id || card.cardId;
+                if (!cardId) continue;
+                
+                // Remove from receiver's collection
+                const receiverCardRef = receiverCollectionRef.doc(cardId);
+                const receiverCardDoc = await receiverCardRef.get();
+                
+                if (receiverCardDoc.exists) {
+                    const receiverCardData = receiverCardDoc.data();
+                    const currentQuantity = receiverCardData.quantity || 1;
+                    
+                    if (currentQuantity > 1) {
+                        // Decrease quantity
+                        await receiverCardRef.update({ quantity: currentQuantity - 1 });
+                    } else {
+                        // Remove card entirely
+                        await receiverCardRef.delete();
+                    }
+                }
+                
+                // Add to proposer's collection
+                const proposerCardRef = proposerCollectionRef.doc(cardId);
+                const proposerCardDoc = await proposerCardRef.get();
+                
+                if (proposerCardDoc.exists) {
+                    // Increase quantity
+                    const proposerCardData = proposerCardDoc.data();
+                    const currentQuantity = proposerCardData.quantity || 1;
+                    await proposerCardRef.update({ quantity: currentQuantity + 1 });
+                } else {
+                    // Add new card to collection
+                    const cardData = card.cardData || card;
+                    await proposerCardRef.set({
+                        ...cardData,
+                        quantity: 1,
+                        condition: card.condition || 'Near Mint',
+                        addedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+            }
+        }
+        
+        console.log('Card quantities updated successfully for completed trade');
+        
+    } catch (error) {
+        console.error('Error updating card quantities on trade completion:', error);
+        // Don't throw error to avoid breaking the trade completion flow
+    }
+}
 
 window.showTradeToast = function(message, type) {
     if (window.Toastify) {
