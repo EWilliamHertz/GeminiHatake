@@ -101,6 +101,15 @@ class TradeWindow {
                 this.userCurrency = e.detail.currency;
                 this.updateCurrencySymbols();
                 this.updateTradeValues();
+                
+                // Refresh the card collections to show updated prices
+                this.loadYourCollection();
+                if (this.currentTrade.partner) {
+                    this.loadTheirCollection(this.currentTrade.partner.uid);
+                }
+                
+                // Refresh the trade cards display
+                this.displayTradeCards();
             });
         } catch (error) {
             console.error('Error initializing currency:', error);
@@ -1058,14 +1067,22 @@ class TradeWindow {
             this.currentTrade.theirCash = Math.abs(difference);
             const theirCashInput = document.getElementById('their-cash-input');
             if (theirCashInput) {
-                theirCashInput.value = Math.abs(difference).toFixed(2);
+                // Convert the USD difference to the user's currency for display
+                const convertedValue = this.convertAndFormat ? 
+                    this.convertAndFormat(Math.abs(difference)).replace(/[^\d.,]/g, '') : 
+                    Math.abs(difference).toFixed(2);
+                theirCashInput.value = convertedValue;
             }
         } else {
             // They have more value, you need to add cash
             this.currentTrade.yourCash = Math.abs(difference);
             const yourCashInput = document.getElementById('your-cash-input');
             if (yourCashInput) {
-                yourCashInput.value = Math.abs(difference).toFixed(2);
+                // Convert the USD difference to the user's currency for display
+                const convertedValue = this.convertAndFormat ? 
+                    this.convertAndFormat(Math.abs(difference)).replace(/[^\d.,]/g, '') : 
+                    Math.abs(difference).toFixed(2);
+                yourCashInput.value = convertedValue;
             }
         }
 
@@ -1080,6 +1097,16 @@ class TradeWindow {
                 style: { background: "linear-gradient(to right, #f59e0b, #d97706)" }
             }).showToast();
         }
+    }
+
+    // Refresh trade cards display (for currency changes)
+    displayTradeCards() {
+        // Use existing functions to refresh trade displays
+        this.updateYourTradeDisplay();
+        this.updateTheirTradeDisplay();
+        
+        // Update trade values to reflect new currency
+        this.updateTradeValues();
     }
 
     // ADDED: Open user search modal for trade partner selection
