@@ -1529,6 +1529,15 @@ function initializeLegacyTrades(user, db) {
         tab.addEventListener('click', () => {
             const tabName = tab.getAttribute('data-tab');
             
+            // Clear notifications badge when notifications tab is clicked
+            if (tabName === 'notifications') {
+                const notificationsBadge = document.getElementById('notifications-badge');
+                if (notificationsBadge) {
+                    notificationsBadge.classList.add('hidden');
+                    notificationsBadge.textContent = '0';
+                }
+            }
+            
             // Update active tab
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
@@ -1592,6 +1601,7 @@ window.createTradeCard = async function(trade, tradeId, user) {
             </div>
         </div>
         ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
+        ${getShippingAddressDisplay(trade, isProposer)}
         <div class="mt-4 text-right space-x-2">${actionButtons}</div>
     `;
 
@@ -1606,6 +1616,44 @@ window.createTradeCard = async function(trade, tradeId, user) {
 
     return tradeCard;
 };
+
+// ADDED: Display shipping addresses when trades involve physical cards
+function getShippingAddressDisplay(trade, isProposer) {
+    // Only show addresses for trades that involve physical cards and are in shipping-related statuses
+    const shippingStatuses = ['accepted', 'awaiting_payment', 'funds_authorized', 'shipped'];
+    if (!shippingStatuses.includes(trade.status)) {
+        return '';
+    }
+    
+    // Check if trade involves physical cards (not just cash)
+    const hasPhysicalCards = (trade.proposerCards && trade.proposerCards.length > 0) || 
+                            (trade.receiverCards && trade.receiverCards.length > 0);
+    if (!hasPhysicalCards) {
+        return '';
+    }
+    
+    let addressHtml = '<div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">';
+    addressHtml += '<h5 class="font-medium text-blue-900 dark:text-blue-300 mb-2"><i class="fas fa-shipping-fast mr-2"></i>Shipping Information</h5>';
+    
+    // Show proposer's address if receiver needs to ship to them
+    if (trade.receiverCards && trade.receiverCards.length > 0) {
+        addressHtml += `<div class="mb-2">
+            <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Ship to ${trade.proposerName}:</p>
+            <p class="text-sm text-blue-700 dark:text-blue-400">${trade.proposerAddress || 'Address not provided'}</p>
+        </div>`;
+    }
+    
+    // Show receiver's address if proposer needs to ship to them
+    if (trade.proposerCards && trade.proposerCards.length > 0) {
+        addressHtml += `<div class="mb-2">
+            <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Ship to ${trade.receiverName}:</p>
+            <p class="text-sm text-blue-700 dark:text-blue-400">${trade.receiverAddress || 'Address not provided'}</p>
+        </div>`;
+    }
+    
+    addressHtml += '</div>';
+    return addressHtml;
+}
 
 window.renderTradeItems = async function(cards, money) {
     // Import currency functions
@@ -1680,6 +1728,12 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
                 ? `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Cancel</button>`
                 : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2">Decline</button>
                    <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Accept</button>`;
+        case 'accepted':
+            // For trades without money, show shipment confirmation immediately
+            const userHasShippedAccepted = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
+            return userHasShippedAccepted
+                ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
+                : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Mark as Shipped</button>`;
         case 'awaiting_payment':
              return isPayer
                 ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com</button>`
