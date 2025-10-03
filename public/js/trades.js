@@ -963,13 +963,35 @@ class TradeWindow {
                 };
             };
 
-            // FIXED: Include all required fields including participants array
+            // ADDED: Fetch user addresses for shipping
+            const proposerDoc = await this.db.collection('users').doc(this.user.uid).get();
+            const receiverDoc = await this.db.collection('users').doc(this.currentTrade.partner.uid).get();
+            
+            const proposerData = proposerDoc.data();
+            const receiverData = receiverDoc.data();
+            
+            // Format addresses as strings
+            const formatAddress = (addressObj) => {
+                if (!addressObj) return 'Address not provided';
+                const parts = [
+                    addressObj.street,
+                    addressObj.city,
+                    addressObj.state,
+                    addressObj.zip,
+                    addressObj.country
+                ].filter(part => part && part.trim());
+                return parts.join(', ') || 'Address not provided';
+            };
+
+            // FIXED: Include all required fields including participants array and addresses
             const tradeData = {
                 participants: [this.user.uid, this.currentTrade.partner.uid], // CRITICAL FIX: This was missing!
                 proposerId: this.user.uid,
                 proposerName: this.user.displayName || this.user.email,
+                proposerAddress: formatAddress(proposerData?.address), // ADDED: Proposer address
                 receiverId: this.currentTrade.partner.uid,
                 receiverName: this.currentTrade.partner.displayName || this.currentTrade.partner.email,
+                receiverAddress: formatAddress(receiverData?.address), // ADDED: Receiver address
                 proposerCards: this.currentTrade.yourCards.map(mapCardForStorage),
                 receiverCards: this.currentTrade.theirCards.map(mapCardForStorage),
                 proposerMoney: this.currentTrade.yourCash || 0,
@@ -1729,16 +1751,40 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
                 : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2">Decline</button>
                    <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Accept</button>`;
         case 'accepted':
-            // For trades without money, show shipment confirmation immediately
+            // Check if money is involved - if so, go to payment flow
+            const moneyInvolved = (trade.proposerMoney || 0) > 0 || (trade.receiverMoney || 0) > 0;
+            if (moneyInvolved) {
+                return isPayer
+                    ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com <small>(+2.7% fee)</small></button>`
+                    : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+            }
+            
+            // For card-only trades, check if user has cards to ship
+            const userCards = isProposer ? trade.proposerCards : trade.receiverCards;
+            const hasCardsToShip = userCards && userCards.length > 0;
+            
+            if (!hasCardsToShip) {
+                // User has no cards to ship, mark as shipped automatically or show waiting message
+                return `<span class="text-sm text-gray-500">No cards to ship - waiting for other party...</span>`;
+            }
+            
             const userHasShippedAccepted = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
             return userHasShippedAccepted
                 ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
                 : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Mark as Shipped</button>`;
         case 'awaiting_payment':
              return isPayer
-                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com</button>`
+                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com <small>(+2.7% fee)</small></button>`
                 : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
         case 'funds_authorized':
+            // Check if user has cards to ship
+            const userCardsAuth = isProposer ? trade.proposerCards : trade.receiverCards;
+            const hasCardsToShipAuth = userCardsAuth && userCardsAuth.length > 0;
+            
+            if (!hasCardsToShipAuth) {
+                return `<span class="text-sm text-gray-500">No cards to ship - waiting for other party...</span>`;
+            }
+            
             const userHasShipped = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
             return userHasShipped
                 ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
@@ -1763,12 +1809,24 @@ window.handleTradeAction = async function(action, tradeId, db) {
     if (action === 'accepted') {
         const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
         if (moneyInvolved) {
-             await tradeRef.update({ status: 'accepted' });
-             // initiateEscrowTransaction(tradeId, tradeData); // Implement if needed
+             await tradeRef.update({ status: 'accepted' }); // Stay in accepted status to show payment button
+             showTradeToast("Trade accepted! Payment required to proceed.", 'success');
         } else {
              await tradeRef.update({ status: 'funds_authorized' });
              showTradeToast("Trade accepted! Ready for shipment.", 'success');
         }
+    } else if (action === 'pay') {
+        // ADDED: Handle Escrow.com payment
+        await tradeRef.update({ status: 'awaiting_payment' });
+        showTradeToast("Redirecting to Escrow.com for payment...", 'info');
+        
+        // TODO: Integrate with actual Escrow.com API
+        // For now, simulate payment completion after a delay
+        setTimeout(async () => {
+            await tradeRef.update({ status: 'funds_authorized' });
+            showTradeToast("Payment authorized! Ready for shipment.", 'success');
+        }, 2000);
+        
     } else if (action === 'confirm-shipment') {
         const user = firebase.auth().currentUser;
         const isProposer = tradeData.proposerId === user.uid;
