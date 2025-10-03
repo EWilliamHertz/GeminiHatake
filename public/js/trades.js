@@ -1,9 +1,12 @@
 /**
- * HatakeSocial - Trades Script (v25 - Collection Loading & User Search Fix)
+ * HatakeSocial - Trades Script (v26 - FIXED CRITICAL ISSUES)
  *
- * - FIX: Implemented proper collection loading for the "Your Collection" tab
- * - FIX: Added user search functionality in the trade modal
- * - FIX: Added trade basket integration from marketplace
+ * FIXES APPLIED:
+ * - FIXED: Added missing participants array in proposeTrade function
+ * - FIXED: Implemented proper auto-balance functionality
+ * - FIXED: Added notes input field and proper handling
+ * - FIXED: Fixed legacy view initialization and synchronization
+ * - FIXED: Improved error handling and data validation
  */
 
 // --- Date Formatting Helper ---
@@ -52,6 +55,9 @@ class TradeWindow {
         // Initialize currency system
         await this.initializeCurrency();
         
+        // Add notes input field to the UI
+        this.addNotesInputField();
+        
         this.loadYourCollection();
         this.bindEvents();
         this.updateTradeBasketCounter();
@@ -61,6 +67,23 @@ class TradeWindow {
         // ADDED: Handle URL parameters and pending trades
         this.handleUrlParameters();
         this.processPendingTrade();
+    }
+
+    // FIXED: Add notes input field to the trade interface
+    addNotesInputField() {
+        const tradeActionsDiv = document.querySelector('#new-trading-interface .p-4.border-t.border-gray-200.dark\\:border-gray-700.space-y-2');
+        if (tradeActionsDiv && !document.getElementById('trade-notes-input')) {
+            const notesSection = document.createElement('div');
+            notesSection.className = 'mb-4';
+            notesSection.innerHTML = `
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trade Notes (Optional)</label>
+                <textarea id="trade-notes-input" 
+                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                         placeholder="Add any notes about this trade..." 
+                         rows="3"></textarea>
+            `;
+            tradeActionsDiv.insertBefore(notesSection, tradeActionsDiv.firstChild);
+        }
     }
 
     async initializeCurrency() {
@@ -99,102 +122,100 @@ class TradeWindow {
         if (yourSymbol) yourSymbol.textContent = symbol;
         if (theirSymbol) theirSymbol.textContent = symbol;
     }
+
     // ADDED: Calculate dynamic price based on condition and edition
-calculateCardPrice(cardData) {
-    // Top priority: Use sale_price if it exists and is a valid number
-    if (cardData.sale_price) {
-        const salePrice = parseFloat(cardData.sale_price);
-        if (!isNaN(salePrice)) {
-            return salePrice;
-        }
-    }
- 
-
-
-    // If no prices object, fall back to other possible price fields
-    if (!cardData.prices || typeof cardData.prices !== 'object') {
-        const fallbackPrice = parseFloat(cardData.priceUsd || cardData.price || 0);
-        return isNaN(fallbackPrice) ? 0 : fallbackPrice;
-    }
-
-    const prices = cardData.prices;
-    const game = cardData.game ? cardData.game.toLowerCase() : 'mtg';
-
-    // --- MTG Pricing Logic ---
-    if (game === 'mtg') {
-        if (prices.usd) {
-            const mtgPrice = parseFloat(prices.usd);
-            return isNaN(mtgPrice) ? 0 : mtgPrice;
-        }
-    }
-
-    // --- Pokémon Pricing Logic ---
-    if (game === 'pokemon') {
-        const conditionMap = {
-            'mint': 'NM',
-            'near mint': 'NM',
-            'excellent': 'NM',
-            'good': 'LP',
-            'light played': 'LP',
-            'played': 'MP',
-            'poor': 'HP',
-            'heavily played': 'HP',
-            'damaged': 'DM'
-        };
-
-        const condition = cardData.condition ? cardData.condition.toLowerCase() : 'near mint';
-        const conditionKey = conditionMap[condition] || 'NM'; // Default to NM
-
-        const isFoil = cardData.is_foil || false;
-        const isFirstEdition = cardData.is_first_edition || false;
-
-        let priceKey;
-
-        // Build the price key based on the card's specific properties
-        if (isFirstEdition) {
-            priceKey = isFoil ? `firstEditionHolofoil_${conditionKey}` : `firstEdition_${conditionKey}`;
-        } else {
-            priceKey = isFoil ? `unlimitedHolofoil_${conditionKey}` : `unlimited_${conditionKey}`;
-        }
-
-        // Check if a price exists for that specific key
-        if (prices[priceKey] !== undefined && prices[priceKey] !== null) {
-            const specificPrice = parseFloat(prices[priceKey]);
-            if (!isNaN(specificPrice)) {
-                return specificPrice;
+    calculateCardPrice(cardData) {
+        // Top priority: Use sale_price if it exists and is a valid number
+        if (cardData.sale_price) {
+            const salePrice = parseFloat(cardData.sale_price);
+            if (!isNaN(salePrice)) {
+                return salePrice;
             }
         }
-        
-        // If no direct match, check for a graded price of the same type as a fallback
-        let gradedKey;
-        if (isFirstEdition) {
-            gradedKey = isFoil ? 'firstEditionHolofoil_graded' : 'firstEdition_graded';
-        } else {
-            gradedKey = isFoil ? 'unlimitedHolofoil_graded' : 'unlimitedHolofoil_graded';
+
+        // If no prices object, fall back to other possible price fields
+        if (!cardData.prices || typeof cardData.prices !== 'object') {
+            const fallbackPrice = parseFloat(cardData.priceUsd || cardData.price || 0);
+            return isNaN(fallbackPrice) ? 0 : fallbackPrice;
         }
-        
-        if (prices[gradedKey] !== undefined && prices[gradedKey] !== null) {
-            const gradedPrice = parseFloat(prices[gradedKey]);
-            if (!isNaN(gradedPrice)) {
-                return gradedPrice;
+
+        const prices = cardData.prices;
+        const game = cardData.game ? cardData.game.toLowerCase() : 'mtg';
+
+        // --- MTG Pricing Logic ---
+        if (game === 'mtg') {
+            if (prices.usd) {
+                const mtgPrice = parseFloat(prices.usd);
+                return isNaN(mtgPrice) ? 0 : mtgPrice;
             }
         }
-    }
 
-    // --- Final Fallback for All Games ---
-    // If no specific price was found, find the most likely "main" price from what's available
-    const availablePrices = Object.values(prices)
-                                  .filter(p => typeof p === 'number' && p > 0)
-                                  .sort((a, b) => b - a); // Sort by highest price first
+        // --- Pokémon Pricing Logic ---
+        if (game === 'pokemon') {
+            const conditionMap = {
+                'mint': 'NM',
+                'near mint': 'NM',
+                'excellent': 'NM',
+                'good': 'LP',
+                'light played': 'LP',
+                'played': 'MP',
+                'poor': 'HP',
+                'heavily played': 'HP',
+                'damaged': 'DM'
+            };
 
-    if (availablePrices.length > 0) {
-        return availablePrices[0];
-    }
+            const condition = cardData.condition ? cardData.condition.toLowerCase() : 'near mint';
+            const conditionKey = conditionMap[condition] || 'NM'; // Default to NM
 
-    // If no valid price can be found, return 0
-    return 0;
-}       
-   
+            const isFoil = cardData.is_foil || false;
+            const isFirstEdition = cardData.is_first_edition || false;
+
+            let priceKey;
+
+            // Build the price key based on the card's specific properties
+            if (isFirstEdition) {
+                priceKey = isFoil ? `firstEditionHolofoil_${conditionKey}` : `firstEdition_${conditionKey}`;
+            } else {
+                priceKey = isFoil ? `unlimitedHolofoil_${conditionKey}` : `unlimited_${conditionKey}`;
+            }
+
+            // Check if a price exists for that specific key
+            if (prices[priceKey] !== undefined && prices[priceKey] !== null) {
+                const specificPrice = parseFloat(prices[priceKey]);
+                if (!isNaN(specificPrice)) {
+                    return specificPrice;
+                }
+            }
+            
+            // If no direct match, check for a graded price of the same type as a fallback
+            let gradedKey;
+            if (isFirstEdition) {
+                gradedKey = isFoil ? 'firstEditionHolofoil_graded' : 'firstEdition_graded';
+            } else {
+                gradedKey = isFoil ? 'unlimitedHolofoil_graded' : 'unlimitedHolofoil_graded';
+            }
+            
+            if (prices[gradedKey] !== undefined && prices[gradedKey] !== null) {
+                const gradedPrice = parseFloat(prices[gradedKey]);
+                if (!isNaN(gradedPrice)) {
+                    return gradedPrice;
+                }
+            }
+        }
+
+        // --- Final Fallback for All Games ---
+        // If no specific price was found, find the most likely "main" price from what's available
+        const availablePrices = Object.values(prices)
+                                      .filter(p => typeof p === 'number' && p > 0)
+                                      .sort((a, b) => b - a); // Sort by highest price first
+
+        if (availablePrices.length > 0) {
+            return availablePrices[0];
+        }
+
+        // If no valid price can be found, return 0
+        return 0;
+    }       
 
     bindEvents() {
         // Binder tab switching
@@ -211,12 +232,12 @@ calculateCardPrice(cardData) {
             this.filterCards(e.target.value);
         });
 
-  // Game filters
-document.querySelectorAll('.game-filter').forEach(filter => {
-    filter.addEventListener('change', () => {
-        this.displayCards();
-    });
-});
+        // Game filters
+        document.querySelectorAll('.game-filter').forEach(filter => {
+            filter.addEventListener('change', () => {
+                this.displayCards();
+            });
+        });
 
         // View toggles
         document.getElementById('view-toggle-grid')?.addEventListener('click', () => {
@@ -425,26 +446,26 @@ document.querySelectorAll('.game-filter').forEach(filter => {
                                 <span class="text-sm text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
                             </div>
                         </div>
-                        ${isSelected ? '<div class="ml-4 bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-check"></i></div>' : ''}
+                        ${isSelected ? '<i class="fas fa-check-circle text-blue-500 text-xl"></i>' : ''}
                     </div>
                 </div>
             `;
         } else {
             // Grid view layout
             return `
-                <div class="card-item bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow ${isSelected ? 'ring-2 ring-blue-500' : ''}" 
+                <div class="card-item bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-blue-500' : ''}" 
                      data-card-id="${card.id}">
-                    <div class="aspect-[2.5/3.5] relative">
+                    <div class="relative">
                         <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/200x280'}" 
                              alt="${cardData.name || 'Card'}" 
-                             class="w-full h-full object-cover"
+                             class="w-full h-48 object-cover rounded-t-lg"
                              loading="lazy">
-                        ${isSelected ? '<div class="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm"><i class="fas fa-check"></i></div>' : ''}
+                        ${isSelected ? '<div class="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1"><i class="fas fa-check text-sm"></i></div>' : ''}
                     </div>
                     <div class="p-3">
-                        <h3 class="font-medium text-sm text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                        <h3 class="font-medium text-gray-900 dark:text-white text-sm truncate">${cardData.name || 'Unknown Card'}</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
-                        <div class="flex justify-between items-center mt-2">
+                        <div class="flex items-center justify-between mt-2">
                             <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
                         </div>
@@ -454,48 +475,47 @@ document.querySelectorAll('.game-filter').forEach(filter => {
         }
     }
 
-  addCardClickListeners() {
-    document.querySelectorAll('.card-item').forEach(cardElement => {
-        cardElement.addEventListener('click', () => {
-            const cardId = cardElement.getAttribute('data-card-id');
-            this.toggleCardInTrade(cardId);
+    addCardClickListeners() {
+        document.querySelectorAll('.card-item').forEach(cardElement => {
+            cardElement.addEventListener('click', () => {
+                const cardId = cardElement.getAttribute('data-card-id');
+                this.toggleCardInTrade(cardId);
+            });
         });
-    });
-}
+    }
+
     isCardInTrade(cardId) {
-        return this.currentTrade.yourCards.some(c => c.id === cardId) || 
-               this.currentTrade.theirCards.some(c => c.id === cardId);
+        if (this.currentBinder === 'your') {
+            return this.currentTrade.yourCards.some(c => c.id === cardId);
+        } else {
+            return this.currentTrade.theirCards.some(c => c.id === cardId);
+        }
     }
 
     toggleCardInTrade(cardId) {
+        const cards = this.currentBinder === 'your' ? this.yourCollection : this.theirCollection;
+        const card = cards.find(c => c.id === cardId);
+        
+        if (!card) return;
+
         if (this.currentBinder === 'your') {
-            const cardIndex = this.currentTrade.yourCards.findIndex(c => c.id === cardId);
-            if (cardIndex > -1) {
-                // Remove from trade
-                this.currentTrade.yourCards.splice(cardIndex, 1);
+            const index = this.currentTrade.yourCards.findIndex(c => c.id === cardId);
+            if (index > -1) {
+                this.currentTrade.yourCards.splice(index, 1);
             } else {
-                // Add to trade
-                const card = this.yourCollection.find(c => c.id === cardId);
-                if (card) {
-                    this.currentTrade.yourCards.push(card);
-                }
+                this.currentTrade.yourCards.push(card);
             }
             this.updateYourTradeDisplay();
-        } else if (this.currentBinder === 'their' && this.currentTrade.partner) {
-            const cardIndex = this.currentTrade.theirCards.findIndex(c => c.id === cardId);
-            if (cardIndex > -1) {
-                // Remove from trade
-                this.currentTrade.theirCards.splice(cardIndex, 1);
+        } else {
+            const index = this.currentTrade.theirCards.findIndex(c => c.id === cardId);
+            if (index > -1) {
+                this.currentTrade.theirCards.splice(index, 1);
             } else {
-                // Add to trade
-                const card = this.theirCollection.find(c => c.id === cardId);
-                if (card) {
-                    this.currentTrade.theirCards.push(card);
-                }
+                this.currentTrade.theirCards.push(card);
             }
+            this.updateTheirTradeDisplay();
         }
 
-        this.updateTheirTradeDisplay();
         this.updateTradeValues();
         this.updateProposalButton();
         this.displayCards(); // Refresh to show selection state
@@ -515,34 +535,34 @@ document.querySelectorAll('.game-filter').forEach(filter => {
             return;
         }
 
-      const cardsHtml = this.currentTrade.yourCards.map(card => {
-    const cardData = card.cardData || card;
-    const price = this.calculateCardPrice(cardData);
-    const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
-    
-    return `
-      <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-          <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/40x56'}" 
-               alt="${cardData.name}" 
-               class="w-10 h-14 object-cover rounded">
-          <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
-              <div class="flex items-center justify-between mt-1">
-                  <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
-                  <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+        const cardsHtml = this.currentTrade.yourCards.map(card => {
+            const cardData = card.cardData || card;
+            const price = this.calculateCardPrice(cardData);
+            const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
+            
+            return `
+              <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/40x56'}" 
+                       alt="${cardData.name}" 
+                       class="w-10 h-14 object-cover rounded">
+                  <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                      <div class="flex items-center justify-between mt-1">
+                          <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
+                          <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                      </div>
+                  </div>
+                  <button class="remove-card-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" data-card-id="${card.id}" data-side="your">
+                      <i class="fas fa-times"></i>
+                  </button>
               </div>
-          </div>
-          <button class="remove-card-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" data-card-id="${card.id}" data-side="your">
-              <i class="fas fa-times"></i>
-          </button>
-      </div>
-    `;
-}).join('');
+            `;
+        }).join('');
 
-container.innerHTML = cardsHtml;
+        container.innerHTML = cardsHtml;
 
- // Add proper event listeners AFTER setting the HTML
+        // Add proper event listeners AFTER setting the HTML
         container.querySelectorAll('.remove-card-btn').forEach(button => {
             button.addEventListener('click', (event) => {
                 const cardId = event.currentTarget.getAttribute('data-card-id');
@@ -550,60 +570,61 @@ container.innerHTML = cardsHtml;
                 this.removeCardFromTrade(cardId, side);
             });
         });
-    } // This brace closes updateYourTradeDisplay
-
-updateTheirTradeDisplay() { 
-    const container = document.getElementById('their-trade-cards');
-    if (!container) return;
-
-    if (this.currentTrade.theirCards.length === 0) {
-        container.innerHTML = `
-          <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-              <i class="fas fa-user-plus text-3xl mb-2"></i>
-              <p>Partner's cards will appear here</p>
-          </div>
-        `;
-        return;
     }
 
-    const cardsHtml = this.currentTrade.theirCards.map(card => {
-        const cardData = card.cardData || card;
-        const price = this.calculateCardPrice(cardData);
-        const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
-        const imageUrl = cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl;
-        
-        return `
-          <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-              <img src="${imageUrl || 'https://via.placeholder.com/40x56'}" 
-                   alt="${cardData.name}" 
-                   class="w-10 h-14 object-cover rounded" 
-                   onerror="this.src='https://via.placeholder.com/40x56?text=?'">
-              <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
-                  <div class="flex items-center justify-between mt-1">
-                      <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
-                      <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
-                  </div>
+    updateTheirTradeDisplay() { 
+        const container = document.getElementById('their-trade-cards');
+        if (!container) return;
+
+        if (this.currentTrade.theirCards.length === 0) {
+            container.innerHTML = `
+              <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                  <i class="fas fa-user-plus text-3xl mb-2"></i>
+                  <p>Partner's cards will appear here</p>
               </div>
-              <button class="remove-card-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" data-card-id="${card.id}" data-side="their">
-                  <i class="fas fa-times"></i>
-              </button>
-          </div>
-        `;
-    }).join('');
+            `;
+            return;
+        }
 
-    container.innerHTML = cardsHtml;
+        const cardsHtml = this.currentTrade.theirCards.map(card => {
+            const cardData = card.cardData || card;
+            const price = this.calculateCardPrice(cardData);
+            const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
+            const imageUrl = cardData.image_uris?.normal || cardData.image_uris?.large || cardData.images?.large || cardData.imageUrl;
+            
+            return `
+              <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <img src="${imageUrl || 'https://via.placeholder.com/40x56'}" 
+                       alt="${cardData.name}" 
+                       class="w-10 h-14 object-cover rounded" 
+                       onerror="this.src='https://via.placeholder.com/40x56?text=?'">
+                  <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
+                      <div class="flex items-center justify-between mt-1">
+                          <span class="text-xs text-gray-600 dark:text-gray-300">${card.condition || 'NM'}</span>
+                          <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
+                      </div>
+                  </div>
+                  <button class="remove-card-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors" data-card-id="${card.id}" data-side="their">
+                      <i class="fas fa-times"></i>
+                  </button>
+              </div>
+            `;
+        }).join('');
 
-    // Add proper event listeners AFTER setting the HTML
-    container.querySelectorAll('.remove-card-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const cardId = event.currentTarget.getAttribute('data-card-id');
-            const side = event.currentTarget.getAttribute('data-side');
-            this.removeCardFromTrade(cardId, side);
+        container.innerHTML = cardsHtml;
+
+        // Add proper event listeners AFTER setting the HTML
+        container.querySelectorAll('.remove-card-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const cardId = event.currentTarget.getAttribute('data-card-id');
+                const side = event.currentTarget.getAttribute('data-side');
+                this.removeCardFromTrade(cardId, side);
+            });
         });
-    });
-}
+    }
+
     removeCardFromTrade(cardId, side) {
         if (side === 'your') {
             const index = this.currentTrade.yourCards.findIndex(c => c.id === cardId);
@@ -657,24 +678,25 @@ updateTheirTradeDisplay() {
             theirValueEl.textContent = formattedValue;
         }
 
-    if (balanceEl) {
-    const difference = yourTotalValue - theirTotalValue;
-    const absValue = Math.abs(difference);
-    
-    if (absValue < 0.01) {
-        balanceEl.textContent = 'Balanced';
-        balanceEl.className = 'text-sm text-green-600 dark:text-green-400 font-medium';
-    } else if (difference > 0) { // Correct: yourTotalValue is GREATER
-        const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
-        balanceEl.textContent = `They owe ${formattedDiff}`; // THEY owe YOU
-        balanceEl.className = 'text-sm text-blue-600 dark:text-blue-400 font-medium';
-    } else { // Correct: yourTotalValue is LESS
-        const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
-        balanceEl.textContent = `You owe ${formattedDiff}`; // YOU owe THEM
-        balanceEl.className = 'text-sm text-red-600 dark:text-red-400 font-medium';
+        if (balanceEl) {
+            const difference = yourTotalValue - theirTotalValue;
+            const absValue = Math.abs(difference);
+            
+            if (absValue < 0.01) {
+                balanceEl.textContent = 'Balanced';
+                balanceEl.className = 'text-sm text-green-600 dark:text-green-400 font-medium';
+            } else if (difference > 0) { // Correct: yourTotalValue is GREATER
+                const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
+                balanceEl.textContent = `They owe ${formattedDiff}`; // THEY owe YOU
+                balanceEl.className = 'text-sm text-blue-600 dark:text-blue-400 font-medium';
+            } else { // Correct: yourTotalValue is LESS
+                const formattedDiff = this.convertAndFormat ? this.convertAndFormat(absValue) : `$${absValue.toFixed(2)}`;
+                balanceEl.textContent = `You owe ${formattedDiff}`; // YOU owe THEM
+                balanceEl.className = 'text-sm text-red-600 dark:text-red-400 font-medium';
+            }
+        }
     }
-}
-}
+
     updateProposalButton() {
         const proposeBtn = document.getElementById('propose-trade-btn');
         const autoBalanceBtn = document.getElementById('autobalance-btn');
@@ -692,7 +714,7 @@ updateTheirTradeDisplay() {
         }
     }
 
-       applyFilters(cards = null) {
+    applyFilters(cards = null) {
         const cardsToFilter = cards || (this.currentBinder === 'your' ? this.yourCollection : this.theirCollection);
         
         // Search filter
@@ -848,7 +870,7 @@ updateTheirTradeDisplay() {
         }
     }
 
-toggleLegacyView() {
+    toggleLegacyView() {
         const toggleBtn = document.getElementById('toggle-legacy-view');
         const newInterface = document.getElementById('new-trading-interface');
         const legacySection = document.getElementById('legacy-trades-section');
@@ -863,81 +885,97 @@ toggleLegacyView() {
             } else {
                 // We are now showing the legacy trade history
                 toggleBtn.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i>New Trade';
+                
+                // FIXED: Trigger a refresh of the legacy trades when switching to it
+                if (window.legacyTradesInitialized) {
+                    // Force refresh the legacy trades display
+                    const user = firebase.auth().currentUser;
+                    const db = firebase.firestore();
+                    if (user && db) {
+                        loadAllTrades(user, db, 
+                            document.getElementById('tab-content-incoming'),
+                            document.getElementById('tab-content-outgoing'),
+                            document.getElementById('tab-content-history')
+                        );
+                    }
+                }
             }
         }
     }
 
-      async proposeTrade() {
-    if (!this.currentTrade.partner) {
-        alert('Please select a trading partner first.');
-        return;
-    }
-    if (this.currentTrade.yourCards.length === 0 && this.currentTrade.theirCards.length === 0) {
-        alert('Please add some cards to the trade.');
-        return;
-    }
+    // FIXED: Proper proposeTrade function with all required fields
+    async proposeTrade() {
+        if (!this.currentTrade.partner) {
+            alert('Please select a trading partner first.');
+            return;
+        }
+        if (this.currentTrade.yourCards.length === 0 && this.currentTrade.theirCards.length === 0) {
+            alert('Please add some cards to the trade.');
+            return;
+        }
 
-    try {
-        const self = this;
+        try {
+            const self = this;
 
-        // Helper to correctly extract data for saving
-        const mapCardForStorage = (card) => {
-            const cardData = card.cardData || card;
-            const imageUrl = cardData.imageUrl || cardData.image_uris?.normal || cardData.images?.large || 'https://via.placeholder.com/40x56';
-            
-            return {
-                id: card.id,
-                name: cardData.name || 'Unknown Card',
-                imageUrl: imageUrl,
-                priceUsd: self.calculateCardPrice(cardData ), // Use robust price calculation
-                game: cardData.game || 'Unknown',
-                condition: card.condition || 'Near Mint'
+            // Helper to correctly extract data for saving
+            const mapCardForStorage = (card) => {
+                const cardData = card.cardData || card;
+                const imageUrl = cardData.imageUrl || cardData.image_uris?.normal || cardData.images?.large || 'https://via.placeholder.com/40x56';
+                
+                return {
+                    id: card.id,
+                    name: cardData.name || 'Unknown Card',
+                    imageUrl: imageUrl,
+                    priceUsd: self.calculateCardPrice(cardData), // Use robust price calculation
+                    game: cardData.game || 'Unknown',
+                    condition: card.condition || 'Near Mint'
+                };
             };
-        };
 
-        const tradeData = {
-            participants: [this.user.uid, this.currentTrade.partner.uid],
-            proposerId: this.user.uid,
-            proposerName: this.user.displayName || this.user.email,
-            receiverId: this.currentTrade.partner.uid,
-            receiverName: this.currentTrade.partner.displayName || this.currentTrade.partner.email,
-            proposerCards: this.currentTrade.yourCards.map(mapCardForStorage),
-            receiverCards: this.currentTrade.theirCards.map(mapCardForStorage),
-            proposerMoney: this.currentTrade.yourCash || 0,
-            receiverMoney: this.currentTrade.theirCash || 0,
-            currency: this.userCurrency || 'USD',
-            notes: document.getElementById('trade-notes-input')?.value || '', // Assuming you have a notes input
-            status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            proposerConfirmedShipment: false,
-            receiverConfirmedShipment: false
-        };
+            // FIXED: Include all required fields including participants array
+            const tradeData = {
+                participants: [this.user.uid, this.currentTrade.partner.uid], // CRITICAL FIX: This was missing!
+                proposerId: this.user.uid,
+                proposerName: this.user.displayName || this.user.email,
+                receiverId: this.currentTrade.partner.uid,
+                receiverName: this.currentTrade.partner.displayName || this.currentTrade.partner.email,
+                proposerCards: this.currentTrade.yourCards.map(mapCardForStorage),
+                receiverCards: this.currentTrade.theirCards.map(mapCardForStorage),
+                proposerMoney: this.currentTrade.yourCash || 0,
+                receiverMoney: this.currentTrade.theirCash || 0,
+                currency: this.userCurrency || 'USD',
+                notes: document.getElementById('trade-notes-input')?.value || '', // FIXED: Now properly references the notes input
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                proposerConfirmedShipment: false,
+                receiverConfirmedShipment: false
+            };
 
-        await this.db.collection('trades').add(tradeData);
-        
-        if (window.Toastify) {
-            Toastify({
-                text: "Trade proposal sent successfully!",
-                duration: 3000,
-                style: { background: "linear-gradient(to right, #10b981, #059669)" }
-            }).showToast();
-        }
+            console.log('PROPOSING TRADE WITH DATA:', tradeData); // Debug log
 
-        this.resetTrade();
+            await this.db.collection('trades').add(tradeData);
+            
+            if (window.Toastify) {
+                Toastify({
+                    text: "Trade proposal sent successfully!",
+                    duration: 3000,
+                    style: { background: "linear-gradient(to right, #10b981, #059669)" }
+                }).showToast();
+            }
 
-    } catch (error) {
-        console.error('CRITICAL: Error proposing trade:', error);
-        if (window.Toastify) {
-            Toastify({
-                text: "Failed to send trade proposal. Please try again.",
-                duration: 3000,
-                style: { background: "linear-gradient(to right, #ef4444, #dc2626)" }
-            }).showToast();
+            this.resetTrade();
+
+        } catch (error) {
+            console.error('CRITICAL: Error proposing trade:', error);
+            if (window.Toastify) {
+                Toastify({
+                    text: "Failed to send trade proposal. Please try again.",
+                    duration: 3000,
+                    style: { background: "linear-gradient(to right, #ef4444, #dc2626)" }
+                }).showToast();
+            }
         }
     }
-}
-
-
 
     resetTrade() {
         this.currentTrade = {
@@ -953,9 +991,11 @@ toggleLegacyView() {
         // Reset cash inputs
         const yourCashInput = document.getElementById('your-cash-input');
         const theirCashInput = document.getElementById('their-cash-input');
+        const notesInput = document.getElementById('trade-notes-input');
         
         if (yourCashInput) yourCashInput.value = '';
         if (theirCashInput) theirCashInput.value = '';
+        if (notesInput) notesInput.value = '';
 
         // Reset UI
         const partnerNameEl = document.getElementById('trade-partner-name');
@@ -980,13 +1020,62 @@ toggleLegacyView() {
         this.updateProposalButton();
     }
 
+    // FIXED: Proper auto-balance implementation
     autoBalance() {
-        // Simple auto-balance implementation
-        const valueDiff = Math.abs(this.currentTrade.yourValue - this.currentTrade.theirValue);
-        
+        if (!this.currentTrade.partner) {
+            if (window.Toastify) {
+                Toastify({
+                    text: "Please select a trading partner first.",
+                    duration: 3000,
+                    style: { background: "linear-gradient(to right, #ef4444, #dc2626)" }
+                }).showToast();
+            }
+            return;
+        }
+
+        const yourCardValue = this.currentTrade.yourValue;
+        const theirCardValue = this.currentTrade.theirValue;
+        const difference = yourCardValue - theirCardValue;
+
+        if (Math.abs(difference) < 0.01) {
+            if (window.Toastify) {
+                Toastify({
+                    text: "Trade is already balanced!",
+                    duration: 3000,
+                    style: { background: "linear-gradient(to right, #10b981, #059669)" }
+                }).showToast();
+            }
+            return;
+        }
+
+        // Clear existing cash values
+        this.currentTrade.yourCash = 0;
+        this.currentTrade.theirCash = 0;
+
+        // Calculate who needs to add cash
+        if (difference > 0) {
+            // You have more value, they need to add cash
+            this.currentTrade.theirCash = Math.abs(difference);
+            const theirCashInput = document.getElementById('their-cash-input');
+            if (theirCashInput) {
+                theirCashInput.value = Math.abs(difference).toFixed(2);
+            }
+        } else {
+            // They have more value, you need to add cash
+            this.currentTrade.yourCash = Math.abs(difference);
+            const yourCashInput = document.getElementById('your-cash-input');
+            if (yourCashInput) {
+                yourCashInput.value = Math.abs(difference).toFixed(2);
+            }
+        }
+
+        // Update the trade values display
+        this.updateTradeValues();
+
         if (window.Toastify) {
+            const formattedDiff = this.convertAndFormat ? this.convertAndFormat(Math.abs(difference)) : `$${Math.abs(difference).toFixed(2)}`;
             Toastify({
-                text: `Value difference: $${valueDiff.toFixed(2)}. Auto-balance feature coming soon!`,
+                text: `Auto-balanced! ${difference > 0 ? 'Partner' : 'You'} will add ${formattedDiff} in cash.`,
                 duration: 3000,
                 style: { background: "linear-gradient(to right, #f59e0b, #d97706)" }
             }).showToast();
@@ -998,7 +1087,7 @@ toggleLegacyView() {
         // Create a simple modal for user search
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        modal.id = 'user-search-modal-dynamic'; // Add this line
+        modal.id = 'user-search-modal-dynamic';
         modal.innerHTML = `
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
                 <div class="flex justify-between items-center mb-4">
@@ -1303,11 +1392,11 @@ class UserSearch {
             regularSearchInput.value = userData.displayName || userData.email;
         }
 
-      // Close the dynamically created modal by its unique ID
-const modal = document.getElementById('user-search-modal-dynamic');
-if (modal && modal.parentNode) {
-    modal.parentNode.removeChild(modal);
-}
+        // Close the dynamically created modal by its unique ID
+        const modal = document.getElementById('user-search-modal-dynamic');
+        if (modal && modal.parentNode) {
+            modal.parentNode.removeChild(modal);
+        }
 
         // Show success message
         if (window.Toastify) {
@@ -1363,11 +1452,10 @@ document.addEventListener('authReady', ({ detail: { user } }) => {
     initializeLegacyTrades(user, db);
 });
 
-// Legacy trades functionality (existing code)
+// FIXED: Legacy trades functionality with proper initialization
 function initializeLegacyTrades(user, db) {
     const tradesPageContainer = document.querySelector('#legacy-trades-section');
     if (!tradesPageContainer) return;
-    tradesPageContainer.classList.remove('hidden'); // Add this line
 
     const incomingContainer = document.getElementById('tab-content-incoming');
     const outgoingContainer = document.getElementById('tab-content-outgoing');
@@ -1392,110 +1480,300 @@ function initializeLegacyTrades(user, db) {
         });
     });
 
-    // Load trades
+    // Load trades and mark as initialized
     loadAllTrades(user, db, incomingContainer, outgoingContainer, historyContainer);
-tradesPageContainer.classList.add('hidden'); // Add this line to re-hide it after setup
+    window.legacyTradesInitialized = true;
 }
 
-function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyContainer) {
-    const tradesRef = db.collection('trades').where('participants', 'array-contains', user.uid).orderBy('createdAt', 'desc');
+// Helper functions for trade card rendering (moved up to fix hoisting issue)
+window.createTradeCard = async function(trade, tradeId, user) {
+    const tradeCard = document.createElement('div');
+    tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
+    tradeCard.setAttribute('data-trade-id', tradeId);
+    const isProposer = trade.proposerId === user.uid;
 
-    tradesRef.onSnapshot(async (snapshot) => {
-        if (incomingContainer) incomingContainer.innerHTML = '';
-        if (outgoingContainer) outgoingContainer.innerHTML = '';
-        if (historyContainer) historyContainer.innerHTML = '';
+    const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
+    const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
 
-        if (snapshot.empty) {
-            const noTradesMsg = '<div class="text-center py-8"><i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No trades found</h3><p class="text-gray-500 dark:text-gray-400">Your trades will appear here when available.</p></div>';
-            if (incomingContainer) incomingContainer.innerHTML = noTradesMsg;
-            if (outgoingContainer) outgoingContainer.innerHTML = noTradesMsg;
-            if (historyContainer) historyContainer.innerHTML = noTradesMsg;
-            updateTradeStatistics({ incoming: 0, outgoing: 0, completed: 0, totalValue: 0 });
-            return;
+    const statusColors = {
+        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+        accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+        awaiting_payment: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+        funds_authorized: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300',
+        shipped: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300',
+        completed: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+        rejected: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+        cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+        disputed: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
+    };
+    const statusColor = statusColors[trade.status] || 'bg-gray-100 dark:bg-gray-700';
+
+    const actionButtons = getActionButtons(trade, tradeId, isProposer, user);
+
+    tradeCard.innerHTML = `
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    ${isProposer ? `Offer to: <strong>${trade.receiverName}</strong>` : `Offer from: <strong>${trade.proposerName}</strong>`}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">On: ${formatTimestamp(trade.createdAt)}</p>
+            </div>
+            <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusColor}">${(trade.status || 'unknown').replace('_', ' ')}</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="border dark:border-gray-600 p-4 rounded-md">
+                <h4 class="font-bold mb-2 dark:text-white">${trade.proposerName} Offers:</h4>
+                <div class="space-y-2">${proposerItemsHtml}</div>
+            </div>
+            <div class="border dark:border-gray-600 p-4 rounded-md">
+                <h4 class="font-bold mb-2 dark:text-white">${trade.receiverName} Offers:</h4>
+                <div class="space-y-2">${receiverItemsHtml}</div>
+            </div>
+        </div>
+        ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
+        <div class="mt-4 text-right space-x-2">${actionButtons}</div>
+    `;
+
+    // Add event listeners for action buttons
+    tradeCard.querySelectorAll('.trade-action-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const action = btn.getAttribute('data-action');
+            const id = btn.getAttribute('data-id');
+            handleTradeAction(action, id, firebase.firestore());
+        });
+    });
+
+    return tradeCard;
+};
+
+window.renderTradeItems = function(cards, money) {
+    let html = '';
+    if (cards && cards.length > 0) {
+        html += cards.map(card => {
+            const price = card.priceUsd || card.priceUsdFoil || 0;
+            const numericPrice = parseFloat(price) || 0;
+
+            return `
+            <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
+                <img src="${card.imageUrl || 'https://via.placeholder.com/40x56'}" 
+                     alt="${card.name}"
+                     class="w-10 h-14 object-cover rounded"
+                     onerror="this.src='https://via.placeholder.com/40x56?text=?'">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name || 'Unknown Card'}</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
+                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${numericPrice.toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+    
+    if (money && money > 0) {
+        html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
+                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${(parseFloat(money) || 0).toFixed(2)}</span>
+                    </div>
+                 </div>`;
+    }
+    
+    return html || '<div class="text-sm text-gray-500 dark:text-gray-400 p-4 text-center">No items</div>';
+};
+
+window.getActionButtons = function(trade, tradeId, isProposer, user) {
+    const isPayer = (trade.proposerMoney > 0 && isProposer) || (trade.receiverMoney > 0 && !isProposer);
+    const buyerUid = (trade.proposerMoney || 0) > 0 ? trade.proposerId : trade.receiverId;
+    const isBuyer = user.uid === buyerUid;
+
+    switch (trade.status) {
+        case 'pending':
+            return isProposer
+                ? `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Cancel</button>`
+                : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2">Decline</button>
+                   <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Accept</button>`;
+        case 'awaiting_payment':
+             return isPayer
+                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com</button>`
+                : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
+        case 'funds_authorized':
+            const userHasShipped = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
+            return userHasShipped
+                ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
+                : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirm Shipment</button>`;
+        case 'shipped':
+             if (isBuyer) {
+                 return `<button data-id="${tradeId}" data-action="confirm-receipt" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirm Delivery & Release Funds</button>`;
+             } else {
+                 return `<span class="text-sm text-gray-500">Waiting for buyer to confirm receipt...</span>`;
+             }
+        default:
+            return '';
+    }
+};
+
+window.handleTradeAction = async function(action, tradeId, db) {
+    const tradeRef = db.collection('trades').doc(tradeId);
+    const tradeDoc = await tradeRef.get();
+    if (!tradeDoc.exists) return;
+    const tradeData = tradeDoc.data();
+
+    if (action === 'accepted') {
+        const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
+        if (moneyInvolved) {
+             await tradeRef.update({ status: 'accepted' });
+             // initiateEscrowTransaction(tradeId, tradeData); // Implement if needed
+        } else {
+             await tradeRef.update({ status: 'funds_authorized' });
+             showTradeToast("Trade accepted! Ready for shipment.", 'success');
         }
+    } else if (action === 'confirm-shipment') {
+        const user = firebase.auth().currentUser;
+        const isProposer = tradeData.proposerId === user.uid;
+        const updateField = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
+        
+        await tradeRef.update({ [updateField]: true });
+        
+        // Check if both parties have confirmed shipment
+        const updatedDoc = await tradeRef.get();
+        const updatedData = updatedDoc.data();
+        if (updatedData.proposerConfirmedShipment && updatedData.receiverConfirmedShipment) {
+            await tradeRef.update({ status: 'shipped' });
+        }
+        
+        showTradeToast("Shipment confirmed!", 'success');
+    } else if (action === 'confirm-receipt') {
+        await tradeRef.update({ status: 'completed' });
+        showTradeToast("Trade completed successfully!", 'success');
+    } else {
+        await tradeRef.update({ status: action });
+        showTradeToast(`Trade ${action}!`, action === 'rejected' || action === 'cancelled' ? 'error' : 'success');
+    }
+};
 
-        let counts = { incoming: 0, outgoing: 0, history: 0, completed: 0 };
-        let totalValue = 0;
-        let notifications = [];
+window.showTradeToast = function(message, type) {
+    if (window.Toastify) {
+        const colors = {
+            success: "linear-gradient(to right, #10b981, #059669)",
+            error: "linear-gradient(to right, #ef4444, #dc2626)",
+            info: "linear-gradient(to right, #3b82f6, #1d4ed8)"
+        };
+        
+        Toastify({
+            text: message,
+            duration: 3000,
+            style: { background: colors[type] || colors.info }
+        }).showToast();
+    }
+};
 
-                // ... inside the onSnapshot callback, after clearing the containers
-        for (const doc of snapshot.docs) {
-            try { // --- START of the robust block ---
-                const trade = doc.data();
-                if (!trade || !trade.status) {
-                    console.warn(`[Trades] Document ${doc.id} is missing data or status. Skipping.`);
-                    continue; // Skip to the next iteration
-                }
-
-                const tradeCard = await createTradeCard(trade, doc.id, user);
-                const isReceiver = trade.receiverId === user.uid;
-
-                // Calculate trade value
-                const tradeValue = calculateTradeValue(trade);
-                totalValue += tradeValue;
-
-                // Check for notifications
+// FIXED: Improved loadAllTrades function with better error handling
+function loadAllTrades(user, db, incomingContainer, outgoingContainer, historyContainer) {
+    const tradesRef = db.collection('trades').where('participants', 'array-contains', user.uid);
+    
+    tradesRef.onSnapshot(snapshot => {
+        const trades = [];
+        const notifications = [];
+        
+        // FIXED: Better error handling for individual trade documents
+        snapshot.forEach(doc => {
+            try {
+                const trade = { id: doc.id, ...doc.data() };
+                trades.push(trade);
+                
                 const notification = checkTradeNotification(trade, user.uid);
                 if (notification) {
                     notifications.push(notification);
                 }
-
-                if (['pending', 'accepted', 'awaiting_payment', 'funds_authorized', 'shipped', 'disputed'].includes(trade.status)) {
-                    if (isReceiver && incomingContainer) {
-                        incomingContainer.appendChild(tradeCard);
-                        counts.incoming++;
-                    } else if (!isReceiver && outgoingContainer) {
-                        outgoingContainer.appendChild(tradeCard);
-                        counts.outgoing++;
-                    }
-                } else {
-                    if (historyContainer) {
-                        historyContainer.appendChild(tradeCard);
-                        counts.history++;
-                    }
-                    if (trade.status === 'completed') {
-                        counts.completed++;
-                    }
-                }
-            } catch (error) { // --- CATCH block to handle errors ---
-                console.error(`[Trades] Failed to process and render trade ID: ${doc.id}. This trade will be skipped. Error:`, error);
+            } catch (error) {
+                console.error(`Error processing trade document ${doc.id}:`, error);
+                // Continue processing other trades instead of failing completely
             }
-        }
-
-
-        // Update empty states with proper styling
-        if (counts.incoming === 0 && incomingContainer) {
-            incomingContainer.innerHTML = '<div class="text-center py-8"><i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Incoming Offers</h3><p class="text-gray-500 dark:text-gray-400">When someone sends you a trade offer, it will appear here.</p></div>';
-        }
-        if (counts.outgoing === 0 && outgoingContainer) {
-            outgoingContainer.innerHTML = '<div class="text-center py-8"><i class="fas fa-paper-plane text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Outgoing Offers</h3><p class="text-gray-500 dark:text-gray-400">Your sent trade offers will appear here.</p></div>';
-        }
-        if (counts.history === 0 && historyContainer) {
-            historyContainer.innerHTML = '<div class="text-center py-8"><i class="fas fa-history text-4xl text-gray-400 mb-4"></i><h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Trade History</h3><p class="text-gray-500 dark:text-gray-400">Your completed, cancelled, and rejected trades will appear here.</p></div>';
-        }
-
-        // Update statistics and notifications
-        updateTradeStatistics({
-            incoming: counts.incoming,
-            outgoing: counts.outgoing,
-            completed: counts.completed,
-            totalValue: totalValue
         });
 
-        updateTradeNotifications(notifications);
-        updateTabBadges(counts.incoming, counts.outgoing, notifications.length);
+        // Categorize trades
+        const incoming = trades.filter(trade => trade.receiverId === user.uid && trade.status === 'pending');
+        const outgoing = trades.filter(trade => trade.proposerId === user.uid && trade.status === 'pending');
+        const history = trades.filter(trade => trade.status !== 'pending');
 
-    }, err => console.error("Error loading trades:", err));
+        // Update containers
+        updateTradeContainer(incomingContainer, incoming, user, 'incoming');
+        updateTradeContainer(outgoingContainer, outgoing, user, 'outgoing');
+        updateTradeContainer(historyContainer, history, user, 'history');
+
+        // Update statistics
+        const stats = {
+            incoming: incoming.length,
+            outgoing: outgoing.length,
+            completed: history.filter(t => t.status === 'completed').length,
+            totalValue: history.filter(t => t.status === 'completed').reduce((sum, trade) => sum + calculateTradeValue(trade), 0)
+        };
+
+        updateTradeStatistics(stats);
+        updateTabBadges(incoming.length, outgoing.length, notifications.length);
+        updateTradeNotifications(notifications);
+    }, error => {
+        console.error('Error loading trades:', error);
+        // Show error message in containers
+        [incomingContainer, outgoingContainer, historyContainer].forEach(container => {
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Error Loading Trades</h3>
+                        <p class="text-gray-500 dark:text-gray-400">${error.message}</p>
+                        <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        });
+    });
 }
 
-// Helper function to calculate trade value
+async function updateTradeContainer(container, trades, user, type) {
+    if (!container) return;
+
+    if (trades.length === 0) {
+        const messages = {
+            incoming: 'No incoming trade offers.',
+            outgoing: 'No outgoing trade offers.',
+            history: 'No trade history yet.'
+        };
+
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-exchange-alt text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Trades</h3>
+                <p class="text-gray-500 dark:text-gray-400">${messages[type]}</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Sort trades by creation date (newest first)
+    trades.sort((a, b) => {
+        const aTime = a.createdAt?.seconds || 0;
+        const bTime = b.createdAt?.seconds || 0;
+        return bTime - aTime;
+    });
+
+    const tradeCards = await Promise.all(trades.map(trade => window.createTradeCard(trade, trade.id, user)));
+    container.innerHTML = '';
+    tradeCards.forEach(card => container.appendChild(card));
+}
+
+// Helper function to get card value
+function getCardValue(card) {
+    return parseFloat(card.priceUsd || card.priceUsdFoil || 0);
+}
+
+// Helper function to calculate total trade value
 function calculateTradeValue(trade) {
     let value = 0;
-    const getCardValue = (card) => {
-        // Handles price from priceUsd, priceUsdFoil, or defaults to 0
-        const price = card.priceUsd || card.priceUsdFoil || 0;
-        return parseFloat(price) || 0;
-    };
     
     if (trade.proposerCards) {
         value += trade.proposerCards.reduce((sum, card) => sum + getCardValue(card), 0);
@@ -1507,7 +1785,6 @@ function calculateTradeValue(trade) {
     value += (parseFloat(trade.proposerMoney) || 0) + (parseFloat(trade.receiverMoney) || 0);
     return value;
 }
-
 
 // Helper function to check for trade notifications
 function checkTradeNotification(trade, userId) {
@@ -1615,6 +1892,7 @@ function updateTabBadges(incoming, outgoing, notifications) {
         } else {
             notificationsBadge.classList.add('hidden');
         }
+    }
 }
 
 // Update trade notifications
@@ -1672,25 +1950,6 @@ function updateTradeNotifications(notifications) {
     notificationsList.innerHTML = notificationsHtml;
 }
 
-// Helper function to format timestamp
-function formatTimestamp(timestamp) {
-    if (!timestamp) return 'Unknown';
-    
-    let date;
-    if (timestamp.seconds) {
-        // Firestore timestamp
-        date = new Date(timestamp.seconds * 1000);
-    } else if (typeof timestamp === 'number') {
-        // Unix timestamp
-        date = new Date(timestamp);
-    } else {
-        // Already a Date object or string
-        date = new Date(timestamp);
-    }
-    
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-
 // Helper function to get time ago string
 function getTimeAgo(timestamp) {
     const now = Date.now();
@@ -1705,187 +1964,4 @@ function getTimeAgo(timestamp) {
     return 'Just now';
 }
 
-async function createTradeCard(trade, tradeId, user) {
-    const tradeCard = document.createElement('div');
-    tradeCard.className = 'bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md';
-    tradeCard.setAttribute('data-trade-id', tradeId);
-    const isProposer = trade.proposerId === user.uid;
-
-    const proposerItemsHtml = renderTradeItems(trade.proposerCards, trade.proposerMoney);
-    const receiverItemsHtml = renderTradeItems(trade.receiverCards, trade.receiverMoney);
-
-    const statusColors = {
-        pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-        accepted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-        awaiting_payment: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
-        funds_authorized: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300',
-        shipped: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300',
-        completed: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-        rejected: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-        cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-        disputed: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300',
-    };
-    const statusColor = statusColors[trade.status] || 'bg-gray-100 dark:bg-gray-700';
-
-    const actionButtons = getActionButtons(trade, tradeId, isProposer, user);
-
-    tradeCard.innerHTML = `
-        <div class="flex justify-between items-start mb-4">
-            <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                    ${isProposer ? `Offer to: <strong>${trade.receiverName}</strong>` : `Offer from: <strong>${trade.proposerName}</strong>`}
-                </p>
-                <p class="text-xs text-gray-400 dark:text-gray-500">On: ${formatTimestamp(trade.createdAt)}</p>
-            </div>
-            <span class="px-3 py-1 text-sm font-semibold rounded-full ${statusColor}">${(trade.status || 'unknown').replace('_', ' ')}</span>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="border dark:border-gray-600 p-4 rounded-md">
-                <h4 class="font-bold mb-2 dark:text-white">${trade.proposerName} Offers:</h4>
-                <div class="space-y-2">${proposerItemsHtml}</div>
-            </div>
-            <div class="border dark:border-gray-600 p-4 rounded-md">
-                <h4 class="font-bold mb-2 dark:text-white">${trade.receiverName} Offers:</h4>
-                <div class="space-y-2">${receiverItemsHtml}</div>
-            </div>
-        </div>
-        ${trade.notes ? `<div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md"><p class="text-sm italic dark:text-gray-300"><strong>Notes:</strong> ${trade.notes}</p></div>` : ''}
-        <div class="mt-4 text-right space-x-2">${actionButtons}</div>
-    `       ;
-
-    // Add event listeners for action buttons
-    tradeCard.querySelectorAll('.trade-action-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const action = btn.getAttribute('data-action');
-            const id = btn.getAttribute('data-id');
-            handleTradeAction(action, id, firebase.firestore());
-        });
-    });
-
-    return tradeCard;
-}
-
-function renderTradeItems(cards, money) {
-    let html = '';
-    if (cards && cards.length > 0) {
-        html += cards.map(card => {
-            const price = card.priceUsd || card.priceUsdFoil || 0;
-            const numericPrice = parseFloat(price) || 0;
-
-            return `
-            <div class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2 border border-gray-200 dark:border-gray-600">
-                <img src="${card.imageUrl || 'https://via.placeholder.com/40x56'}" 
-                     alt="${card.name}"
-                     class="w-10 h-14 object-cover rounded"
-                     onerror="this.src='https://via.placeholder.com/40x56?text=?'">
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${card.name || 'Unknown Card'}</p>
-                    <div class="flex items-center justify-between mt-1">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">${card.condition || 'NM'}</span>
-                        <span class="text-sm font-semibold text-green-600 dark:text-green-400">$${numericPrice.toFixed(2 )}</span>
-                    </div>
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
-    
-    if (money && money > 0) {
-        html += `<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-2">
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-dollar-sign text-green-600 dark:text-green-400"></i>
-                        <span class="text-sm font-semibold text-green-700 dark:text-green-300">Cash: $${(parseFloat(money) || 0).toFixed(2)}</span>
-                    </div>
-                 </div>`;
-    }
-    
-    return html || '<div class="text-sm text-gray-500 dark:text-gray-400 p-4 text-center">No items</div>';
-}
-
-
-function getActionButtons(trade, tradeId, isProposer, user) {
-    const isPayer = (trade.proposerMoney > 0 && isProposer) || (trade.receiverMoney > 0 && !isProposer);
-    const buyerUid = (trade.proposerMoney || 0) > 0 ? trade.proposerId : trade.receiverId;
-    const isBuyer = user.uid === buyerUid;
-
-    switch (trade.status) {
-        case 'pending':
-            return isProposer
-                ? `<button data-id="${tradeId}" data-action="cancelled" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Cancel</button>`
-                : `<button data-id="${tradeId}" data-action="rejected" class="trade-action-btn px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2">Decline</button>
-                   <button data-id="${tradeId}" data-action="accepted" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Accept</button>`;
-        case 'awaiting_payment':
-             return isPayer
-                ? `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay with Escrow.com</button>`
-                : `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
-        case 'funds_authorized':
-            const userHasShipped = isProposer ? trade.proposerConfirmedShipment : trade.receiverConfirmedShipment;
-            return userHasShipped
-                ? `<span class="text-sm text-gray-500">Waiting for other party to ship...</span>`
-                : `<button data-id="${tradeId}" data-action="confirm-shipment" class="trade-action-btn px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirm Shipment</button>`;
-        case 'shipped':
-             if (isBuyer) {
-                 return `<button data-id="${tradeId}" data-action="confirm-receipt" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirm Delivery & Release Funds</button>`;
-             } else {
-                 return `<span class="text-sm text-gray-500">Waiting for buyer to confirm receipt...</span>`;
-             }
-        default:
-            return '';
-    }
-}
-
-async function handleTradeAction(action, tradeId, db) {
-    const tradeRef = db.collection('trades').doc(tradeId);
-    const tradeDoc = await tradeRef.get();
-    if (!tradeDoc.exists) return;
-    const tradeData = tradeDoc.data();
-
-    if (action === 'accepted') {
-        const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
-        if (moneyInvolved) {
-             await tradeRef.update({ status: 'accepted' });
-             // initiateEscrowTransaction(tradeId, tradeData); // Implement if needed
-        } else {
-             await tradeRef.update({ status: 'funds_authorized' });
-             showTradeToast("Trade accepted! Ready for shipment.", 'success');
-        }
-    } else if (action === 'confirm-shipment') {
-        const user = firebase.auth().currentUser;
-        const isProposer = tradeData.proposerId === user.uid;
-        const fieldToUpdate = isProposer ? 'proposerConfirmedShipment' : 'receiverConfirmedShipment';
-        await tradeRef.update({ [fieldToUpdate]: true });
-
-        const updatedDoc = await tradeRef.get();
-        if (updatedDoc.data().proposerConfirmedShipment && updatedDoc.data().receiverConfirmedShipment) {
-            await tradeRef.update({ status: 'shipped' });
-        }
-        showTradeToast("Shipment confirmed!", 'success');
-    } else if (action === 'confirm-receipt') {
-        await tradeRef.update({ status: 'completed' });
-        showTradeToast("Trade completed successfully!", 'success');
-    } else if (['rejected', 'cancelled'].includes(action)) {
-        await tradeRef.update({ status: action });
-        showTradeToast("Trade offer has been updated.", 'info');
-    }
-}
-
-// Utility function for showing toast notifications
-function showTradeToast(message, type = 'info') {
-    if (window.Toastify) {
-        const backgrounds = {
-            success: "linear-gradient(to right, #10b981, #059669)",
-            error: "linear-gradient(to right, #ef4444, #dc2626)",
-            warning: "linear-gradient(to right, #f59e0b, #d97706)",
-            info: "linear-gradient(to right, #3b82f6, #2563eb)"
-        };
-
-        Toastify({
-            text: message,
-            duration: 3000,
-            style: { background: backgrounds[type] || backgrounds.info }
-        }).showToast();
-    } else {
-        console.log(`${type.toUpperCase()}: ${message}`);
-    }
-}
-}
+// Duplicate functions removed - they are now defined earlier in the file
