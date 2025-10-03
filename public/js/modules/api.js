@@ -39,11 +39,16 @@ const scrydexSearchProxy = firebase.functions().httpsCallable('searchScryDex');
  * @param {number} limit The number of results per page.
  * @returns {Promise<Array>} A promise that resolves to an array of card objects.
  */
+// This is the NEW, CORRECTED code for api.js
+// In api.js, REPLACE the entire searchCards function with this:
+
+// In api.js, REPLACE the entire searchCards function with this ORIGINAL, working version:
+
 export async function searchCards(query, game = 'mtg', page = 1, limit = 100) {
     try {
         console.log(`[API] Proxying search for: "${query}", game: ${game}, page: ${page}`);
         
-        // This object is securely sent to your Firebase Function.
+        // This is the original logic that sends the query and game separately.
         const result = await scrydexSearchProxy({
             query: query,
             game: game,
@@ -51,24 +56,22 @@ export async function searchCards(query, game = 'mtg', page = 1, limit = 100) {
             limit: limit
         });
 
-      if (result.data && result.data.success) {
-    const rawData = result.data.data || [];
-    // Return an object instead of just the array
-    return {
-        cards: rawData.map(card => cleanScryDexData(card, game)),
-        has_more: result.data.has_more 
-    };
-}else {
-            // If the backend returned a specific error message, show it.
+        if (result.data && result.data.success) {
+            const rawData = result.data.data || [];
+            return {
+                cards: rawData.map(card => cleanScryDexData(card, game)),
+                has_more: result.data.has_more 
+            };
+        } else {
             throw new Error(result.data.error || 'The API proxy returned an unspecified error.');
         }
 
     } catch (error) {
         console.error(`[API] Error calling the 'scrydexSearch' proxy function:`, error);
-        // Rethrow the error so the UI can display a helpful message.
         throw error;
     }
 }
+
 
 /**
  * A debounced version of the searchCards function to limit API calls while typing.
@@ -155,43 +158,47 @@ function cleanScryfallData(card) {
     };
 }
 
+// In api.js, REPLACE the entire cleanScryDexData function with this:
+
 function cleanScryDexData(card, game) {
     try {
         console.log('[API] Raw ScryDex card data:', card);
         
-        // Process prices with better fallback handling
-        let prices = {};
-        
-        // Try to extract prices from variants structure
+        // --- THIS IS THE CORRECTED PRICE LOGIC ---
+        // It correctly loops through the 'variants' array from the API.
+        const prices = {
+            usd: null,
+            usd_foil: null,
+            eur: null,
+            eur_foil: null
+        };
+
         if (card.variants && Array.isArray(card.variants)) {
             card.variants.forEach(variant => {
-                if (variant.prices && Array.isArray(variant.prices)) {
-                    variant.prices.forEach(price => {
-                        if (price.market && price.market > 0) {
-                            const priceKey = `${variant.name || 'normal'}_${price.condition || price.type || 'market'}`;
-                            prices[priceKey] = price.market;
-                            
-                            // Also set standard USD price for compatibility
-                            if (!prices.usd || price.market > prices.usd) {
-                                prices.usd = price.market;
-                            }
-                        }
-                    });
+                // Check for the "Normal" or non-foil variant for the regular price
+                if (variant.name.toLowerCase() === 'normal' || variant.name.toLowerCase() === 'non-foil') {
+                    if (variant.prices && variant.prices[0]?.market) {
+                        prices.usd = parseFloat(variant.prices[0].market);
+                    }
+                }
+                // Check for the "Foil" variant for the foil price
+                if (variant.name.toLowerCase() === 'foil') {
+                    if (variant.prices && variant.prices[0]?.market) {
+                        prices.usd_foil = parseFloat(variant.prices[0].market);
+                    }
                 }
             });
         }
         
-        // Fallback: try direct price fields
-        if (Object.keys(prices).length === 0) {
-            if (card.market_price && card.market_price > 0) {
-                prices.usd = card.market_price;
-            } else if (card.price && card.price > 0) {
-                prices.usd = card.price;
-            } else if (card.marketPrice && card.marketPrice > 0) {
-                prices.usd = card.marketPrice;
-            }
+        // Fallback: If the above logic finds nothing, try to get at least one price.
+        if (prices.usd === null && card.prices?.usd) {
+            prices.usd = parseFloat(card.prices.usd);
         }
-        
+        if (prices.usd_foil === null && card.prices?.usd_foil) {
+            prices.usd_foil = parseFloat(card.prices.usd_foil);
+        }
+        // --- END OF PRICE LOGIC ---
+
         console.log('[API] Processed prices for', card.Name || card.name, ':', prices);
         
         const cleaned = {
@@ -210,6 +217,7 @@ function cleanScryDexData(card, game) {
             game: game
         };
 
+        // ... (the rest of the function is the same)
         switch (game) {
             case 'mtg':
                 cleaned.mana_cost = card.mana_cost || '';
@@ -241,6 +249,7 @@ function cleanScryDexData(card, game) {
                 break;
         }
         return cleaned;
+
     } catch (error) {
         console.error(`[API] Error cleaning ScryDex data for ${game}:`, error, card);
         return {
@@ -254,6 +263,7 @@ function cleanScryDexData(card, game) {
         };
     }
 }
+
 // --- FIRESTORE DATABASE OPERATIONS ---
 const getCollectionRef = (userId, collectionName = 'collection') => {
     if (!userId || typeof userId !== 'string') {

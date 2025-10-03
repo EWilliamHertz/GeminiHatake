@@ -2,9 +2,9 @@
  * csv.js
  * Handles CSV import and export functionality for the collection.
  * - Merges robust parsing with live progress updates.
+ * - Fixed to use Firebase Cloud Functions instead of placeholder URL
  */
 import * as Collection from './collection.js';
-import * as API from './api.js';
 
 let parsedCsvData = [];
 
@@ -20,9 +20,35 @@ const MANABOX_HEADERS = {
     is_foil: ['foil', 'printing'], // 'printing' can also indicate foil status
 };
 
+async function getCardDataFromBackend(cardName) {
+    try {
+        // Use Firebase Cloud Function instead of placeholder URL
+        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDx');
+        
+        const response = await searchScryDexFunction({
+            query: cardName,
+            game: 'mtg',
+            page: 1,
+            limit: 1
+        });
+
+        if (response && response.data && response.data.cards && response.data.cards.length > 0) {
+            return response.data.cards[0];
+        } else {
+            console.error(`No card found for "${cardName}"`);
+            return null;
+        }
+    } catch (error) {
+        console.error(`Failed to fetch card data for "${cardName}":`, error);
+        return null;
+    }
+}
+
 function findHeaderIndex(headers, possibleNames) {
     for (const name of possibleNames) {
-        const index = headers.indexOf(name);
+        const index = headers.findIndex(header => 
+            header.toLowerCase().includes(name.toLowerCase())
+        );
         if (index > -1) {
             return index;
         }
@@ -137,16 +163,11 @@ export async function finalizeImport(UI) {
         if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'loading');
         
         try {
-            await new Promise(resolve => setTimeout(resolve, 110)); // Rate limiting for Scryfall API
-
-            const query = `!"${card.name}" set:${card.set} cn:"${card.collector_number}"`;
-            const searchResults = await API.searchCards(query, 'mtg');
+            const cardData = await getCardDataFromBackend(card.name);
             
-            if (searchResults.length > 0) {
-                const bestMatch = searchResults[0];
-                
-                const cardData = {
-                    ...bestMatch,
+            if (cardData) {
+                const cardToImport = {
+                    ...cardData,
                     quantity: card.quantity,
                     is_foil: card.is_foil,
                     condition: card.condition,
@@ -154,11 +175,11 @@ export async function finalizeImport(UI) {
                     addedAt: new Date()
                 };
                 
-                await Collection.addMultipleCards([cardData]);
+                await Collection.addMultipleCards([cardToImport]);
                 successCount++;
                 if (UI.updateCsvReviewRowStatus) UI.updateCsvReviewRowStatus(i, 'success', 'Imported');
             } else {
-                throw new Error("Not found");
+                throw new Error("Card not found or backend error");
             }
         } catch (error) {
             errorCount++;
@@ -181,7 +202,6 @@ export async function finalizeImport(UI) {
         document.dispatchEvent(new CustomEvent('collectionUpdated'));
     }, 3000);
 }
-
 
 export function updateReviewedCard(index, field, value) {
     if (parsedCsvData[index]) {
