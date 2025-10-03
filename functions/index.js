@@ -45,7 +45,7 @@ const storage = admin.storage();
 // firebase functions:config:set escrow.key="YOUR_KEY" escrow.user="YOUR_USER"
 const ESCROW_API_KEY = functions.config().escrow.key;
 const ESCROW_API_USER = functions.config().escrow.user;
-const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/";
+const ESCROW_API_URL = "https://api.escrow.com/2023-09-01/";
 
 const escrowApi = axios.create({
     baseURL: ESCROW_API_URL,
@@ -1437,8 +1437,8 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
 
     const transactionData = {
         parties: [
-            { role: 'buyer', customer: buyerEmail },
-            { role: 'seller', customer: sellerEmail }
+            { role: 'buyer', email: buyerEmail },
+            { role: 'seller', email: sellerEmail }
         ],
         items: [{
             title: 'HatakeSocial Trade',
@@ -1447,7 +1447,7 @@ exports.createEscrowTransaction = functions.https.onCall(async (data, context) =
             price: String(usdAmount.toFixed(2)), // Use USD amount
             type: 'general_merchandise'
         }],
-        currency: 'USD', // Use USD for Escrow transactions
+        currency: 'usd', // Try lowercase USD for Escrow transactions
         description: `Trade ID: ${tradeId} on HatakeSocial.`,
         inspection_period: 3,
     };
