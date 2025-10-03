@@ -111,7 +111,6 @@ const UI = {
             const forSaleIndicator = (card.for_sale && typeof card.sale_price === 'number')
                 ? `<div class="absolute top-2 left-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">$${card.sale_price.toFixed(2)}</div>`
                 : '';
-const foilOverlay = card.is_foil ? `<div class="absolute inset-0 bg-gradient-to-br from-purple-500/30 via-blue-500/30 to-green-500/30 opacity-70 mix-blend-overlay group-hover:opacity-100 transition-opacity" title="Foil"></div>` : '';
 
             const cardHtml = `
                 <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
@@ -173,13 +172,7 @@ const foilOverlay = card.is_foil ? `<div class="absolute inset-0 bg-gradient-to-
                         return `
                         <tr class="card-container hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}" data-id="${card.id}">
                             ${isBulkMode ? `<td class="px-4 py-3"><input type="checkbox" class="bulk-select-checkbox" ${isSelected ? 'checked' : ''}></td>` : ''}
-<td class="px-4 py-3 whitespace-nowrap">
-    <div class="flex items-center">
-        <img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="">
-        ${card.name}
-        ${card.is_foil ? '<i class="fas fa-star text-yellow-400 ml-2" title="Foil"></i>' : ''}
-    </div>
-</td>
+                            <td class="px-4 py-3 whitespace-nowrap"><div class="flex items-center"><img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="">${card.name}</div></td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.set_name}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.quantity}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.condition}</td>
@@ -228,8 +221,7 @@ const foilOverlay = card.is_foil ? `<div class="absolute inset-0 bg-gradient-to-
         document.getElementById('card-modal-image').src = getCardImageUrl(cardData);
         document.getElementById('save-card-btn').textContent = 'Add to Collection';
         document.getElementById('delete-card-btn').classList.add('hidden');
-document.getElementById('card-is-foil').checked = !!cardData.prices?.usd_foil;
-UI.openModal(document.getElementById('card-modal'));
+        document.getElementById('card-is-foil').checked = cardData.finishes?.includes('foil');
         UI.openModal(document.getElementById('card-modal'));
     },
     populateCardModalForEdit: (card) => {
@@ -237,7 +229,6 @@ UI.openModal(document.getElementById('card-modal'));
         Collection.setCurrentEditingCard(card);
         const form = document.getElementById('card-form');
         form.reset();
-        document.getElementById('card-is-foil').checked = !!card.is_foil;
         document.getElementById('card-modal-id').value = card.id;
         document.getElementById('card-api-id').value = card.api_id;
         document.getElementById('card-modal-title').textContent = `Edit: ${card.name}`;
@@ -1056,30 +1047,19 @@ function handleSearchInput() {
     
     searchTimeout = setTimeout(async () => {
         try {
-const results = await fetchAllCards(`!"${query}"`, game);            
-        // In handleSearchInput, replace the entire results.map block with this:
-resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
-    results.map(card => {
-        const regularPrice = Currency.convertAndFormat(card.prices);
-        const foilPriceObject = { usd: card.prices?.usd_foil };
-        const foilPrice = card.prices?.usd_foil ? Currency.convertAndFormat(foilPriceObject) : 'N/A';
-        const foilIndicator = card.prices?.usd_foil ? ' ✨' : '';
-
-        return `
-            <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
-                <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
-                <div class="flex-grow">
-                    <p class="font-semibold">${card.name}</p>
-                    <p class="text-sm text-gray-500">${card.set_name}</p>
-                </div>
-                <div class="text-right ml-4">
-                    <p class="text-sm font-mono text-gray-700 dark:text-gray-300">Reg: ${regularPrice}</p>
-                    <p class="text-sm font-mono text-yellow-400 dark:text-yellow-300">Foil: ${foilPrice}${foilIndicator}</p>
-                </div>
-            </div>
-        `;
-    }).join('');
-
+            const results = await fetchAllCards(query, game); 
+            
+            resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
+                results.map(card => `
+                    <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${encodeURIComponent(JSON.stringify(card))}'>
+                        <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
+                        <div class="flex-grow">
+                            <p class="font-semibold">${card.name}</p>
+                            <p class="text-sm text-gray-500">${card.set_name}</p>
+                        </div>
+                        <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
+                    </div>
+                `).join('');
         } catch (error) {
             resultsContainer.innerHTML = `<p class="text-center text-red-500">Error: ${error.message}</p>`;
         }
@@ -1492,57 +1472,42 @@ async function bulkDelete() {
     }
 }
 
-// CSV Import Event Handler - Add this to the existing collection-app.js file
-
-// Add this function to handle CSV file upload
-async function handleCSVUpload(event) {
-    const file = event.target.files[0];
+async function handleCSVUpload(e) {
+    const file = e.target.files[0];
+    const statusEl = document.getElementById('csv-import-status');
+    const startBtn = document.getElementById('start-csv-import-btn');
     if (!file) return;
 
+    UI.setButtonLoading(startBtn, true);
+    statusEl.textContent = 'Parsing file...';
     try {
-        // Parse the CSV file
         const parsedData = await CSV.parseCSV(file);
-        
-        // Show the CSV review modal
-        const modal = document.getElementById('csv-review-modal');
-        if (modal) {
-            UI.openModal(modal);
-            
-            // Populate the review table
-            await populateCsvReviewTable(parsedData);
-        } else {
-            // If no review modal exists, proceed directly to import
-            UI.showToast(`Parsed ${parsedData.length} cards from CSV. Starting import...`, "info");
-            await CSV.finalizeImport(UI);
-        }
+        statusEl.textContent = `Parsed ${parsedData.length} cards.`;
+        UI.closeModal(document.getElementById('csv-import-modal'));
+        openCsvReviewModal(parsedData);
     } catch (error) {
-        console.error('CSV parsing error:', error);
-        UI.showToast(`CSV parsing failed: ${error.message}`, "error");
+        statusEl.textContent = `Error: ${error.message}`;
+    } finally {
+        UI.setButtonLoading(startBtn, false, 'Parse CSV');
+        e.target.value = '';
     }
 }
 
-// Add this function to populate the CSV review table
-async function populateCsvReviewTable(cards) {
-    const tableBody = document.querySelector('#csv-review-table tbody');
-    if (!tableBody) {
-        console.error('CSV review table body not found');
-        return;
-    }
-
+async function openCsvReviewModal(cards) {
+    const modal = document.getElementById('csv-review-modal');
+    const tableBody = document.getElementById('csv-review-table-body');
+    if (!modal || !tableBody) return;
     tableBody.innerHTML = '';
+    UI.openModal(modal);
     let reviewData = [];
 
     cards.forEach((card, index) => {
         const row = document.createElement('tr');
         row.dataset.index = index;
         row.innerHTML = `
-            <td class="p-3">${card.name}</td>
-            <td>${card.set_name || 'Any'}</td>
-            <td>${card.collector_number || 'N/A'}</td>
-            <td>${card.quantity}</td>
-            <td>${card.condition}</td>
-            <td>${card.language}</td>
-            <td>${card.is_foil ? 'Yes' : 'No'}</td>
+            <td class="p-3">${card.name}</td><td>${card.set_name || 'Any'}</td>
+            <td>${card.collector_number || 'N/A'}</td><td>${card.quantity}</td>
+            <td>${card.condition}</td><td>${card.language}</td><td>${card.is_foil ? 'Yes' : 'No'}</td>
             <td class="status-cell"><i class="fas fa-spinner fa-spin"></i></td>
             <td><button class="text-red-500 remove-row-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></td>
         `;
@@ -1550,7 +1515,6 @@ async function populateCsvReviewTable(cards) {
         reviewData.push({ raw: card, enriched: null, status: 'pending' });
     });
     
-    // Process each card to get full data from API
     for (let i = 0; i < reviewData.length; i++) {
         if(reviewData[i].status === 'removed') continue;
         const statusCell = tableBody.querySelector(`tr[data-index="${i}"] .status-cell`);
@@ -1558,35 +1522,26 @@ async function populateCsvReviewTable(cards) {
             let query = `!"${reviewData[i].raw.name}"`;
             if (reviewData[i].raw.set) query += ` set:${reviewData[i].raw.set}`;
             if (reviewData[i].raw.collector_number) query += ` cn:${reviewData[i].raw.collector_number}`;
-            
-            const response = await API.searchCards(query, 'mtg');
-            if (response.cards && response.cards.length > 0) {
-                reviewData[i].enriched = { ...response.cards[0], ...reviewData[i].raw };
-                reviewData[i].status = 'found';
-                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
-            } else throw new Error("Not found");
+            const response = await API.searchCards(query, 'mtg'); // Changed variable name for clarity
+            if (response.cards && response.cards.length > 0) {
+                reviewData[i].enriched = { ...response.cards[0], ...reviewData[i].raw };
+                reviewData[i].status = 'found';
+                statusCell.innerHTML = `<span class="text-green-500"><i class="fas fa-check-circle"></i></span>`;
+            } else throw new Error("Not found");
         } catch (error) {
             reviewData[i].status = 'error';
             statusCell.innerHTML = `<span class="text-red-500"><i class="fas fa-exclamation-triangle"></i></span>`;
         }
         await new Promise(resolve => setTimeout(resolve, 110));
     }
-    
-    // Set up the finalize button
-    const finalizeBtn = document.getElementById('finalize-csv-import-btn');
-    if (finalizeBtn) {
-        finalizeBtn.onclick = () => finalizeCsvImport(reviewData);
-    }
+    document.getElementById('finalize-csv-import-btn').onclick = () => finalizeCsvImport(reviewData);
 }
 
-// Add this function to finalize the CSV import
 async function finalizeCsvImport(reviewData) {
     const cardsToImport = reviewData.filter(item => item.status === 'found').map(item => item.enriched);
     if (cardsToImport.length === 0) return UI.showToast("No valid cards to import.", "error");
-    
     const importBtn = document.getElementById('finalize-csv-import-btn');
     UI.setButtonLoading(importBtn, true);
-    
     try {
         await Collection.addMultipleCards(cardsToImport);
         UI.showToast(`Imported ${cardsToImport.length} cards!`, "success");
@@ -1598,12 +1553,6 @@ async function finalizeCsvImport(reviewData) {
         UI.setButtonLoading(importBtn, false, 'Finalize Import');
     }
 }
-
-// Add this event listener to the existing DOMContentLoaded section
-document.getElementById('csv-file-input')?.addEventListener('change', handleCSVUpload);
-
-// Export the functions for use in other modules
-export { handleCSVUpload, populateCsvReviewTable, finalizeCsvImport };
 
 async function openBulkReviewModal() {
     const selectedIds = Collection.getSelectedCardIds();
