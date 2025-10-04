@@ -357,45 +357,69 @@ export async function batchDelete(cardIds) {
 
 export const getCardById = (cardId) => state.fullCollection.find(c => c.id === cardId) || state.wishlist.find(c => c.id === cardId);
 
+// PASTE THIS CORRECTED FUNCTION IN ITS PLACE
+
+// REPLACE your applyFilters function with this DEBUG VERSION
+
 export function applyFilters() {
-    const { name, set, rarity, colors, games, type } = state.filters;
+    console.log('%c--- APPLYING FILTERS ---', 'color: blue; font-weight: bold;');
+    const { fullCollection, filters } = state;
+    console.log('Current Filters:', JSON.parse(JSON.stringify(filters)));
 
-    const filterLogic = (card) => {
-        const nameMatch = !name || card.name.toLowerCase().includes(name.toLowerCase());
-        const setMatch = set.length === 0 || set.includes(card.set_name);
-        const rarityMatch = rarity.length === 0 || rarity.includes(card.rarity);
-        
-        // Fix game filtering - if no games selected, show all cards
-        // If games are selected, only show cards from those games
-        const cardGame = card.game || 'mtg'; // Default to MTG if no game specified
-        const gameMatch = games.length === 0 || games.includes(cardGame);
+    if (!fullCollection || fullCollection.length === 0) {
+        console.warn('Cannot apply filters, fullCollection is empty.');
+        state.filteredCollection = [];
+        return;
+    }
 
-        // Only apply game-specific filters if the card's game is in the selected games
-        if (gameMatch && games.includes('mtg') && cardGame === 'mtg') {
-            const colorIdentity = card.color_identity || [];
-            let colorMatch = true;
-            if (colors.length > 0) {
-                if (colors.includes('C')) {
-                    colorMatch = colorIdentity.length === 0;
-                } else {
-                    colorMatch = colors.every(c => colorIdentity.includes(c));
-                }
-            }
-            return nameMatch && setMatch && rarityMatch && colorMatch && gameMatch;
-        } else if (gameMatch && games.includes('pokemon') && cardGame === 'pokemon') {
-            const typeMatch = !type || (card.types && card.types.includes(type));
-            return nameMatch && setMatch && rarityMatch && typeMatch && gameMatch;
+    state.filteredCollection = fullCollection.filter((card, index) => {
+        // --- LOGGING FOR EACH CARD ---
+        if (index < 5) { // Only log the first 5 cards to avoid spamming the console
+            console.log(`\nChecking Card #${index + 1}: ${card.name}`);
         }
 
-        // For other games or when no specific game filters are applied
-        return nameMatch && setMatch && rarityMatch && gameMatch;
-    };
+        // 1. Name Filter
+        const nameMatch = !filters.name || card.name.toLowerCase().includes(filters.name.toLowerCase());
+        if (index < 5) console.log(`  Name Match: ${nameMatch}`);
 
-    if (state.activeTab === 'collection') {
-        state.filteredCollection = state.fullCollection.filter(filterLogic);
-    } else {
-        state.wishlist = state.fullWishlist.filter(filterLogic);
-    }
+        // 2. Game Filter
+        const cardGame = card.game || 'mtg';
+        const gameMatch = filters.games.length === 0 || filters.games.includes(cardGame);
+        if (index < 5) console.log(`  Game Match: ${gameMatch} (Card is ${cardGame}, Filter is [${filters.games}])`);
+
+        // 3. Set/Edition Filter
+        const cardSetName = (card.set && card.set.name) ? card.set.name : card.set_name;
+        const setMatch = filters.set.length === 0 || filters.set.includes(cardSetName);
+        if (index < 5) console.log(`  Set Match: ${setMatch} (Card is '${cardSetName}', Filter is [${filters.set}])`);
+
+        // 4. Rarity Filter
+        const rarityMatch = filters.rarity.length === 0 || filters.rarity.includes(card.rarity);
+        if (index < 5) console.log(`  Rarity Match: ${rarityMatch} (Card is '${card.rarity}', Filter is [${filters.rarity}])`);
+        
+        // Game-Specific Filters
+        let gameSpecificMatch = true;
+        if (gameMatch) {
+            if (filters.games.includes('mtg') && cardGame === 'mtg') {
+                const colorIdentity = card.color_identity || [];
+                if (filters.colors.length > 0) {
+                    gameSpecificMatch = filters.colors.every(c => colorIdentity.includes(c));
+                }
+            }
+            if (filters.games.includes('pokemon') && cardGame === 'pokemon') {
+                if (filters.type) {
+                    gameSpecificMatch = card.types && card.types.includes(filters.type);
+                }
+            }
+        }
+        if (index < 5) console.log(`  Game-Specific Match: ${gameSpecificMatch}`);
+
+        const shouldKeep = nameMatch && gameMatch && setMatch && rarityMatch && gameSpecificMatch;
+        if (index < 5) console.log(`  ==> Should Keep Card? ${shouldKeep}`);
+        
+        return shouldKeep;
+    });
+
+    console.log(`%cResult: ${state.filteredCollection.length} of ${fullCollection.length} cards shown.`, 'color: green; font-weight: bold;');
 }
 
 

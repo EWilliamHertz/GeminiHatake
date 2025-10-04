@@ -18,7 +18,16 @@ import { getCardImageUrl } from './utils.js';
 
 let currentUser = null;
 let csvFile = null;
-
+window.toggleCheckboxes = function(checkboxesId) {
+    const checkboxes = document.getElementById(checkboxesId);
+    if (!checkboxes) return;
+    
+    if (checkboxes.style.display === "none") {
+        checkboxes.style.display = "block";
+    } else {
+        checkboxes.style.display = "none";
+    }
+}
 // --- UI HELPER ---
 const UI = {
     openModal: (modal) => { if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex', 'items-center', 'justify-center'); }},
@@ -84,6 +93,9 @@ const UI = {
             }
             select.appendChild(option);
         }
+
+
+
 
         select.addEventListener('change', async (e) => {
             try {
@@ -303,46 +315,60 @@ if (card.is_graded) {
         
         return { id, data, customImageFile };
     },
-    populateFilters: (sets, rarities) => {
-        const setContainer = document.getElementById('filter-set-container');
-        const rarityContainer = document.getElementById('filter-rarity-container');
 
-        if(setContainer) {
-            const setOptionsHtml = sets.map(item => `
-                <label class="flex items-center space-x-2 text-sm p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
-                    <input type="checkbox" value="${item}" data-filter-type="set" class="form-checkbox h-4 w-4 rounded text-blue-600">
-                    <span>${item}</span>
-                </label>
-            `).join('');
 
-            setContainer.innerHTML = `
-                <h4 class="font-semibold mb-2">Set</h4>
-                <div class="relative" id="set-multiselect">
-                    <div id="set-select-box" class="p-2 border rounded-md min-h-[42px] flex flex-wrap gap-1 items-center cursor-text bg-white dark:bg-gray-700 dark:border-gray-600">
-                        <div id="set-pills-container" class="flex flex-wrap gap-1"></div>
-                        <input type="text" id="set-search-input" class="flex-grow p-1 bg-transparent focus:outline-none" placeholder="Filter by set...">
-                    </div>
-                    <div id="set-options-container" class="options-container hidden absolute z-20 w-full bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
-                        ${setOptionsHtml}
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (rarityContainer) {
-            const rarityCheckboxes = rarities.map(item => `
-                <label class="flex items-center space-x-2 text-sm">
-                    <input type="checkbox" value="${item}" data-filter-type="rarity" class="form-checkbox h-4 w-4 rounded text-blue-600">
-                    <span>${item}</span>
-                </label>
-            `).join('');
-            
-            rarityContainer.innerHTML = `
-                <h4 class="font-semibold mb-2">Rarity</h4>
-                <div class="space-y-2">${rarityCheckboxes}</div>
-            `;
-        }
-    },
+
+// REPLACE the entire populateFilters function with this one.
+
+populateFilters: (cards) => {
+    console.log("--- Running Robust populateFilters ---");
+    const setCheckboxesContainer = document.getElementById('set-checkboxes');
+    const rarityCheckboxesContainer = document.getElementById('rarity-checkboxes');
+
+    if (!setCheckboxesContainer || !rarityCheckboxesContainer) {
+        console.error("Filter containers not found!");
+        return;
+    }
+    if (!cards || cards.length === 0) {
+        console.warn("populateFilters was called with no cards.");
+        return;
+    }
+
+    // --- THIS IS THE FIX ---
+    // Handle both `card.set_name` (for Pokémon/Lorcana) and `card.set.name` (for MTG)
+    const allSets = [...new Set(cards.map(card => {
+        if (card.set_name) return card.set_name; // Use this if it exists
+        if (card.set && card.set.name) return card.set.name; // Otherwise, try this
+        return null; // If neither exists, return null
+    }).filter(Boolean))].sort(); // .filter(Boolean) removes any nulls
+
+    const allRarities = [...new Set(cards.map(card => card.rarity).filter(Boolean))].sort();
+    // --- END OF FIX ---
+
+    console.log("Found sets:", allSets);
+    console.log("Found rarities:", allRarities);
+
+    // Populate Set Filter
+    setCheckboxesContainer.innerHTML = '';
+    allSets.forEach(set => {
+        const label = document.createElement('label');
+        label.className = 'block px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+        label.innerHTML = `<input type="checkbox" value="${set}" data-filter-type="set" class="mr-2 form-checkbox"> ${set}`;
+        setCheckboxesContainer.appendChild(label);
+    });
+
+    // Populate Rarity Filter
+    rarityCheckboxesContainer.innerHTML = '';
+    allRarities.forEach(rarity => {
+        const label = document.createElement('label');
+        label.className = 'block px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer';
+        label.innerHTML = `<input type="checkbox" value="${rarity}" data-filter-type="rarity" class="mr-2 form-checkbox"> ${rarity}`;
+        rarityCheckboxesContainer.appendChild(label);
+    });
+
+    console.log("--- Finished Robust populateFilters ---");
+},
+
     populateGameFilters: (games) => {
         const gameContainer = document.getElementById('filter-game-container');
         if (!gameContainer) return;
@@ -949,12 +975,8 @@ function applyAndRender(options = {}) {
     }
     const stats = activeTab === 'collection' ? Collection.calculateCollectionStats() : Collection.calculateWishlistStats();
     UI.updateStats(stats, activeTab);
-    if (!options.skipFilters) {
-        const games = state.filters.games;
-        const { sets, rarities, types } = Collection.getAvailableFilterOptions(games);
-        UI.populateFilters(sets, rarities[games[0]] || []);
-        UI.populateTypeFilters(types);
-    }
+   // REPLACE with this block
+
 }
 
 async function handleCardFormSubmit(e) {
@@ -1203,24 +1225,40 @@ function handleCardClick(e, cardContainer) {
 }
 
 
+// REPLACE the old function with this one
 function handleFilterChange(e) {
-    const filterType = e.target.dataset.filterType;
+    console.log("Filter change detected:", e.target.value, e.target.checked); // Debugging line
+    const filterType = e.target.dataset.filterType; // 'set' or 'rarity'
     const value = e.target.value;
     const isChecked = e.target.checked;
+
+    // Get a copy of the current filters from your state
     const currentFilters = { ...Collection.getState().filters };
-    if (Array.isArray(currentFilters[filterType])) {
-        const set = new Set(currentFilters[filterType]);
-        if (isChecked) set.add(value);
-        else set.delete(value);
-        currentFilters[filterType] = [...set];
+
+    // --- THIS IS THE CRITICAL FIX ---
+    // Ensure the filter array exists before we try to use it.
+    if (!currentFilters[filterType] || !Array.isArray(currentFilters[filterType])) {
+        currentFilters[filterType] = []; // If it doesn't exist, create it as an empty array.
     }
+    // --- END OF FIX ---
+
+    const newFilterSet = new Set(currentFilters[filterType]);
+    if (isChecked) {
+        newFilterSet.add(value);
+    } else {
+        newFilterSet.delete(value);
+    }
+    currentFilters[filterType] = [...newFilterSet];
+
+    // Update the master filter state
     Collection.setFilters(currentFilters);
     
-    // Update the label for set filters
+    // This is for a different part of your UI, we can leave it
     if (filterType === 'set') {
         updateSetFilterLabel();
     }
     
+    // Re-render the collection with the new filters
     applyAndRender({});
 }
 
@@ -1840,6 +1878,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     await Collection.loadCollection(user.uid);
                     await Collection.loadWishlist(user.uid);
+                     // --- PASTE THE LOGIC HERE ---
+            console.log('[Collection] Populating filters for the first time.');
+            const state = Collection.getState();
+            const { types } = Collection.getAvailableFilterOptions(state.filters.games);
+            UI.populateFilters(state.fullCollection); // This populates Set and Rarity
+            UI.populateTypeFilters(types); // This populates Pokémon types
+            // --- END OF PASTED LOGIC ---
                     applyAndRender({});
                 } catch (error) {
                     console.error("Failed to load user data:", error);
@@ -1847,7 +1892,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         });
-        
+                // --- Delegated listener for dynamic filter checkboxes ---
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.addEventListener('change', (e) => {
+                const target = e.target;
+                if (target.matches('input[type="checkbox"][data-filter-type]')) {
+                    handleFilterChange(e);
+                }
+            });
+        }
+
         document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
         document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
         document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
@@ -1913,11 +1968,7 @@ document.getElementById('search-results-container')?.addEventListener('mouseover
             const element = e.target.closest('[data-card-id]');
             if (element) handleTopMoverClick(element);
         });
-        document.addEventListener('change', (e) => {
-            if (e.target.dataset.filterType) handleFilterChange(e);
-            if (e.target.id === 'type-filter-select') handleTypeFilterChange(e);
-            if (e.target.dataset.game) handleGameFilterChange(e);
-        });
+   
         document.getElementById('filter-color-container')?.addEventListener('click', handleColorFilterClick);
         document.getElementById('filter-name')?.addEventListener('input', handleNameFilterInput);
         document.getElementById('clear-filters-btn')?.addEventListener('click', clearAllFilters);

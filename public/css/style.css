@@ -2379,3 +2379,37 @@ body.dark-mode .close-button:focus {
         transform: translateX(200%) skewX(-30deg);
     }
 }
+/* =================================================== */
+/* NEW, MORE SPECIFIC MULTI-SELECT STYLES              */
+/* =================================================== */
+
+/* Use the specific ID to increase priority */
+#set-checkboxes label,
+#rarity-checkboxes label {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+#set-checkboxes label:hover,
+#rarity-checkboxes label:hover {
+    background-color: #f3f4f6;
+}
+
+.dark #set-checkboxes label:hover,
+.dark #rarity-checkboxes label:hover {
+    background-color: #374151;
+}
+
+/* Target the checkbox directly to make it visible */
+#set-checkboxes input[type="checkbox"],
+#rarity-checkboxes input[type="checkbox"] {
+    -webkit-appearance: auto !important; /* Use !important to force override */
+    -moz-appearance: auto !important;
+    appearance: auto !important;
+    height: 1rem !important;
+    width: 1rem !important;
+    margin-right: 0.75rem !important;
+}
