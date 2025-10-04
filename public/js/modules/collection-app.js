@@ -1282,7 +1282,7 @@ function handleGameFilterChange(e) {
     const isChecked = e.target.checked;
     const currentFilters = Collection.getFilters();
     const currentGames = [...(currentFilters.games || [])]; // Create a copy to avoid mutation
-    
+
     if (isChecked) {
         if (!currentGames.includes(game)) {
             currentGames.push(game);
@@ -1293,7 +1293,7 @@ function handleGameFilterChange(e) {
             currentGames.splice(index, 1);
         }
     }
-    
+
     // Update filters with the new games array
     Collection.setFilters({ ...currentFilters, games: currentGames });
     updateSetFilterDropdown();
@@ -1972,7 +1972,7 @@ document.getElementById('search-results-container')?.addEventListener('mouseover
         document.getElementById('filter-color-container')?.addEventListener('click', handleColorFilterClick);
         document.getElementById('filter-name')?.addEventListener('input', handleNameFilterInput);
         document.getElementById('clear-filters-btn')?.addEventListener('click', clearAllFilters);
-        
+        document.getElementById('game-filter-container')?.addEventListener('change', handleGameFilterChange);
         // Set filter dropdown functionality
         document.getElementById('set-filter-dropdown-btn')?.addEventListener('click', (e) => {
             e.stopPropagation();
