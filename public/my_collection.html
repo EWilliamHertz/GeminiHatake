@@ -199,36 +199,22 @@
 
 
 <div class="mb-3">
-    <label class="form-label">Set/Edition</label>
-    <div class="multiselect">
-        <div class="select-box" onclick="toggleCheckboxes('set-checkboxes')">
-            <select class="form-select">
-                <option>Select Sets</option>
-            </select>
-            <div class="over-select"></div>
+    <button class="w-full text-left flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" onclick="toggleCheckboxes('set-checkboxes')">
+        <span>Set/Edition</span>
+        <i class="fas fa-chevron-down"></i>
+    </button>
+    <div id="set-checkboxes" class="hidden mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md max-h-48 overflow-y-auto">
         </div>
-        <div id="set-checkboxes" class="checkboxes" style="display: none;">
-            <!-- Set checkboxes will be dynamically loaded here by JavaScript -->
-        </div>
-    </div>
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Rarity</label>
-    <div class="multiselect">
-        <div class="select-box" onclick="toggleCheckboxes('rarity-checkboxes')">
-            <select class="form-select">
-                <option>Select Rarities</option>
-            </select>
-            <div class="over-select"></div>
+    <button class="w-full text-left flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" onclick="toggleCheckboxes('rarity-checkboxes')">
+        <span>Rarity</span>
+        <i class="fas fa-chevron-down"></i>
+    </button>
+    <div id="rarity-checkboxes" class="hidden mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md max-h-48 overflow-y-auto">
         </div>
-        <div id="rarity-checkboxes" class="checkboxes" style="display: none;">
-            <!-- Rarity checkboxes will be dynamically loaded here by JavaScript -->
-        </div>
-    </div>
 </div>
-
-
         <div id="game-specific-filters">
         </div>
         <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="clear-filters-btn">
