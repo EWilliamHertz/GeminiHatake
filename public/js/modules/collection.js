@@ -422,7 +422,6 @@ export function applyFilters() {
     console.log(`%cResult: ${state.filteredCollection.length} of ${fullCollection.length} cards shown.`, 'color: green; font-weight: bold;');
 }
 
-
 export function calculateCollectionStats() {
     const collectionToCount = state.filteredCollection;
     const totalCards = collectionToCount.reduce((sum, card) => sum + (card.quantity || 1), 0);

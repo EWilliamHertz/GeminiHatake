@@ -1893,16 +1893,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
                 // --- Delegated listener for dynamic filter checkboxes ---
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-            sidebar.addEventListener('change', (e) => {
-                const target = e.target;
-                if (target.matches('input[type="checkbox"][data-filter-type]')) {
-                    handleFilterChange(e);
-                }
-            });
+       // --- Delegated listener for dynamic filter checkboxes ---
+const filterPanel = document.getElementById('filter-panel');
+if (filterPanel) {
+    filterPanel.addEventListener('change', (e) => {
+        const target = e.target;
+        if (target.matches('input[type="checkbox"][data-filter-type]')) {
+            handleFilterChange(e);
         }
-
+    });
+}
         document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
         document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
         document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
