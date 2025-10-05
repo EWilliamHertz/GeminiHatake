@@ -736,8 +736,11 @@
     </div>
     <div class="p-6 space-y-4">
      <p class="text-sm text-gray-600 dark:text-gray-400">
-      Select a CSV file to import. Compatible with ManaBox exports.
+      Select a CSV file to import. Compatible with ManaBox exports and other CSV formats.
      </p>
+     <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+      <strong>Supported formats:</strong> CSV files with headers like "Name", "Quantity", "Set Name", "Condition", "Foil", etc.
+     </div>
      <input accept=".csv" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="csv-file-input" type="file"/>
      <div class="mt-4">
     <label for="csv-game-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Game</label>
@@ -972,8 +975,15 @@
   </script>
   <script src="js/messenger.js">
   </script>
-  <script src="js/modules/collection-app.js" type="module">
-  </script>
+    <script src="js/modules/collection-app-fixed.js" type="module"></script>
+    <script type="module">
+        import { initializeEnhancedCSV } from './js/modules/collection-app-fixed.js';
+        
+        // Initialize enhanced CSV functionality when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEnhancedCSV();
+        });
+    </script>
   <script src="js/collection-analytics.js">
   </script>
   <script src="js/price-alerts.js">
