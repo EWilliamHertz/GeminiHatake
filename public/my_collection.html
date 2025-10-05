@@ -739,6 +739,15 @@
       Select a CSV file to import. Compatible with ManaBox exports.
      </p>
      <input accept=".csv" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="csv-file-input" type="file"/>
+     <div class="mt-4">
+    <label for="csv-game-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Game</label>
+    <select id="csv-game-selector" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600">
+        <option value="mtg" selected>Magic: The Gathering</option>
+        <option value="pokemon">Pokémon</option>
+        <option value="lorcana">Lorcana</option>
+        <option value="gundam">Gundam</option>
+    </select>
+</div>
      <div class="text-sm text-center p-2 rounded-md" id="csv-import-status">
      </div>
      <div class="hidden mt-4" id="csv-preview">

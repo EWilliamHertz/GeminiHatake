@@ -1279,10 +1279,13 @@ function handleTypeFilterChange(e) {
 
 function handleGameFilterChange(e) {
     const game = e.target.dataset.game;
-    const isChecked = e.target.checked;
-    const currentFilters = Collection.getFilters();
-    const currentGames = [...(currentFilters.games || [])]; // Create a copy to avoid mutation
+    if (!game) return;
 
+    const isChecked = e.target.checked;
+    const currentFilters = { ...Collection.getFilters() };
+    const currentGames = currentFilters.games ? [...currentFilters.games] : [];
+
+    // Update the list of selected games
     if (isChecked) {
         if (!currentGames.includes(game)) {
             currentGames.push(game);
@@ -1294,12 +1297,36 @@ function handleGameFilterChange(e) {
         }
     }
 
-    // Update filters with the new games array
-    Collection.setFilters({ ...currentFilters, games: currentGames });
-    updateSetFilterDropdown();
+    // Update the games filter in the state
+    currentFilters.games = currentGames;
+
+    // --- THIS IS THE FIX ---
+    // When games change, we must clear the old Set and Rarity filters
+    // as they might not apply to the new selection.
+    currentFilters.set = [];
+    currentFilters.rarity = [];
+
+    // Apply the new filter state
+    Collection.setFilters(currentFilters);
+
+    // Get all cards from the master list
+    const allCards = Collection.getState().fullCollection;
+
+    // Determine which cards should be used to populate the filters
+    const cardsForFilterPopulation = allCards.filter(card => {
+        if (currentGames.length === 0) {
+            return true; // If no games selected, use all cards
+        }
+        const cardGame = card.game || 'mtg'; // Default game to 'mtg' if not specified
+        return currentGames.includes(cardGame);
+    });
+
+    // Re-populate the Set and Rarity dropdowns using only cards from the selected games
+    UI.populateFilters(cardsForFilterPopulation);
+
+    // Apply all filters and re-render the main display
     applyAndRender({});
 }
-
 function updateSetFilterDropdown() {
     const selectedGames = Collection.getFilters().games || [];
     const state = Collection.getState();
@@ -1574,6 +1601,7 @@ async function handleCSVFileSelect(event) {
 }
 
 // Handle the actual CSV import process
+// Handle the actual CSV import process
 async function handleCSVUpload() {
     if (!csvFile) {
         UI.showToast('Please select a CSV file first', 'error');
@@ -1582,7 +1610,7 @@ async function handleCSVUpload() {
 
     const parseBtn = document.getElementById('start-csv-import-btn');
     const statusDiv = document.getElementById('csv-import-status');
-    
+
     try {
         UI.setButtonLoading(parseBtn, true, 'Importing...');
         statusDiv.textContent = 'Starting import process...';
@@ -1590,17 +1618,20 @@ async function handleCSVUpload() {
 
         // Parse CSV again to get fresh data
         const parsedData = await CSV.parseCSV(csvFile);
-        
+
+        // --- FIX: Get the selected game BEFORE closing the modal ---
+        const selectedGame = document.getElementById('csv-game-selector').value;
+
         // Close the import modal and open review modal
         const importModal = document.getElementById('csv-import-modal');
         const reviewModal = document.getElementById('csv-review-modal');
-        
+
         UI.closeModal(importModal);
         UI.openModal(reviewModal);
-        
-        // Populate the review table
-        await openCsvReviewModal(parsedData);
-        
+
+        // --- FIX: Pass the selected game to the review function ---
+        await openCsvReviewModal(parsedData, selectedGame);
+
     } catch (error) {
         console.error('CSV import error:', error);
         UI.showToast(`Import failed: ${error.message}`, 'error');
@@ -1611,14 +1642,14 @@ async function handleCSVUpload() {
     }
 }
 
-async function openCsvReviewModal(cards) {
+async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an argument
     const modal = document.getElementById('csv-review-modal');
     const tableBody = document.getElementById('csv-review-table-body') || document.querySelector('#csv-review-modal tbody');
     if (!modal || !tableBody) {
         console.error('CSV review modal or table body not found');
         return;
     }
-    
+
     // Clear existing content
     tableBody.innerHTML = '';
     let reviewData = [];
@@ -1652,44 +1683,56 @@ async function openCsvReviewModal(cards) {
     // Process cards to validate them
     for (let i = 0; i < reviewData.length; i++) {
         if (reviewData[i].status === 'removed') continue;
-        
+
         const row = tableBody.querySelector(`tr[data-index="${i}"]`);
         if (!row) continue;
-        
+
         const statusCell = row.querySelector('.status-cell');
-        
-        try {
-            // Search for the card using the API
-            let query = `!"${reviewData[i].raw.name}"`;
-            if (reviewData[i].raw.set) query += ` set:${reviewData[i].raw.set}`;
-            if (reviewData[i].raw.collector_number) query += ` cn:${reviewData[i].raw.collector_number}`;
-            
-            const response = await API.searchCards(query, 'mtg');
-            
-            if (response && response.cards && response.cards.length > 0) {
-                // Merge CSV data with found card data
-                reviewData[i].enriched = {
-                    ...response.cards[0],
-                    quantity: reviewData[i].raw.quantity,
-                    condition: reviewData[i].raw.condition,
-                    language: reviewData[i].raw.language,
-                    is_foil: reviewData[i].raw.is_foil,
-                    addedAt: new Date()
-                };
-                reviewData[i].status = 'found';
-                statusCell.innerHTML = '<i class="fas fa-check-circle text-green-500"></i><span class="ml-2 text-green-600">Found</span>';
-            } else {
-                throw new Error("Card not found");
-            }
-        } catch (error) {
-            reviewData[i].status = 'error';
-            statusCell.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i><span class="ml-2 text-red-600">Not found</span>';
-        }
-        
+
+      try {
+    // First, build the most specific query possible
+    let specificQuery = `!"${reviewData[i].raw.name}"`;
+    if (reviewData[i].raw.set) {
+        specificQuery += ` set:${reviewData[i].raw.set.toLowerCase()}`;
+    }
+    if (reviewData[i].raw.collector_number) {
+        specificQuery += ` cn:${reviewData[i].raw.collector_number}`;
+    }
+
+    // Attempt the search with the specific query
+    let response = await API.searchCards(specificQuery, game);
+
+    // If no results, fall back to a simpler name-only search
+    if (!response || !response.cards || response.cards.length === 0) {
+        console.warn(`Specific query failed for "${reviewData[i].raw.name}". Falling back to name-only search.`);
+        const simpleQuery = `!"${reviewData[i].raw.name}"`;
+        response = await API.searchCards(simpleQuery, game);
+    }
+
+    if (response && response.cards && response.cards.length > 0) {
+        // Merge CSV data with the first found card data
+        reviewData[i].enriched = {
+            ...response.cards[0],
+            quantity: reviewData[i].raw.quantity,
+            condition: reviewData[i].raw.condition,
+            language: reviewData[i].raw.language,
+            is_foil: reviewData[i].raw.is_foil,
+            addedAt: new Date()
+        };
+        reviewData[i].status = 'found';
+        statusCell.innerHTML = '<i class="fas fa-check-circle text-green-500"></i><span class="ml-2 text-green-600">Found</span>';
+    } else {
+        // If even the simple query fails, then it's not found
+        throw new Error("Card not found");
+    }
+} catch (error) {
+    reviewData[i].status = 'error';
+    statusCell.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i><span class="ml-2 text-red-600">Not found</span>';
+}
         // Small delay to prevent overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     // Set up the finalize button
     const finalizeBtn = document.getElementById('finalize-csv-import-btn');
     if (finalizeBtn) {
@@ -1711,7 +1754,6 @@ async function openCsvReviewModal(cards) {
         }
     });
 }
-
 async function finalizeCsvImport(reviewData) {
     const finalizeBtn = document.getElementById('finalize-csv-import-btn');
     
