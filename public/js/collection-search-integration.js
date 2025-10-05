@@ -14,16 +14,33 @@ const CARD_CONDITIONS = {
     'damaged': { label: 'Damaged', shortLabel: 'DMG', multiplier: 0.40 }
 };
 
+// Currency conversion function
+let currencyConvertAndFormat = null;
+
+// Load currency module
+async function loadCurrencyModule() {
+    try {
+        const currencyModule = await import('./modules/currency.js');
+        currencyConvertAndFormat = currencyModule.convertAndFormat;
+        console.log('Currency module loaded successfully');
+    } catch (error) {
+        console.error('Failed to load currency module:', error);
+    }
+}
+
 // Wait for the page to load and then enhance the search results
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Collection Search Integration: Initializing...');
     
-    // Wait a bit for the collection app to initialize
-    setTimeout(() => {
-        enhanceSearchResults();
-        interceptSearchResultClicks();
-        createEnhancedCardModal();
-    }, 1000);
+    // Load currency module first, then initialize
+    loadCurrencyModule().then(() => {
+        // Wait a bit for the collection app to initialize
+        setTimeout(() => {
+            enhanceSearchResults();
+            interceptSearchResultClicks();
+            createEnhancedCardModal();
+        }, 1000);
+    });
 });
 
 function enhanceSearchResults() {
@@ -89,8 +106,8 @@ function enhanceSearchResultItem(item, cardData) {
     let priceHTML = '';
     
     if (normalPrice > 0) {
-        const formattedNormal = window.convertAndFormat ? 
-            window.convertAndFormat({ usd: normalPrice }) : 
+        const formattedNormal = currencyConvertAndFormat ? 
+            currencyConvertAndFormat({ usd: normalPrice }) : 
             `$${normalPrice.toFixed(2)}`;
         priceHTML += `
             <div class="flex items-center justify-between">
@@ -101,8 +118,8 @@ function enhanceSearchResultItem(item, cardData) {
     }
     
     if (foilPrice > 0) {
-        const formattedFoil = window.convertAndFormat ? 
-            window.convertAndFormat({ usd: foilPrice }) : 
+        const formattedFoil = currencyConvertAndFormat ? 
+            currencyConvertAndFormat({ usd: foilPrice }) : 
             `$${foilPrice.toFixed(2)}`;
         priceHTML += `
             <div class="flex items-center justify-between">
@@ -358,21 +375,21 @@ function updateEnhancedCardPrice() {
 
     if (normalPriceEl && normalBasePrice > 0) {
         const normalConditionPrice = normalBasePrice * conditionMultiplier;
-        normalPriceEl.textContent = window.convertAndFormat ? 
-            window.convertAndFormat({ usd: normalConditionPrice }) : 
+        normalPriceEl.textContent = currencyConvertAndFormat ? 
+            currencyConvertAndFormat({ usd: normalConditionPrice }) : 
             `$${normalConditionPrice.toFixed(2)}`;
     }
 
     if (foilPriceEl && foilBasePrice > 0) {
         const foilConditionPrice = foilBasePrice * conditionMultiplier;
-        foilPriceEl.textContent = window.convertAndFormat ? 
-            window.convertAndFormat({ usd: foilConditionPrice }) : 
+        foilPriceEl.textContent = currencyConvertAndFormat ? 
+            currencyConvertAndFormat({ usd: foilConditionPrice }) : 
             `$${foilConditionPrice.toFixed(2)}`;
     }
 
     if (totalPriceEl) {
-        totalPriceEl.textContent = window.convertAndFormat ? 
-            window.convertAndFormat({ usd: totalPrice }) : 
+        totalPriceEl.textContent = currencyConvertAndFormat ? 
+            currencyConvertAndFormat({ usd: totalPrice }) : 
             `$${totalPrice.toFixed(2)}`;
     }
 
