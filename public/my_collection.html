@@ -422,7 +422,7 @@
     </div>
    </div>
   </div>
-  <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002]" id="card-modal">
+  <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1010]" id="card-modal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex" style="max-height: 90vh;">
     <div class="w-1/3 p-6 bg-gray-100 dark:bg-gray-900 rounded-l-lg flex items-center justify-center">
      <img class="max-w-full max-h-full rounded-lg object-contain" id="card-modal-image" src="https://placehold.co/300x420?text=Card+Image"/>
@@ -519,6 +519,29 @@
           Purchase Price
          </label>
          <input class="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="card-purchase-price" placeholder="Optional" type="number"/>
+        </div>
+       </div>
+       
+       <!-- Market Price Display Section -->
+       <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg" id="market-price-section">
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Market Prices</h4>
+        <div class="grid grid-cols-2 gap-4">
+         <div id="normal-price-display" class="text-center p-3 bg-white dark:bg-gray-600 rounded-lg">
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Normal</div>
+          <div id="normal-price-value" class="text-lg font-semibold text-green-600 dark:text-green-400">-</div>
+          <div id="normal-condition-price" class="text-xs text-gray-600 dark:text-gray-300 mt-1">Near Mint</div>
+         </div>
+         <div id="foil-price-display" class="text-center p-3 bg-white dark:bg-gray-600 rounded-lg">
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center justify-center">
+           <i class="fas fa-star text-yellow-500 mr-1"></i>
+           <span id="foil-label-text">Foil</span>
+          </div>
+          <div id="foil-price-value" class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">-</div>
+          <div id="foil-condition-price" class="text-xs text-gray-600 dark:text-gray-300 mt-1">Near Mint</div>
+         </div>
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+         Prices adjust based on selected condition
         </div>
        </div>
        <div class="mt-4 space-y-2">
