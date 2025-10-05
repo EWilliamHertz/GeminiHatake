@@ -234,6 +234,9 @@ function updateMarketPriceDisplay(cardData) {
         // Set up condition change listener
         setupConditionChangeListener(cardData);
         
+        // Set up foil selection listeners
+        setupFoilSelectionListeners();
+        
         // Update prices based on current condition
         updatePricesForCondition(cardData);
         
@@ -304,3 +307,44 @@ function updatePricesForCondition(cardData) {
 // Market price display functionality only - no custom modal needed
 
 console.log('Collection Search Integration: Loaded successfully');
+
+function setupFoilSelectionListeners() {
+    const normalRadio = document.getElementById('finish-normal');
+    const foilRadio = document.getElementById('finish-foil');
+    const originalFoilCheckbox = document.getElementById('card-is-foil');
+    const normalPriceDisplay = document.getElementById('normal-price-display');
+    const foilPriceDisplay = document.getElementById('foil-price-display');
+    
+    if (!normalRadio || !foilRadio || !originalFoilCheckbox) return;
+    
+    // Function to update visual selection
+    function updateVisualSelection() {
+        if (normalRadio.checked) {
+            normalPriceDisplay.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+            foilPriceDisplay.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+            originalFoilCheckbox.checked = false;
+        } else if (foilRadio.checked) {
+            foilPriceDisplay.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+            normalPriceDisplay.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+            originalFoilCheckbox.checked = true;
+        }
+    }
+    
+    // Add event listeners
+    normalRadio.addEventListener('change', updateVisualSelection);
+    foilRadio.addEventListener('change', updateVisualSelection);
+    
+    // Make the entire price display clickable
+    normalPriceDisplay.addEventListener('click', () => {
+        normalRadio.checked = true;
+        updateVisualSelection();
+    });
+    
+    foilPriceDisplay.addEventListener('click', () => {
+        foilRadio.checked = true;
+        updateVisualSelection();
+    });
+    
+    // Initialize visual selection
+    updateVisualSelection();
+}

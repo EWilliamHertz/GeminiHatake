@@ -125,7 +125,11 @@ const UI = {
                 : '';
 
            const foilClass = card.is_foil ? 'foil-effect' : '';
-const priceDisplay = Currency.convertAndFormat(card.prices, card.is_foil);
+// Use foil price if card is foil, otherwise use normal price
+const priceToUse = card.is_foil && card.prices?.usd_foil ? 
+    { usd: card.prices.usd_foil } : 
+    { usd: card.prices?.usd || 0 };
+const priceDisplay = Currency.convertAndFormat(priceToUse, card);
 const foilPriceIndicator = card.is_foil && (card.prices?.usd_foil || card.prices?.eur_foil) ? '<span class="text-xs text-blue-400"> (Foil)</span>' : '';
 const cardHtml = `
     <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
@@ -180,7 +184,11 @@ const cardHtml = `
                 <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                     ${cards.map(card => {
                         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
-const marketValue = Currency.convertAndFormat(card.prices, card.is_foil);                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
+// Use foil price if card is foil, otherwise use normal price
+const priceToUse = card.is_foil && card.prices?.usd_foil ? 
+    { usd: card.prices.usd_foil } : 
+    { usd: card.prices?.usd || 0 };
+const marketValue = Currency.convertAndFormat(priceToUse, card);                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
                             ? `<span class="block text-green-500 font-semibold text-xs">FOR SALE: $${card.sale_price.toFixed(2)}</span>`
                             : '';
                         return `

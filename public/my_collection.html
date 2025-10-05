@@ -526,19 +526,25 @@
        <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg" id="market-price-section">
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Market Prices</h4>
         <div class="grid grid-cols-2 gap-4">
-         <div id="normal-price-display" class="text-center p-3 bg-white dark:bg-gray-600 rounded-lg">
-          <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Normal</div>
-          <div id="normal-price-value" class="text-lg font-semibold text-green-600 dark:text-green-400">-</div>
-          <div id="normal-condition-price" class="text-xs text-gray-600 dark:text-gray-300 mt-1">Near Mint</div>
+        <div id="normal-price-display" class="text-center p-3 bg-white dark:bg-gray-600 rounded-lg cursor-pointer border-2 border-transparent hover:border-blue-300 transition-colors">
+         <div class="flex items-center justify-center mb-1">
+          <input type="radio" name="card-finish" value="normal" id="finish-normal" class="mr-2" checked>
+          <label for="finish-normal" class="text-xs text-gray-500 dark:text-gray-400 cursor-pointer">Normal</label>
          </div>
-         <div id="foil-price-display" class="text-center p-3 bg-white dark:bg-gray-600 rounded-lg">
-          <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center justify-center">
+         <div id="normal-price-value" class="text-lg font-semibold text-green-600 dark:text-green-400">-</div>
+         <div id="normal-condition-price" class="text-xs text-gray-600 dark:text-gray-300 mt-1">Near Mint</div>
+        </div>
+        <div id="foil-price-display" class="text-center p-3 bg-white dark:bg-gray-600 rounded-lg cursor-pointer border-2 border-transparent hover:border-blue-300 transition-colors">
+         <div class="flex items-center justify-center mb-1">
+          <input type="radio" name="card-finish" value="foil" id="finish-foil" class="mr-2">
+          <label for="finish-foil" class="text-xs text-gray-500 dark:text-gray-400 cursor-pointer flex items-center">
            <i class="fas fa-star text-yellow-500 mr-1"></i>
            <span id="foil-label-text">Foil</span>
-          </div>
-          <div id="foil-price-value" class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">-</div>
-          <div id="foil-condition-price" class="text-xs text-gray-600 dark:text-gray-300 mt-1">Near Mint</div>
+          </label>
          </div>
+         <div id="foil-price-value" class="text-lg font-semibold text-yellow-600 dark:text-yellow-400">-</div>
+         <div id="foil-condition-price" class="text-xs text-gray-600 dark:text-gray-300 mt-1">Near Mint</div>
+        </div>
         </div>
         <div class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
          Prices adjust based on selected condition
