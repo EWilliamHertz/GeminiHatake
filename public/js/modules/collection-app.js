@@ -1744,23 +1744,32 @@ async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an
         const statusCell = row.querySelector('.status-cell');
 
       try {
-    // First, build the most specific query possible
-    let specificQuery = `!"${reviewData[i].raw.name}"`;
-    if (reviewData[i].raw.set) {
-        specificQuery += ` set:${reviewData[i].raw.set.toLowerCase()}`;
+    // First, try with set and collector number if available
+    let response = null;
+    
+    if (reviewData[i].raw.set && reviewData[i].raw.collector_number) {
+        const specificQuery = `${reviewData[i].raw.name} set:${reviewData[i].raw.set.toLowerCase()} cn:${reviewData[i].raw.collector_number}`;
+        response = await API.searchCards(specificQuery, game);
     }
-    if (reviewData[i].raw.collector_number) {
-        specificQuery += ` cn:${reviewData[i].raw.collector_number}`;
-    }
-
-    // Attempt the search with the specific query
-    let response = await API.searchCards(specificQuery, game);
-
-    // If no results, fall back to a simpler name-only search
+    
+    // If no results, try with just set
     if (!response || !response.cards || response.cards.length === 0) {
-        console.warn(`Specific query failed for "${reviewData[i].raw.name}". Falling back to name-only search.`);
-        const simpleQuery = `!"${reviewData[i].raw.name}"`;
-        response = await API.searchCards(simpleQuery, game);
+        if (reviewData[i].raw.set) {
+            const setQuery = `${reviewData[i].raw.name} set:${reviewData[i].raw.set.toLowerCase()}`;
+            response = await API.searchCards(setQuery, game);
+        }
+    }
+    
+    // If still no results, try name with quotes
+    if (!response || !response.cards || response.cards.length === 0) {
+        const quotedQuery = `"${reviewData[i].raw.name}"`;
+        response = await API.searchCards(quotedQuery, game);
+    }
+
+    // Final fallback: name only without quotes
+    if (!response || !response.cards || response.cards.length === 0) {
+        console.warn(`Specific queries failed for "${reviewData[i].raw.name}". Falling back to name-only search.`);
+        response = await API.searchCards(reviewData[i].raw.name, game);
     }
 
     if (response && response.cards && response.cards.length > 0) {
