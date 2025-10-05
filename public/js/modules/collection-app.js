@@ -12,7 +12,7 @@
  */
 import * as Collection from './collection.js';
 import * as API from './api.js';
-import * as CSV from './csv.js';
+import * as CSV from './csv-fixed.js';
 import * as Currency from './currency.js';
 import { getCardImageUrl } from './utils.js';
 
@@ -1577,15 +1577,63 @@ async function handleCSVFileSelect(event) {
 
     const statusDiv = document.getElementById('csv-import-status');
     const parseBtn = document.getElementById('start-csv-import-btn');
+    const previewDiv = document.getElementById('csv-preview');
+    const previewTable = document.getElementById('csv-preview-table');
+    const previewCount = document.getElementById('csv-preview-count');
     
     try {
         statusDiv.textContent = 'Parsing CSV file...';
-        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-blue-100 text-blue-800';
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
         
         const parsedData = await CSV.parseCSV(file);
         
+        if (parsedData.length === 0) {
+            throw new Error('No valid cards found in CSV file');
+        }
+        
         statusDiv.textContent = `Found ${parsedData.length} cards in CSV file`;
-        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-green-100 text-green-800';
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        
+        // Show preview
+        if (previewDiv && previewTable && previewCount) {
+            previewCount.textContent = parsedData.length;
+            
+            // Create preview table
+            const previewHtml = `
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Name</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Set</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Qty</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Condition</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Foil</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
+                        ${parsedData.slice(0, 10).map(card => `
+                            <tr>
+                                <td class="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">${card.name}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">${card.set_name || card.set || 'Unknown'}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">${card.quantity}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">${card.condition}</td>
+                                <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">${card.is_foil ? 'Yes' : 'No'}</td>
+                            </tr>
+                        `).join('')}
+                        ${parsedData.length > 10 ? `
+                            <tr>
+                                <td colspan="5" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 text-center italic">
+                                    ... and ${parsedData.length - 10} more cards
+                                </td>
+                            </tr>
+                        ` : ''}
+                    </tbody>
+                </table>
+            `;
+            
+            previewTable.innerHTML = previewHtml;
+            previewDiv.classList.remove('hidden');
+        }
         
         parseBtn.disabled = false;
         parseBtn.textContent = `Import ${parsedData.length} Cards`;
@@ -1595,8 +1643,14 @@ async function handleCSVFileSelect(event) {
     } catch (error) {
         console.error('CSV parsing error:', error);
         statusDiv.textContent = `Error: ${error.message}`;
-        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-red-100 text-red-800';
+        statusDiv.className = 'text-sm text-center p-2 rounded-md bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
         parseBtn.disabled = true;
+        parseBtn.textContent = 'Parse CSV';
+        
+        // Hide preview on error
+        if (previewDiv) {
+            previewDiv.classList.add('hidden');
+        }
     }
 }
 
@@ -2139,6 +2193,14 @@ document.getElementById('search-results-container')?.addEventListener('mouseover
                     if (csvFileInput) csvFileInput.value = '';
                     const csvStatus = document.getElementById('csv-import-status');
                     if (csvStatus) csvStatus.textContent = '';
+                    const csvPreview = document.getElementById('csv-preview');
+                    if (csvPreview) csvPreview.classList.add('hidden');
+                    const parseBtn = document.getElementById('start-csv-import-btn');
+                    if (parseBtn) {
+                        parseBtn.disabled = true;
+                        parseBtn.textContent = 'Parse CSV';
+                    }
+                    csvFile = null;
                     break;
                 case 'csv-review-modal':
                     // Clear any ongoing import processes
