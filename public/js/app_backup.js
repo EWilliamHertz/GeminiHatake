@@ -57,11 +57,7 @@ return sanitized
 .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
 .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
 .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
-.replace(/\[([^\]\[:]+)\]/g, (match, cardName) => {
-// For now, we'll use a generic card-view link since we don't know the game from the text
-// The card-view.html page will need to handle multi-game search
-return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="${cardName}">[${cardName}]</a>`;
-});
+.replace(/\[([^\]\[:]+)\]/g, `<a href="card-view.html?name=$1" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="$1">$1</a>`);
 };
 
 // --- Firestore Index Error Helpers ---
@@ -391,85 +387,34 @@ return groupPosts;
 const loadWhoToFollow = async () => {
 const whoToFollowContainer = document.getElementById('who-to-follow-container');
 if (!whoToFollowContainer) return;
-whoToFollowContainer.innerHTML = '<p class="text-sm text-gray-500">Loading...</p>';
-
+whoToFollowContainer.innerHTML = '<p class="text-sm text-gray-500">Loading suggestions...</p>';
 try {
-const snapshot = await db.collection('users').orderBy('postCount', 'desc').limit(6).get();
+const usersSnapshot = await db.collection('users').limit(5).get();
 whoToFollowContainer.innerHTML = '';
-let count = 0;
-snapshot.forEach(doc => {
-if (doc.id !== user?.uid && count < 5) {
-const userToFollow = doc.data();
-const isFollowing = user ? currentUserFriends.includes(doc.id) : false;
-const div = document.createElement('div');
-div.className = 'flex items-center justify-between';
-div.innerHTML = `
+if (usersSnapshot.empty) {
+whoToFollowContainer.innerHTML = '<p class="text-sm text-gray-500">No suggestions available.</p>';
+return;
+}
+usersSnapshot.forEach(doc => {
+const userData = doc.data();
+if (doc.id === user?.uid) return;
+const userEl = document.createElement('div');
+userEl.className = 'flex items-center justify-between';
+userEl.innerHTML = `
 <div class="flex items-center">
-<img src="${sanitizeHTML(userToFollow.photoURL) || 'https://i.imgur.com/B06rBhI.png'}" alt="${sanitizeHTML(userToFollow.displayName)}" class="w-10 h-10 rounded-full mr-3 object-cover">
+<a href="profile.html?uid=${doc.id}"><img src="${userData.photoURL || 'https://i.imgur.com/B06rBhI.png'}" alt="${userData.displayName}" class="h-8 w-8 rounded-full mr-3 object-cover"></a>
 <div>
-<a href="/profile.html?uid=${doc.id}" class="font-semibold text-gray-800 dark:text-white hover:underline">${sanitizeHTML(userToFollow.displayName)}</a>
-<p class="text-sm text-gray-500 dark:text-gray-400">@${sanitizeHTML(userToFollow.handle)}</p>
+<a href="profile.html?uid=${doc.id}" class="font-semibold text-sm hover:underline">${userData.displayName || 'Anonymous'}</a>
+<p class="text-xs text-gray-500">@${userData.handle || 'user'}</p>
 </div>
 </div>
-<button class="follow-btn px-3 py-1 text-sm font-semibold rounded-full transition-colors ${isFollowing ? 'following' : 'bg-blue-500 text-white hover:bg-blue-600'}" data-uid="${doc.id}">${isFollowing ? 'Following' : 'Follow'}</button>
+<button class="follow-btn text-xs bg-blue-500 text-white px-3 py-1 rounded-full hover:bg-blue-600" data-user-id="${doc.id}">Follow</button>
 `;
-whoToFollowContainer.appendChild(div);
-count++;
-}
+whoToFollowContainer.appendChild(userEl);
 });
-
-if (count === 0) {
-whoToFollowContainer.innerHTML = '<p class="text-sm text-gray-500">No suggestions right now.</p>';
-}
-
 } catch (error) {
 console.error("Error loading who to follow:", error);
-whoToFollowContainer.innerHTML = '<p class="text-sm text-red-500">Could not load suggestions.</p>';
-}
-};
-
-const showLikesModal = async (postId, groupId) => {
-const likesListEl = document.getElementById('likesList');
-likesListEl.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">Loading...</p>';
-openModal(document.getElementById('likesModal'));
-
-try {
-const postRef = groupId
-? db.collection('groups').doc(groupId).collection('posts').doc(postId)
-: db.collection('posts').doc(postId);
-const postDoc = await postRef.get();
-
-if (!postDoc.exists) {
-likesListEl.innerHTML = '<p class="text-center text-red-500">Post not found.</p>';
-return;
-}
-const likerIds = postDoc.data().likes;
-if (!likerIds || likerIds.length === 0) {
-likesListEl.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No likes yet.</p>';
-return;
-}
-
-likesListEl.innerHTML = '';
-for (const userId of likerIds) {
-const userDoc = await db.collection('users').doc(userId).get();
-if (userDoc.exists) {
-const userData = userDoc.data();
-const userEl = document.createElement('a');
-userEl.href = `profile.html?uid=${userId}`;
-userEl.className = 'flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md';
-userEl.innerHTML = `
-<img src="${sanitizeHTML(userData.photoURL) || 'https://i.imgur.com/B06rBhI.png'}" class="h-10 w-10 rounded-full object-cover">
-<div>
-<p class="font-semibold text-gray-800 dark:text-white">${sanitizeHTML(userData.displayName)}</p>
-<p class="text-sm text-gray-500 dark:text-gray-400">@${sanitizeHTML(userData.handle)}</p>
-</div>
-`;
-likesListEl.appendChild(userEl);
-}
-}
-} catch (error) {
-console.error("Error fetching likes:", error);
-likesListEl.innerHTML = '<p class="text-center text-red-500">Could not load likes.</p>';
+whoToFollowContainer.innerHTML = '<p class="text-sm text-red-500">Error loading suggestions.</p>';
 }
 };
 
@@ -509,21 +454,24 @@ const cardMatch = /\[([^\]]*)$/.exec(text.substring(0, cursorPos));
 if (cardMatch) {
 const query = cardMatch[1];
 if (query.length > 2) {
-// Use scrydex multi-game search instead of Scryfall
-try {
-// Import the card search function dynamically
-const { createCardAutocomplete } = await import('./card-search.js');
-
-await createCardAutocomplete(query, suggestionsContainer, (card) => {
-const cardName = card.name;
+const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`);
+const result = await response.json();
+suggestionsContainer.innerHTML = '';
+if (result.data && result.data.length > 0) {
+suggestionsContainer.classList.remove('hidden');
+result.data.slice(0, 7).forEach(cardName => {
+const suggestionEl = document.createElement('div');
+suggestionEl.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200';
+suggestionEl.textContent = cardName;
+suggestionEl.addEventListener('click', () => {
 const newText = text.substring(0, text.lastIndexOf('[')) + `[${cardName}] ` + text.substring(cursorPos);
 textarea.value = newText;
 suggestionsContainer.classList.add('hidden');
 textarea.focus();
 });
-} catch (error) {
-console.error('Error loading card search:', error);
-// Fallback to hide suggestions on error
+suggestionsContainer.appendChild(suggestionEl);
+});
+} else {
 suggestionsContainer.classList.add('hidden');
 }
 }
@@ -859,310 +807,449 @@ pollForm?.addEventListener('submit', async (e) => {
         pollMediaFileName.textContent = '';
         selectedPollMediaFile = null;
         showToast('Poll created successfully!', 'success');
-        renderPosts(activeFeedType);
+        if (activeFeedType === 'for-you') {
+            renderPosts(activeFeedType);
+        }
     } catch (error) {
-        console.error("Error creating poll post:", error);
-        showToast(`Error: ${error.message}`, 'error');
+        console.error("Error creating poll:", error);
+        showToast(`Error creating poll: ${error.message}`, 'error');
     }
 });
 }
 
-postsContainer.addEventListener('click', async (e) => {
-const postElement = e.target.closest('.post-container');
-if (!postElement) return;
-const postId = postElement.dataset.id;
-const groupId = postElement.dataset.groupId;
-
-const postRef = groupId
-? db.collection('groups').doc(groupId).collection('posts').doc(postId)
-: db.collection('posts').doc(postId);
-
-if (e.target.closest('.post-clickable-area') && !e.target.closest('a, button, input, .poll-option, video')) {
-    openPostModal(postId, groupId);
-    return;
+whoToFollowContainer?.addEventListener('click', async (e) => {
+if (e.target.classList.contains('follow-btn')) {
+const targetUserId = e.target.dataset.userId;
+if (!user || !targetUserId) return;
+try {
+const userRef = db.collection('users').doc(user.uid);
+const targetUserRef = db.collection('users').doc(targetUserId);
+await db.runTransaction(async (transaction) => {
+const userDoc = await transaction.get(userRef);
+const targetUserDoc = await transaction.get(targetUserRef);
+if (!userDoc.exists || !targetUserDoc.exists) {
+throw new Error("User not found");
 }
-if (e.target.closest('.reply-btn')) {
-    const replyBtn = e.target.closest('.reply-btn');
-    const parentCommentEl = replyBtn.closest('.flex-1');
-    const parentTimestamp = replyBtn.dataset.parentTimestamp;
-    
-    const existingForm = parentCommentEl.querySelector('.reply-form');
-    if (existingForm) {
-        existingForm.remove();
-        return;
-    }
-    const replyForm = document.createElement('form');
-    replyForm.className = 'reply-form flex mt-2';
-    replyForm.dataset.replyTo = parentTimestamp;
-    replyForm.innerHTML = `
-        <input type="text" class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required>
-        <button type="submit" class="bg-blue-500 text-white px-3 rounded-r-lg text-sm font-semibold hover:bg-blue-600">Reply</button>
-    `;
-    parentCommentEl.appendChild(replyForm);
-    replyForm.querySelector('input').focus();
-    return;
+const userData = userDoc.data();
+const targetUserData = targetUserDoc.data();
+const following = userData.following || [];
+const followers = targetUserData.followers || [];
+if (!following.includes(targetUserId)) {
+following.push(targetUserId);
+followers.push(user.uid);
+transaction.update(userRef, { following: following });
+transaction.update(targetUserRef, { followers: followers });
 }
+});
+e.target.textContent = 'Following';
+e.target.disabled = true;
+e.target.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+e.target.classList.add('bg-gray-400');
+showToast('Now following!', 'success');
+} catch (error) {
+console.error("Error following user:", error);
+showToast('Error following user.', 'error');
+}
+}
+});
 
+postsContainer?.addEventListener('click', async (e) => {
+const postContainer = e.target.closest('.post-container');
+if (!postContainer) return;
+const postId = postContainer.dataset.id;
+const groupId = postContainer.dataset.groupId;
+
+if (e.target.closest('.like-btn')) {
+e.preventDefault();
 if (!user) {
-if (e.target.closest('.like-btn, .comment-btn, .report-post-btn, .poll-option')) {
-showToast("Please log in to interact with posts.", "info");
-}
+showToast("Please log in to like posts.", "info");
 return;
 }
-
-const pollOption = e.target.closest('.poll-option');
-if(pollOption){
-    const optionIndex = parseInt(pollOption.dataset.optionIndex, 10);
-    try {
-        await db.runTransaction(async (transaction) => {
-            const postDoc = await transaction.get(postRef);
-            if(!postDoc.exists) throw "Post not found";
-            const postData = postDoc.data();
-            const poll = postData.poll;
-            if(poll.voters && poll.voters[user.uid] !== undefined){
-                showToast("You have already voted in this poll.", "info");
-                return;
-            }
-            poll.options[optionIndex].votes += 1;
-            poll.voters[user.uid] = optionIndex;
-            transaction.update(postRef, { poll: poll });
-        });
-        const updatedPostDoc = await postRef.get();
-        const newPostElement = createPostElement({id: updatedPostDoc.id, ...updatedPostDoc.data()});
-        postElement.replaceWith(newPostElement);
-    } catch(error) {
-        console.error("Error voting on poll:", error);
-        showToast("Could not register your vote.", "error");
-    }
-}
-if (e.target.closest('.delete-post-btn')) {
-if (confirm('Are you sure you want to delete this post?')) {
-try { await postRef.delete(); postElement.remove(); showToast("Post deleted.", "success"); } catch (error) { console.error("Error deleting post: ", error); showToast("Could not delete post.", "error"); }
-}
-} else if (e.target.closest('.like-btn')) {
 const likeBtn = e.target.closest('.like-btn');
-const icon = likeBtn.querySelector('i');
-const countSpan = likeBtn.querySelector('.likes-count-display');
-const currentLikes = parseInt(countSpan.textContent, 10);
-const isCurrentlyLiked = icon.classList.contains('fas');
-likeBtn.classList.toggle('text-red-500', !isCurrentlyLiked);
-icon.classList.toggle('fas', !isCurrentlyLiked);
-icon.classList.toggle('far', isCurrentlyLiked);
-countSpan.textContent = isCurrentlyLiked ? currentLikes - 1 : currentLikes + 1;
+const likesCountDisplay = likeBtn.querySelector('.likes-count-display');
+const heartIcon = likeBtn.querySelector('i');
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
 try {
-await db.runTransaction(async t => {
-const doc = await t.get(postRef);
-if (!doc.exists) throw new Error("Post not found.");
-const likes = doc.data().likes || [];
+await db.runTransaction(async (transaction) => {
+const postDoc = await transaction.get(postRef);
+if (!postDoc.exists) throw new Error("Post not found");
+const post = postDoc.data();
+const likes = post.likes || [];
 const userIndex = likes.indexOf(user.uid);
-if (userIndex === -1) { likes.push(user.uid); } else { likes.splice(userIndex, 1); }
-t.update(postRef, { likes });
+if (userIndex > -1) {
+likes.splice(userIndex, 1);
+likeBtn.classList.remove('text-red-500');
+heartIcon.classList.remove('fas');
+heartIcon.classList.add('far');
+} else {
+likes.push(user.uid);
+likeBtn.classList.add('text-red-500');
+heartIcon.classList.remove('far');
+heartIcon.classList.add('fas');
+}
+transaction.update(postRef, { likes: likes });
+likesCountDisplay.textContent = likes.length;
 });
 } catch (error) {
 console.error("Error updating like:", error);
-likeBtn.classList.toggle('text-red-500', isCurrentlyLiked);
-icon.classList.toggle('fas', isCurrentlyLiked);
-icon.classList.toggle('far', !isCurrentlyLiked);
-countSpan.textContent = currentLikes;
-showToast("Failed to update like.", "error");
+showToast("Could not update like.", "error");
 }
-} else if (e.target.closest('.comment-btn')) {
-const commentsSection = postElement.querySelector('.comments-section');
-const wasHidden = commentsSection.classList.toggle('hidden');
-if (!wasHidden) {
-const postDoc = await postRef.get();
-renderComments(commentsSection.querySelector('.comments-list'), postDoc.data().comments, postDoc.data());
-}
-} else if (e.target.closest('.likes-count-display')) {
-showLikesModal(postId, groupId);
-} else if (e.target.closest('.report-post-btn')) {
-const reportModal = document.getElementById('reportPostModal');
-document.getElementById('report-post-id').value = postId;
-openModal(reportModal);
-}
-if (e.target.closest('.edit-post-btn')) {
-const postBody = postElement.querySelector('.post-body-content');
-const rawContent = postElement.dataset.rawContent;
-postBody.innerHTML = `
-<textarea class="edit-post-textarea w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" rows="4">${rawContent}</textarea>
-<div class="edit-controls text-right mt-2 space-x-2">
-<button class="cancel-edit-btn px-4 py-1 bg-gray-500 text-white rounded-full text-sm hover:bg-gray-600">Cancel</button>
-<button class="save-edit-btn px-4 py-1 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700">Save</button>
-</div>`;
-}
-if (e.target.closest('.cancel-edit-btn')) {
-const postBody = postElement.querySelector('.post-body-content');
-const rawContent = postElement.dataset.rawContent;
-const mediaHTML = postElement.querySelector('.post-clickable-area img, .post-clickable-area video')?.outerHTML || '';
-postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(rawContent)}</p>${mediaHTML}`;
-}
-if (e.target.closest('.save-edit-btn')) {
-const postBody = postElement.querySelector('.post-body-content');
-const textarea = postBody.querySelector('.edit-post-textarea');
-const newContent = textarea.value;
-try {
-await postRef.update({ content: newContent, hashtags: (newContent.match(/#(\w+)/g) || []).map(tag => tag.substring(1)) });
-postElement.dataset.rawContent = newContent;
-const mediaHTML = postElement.querySelector('.post-clickable-area img, .post-clickable-area video')?.outerHTML || '';
-postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(newContent)}</p>${mediaHTML}`;
-showToast("Post updated!", "success");
-} catch (error) { console.error("Error updating post:", error); showToast("Could not save changes.", "error"); }
-}
-if (e.target.closest('.delete-comment-btn')) {
-if (confirm('Are you sure you want to delete this comment and all its replies?')) {
-const deleteBtn = e.target.closest('.delete-comment-btn');
-const commentTimestamp = parseInt(deleteBtn.dataset.timestamp, 10);
-try {
-    await db.runTransaction(async (transaction) => {
-        const postDoc = await transaction.get(postRef);
-        if (!postDoc.exists) throw new Error("Post not found.");
-        const comments = postDoc.data().comments || [];
-        const idsToDelete = [commentTimestamp];
-        const findReplies = (parentId) => {
-            comments.forEach(c => {
-                if (c.replyTo === parentId) {
-                    const ts = c.timestamp.toMillis();
-                    idsToDelete.push(ts);
-                    findReplies(ts);
-                }
-            });
-        };
-        findReplies(commentTimestamp);
-        const updatedComments = comments.filter(c => !idsToDelete.includes(c.timestamp.toMillis()));
-        if (comments.length === updatedComments.length) return;
-        transaction.update(postRef, { comments: updatedComments });
-    });
-    
-    const finalPostDoc = await postRef.get();
-    const postDataForRender = { id: finalPostDoc.id, ...finalPostDoc.data() };
-    renderComments(postElement.querySelector('.comments-list'), finalPostDoc.data().comments, postDataForRender);
-    postElement.querySelector('.comments-count').textContent = finalPostDoc.data().comments.length;
-    showToast("Comment deleted.", "success");
-} catch (error) { console.error("Error deleting comment:", error); showToast("Could not delete comment.", "error"); }
-}
-}
-});
-
-postsContainer.addEventListener('submit', async (e) => {
-e.preventDefault();
-if (e.target.classList.contains('comment-form') || e.target.classList.contains('reply-form')) {
-const postElement = e.target.closest('.post-container');
-handleCommentSubmit(e.target, postElement.dataset.id, postElement.dataset.groupId);
-}
-});
-
-const postDetailModal = document.getElementById('postDetailModal');
-postDetailModal?.addEventListener('click', (e) => {
-    if (e.target.closest('.reply-btn')) {
-        const replyBtn = e.target.closest('.reply-btn');
-        const parentCommentEl = replyBtn.closest('.flex-1');
-        const parentTimestamp = replyBtn.dataset.parentTimestamp;
-        
-        const existingForm = parentCommentEl.querySelector('.reply-form');
-        if (existingForm) {
-            existingForm.remove();
-            return;
-        }
-        const replyForm = document.createElement('form');
-        replyForm.className = 'reply-form flex mt-2';
-        replyForm.dataset.replyTo = parentTimestamp;
-        replyForm.innerHTML = `
-            <input type="text" class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required>
-            <button type="submit" class="bg-blue-500 text-white px-3 rounded-r-lg text-sm font-semibold hover:bg-blue-600">Reply</button>`;
-        parentCommentEl.appendChild(replyForm);
-        replyForm.querySelector('input').focus();
-    }
-});
-postDetailModal?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (e.target.classList.contains('modal-comment-form') || e.target.classList.contains('reply-form')) {
-        handleCommentSubmit(e.target, postDetailModal.dataset.postId, postDetailModal.dataset.groupId);
-    }
-});
-document.getElementById('closePostDetailModal')?.addEventListener('click', () => closeModal(postDetailModal));
-document.getElementById('closeLikesModal')?.addEventListener('click', () => closeModal(document.getElementById('likesModal')));
-
-const reportPostModal = document.getElementById('reportPostModal');
-document.getElementById('closeReportModal')?.addEventListener('click', () => closeModal(reportPostModal));
-document.getElementById('reportPostForm')?.addEventListener('submit', async (e) => {
-e.preventDefault();
-const postId = document.getElementById('report-post-id').value;
-const reason = document.getElementById('report-reason').value;
-const details = document.getElementById('report-details').value;
-if (!user || !postId) {
-showToast("Cannot submit report.", "error");
 return;
 }
-const submitBtn = e.target.querySelector('button[type="submit"]');
-submitBtn.disabled = true;
-submitBtn.textContent = 'Submitting...';
+
+if (e.target.closest('.comment-btn')) {
+e.preventDefault();
+const commentsSection = postContainer.querySelector('.comments-section');
+if (commentsSection.classList.contains('hidden')) {
+commentsSection.classList.remove('hidden');
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
 try {
-await db.collection('reports').add({ postId, reportedBy: user.uid, reason, details, timestamp: firebase.firestore.FieldValue.serverTimestamp(), status: 'pending' });
-showToast('Thank you for your report.', 'success');
-closeModal(reportPostModal);
-e.target.reset();
-} catch (error) { console.error("Error submitting report:", error); showToast("Could not submit report.", "error"); } finally { submitBtn.disabled = false; submitBtn.textContent = 'Submit Report'; }
+const postDoc = await postRef.get();
+if (postDoc.exists) {
+const post = postDoc.data();
+renderComments(commentsSection.querySelector('.comments-list'), post.comments, { id: postId, ...post });
+}
+} catch (error) {
+console.error("Error loading comments:", error);
+}
+} else {
+commentsSection.classList.add('hidden');
+}
+return;
+}
+
+if (e.target.closest('.edit-post-btn')) {
+e.preventDefault();
+const postContentDisplay = postContainer.querySelector('.post-content-display');
+const currentContent = postContainer.dataset.rawContent || '';
+const editForm = document.createElement('form');
+editForm.className = 'edit-post-form';
+editForm.innerHTML = `
+<textarea class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">${currentContent}</textarea>
+<div class="flex justify-end space-x-2 mt-2">
+<button type="button" class="cancel-edit-btn px-3 py-1 text-gray-600 hover:text-gray-800">Cancel</button>
+<button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+</div>
+`;
+postContentDisplay.replaceWith(editForm);
+editForm.addEventListener('submit', async (event) => {
+event.preventDefault();
+const newContent = editForm.querySelector('textarea').value.trim();
+if (!newContent) return;
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
+try {
+await postRef.update({ content: newContent });
+const newPostContentDisplay = document.createElement('p');
+newPostContentDisplay.className = 'post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200';
+newPostContentDisplay.innerHTML = formatContent(newContent);
+editForm.replaceWith(newPostContentDisplay);
+postContainer.dataset.rawContent = newContent;
+showToast('Post updated successfully!', 'success');
+} catch (error) {
+console.error("Error updating post:", error);
+showToast('Could not update post.', 'error');
+}
+});
+editForm.querySelector('.cancel-edit-btn').addEventListener('click', () => {
+const originalPostContentDisplay = document.createElement('p');
+originalPostContentDisplay.className = 'post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200';
+originalPostContentDisplay.innerHTML = formatContent(currentContent);
+editForm.replaceWith(originalPostContentDisplay);
+});
+return;
+}
+
+if (e.target.closest('.delete-post-btn')) {
+e.preventDefault();
+if (confirm('Are you sure you want to delete this post?')) {
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
+try {
+await postRef.delete();
+postContainer.remove();
+showToast('Post deleted successfully!', 'success');
+} catch (error) {
+console.error("Error deleting post:", error);
+showToast('Could not delete post.', 'error');
+}
+}
+return;
+}
+
+if (e.target.closest('.report-post-btn')) {
+e.preventDefault();
+const reason = prompt('Please provide a reason for reporting this post:');
+if (reason && reason.trim()) {
+try {
+await db.collection('reports').add({
+postId: postId,
+groupId: groupId || null,
+reportedBy: user.uid,
+reason: reason.trim(),
+timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+status: 'pending'
+});
+showToast('Post reported successfully. Thank you for helping keep our community safe.', 'success');
+} catch (error) {
+console.error("Error reporting post:", error);
+showToast('Could not submit report.', 'error');
+}
+}
+return;
+}
+
+if (e.target.closest('.poll-option')) {
+e.preventDefault();
+if (!user) {
+showToast("Please log in to vote.", "info");
+return;
+}
+const pollOption = e.target.closest('.poll-option');
+const optionIndex = parseInt(pollOption.dataset.optionIndex, 10);
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
+try {
+await db.runTransaction(async (transaction) => {
+const postDoc = await transaction.get(postRef);
+if (!postDoc.exists) throw new Error("Post not found");
+const post = postDoc.data();
+const poll = post.poll;
+if (poll.voters[user.uid] !== undefined) {
+showToast("You have already voted in this poll.", "info");
+return;
+}
+poll.options[optionIndex].votes += 1;
+poll.voters[user.uid] = optionIndex;
+transaction.update(postRef, { poll: poll });
+});
+const updatedPostDoc = await postRef.get();
+const updatedPost = updatedPostDoc.data();
+const pollContainer = postContainer.querySelector('.poll-container');
+const totalVotes = updatedPost.poll.options.reduce((sum, option) => sum + option.votes, 0);
+updatedPost.poll.options.forEach((option, index) => {
+const percentage = totalVotes > 0 ? ((option.votes / totalVotes) * 100).toFixed(1) : 0;
+const optionEl = pollContainer.children[index];
+optionEl.querySelector('.relative span:last-child').textContent = `${percentage}% (${option.votes})`;
+optionEl.querySelector('.absolute').style.width = `${percentage}%`;
+});
+showToast('Vote recorded!', 'success');
+} catch (error) {
+console.error("Error voting in poll:", error);
+showToast("Could not record vote.", "error");
+}
+return;
+}
+
+if (e.target.closest('.post-clickable-area')) {
+e.preventDefault();
+openPostModal(postId, groupId);
+return;
+}
 });
 
-whoToFollowContainer?.addEventListener('click', async (e) => {
-const followBtn = e.target.closest('.follow-btn');
-if (followBtn && user) {
-const targetUid = followBtn.dataset.uid;
-const isCurrentlyFollowing = followBtn.classList.contains('following');
-followBtn.disabled = true;
-followBtn.textContent = isCurrentlyFollowing ? 'Unfollowing...' : 'Following...';
-try {
-const toggleFollow = functions.httpsCallable('toggleFollowUser');
-const result = await toggleFollow({ uid: targetUid });
-if (result.data.nowFollowing) {
-followBtn.textContent = 'Following';
-followBtn.classList.add('following');
-followBtn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
-currentUserFriends.push(targetUid);
-} else {
-followBtn.textContent = 'Follow';
-followBtn.classList.remove('following');
-followBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
-currentUserFriends = currentUserFriends.filter(id => id !== targetUid);
+postsContainer?.addEventListener('submit', async (e) => {
+if (e.target.classList.contains('comment-form')) {
+e.preventDefault();
+const form = e.target;
+const postContainer = form.closest('.post-container');
+const postId = postContainer.dataset.id;
+const groupId = postContainer.dataset.groupId;
+await handleCommentSubmit(form, postId, groupId);
 }
-} catch (error) { console.error("Error following user:", error); showToast("Could not complete action.", "error"); followBtn.textContent = isCurrentlyFollowing ? 'Following' : 'Follow'; } finally { followBtn.disabled = false; }
+});
+
+postsContainer?.addEventListener('click', async (e) => {
+if (e.target.closest('.reply-btn')) {
+e.preventDefault();
+const replyBtn = e.target.closest('.reply-btn');
+const parentTimestamp = replyBtn.dataset.parentTimestamp;
+const commentWrapper = replyBtn.closest('.comment-wrapper');
+const existingReplyForm = commentWrapper.querySelector('.reply-form');
+if (existingReplyForm) {
+existingReplyForm.remove();
+return;
+}
+const replyForm = document.createElement('form');
+replyForm.className = 'reply-form flex mt-2';
+replyForm.dataset.replyTo = parentTimestamp;
+replyForm.innerHTML = `
+<input type="text" class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply..." required>
+<button type="submit" class="bg-blue-500 text-white px-4 rounded-r-lg font-semibold hover:bg-blue-600">Reply</button>
+`;
+commentWrapper.appendChild(replyForm);
+replyForm.querySelector('input').focus();
+replyForm.addEventListener('submit', async (event) => {
+event.preventDefault();
+const postContainer = replyForm.closest('.post-container');
+const postId = postContainer.dataset.id;
+const groupId = postContainer.dataset.groupId;
+await handleCommentSubmit(replyForm, postId, groupId);
+});
+}
+
+if (e.target.closest('.delete-comment-btn')) {
+e.preventDefault();
+if (confirm('Are you sure you want to delete this comment?')) {
+const deleteBtn = e.target.closest('.delete-comment-btn');
+const commentTimestamp = parseInt(deleteBtn.dataset.timestamp, 10);
+const postContainer = deleteBtn.closest('.post-container');
+const postId = postContainer.dataset.id;
+const groupId = postContainer.dataset.groupId;
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
+try {
+await db.runTransaction(async (transaction) => {
+const postDoc = await transaction.get(postRef);
+if (!postDoc.exists) throw new Error("Post not found");
+const comments = postDoc.data().comments || [];
+const filteredComments = comments.filter(comment => comment.timestamp.toMillis() !== commentTimestamp);
+transaction.update(postRef, { comments: filteredComments });
+});
+const updatedPostDoc = await postRef.get();
+const postDataForRender = { id: updatedPostDoc.id, ...updatedPostDoc.data() };
+const updatedComments = updatedPostDoc.data().comments || [];
+const commentsSection = postContainer.querySelector('.comments-section');
+if (!commentsSection.classList.contains('hidden')) {
+renderComments(commentsSection.querySelector('.comments-list'), updatedComments, postDataForRender);
+}
+postContainer.querySelector('.comments-count').textContent = updatedComments.length;
+const modal = document.getElementById('postDetailModal');
+if (modal.classList.contains('flex') && modal.dataset.postId === postId) {
+renderComments(modal.querySelector('#modal-post-comments-list'), updatedComments, postDataForRender);
+modal.querySelector('#modal-post-actions span:last-child').innerHTML = `<i class="far fa-comment mr-1"></i> ${updatedComments.length}`;
+}
+showToast('Comment deleted successfully!', 'success');
+} catch (error) {
+console.error("Error deleting comment:", error);
+showToast('Could not delete comment.', 'error');
+}
+}
+}
+});
+
+const modal = document.getElementById('postDetailModal');
+const closeModalBtn = document.getElementById('closePostDetailModal');
+closeModalBtn?.addEventListener('click', () => closeModal(modal));
+modal?.addEventListener('click', (e) => {
+if (e.target === modal) {
+closeModal(modal);
+}
+});
+
+modal?.addEventListener('click', async (e) => {
+const postId = modal.dataset.postId;
+const groupId = modal.dataset.groupId;
+
+if (e.target.closest('.like-btn')) {
+e.preventDefault();
+if (!user) {
+showToast("Please log in to like posts.", "info");
+return;
+}
+const likeBtn = e.target.closest('.like-btn');
+const likesCountDisplay = likeBtn.querySelector('.likes-count-display');
+const heartIcon = likeBtn.querySelector('i');
+const postRef = groupId && groupId !== 'undefined'
+? db.collection('groups').doc(groupId).collection('posts').doc(postId)
+: db.collection('posts').doc(postId);
+try {
+await db.runTransaction(async (transaction) => {
+const postDoc = await transaction.get(postRef);
+if (!postDoc.exists) throw new Error("Post not found");
+const post = postDoc.data();
+const likes = post.likes || [];
+const userIndex = likes.indexOf(user.uid);
+if (userIndex > -1) {
+likes.splice(userIndex, 1);
+likeBtn.classList.remove('text-red-500');
+heartIcon.classList.remove('fas');
+heartIcon.classList.add('far');
+} else {
+likes.push(user.uid);
+likeBtn.classList.add('text-red-500');
+heartIcon.classList.remove('far');
+heartIcon.classList.add('fas');
+}
+transaction.update(postRef, { likes: likes });
+likesCountDisplay.textContent = likes.length;
+});
+const postElement = document.querySelector(`.post-container[data-id="${postId}"]`);
+if (postElement) {
+const postLikeBtn = postElement.querySelector('.like-btn');
+const postLikesCountDisplay = postLikeBtn.querySelector('.likes-count-display');
+const postHeartIcon = postLikeBtn.querySelector('i');
+postLikesCountDisplay.textContent = likesCountDisplay.textContent;
+if (likeBtn.classList.contains('text-red-500')) {
+postLikeBtn.classList.add('text-red-500');
+postHeartIcon.classList.remove('far');
+postHeartIcon.classList.add('fas');
+} else {
+postLikeBtn.classList.remove('text-red-500');
+postHeartIcon.classList.remove('fas');
+postHeartIcon.classList.add('far');
+}
+}
+} catch (error) {
+console.error("Error updating like:", error);
+showToast("Could not update like.", "error");
+}
+return;
+}
+});
+
+modal?.addEventListener('submit', async (e) => {
+if (e.target.classList.contains('modal-comment-form')) {
+e.preventDefault();
+const form = e.target;
+const postId = modal.dataset.postId;
+const groupId = modal.dataset.groupId;
+await handleCommentSubmit(form, postId, groupId);
 }
 });
 
 window.addEventListener('scroll', () => {
-if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500 && !isFetchingPosts && !allPostsLoaded) {
+if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000 && !isFetchingPosts && !allPostsLoaded) {
 renderPosts(activeFeedType, true);
 }
 });
 };
 
-const initializeApp = async () => {
-const createPostSection = document.getElementById('create-post-section');
+checkAdminStatus();
+loadWhoToFollow();
+loadTrendingHashtags();
+renderPosts(activeFeedType);
+setupEventListeners();
+
 if (user) {
-createPostSection?.classList.remove('hidden');
-await checkAdminStatus();
+const createPostSection = document.getElementById('create-post-section');
+if (createPostSection) {
+createPostSection.classList.remove('hidden');
+}
 const userDoc = await db.collection('users').doc(user.uid).get();
 if (userDoc.exists) {
-    const userData = userDoc.data();
-    currentUserFriends = userData?.friends || [];
-    localStorage.setItem('userDateFormat', userData.dateFormat || 'dmy');
+const userData = userDoc.data();
+currentUserFriends = userData.following || [];
 }
-renderPosts(activeFeedType);
-loadTrendingHashtags();
-loadWhoToFollow();
-} else {
-createPostSection?.classList.add('hidden');
-localStorage.setItem('userDateFormat', 'dmy');
-postsContainer.innerHTML = `
-<div class="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-<h2 class="text-2xl font-bold text-gray-800 dark:text-white">Welcome to HatakeSocial!</h2>
-<p class="mt-2 text-gray-600 dark:text-gray-400">Please log in or register to view the feed and join the community.</p>
-</div>
-`;
-loadWhoToFollow();
 }
-setupEventListeners();
-};
-
-initializeApp();
 });
+
+const showToast = (message, type = 'info') => {
+const toastContainer = document.getElementById('toast-container');
+if (!toastContainer) return;
+const toast = document.createElement('div');
+toast.className = `toast p-4 rounded-lg shadow-lg text-white mb-2 ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
+toast.textContent = message;
+toastContainer.appendChild(toast);
+setTimeout(() => {
+toast.remove();
+}, 5000);
+};

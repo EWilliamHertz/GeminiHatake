@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Card Search Test - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Card Search Test</h1>
+        
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Card Autocomplete</h2>
+            <div class="relative">
+                <textarea 
+                    id="testTextarea" 
+                    class="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Type [[Brainstorm]] or [[Elsa, Spirit of Winter]] or [[Charizard]] or [[RX-78-2 Gundam]] to test card linking..."
+                    rows="4"
+                ></textarea>
+                <div id="testSuggestions" class="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg hidden max-h-60 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">Direct Search Test</h2>
+            <div class="flex space-x-4 mb-4">
+                <input 
+                    id="directSearchInput" 
+                    type="text" 
+                    class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Enter card name to search..."
+                />
+                <button 
+                    id="searchBtn" 
+                    class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700"
+                >
+                    Search
+                </button>
+            </div>
+            <div id="searchResults" class="space-y-4"></div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="testLog" class="space-y-2 text-sm font-mono"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
+
+    <script type="module">
+        // Initialize Firebase (using the same config as the main app)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBxhYKBGdKJZYJKGdKJZYJKGdKJZYJKGdKJZ",
+            authDomain: "hatakesocial-88b5e.firebaseapp.com",
+            projectId: "hatakesocial-88b5e",
+            storageBucket: "hatakesocial-88b5e.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdefghijklmnop"
+        };
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (error) {
+            console.log('Firebase already initialized or config error:', error);
+        }
+
+        // Import our card search functions
+        import { searchCardsMultiGame, createCardAutocomplete } from './public/js/card-search.js';
+
+        const testTextarea = document.getElementById('testTextarea');
+        const testSuggestions = document.getElementById('testSuggestions');
+        const directSearchInput = document.getElementById('directSearchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResults = document.getElementById('searchResults');
+        const testLog = document.getElementById('testLog');
+
+        function log(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `p-2 rounded ${type === 'error' ? 'bg-red-100 text-red-800' : type === 'success' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`;
+            logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            testLog.appendChild(logEntry);
+            testLog.scrollTop = testLog.scrollHeight;
+        }
+
+        // Test autocomplete functionality
+        testTextarea.addEventListener('input', async () => {
+            const text = testTextarea.value;
+            const cursorPos = testTextarea.selectionStart;
+            
+            const cardMatch = /\[([^\]]*)$/.exec(text.substring(0, cursorPos));
+            if (cardMatch) {
+                const query = cardMatch[1];
+                if (query.length > 2) {
+                    log(`Testing autocomplete for: "${query}"`);
+                    try {
+                        await createCardAutocomplete(query, testSuggestions, (card) => {
+                            const cardName = card.name;
+                            const newText = text.substring(0, text.lastIndexOf('[')) + `[${cardName}] ` + text.substring(cursorPos);
+                            testTextarea.value = newText;
+                            testSuggestions.classList.add('hidden');
+                            testTextarea.focus();
+                            log(`Selected card: ${cardName} (${card.game})`, 'success');
+                        });
+                    } catch (error) {
+                        log(`Error in autocomplete: ${error.message}`, 'error');
+                    }
+                } else {
+                    testSuggestions.classList.add('hidden');
+                }
+            } else {
+                testSuggestions.classList.add('hidden');
+            }
+        });
+
+        // Test direct search
+        searchBtn.addEventListener('click', async () => {
+            const query = directSearchInput.value.trim();
+            if (!query) return;
+
+            log(`Testing direct search for: "${query}"`);
+            searchResults.innerHTML = '<div class="text-center">Searching...</div>';
+
+            try {
+                const results = await searchCardsMultiGame(query, 10);
+                
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<div class="text-center text-gray-500">No cards found</div>';
+                    log(`No results found for: "${query}"`, 'error');
+                    return;
+                }
+
+                log(`Found ${results.length} results for: "${query}"`, 'success');
+
+                searchResults.innerHTML = results.map(card => `
+                    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold">${card.name}</h3>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${getGameBadgeClass(card.game)}">${getGameDisplayName(card.game)}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">${card.set_name || 'Unknown Set'}</p>
+                        ${card.image_uris?.normal ? `<img src="${card.image_uris.normal}" alt="${card.name}" class="w-32 h-auto mt-2 rounded">` : ''}
+                        <div class="mt-2 text-xs text-gray-500">
+                            <div>API ID: ${card.api_id}</div>
+                            <div>Game: ${card.game}</div>
+                            <div>Rarity: ${card.rarity}</div>
+                            ${card.prices?.usd ? `<div>Price: $${card.prices.usd}</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                log(`Error in direct search: ${error.message}`, 'error');
+                searchResults.innerHTML = `<div class="text-center text-red-500">Error: ${error.message}</div>`;
+            }
+        });
+
+        function getGameBadgeClass(game) {
+            const classes = {
+                'lorcana': 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100',
+                'pokemon': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100',
+                'gundam': 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100',
+                'mtg': 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+            };
+            return classes[game] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100';
+        }
+
+        function getGameDisplayName(game) {
+            const names = {
+                'lorcana': 'Lorcana',
+                'pokemon': 'Pokémon',
+                'gundam': 'Gundam',
+                'mtg': 'Magic'
+            };
+            return names[game] || game;
+        }
+
+        // Test specific cards mentioned in requirements
+        const testCards = ['Brainstorm', 'Elsa, Spirit of Winter', 'Charizard', 'RX-78-2 Gundam'];
+        
+        log('Card Search Test Page Loaded');
+        log(`Test these cards: ${testCards.join(', ')}`);
+        
+        // Auto-test the first card
+        setTimeout(async () => {
+            log('Running auto-test for Brainstorm...');
+            try {
+                const results = await searchCardsMultiGame('Brainstorm', 5);
+                if (results.length > 0) {
+                    log(`Auto-test success: Found ${results.length} results for Brainstorm`, 'success');
+                } else {
+                    log('Auto-test failed: No results for Brainstorm', 'error');
+                }
+            } catch (error) {
+                log(`Auto-test error: ${error.message}`, 'error');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

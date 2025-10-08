@@ -110,14 +110,12 @@ class EnhancedSearchManager {
         this.showSearchLoading();
 
         try {
-            const results = await Promise.all([
-                this.searchPokemon(query),
-                this.searchMTG(query)
-            ]);
+            // Use the new multi-game card search
+            const { searchCardsMultiGame } = await import('./card-search.js');
+            const results = await searchCardsMultiGame(query, 10);
 
-            // Combine and sort results
-            this.currentResults = [...results[0], ...results[1]]
-                .sort((a, b) => a.name.localeCompare(b.name))
+            // Results are already sorted by relevance in searchCardsMultiGame
+            this.currentResults = results
                 .slice(0, 10); // Limit to 10 results
 
             this.displaySearchResults();
