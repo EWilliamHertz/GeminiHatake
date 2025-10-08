@@ -1922,13 +1922,12 @@ window.handleTradeAction = async function(action, tradeId, db) {
     } else if (action === 'confirm-receipt') {
         // Direct bank transfer - no automatic fund release needed
         // Trade completion is handled manually after payment confirmation
-            await tradeRef.update({ status: 'completed' });
-            
-            // ADDED: Update card quantities in user collections when trade is completed
-            await updateCardQuantitiesOnTradeCompletion(tradeData, db);
-            
-            showTradeToast("Trade completed successfully!", 'success');
-        }
+        await tradeRef.update({ status: 'completed' });
+        
+        // ADDED: Update card quantities in user collections when trade is completed
+        await updateCardQuantitiesOnTradeCompletion(tradeData, db);
+        
+        showTradeToast("Trade completed successfully!", 'success');
     } else {
         await tradeRef.update({ status: action });
         showTradeToast(`Trade ${action}!`, action === 'rejected' || action === 'cancelled' ? 'error' : 'success');
@@ -2512,3 +2511,20 @@ function showPaymentModal(paymentDetails, amount, currencySymbol, tradeId) {
         }
     };
 }
+
+
+// Helper function to get time ago string
+function getTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return 'Just now';
+}
+
+// Duplicate functions removed - they are now defined earlier in the file
