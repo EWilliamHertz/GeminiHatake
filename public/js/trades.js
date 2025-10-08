@@ -89,9 +89,10 @@ class TradeWindow {
     async initializeCurrency() {
         try {
             // Import currency module
-            const { getUserCurrency, convertAndFormat } = await import('./modules/currency.js');
+            const { getUserCurrency, convertAndFormat, getNormalizedPriceUSD } = await import('./modules/currency.js');
             this.userCurrency = getUserCurrency();
             this.convertAndFormat = convertAndFormat;
+            this.getNormalizedPriceUSD = getNormalizedPriceUSD;
             
             // Update currency symbols in the UI
             this.updateCurrencySymbols();
@@ -134,9 +135,9 @@ class TradeWindow {
 
     // ADDED: Calculate dynamic price based on condition and edition
     calculateCardPrice(cardData) {
-        // Top priority: Use sale_price if it exists and is a valid number
-        if (cardData.sale_price) {
-            const salePrice = parseFloat(cardData.sale_price);
+        // Check if there's a sale price first (from marketplace)
+        if (cardData.salePrice !== undefined && cardData.salePrice !== null) {
+            const salePrice = parseFloat(cardData.salePrice);
             if (!isNaN(salePrice)) {
                 return salePrice;
             }
@@ -148,12 +149,39 @@ class TradeWindow {
             return isNaN(fallbackPrice) ? 0 : fallbackPrice;
         }
 
+        // Use the currency module's getNormalizedPriceUSD function for proper foil pricing
+        try {
+            // Import the function dynamically if not already available
+            if (typeof this.getNormalizedPriceUSD !== 'function') {
+                // Try to get it from the global scope or import it
+                if (window.currencyModule && window.currencyModule.getNormalizedPriceUSD) {
+                    this.getNormalizedPriceUSD = window.currencyModule.getNormalizedPriceUSD;
+                } else {
+                    // Fallback to basic pricing if currency module not available
+                    return this.calculateCardPriceFallback(cardData);
+                }
+            }
+            
+            return this.getNormalizedPriceUSD(cardData.prices, cardData);
+        } catch (error) {
+            console.warn('Error using currency module for pricing, falling back:', error);
+            return this.calculateCardPriceFallback(cardData);
+        }
+    }
+
+    calculateCardPriceFallback(cardData) {
         const prices = cardData.prices;
         const game = cardData.game ? cardData.game.toLowerCase() : 'mtg';
 
         // --- MTG Pricing Logic ---
         if (game === 'mtg') {
-            if (prices.usd) {
+            // Check for foil vs non-foil pricing
+            const isFoil = cardData.is_foil || cardData.foil || false;
+            
+            if (isFoil && prices.usd_foil) {
+                const foilPrice = parseFloat(prices.usd_foil);
+                return isNaN(foilPrice) ? 0 : foilPrice;
+            } else if (prices.usd) {
                 const mtgPrice = parseFloat(prices.usd);
                 return isNaN(mtgPrice) ? 0 : mtgPrice;
             }
@@ -174,9 +202,9 @@ class TradeWindow {
             };
 
             const condition = cardData.condition ? cardData.condition.toLowerCase() : 'near mint';
-            const conditionKey = conditionMap[condition] || 'NM'; // Default to NM
+            const conditionKey = conditionMap[condition] || 'NM';
 
-            const isFoil = cardData.is_foil || false;
+            const isFoil = cardData.is_foil || cardData.foil || false;
             const isFirstEdition = cardData.is_first_edition || false;
 
             let priceKey;
@@ -185,7 +213,8 @@ class TradeWindow {
             if (isFirstEdition) {
                 priceKey = isFoil ? `firstEditionHolofoil_${conditionKey}` : `firstEdition_${conditionKey}`;
             } else {
-                priceKey = isFoil ? `unlimitedHolofoil_${conditionKey}` : `unlimited_${conditionKey}`;
+                // For Pokemon, holofoil is the foil equivalent
+                priceKey = isFoil ? `holofoil_${conditionKey}` : `normal_${conditionKey}`;
             }
 
             // Check if a price exists for that specific key
@@ -196,18 +225,14 @@ class TradeWindow {
                 }
             }
             
-            // If no direct match, check for a graded price of the same type as a fallback
-            let gradedKey;
-            if (isFirstEdition) {
-                gradedKey = isFoil ? 'firstEditionHolofoil_graded' : 'firstEdition_graded';
-            } else {
-                gradedKey = isFoil ? 'unlimitedHolofoil_graded' : 'unlimitedHolofoil_graded';
-            }
-            
-            if (prices[gradedKey] !== undefined && prices[gradedKey] !== null) {
-                const gradedPrice = parseFloat(prices[gradedKey]);
-                if (!isNaN(gradedPrice)) {
-                    return gradedPrice;
+            // Fallback to reverseHolofoil if regular holofoil not available
+            if (isFoil && !prices[priceKey]) {
+                const reverseHoloKey = `reverseHolofoil_${conditionKey}`;
+                if (prices[reverseHoloKey] !== undefined && prices[reverseHoloKey] !== null) {
+                    const reversePrice = parseFloat(prices[reverseHoloKey]);
+                    if (!isNaN(reversePrice)) {
+                        return reversePrice;
+                    }
                 }
             }
         }
@@ -224,7 +249,7 @@ class TradeWindow {
 
         // If no valid price can be found, return 0
         return 0;
-    }       
+    }
 
     bindEvents() {
         // Binder tab switching
@@ -457,20 +482,28 @@ class TradeWindow {
         const price = this.calculateCardPrice(cardData);
         const formattedPrice = this.convertAndFormat ? this.convertAndFormat(price) : `$${price.toFixed(2)}`;
         
+        // Check for foil status
+        const isFoil = cardData.is_foil || cardData.foil || false;
+        const foilIndicator = isFoil ? '<div class="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-md">FOIL</div>' : '';
+        
         if (this.currentViewMode === 'list') {
             // List view layout
             return `
                 <div class="card-item bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow ${isSelected ? 'ring-2 ring-blue-500' : ''}" 
                      data-card-id="${card.id}">
                     <div class="flex items-center p-4">
-                        <div class="w-16 h-20 flex-shrink-0 mr-4">
+                        <div class="w-16 h-20 flex-shrink-0 mr-4 relative">
                             <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/200x280'}" 
                                  alt="${cardData.name || 'Card'}" 
-                                 class="w-full h-full object-cover rounded"
+                                 class="w-full h-full object-cover rounded ${isFoil ? 'ring-2 ring-yellow-400' : ''}"
                                  loading="lazy">
+                            ${isFoil ? '<div class="absolute -top-1 -left-1 bg-yellow-500 text-white text-xs px-1 rounded-full font-bold">F</div>' : ''}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-medium text-gray-900 dark:text-white truncate">${cardData.name || 'Unknown Card'}</h3>
+                                ${isFoil ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold">FOIL</span>' : ''}
+                            </div>
                             <p class="text-sm text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
                             <div class="flex items-center justify-between mt-2">
                                 <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
@@ -489,12 +522,16 @@ class TradeWindow {
                     <div class="relative">
                         <img src="${cardData.imageUrl || cardData.image_uris?.normal || 'https://via.placeholder.com/200x280'}" 
                              alt="${cardData.name || 'Card'}" 
-                             class="w-full h-48 object-cover rounded-t-lg"
+                             class="w-full h-48 object-cover rounded-t-lg ${isFoil ? 'ring-2 ring-yellow-400' : ''}"
                              loading="lazy">
+                        ${foilIndicator}
                         ${isSelected ? '<div class="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1"><i class="fas fa-check text-sm"></i></div>' : ''}
                     </div>
                     <div class="p-3">
-                        <h3 class="font-medium text-gray-900 dark:text-white text-sm truncate">${cardData.name || 'Unknown Card'}</h3>
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="font-medium text-gray-900 dark:text-white text-sm truncate flex-1">${cardData.name || 'Unknown Card'}</h3>
+                            ${isFoil ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded font-semibold ml-1">F</span>' : ''}
+                        </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${cardData.set_name || cardData.set || 'Unknown Set'}</p>
                         <div class="flex items-center justify-between mt-2">
                             <span class="text-sm font-semibold text-green-600 dark:text-green-400">${formattedPrice}</span>
