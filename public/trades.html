@@ -168,108 +168,112 @@
     </header>
 
         <!-- New Trading Interface (Default) -->
-        <div class="flex-1 flex" id="new-trading-interface">
-            <!-- Left Panel - Trade Window -->
-            <div class="w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex-1 flex flex-col" id="new-trading-interface">
+            <!-- Top Panel - Trade Offers (Fixed) -->
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                         <i class="fas fa-handshake mr-2 text-blue-600"></i>
                         Current Trade
                     </h2>
-                    <div class="mt-2 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                        <span id="trade-partner-name">Select a trading partner</span>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-600 dark:text-gray-400" id="trade-partner-name">Select a trading partner</span>
                         <button class="px-3 py-1 bg-green-600 text-white rounded-full text-xs hover:bg-green-700" id="start-tour-btn">
                             <i class="fas fa-question-circle mr-1"></i>Tour
                         </button>
                     </div>
                 </div>
                 
-                <!-- Trade Sides -->
-                <div class="flex-1 flex flex-col">
-                    <!-- Your Side -->
-                    <div class="flex-1 border-b border-gray-200 dark:border-gray-700">
-                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
+                <!-- Trade Offers - Horizontal Layout -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- Your Offer -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                        <div class="p-3 border-b border-blue-200 dark:border-blue-700">
                             <h3 class="font-medium text-blue-900 dark:text-blue-300">Your Offer</h3>
                             <div class="text-sm text-blue-700 dark:text-blue-400">
                                 Value: <span id="your-trade-value">$0.00</span>
                             </div>
                         </div>
-                        <div class="p-2 overflow-y-auto" id="your-trade-cards" style="max-height: 200px;">
-                            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                                <i class="fas fa-plus-circle text-3xl mb-2"></i>
-                                <p>Add cards from your collection</p>
+                        <div class="p-3 h-32 overflow-y-auto" id="your-trade-cards">
+                            <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                <i class="fas fa-plus-circle text-2xl mb-2"></i>
+                                <p class="text-sm">Add cards from your collection</p>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Their Side -->
-                    <div class="flex-1">
-                        <div class="p-3 bg-red-50 dark:bg-red-900/20 border-b border-gray-200 dark:border-gray-700">
+                    <!-- Their Offer -->
+                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+                        <div class="p-3 border-b border-red-200 dark:border-red-700">
                             <h3 class="font-medium text-red-900 dark:text-red-300">Their Offer</h3>
                             <div class="text-sm text-red-700 dark:text-red-400">
                                 Value: <span id="their-trade-value">$0.00</span>
                             </div>
                         </div>
-                        <div class="p-2 overflow-y-auto" id="their-trade-cards" style="max-height: 200px;">
-                            <div class="text-center text-gray-500 dark:text-gray-400 py-8">
-                                <i class="fas fa-user-plus text-3xl mb-2"></i>
-                                <p>Partner's cards will appear here</p>
+                        <div class="p-3 h-32 overflow-y-auto" id="their-trade-cards">
+                            <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+                                <i class="fas fa-user-plus text-2xl mb-2"></i>
+                                <p class="text-sm">Partner's cards will appear here</p>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Cash Balance Section -->
-                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-                    <h3 class="font-medium text-gray-900 dark:text-white mb-3">Cash Balance</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                <!-- Cash Balance and Actions - Horizontal Layout -->
+                <div class="flex items-center justify-between">
+                    <!-- Cash Balance -->
+                    <div class="flex items-center space-x-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">You Add Cash</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">You Add Cash</label>
                             <div class="relative">
-                                <input type="number" id="your-cash-input" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" step="0.01" min="0">
-                                <span class="absolute right-3 top-2 text-sm text-gray-500 dark:text-gray-400" id="your-currency-symbol">$</span>
+                                <input type="number" id="your-cash-input" class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" step="0.01" min="0">
+                                <span class="absolute right-2 top-1 text-xs text-gray-500 dark:text-gray-400" id="your-currency-symbol">$</span>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">They Add Cash</label>
+                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">They Add Cash</label>
                             <div class="relative">
-                                <input type="number" id="their-cash-input" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" step="0.01" min="0">
-                                <span class="absolute right-3 top-2 text-sm text-gray-500 dark:text-gray-400" id="their-currency-symbol">$</span>
+                                <input type="number" id="their-cash-input" class="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" step="0.01" min="0">
+                                <span class="absolute right-2 top-1 text-xs text-gray-500 dark:text-gray-400" id="their-currency-symbol">$</span>
                             </div>
                         </div>
-                    </div>
-                    <div class="mt-3 text-center">
                         <div class="text-sm text-gray-600 dark:text-gray-400" id="trade-balance">Balanced</div>
                     </div>
-                </div>
-
-                <!-- Trade Actions -->
-                <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                    <button class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50" id="autobalance-btn" disabled>
-                        <i class="fas fa-balance-scale mr-2"></i>Auto Balance
-                    </button>
-                    <button class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50" id="propose-trade-btn" disabled>
-                        <i class="fas fa-paper-plane mr-2"></i>Propose Trade
-                    </button>
-                    <button class="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700" id="toggle-legacy-view">
-                        <i class="fas fa-list mr-2"></i>View All Trades
-                    </button>
+                    
+                    <!-- Trade Actions -->
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 text-sm" id="autobalance-btn" disabled>
+                            <i class="fas fa-balance-scale mr-1"></i>Auto Balance
+                        </button>
+                        <button class="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 text-sm" id="propose-trade-btn" disabled>
+                            <i class="fas fa-paper-plane mr-1"></i>Propose Trade
+                        </button>
+                        <button class="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm" id="toggle-legacy-view">
+                            <i class="fas fa-list mr-1"></i>View All Trades
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Panel - Binder Views -->
-            <div class="flex-1 flex flex-col">
-                <!-- Binder Tabs -->
-                <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <div class="flex">
-                        <button class="flex-1 px-4 py-3 text-center border-b-2 border-blue-600 text-blue-600 font-medium" data-binder="your" id="your-binder-tab">
-                            Your Collection
-                        </button>
-                        <button class="flex-1 px-4 py-3 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" data-binder="their" id="their-binder-tab" disabled>
-                            Partner's Collection
-                        </button>
+            <!-- Main Content Area -->
+            <div class="flex-1 flex">
+                <!-- Left Sidebar - Collection Selector -->
+                <div class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                    <!-- Binder Tabs -->
+                    <div class="border-b border-gray-200 dark:border-gray-700">
+                        <div class="flex flex-col">
+                            <button class="px-4 py-3 text-left border-b-2 border-blue-600 text-blue-600 font-medium bg-blue-50 dark:bg-blue-900/20" data-binder="your" id="your-binder-tab">
+                                Your Collection
+                            </button>
+                            <button class="px-4 py-3 text-left border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700" data-binder="their" id="their-binder-tab" disabled>
+                                Partner's Collection
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Right Panel - Card Collection View -->
+                <div class="flex-1 flex flex-col bg-white dark:bg-gray-800">
                 
                 <!-- Filters -->
                 <div class="bg-gray-50 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
