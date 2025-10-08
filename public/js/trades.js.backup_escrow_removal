@@ -1772,10 +1772,12 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
                         console.warn('Currency conversion failed, using USD amount:', error);
                     }
                     
+                    const escrowFee = convertedAmount * 0.027;
+                    const totalAmount = convertedAmount + escrowFee;
                     const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
                     const currencySymbol = userCurrency === 'SEK' ? 'kr' : userCurrency === 'EUR' ? '€' : '$';
                     
-                    return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${convertedAmount.toFixed(2)} via Bank Transfer</button>`;
+                    return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${totalAmount.toFixed(2)} via Escrow.com <small>(incl. 2.7% fee)</small></button>`;
                 } else {
                     return `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
                 }
@@ -1813,10 +1815,12 @@ window.getActionButtons = function(trade, tradeId, isProposer, user) {
                     console.warn('Currency conversion failed, using USD amount:', error);
                 }
                 
+                const escrowFee = convertedAmount * 0.027;
+                const totalAmount = convertedAmount + escrowFee;
                 const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
                 const currencySymbol = userCurrency === 'SEK' ? 'kr' : userCurrency === 'EUR' ? '€' : '$';
                 
-                return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${convertedAmount.toFixed(2)} via Bank Transfer</button>`;
+                return `<button data-id="${tradeId}" data-action="pay" class="trade-action-btn px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Pay ${currencySymbol}${totalAmount.toFixed(2)} via Escrow.com <small>(incl. 2.7% fee)</small></button>`;
             } else {
                 return `<span class="text-sm text-gray-500">Waiting for payment...</span>`;
             }
@@ -1860,8 +1864,8 @@ window.handleTradeAction = async function(action, tradeId, db) {
              showTradeToast("Trade accepted! Ready for shipment.", 'success');
         }
     } else if (action === 'pay') {
-        // Handle direct bank transfer payment
-        showTradeToast("Loading payment details...", 'info');
+        // INTEGRATED: Handle Escrow.com payment via cloud function
+        showTradeToast("Creating Escrow.com transaction...", 'info');
         
         try {
             // Determine buyer and seller
@@ -1869,39 +1873,93 @@ window.handleTradeAction = async function(action, tradeId, db) {
             const sellerUid = (tradeData.proposerMoney || 0) > 0 ? tradeData.receiverId : tradeData.proposerId;
             const usdAmount = Math.max(tradeData.proposerMoney || 0, tradeData.receiverMoney || 0);
             
-            // Get seller's payment details
-            const sellerDoc = await db.collection('users').doc(sellerUid).get();
-            if (!sellerDoc.exists) {
-                throw new Error('Seller information not found');
-            }
-            
-            const sellerData = sellerDoc.data();
-            const paymentDetails = sellerData.paymentDetails;
-            
-            // Convert amount to user's currency
+            // Convert USD amount to user's currency (SEK for Escrow)
             let convertedAmount = usdAmount;
-            let currencySymbol = '$';
             try {
+                // Get user's currency and conversion rate
                 const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
                 const exchangeRates = JSON.parse(localStorage.getItem('exchangeRates') || '{}');
                 
                 if (userCurrency !== 'USD' && exchangeRates[userCurrency]) {
                     convertedAmount = usdAmount * exchangeRates[userCurrency];
                 }
-                
-                // Get currency symbol
-                const currencySymbols = { USD: '$', EUR: '€', SEK: 'kr', GBP: '£' };
-                currencySymbol = currencySymbols[userCurrency] || '$';
             } catch (error) {
                 console.warn('Currency conversion failed, using USD amount:', error);
             }
             
-            // Show payment modal with seller's payment details
-            showPaymentModal(paymentDetails, convertedAmount, currencySymbol, tradeId);
+            // Calculate total amount including 2.7% Escrow fee (in converted currency)
+            const escrowFee = convertedAmount * 0.027;
+            const totalAmount = convertedAmount + escrowFee;
+            
+            const description = `Trade between ${tradeData.proposerName} and ${tradeData.receiverName}`;
+            
+            // Convert to SEK if not already (Escrow function expects SEK)
+            let sekAmount = convertedAmount;
+            const userCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+            if (userCurrency !== 'SEK') {
+                try {
+                    const exchangeRates = JSON.parse(localStorage.getItem('exchangeRates') || '{}');
+                    if (userCurrency === 'USD' && exchangeRates['SEK']) {
+                        sekAmount = convertedAmount * exchangeRates['SEK'];
+                    } else if (exchangeRates['SEK'] && exchangeRates[userCurrency]) {
+                        // Convert to USD first, then to SEK
+                        const usdValue = convertedAmount / exchangeRates[userCurrency];
+                        sekAmount = usdValue * exchangeRates['SEK'];
+                    }
+                } catch (error) {
+                    console.warn('SEK conversion failed:', error);
+                }
+            }
+            
+            const sekFee = sekAmount * 0.027;
+            const totalSekAmount = sekAmount + sekFee;
+            
+            const escrowParams = {
+                tradeId: tradeId,
+                buyerUid: buyerUid,
+                sellerUid: sellerUid,
+                amount: totalSekAmount, // Send SEK amount to Escrow
+                description: description
+            };
+            
+            console.log('Payment Debug - Sending to Escrow:', {
+                usdAmount,
+                convertedAmount,
+                userCurrency,
+                sekAmount,
+                totalSekAmount,
+                escrowParams
+            });
+            
+            // Call cloud function to create Escrow transaction
+            const createEscrowTransaction = firebase.functions().httpsCallable('createEscrowTransaction');
+            const result = await createEscrowTransaction(escrowParams);
+            
+            console.log('Escrow Response:', result);
+            
+            if (result.data && result.data.success) {
+                showTradeToast("Redirecting to Escrow.com for payment...", 'success');
+                // Redirect to Escrow.com payment page
+                window.open(result.data.paymentUrl, '_blank');
+            } else {
+                console.error('Escrow transaction failed:', result.data);
+                throw new Error(result.data?.error || 'Failed to create Escrow transaction');
+            }
             
         } catch (error) {
-            console.error('Payment details error:', error);
-            showTradeToast("Could not load payment details. Please contact the seller directly.", 'error');
+            console.error('Escrow payment error details:', {
+                error: error,
+                message: error.message,
+                code: error.code,
+                details: error.details
+            });
+            
+            let errorMessage = "Payment failed. Please try again.";
+            if (error.message && error.message.includes('Could not create')) {
+                errorMessage = "Escrow service temporarily unavailable. Please contact support.";
+            }
+            
+            showTradeToast(errorMessage, 'error');
         }
         
     } else if (action === 'confirm-shipment') {
@@ -1920,8 +1978,30 @@ window.handleTradeAction = async function(action, tradeId, db) {
         
         showTradeToast("Shipment confirmed!", 'success');
     } else if (action === 'confirm-receipt') {
-        // Direct bank transfer - no automatic fund release needed
-        // Trade completion is handled manually after payment confirmation
+        // INTEGRATED: Handle Escrow fund release if money is involved
+        const moneyInvolved = (tradeData.proposerMoney || 0) > 0 || (tradeData.receiverMoney || 0) > 0;
+        
+        if (moneyInvolved && tradeData.escrowTransactionId) {
+            try {
+                showTradeToast("Releasing Escrow funds...", 'info');
+                
+                // Call cloud function to release Escrow funds
+                const releaseEscrowFunds = firebase.functions().httpsCallable('releaseEscrowFunds');
+                const result = await releaseEscrowFunds({ tradeId: tradeId });
+                
+                if (result.data.success) {
+                    showTradeToast("Funds released and trade completed!", 'success');
+                } else {
+                    throw new Error('Failed to release Escrow funds');
+                }
+                
+            } catch (error) {
+                console.error('Escrow fund release error:', error);
+                showTradeToast("Error releasing funds. Please contact support.", 'error');
+                return; // Don't complete trade if fund release fails
+            }
+        } else {
+            // No money involved, just complete the trade
             await tradeRef.update({ status: 'completed' });
             
             // ADDED: Update card quantities in user collections when trade is completed
@@ -2354,161 +2434,3 @@ function getTimeAgo(timestamp) {
 }
 
 // Duplicate functions removed - they are now defined earlier in the file
-
-
-// Function to show payment modal with seller's payment details
-function showPaymentModal(paymentDetails, amount, currencySymbol, tradeId) {
-    const modal = document.getElementById('payment-modal');
-    const content = document.getElementById('payment-details-content');
-    
-    if (!modal || !content) {
-        console.error('Payment modal elements not found');
-        return;
-    }
-    
-    let paymentHtml = '';
-    
-    if (!paymentDetails) {
-        paymentHtml = `
-            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <div class="flex">
-                    <i class="fas fa-exclamation-circle text-red-600 dark:text-red-400 mr-3 mt-1"></i>
-                    <div>
-                        <h4 class="text-sm font-medium text-red-800 dark:text-red-200">No Payment Details Available</h4>
-                        <p class="text-sm text-red-700 dark:text-red-300 mt-1">
-                            The seller has not configured their payment details yet. Please contact them directly to arrange payment.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        // Check which payment methods are available
-        const hasSwedishPayment = paymentDetails.clearingKontonummer || paymentDetails.swishNummer;
-        const hasInternationalPayment = paymentDetails.swiftIban;
-        
-        if (hasSwedishPayment) {
-            paymentHtml += `
-                <div class="mb-4">
-                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white mb-2">
-                        <i class="fas fa-flag mr-2 text-blue-500"></i>Swedish Payment Methods
-                    </h4>
-            `;
-            
-            if (paymentDetails.clearingKontonummer) {
-                paymentHtml += `
-                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-md mb-2">
-                        <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Clearing/Kontonummer:</label>
-                        <p class="text-sm font-mono text-gray-900 dark:text-white">${paymentDetails.clearingKontonummer}</p>
-                    </div>
-                `;
-            }
-            
-            if (paymentDetails.swishNummer) {
-                paymentHtml += `
-                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-md mb-2">
-                        <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Swish Number:</label>
-                        <p class="text-sm font-mono text-gray-900 dark:text-white">${paymentDetails.swishNummer}</p>
-                    </div>
-                `;
-            }
-            
-            paymentHtml += `</div>`;
-        }
-        
-        if (hasInternationalPayment) {
-            paymentHtml += `
-                <div class="mb-4">
-                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white mb-2">
-                        <i class="fas fa-globe mr-2 text-green-500"></i>International Payment
-                    </h4>
-                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
-                        <label class="text-xs font-medium text-gray-600 dark:text-gray-300">SWIFT/IBAN:</label>
-                        <p class="text-sm font-mono text-gray-900 dark:text-white">${paymentDetails.swiftIban}</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Add payment amount
-        paymentHtml += `
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200">Amount to Pay:</span>
-                    <span class="text-lg font-bold text-blue-900 dark:text-blue-100">${currencySymbol}${amount.toFixed(2)}</span>
-                </div>
-            </div>
-        `;
-        
-        // Add additional instructions if provided
-        if (paymentDetails.instructions) {
-            paymentHtml += `
-                <div class="mb-4">
-                    <h4 class="text-sm font-semibold text-gray-800 dark:text-white mb-2">
-                        <i class="fas fa-info-circle mr-2 text-blue-500"></i>Additional Instructions
-                    </h4>
-                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
-                        <p class="text-sm text-gray-700 dark:text-gray-300">${paymentDetails.instructions}</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (!hasSwedishPayment && !hasInternationalPayment) {
-            paymentHtml = `
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <div class="flex">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mr-3 mt-1"></i>
-                        <div>
-                            <h4 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Incomplete Payment Details</h4>
-                            <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                                The seller has not provided complete payment information. Please contact them directly to arrange payment.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
-    content.innerHTML = paymentHtml;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    
-    // Set up modal close handlers
-    const closeBtn = document.getElementById('close-payment-modal');
-    const confirmBtn = document.getElementById('confirm-payment-sent');
-    
-    const closeModal = () => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    };
-    
-    closeBtn.onclick = closeModal;
-    modal.onclick = (e) => {
-        if (e.target === modal) closeModal();
-    };
-    
-    confirmBtn.onclick = async () => {
-        try {
-            // Update trade status to indicate payment has been sent
-            const db = firebase.firestore();
-            await db.collection('trades').doc(tradeId).update({
-                status: 'payment_sent',
-                paymentSentAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            showTradeToast("Payment confirmation sent! The seller will ship once payment is received.", 'success');
-            closeModal();
-            
-            // Refresh the trade display
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-            
-        } catch (error) {
-            console.error('Error confirming payment:', error);
-            showTradeToast("Could not confirm payment. Please try again.", 'error');
-        }
-    };
-}

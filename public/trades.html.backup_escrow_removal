@@ -340,7 +340,11 @@
         Trade Securely
         </h2>
         <p class="text-gray-600 dark:text-gray-400 mb-4">
-        For trades involving cash, payment is handled through direct bank transfers. The buyer will send payment directly to the seller's bank account before the seller ships the cards. Payment details will be provided after the trade is initiated.
+        For trades involving cash, we partner with
+        <a class="text-blue-500 hover:underline font-semibold" href="https://escrow.com" target="_blank">
+            Escrow.com
+        </a>
+        to ensure your funds are held securely until the trade is complete. Make sure your HatakeSocial email matches your Escrow.com account email.
         </p>
         </div>
         <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 text-blue-800 dark:text-blue-200 p-4 rounded-r-lg mb-6" role="alert">
@@ -837,36 +841,42 @@
         </div>
     </div>
 
-    <!-- Payment Instructions Modal -->
-    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="payment-modal">
+    <!-- Escrow Payment Modal -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="escrow-modal">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Payment Instructions</h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-payment-modal">×</button>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Secure Payment</h2>
+                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-escrow-modal">×</button>
             </div>
             <div class="space-y-4">
                 <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                     <h3 class="font-medium text-blue-900 dark:text-blue-300 mb-2">
-                        <i class="fas fa-university mr-2"></i>Direct Bank Transfer
+                        <i class="fas fa-shield-alt mr-2"></i>Escrow.com Protection
                     </h3>
-                    <p class="text-sm text-blue-800 dark:text-blue-400">Please send payment to the seller's bank account before they ship the cards.</p>
+                    <p class="text-sm text-blue-800 dark:text-blue-400">Your payment is secured through Escrow.com until both parties confirm the trade.</p>
                 </div>
-                <div id="payment-details-content">
-                    <!-- Payment details will be populated here -->
-                </div>
-                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                    <div class="flex">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mr-2 mt-1"></i>
-                        <div>
-                            <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                                <strong>Important:</strong> Only send payment after confirming the trade details. The seller will ship once payment is received.
-                            </p>
-                        </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span>Trade amount:</span>
+                        <span id="escrow-trade-amount">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span>Escrow.com fee (0.8%):</span>
+                        <span id="escrow-fee">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span>Platform fee (2.7%):</span>
+                        <span id="platform-fee">$0.00</span>
+                    </div>
+                    <div class="border-t pt-2 flex justify-between font-medium">
+                        <span>Total:</span>
+                        <span id="escrow-total">$0.00</span>
                     </div>
                 </div>
-                <div class="flex justify-end">
-                    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" id="confirm-payment-sent">
-                        <i class="fas fa-check mr-2"></i>I've Sent Payment
+                <div class="flex justify-end space-x-2">
+                    <button class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500" id="cancel-escrow">Cancel</button>
+                    <button class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700" id="proceed-escrow">
+                        <i class="fas fa-lock mr-2"></i>Secure Payment
                     </button>
                 </div>
             </div>

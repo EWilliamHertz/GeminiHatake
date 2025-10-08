@@ -40,8 +40,20 @@ admin.initializeApp();
 const db = admin.firestore();
 const storage = admin.storage();
 
-// --- REMOVED: Escrow.com API Configuration ---
-// Escrow integration has been replaced with direct bank transfer system
+// --- Escrow.com API Configuration ---
+// Ensure you have configured these in your Firebase environment
+// firebase functions:config:set escrow.key="YOUR_KEY" escrow.user="YOUR_USER"
+const ESCROW_API_KEY = functions.config().escrow.key;
+const ESCROW_API_USER = functions.config().escrow.user;
+const ESCROW_API_URL = "https://api.escrow.com/2017-09-01/";
+
+const escrowApi = axios.create({
+    baseURL: ESCROW_API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${ESCROW_API_USER}:${ESCROW_API_KEY}`).toString('base64')}`
+    }
+});
 
 // =================================================================================================
 // CURRENCY EXCHANGE RATE FUNCTIONS (ROBUST VERSION)
@@ -1383,8 +1395,176 @@ exports.setContentCreatorClaim = functions.https.onCall(async (data, context) =>
 });
 
 // =================================================================================================
-// REMOVED: ESCROW TRADING SYSTEM - Replaced with Direct Bank Transfer
+// ESCROW TRADING SYSTEM
 // =================================================================================================
+
+exports.createEscrowTransaction = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    }
+
+    const { tradeId, buyerUid, sellerUid, amount, description } = data;
+    if (!tradeId || !buyerUid || !sellerUid || !amount || !description) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required trade data.');
+    }
+
+    const buyerDoc = await db.collection('users').doc(buyerUid).get();
+    const sellerDoc = await db.collection('users').doc(sellerUid).get();
+    if (!buyerDoc.exists || !sellerDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Buyer or Seller not found.');
+    }
+    const buyerEmail = buyerDoc.data().email;
+    const sellerEmail = sellerDoc.data().email;
+
+    // Validate inputs
+    if (!buyerEmail || !sellerEmail) {
+        throw new functions.https.HttpsError('invalid-argument', 'Buyer or seller email is missing.');
+    }
+    
+    if (isNaN(amount) || amount <= 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid amount provided.');
+    }
+
+    // Convert amount back to USD for Escrow (Escrow works in USD, display conversion is frontend-only)
+    // The amount parameter comes in as SEK, so we need to convert back to USD
+    let usdAmount = amount;
+    
+    // If amount seems to be in SEK (> 10), convert back to USD
+    if (amount > 10) {
+        // Rough conversion: SEK to USD (approximately divide by 10-11)
+        usdAmount = amount / 10.5; // Approximate SEK to USD conversion
+    }
+
+    const transactionData = {
+        parties: [
+            { role: 'buyer', email: buyerEmail },
+            { role: 'seller', email: sellerEmail }
+        ],
+        items: [{
+            title: 'HatakeSocial Trade',
+            description: description,
+            quantity: 1,
+            price: String(usdAmount.toFixed(2)), // Use USD amount
+            type: 'general_merchandise'
+        }],
+        currency: 'usd', // Try lowercase USD for Escrow transactions
+        description: `Trade ID: ${tradeId} on HatakeSocial.`,
+        inspection_period: 3,
+    };
+
+    // Debug logging
+    console.log("Escrow API Configuration:", {
+        hasApiKey: !!ESCROW_API_KEY,
+        hasApiUser: !!ESCROW_API_USER,
+        apiUrl: ESCROW_API_URL,
+        keyLength: ESCROW_API_KEY ? ESCROW_API_KEY.length : 0
+    });
+    
+    console.log("Escrow Transaction Data:", JSON.stringify(transactionData, null, 2));
+
+    try {
+        const response = await escrowApi.post('transaction', transactionData);
+        console.log("Escrow API Response:", response.data);
+        const escrowTransactionId = response.data.id;
+
+        await db.collection('trades').doc(tradeId).update({
+            escrowTransactionId: escrowTransactionId,
+            status: 'awaiting_payment'
+        });
+
+        const paymentUrl = `https://www.escrow.com/checkout?transactionId=${escrowTransactionId}`;
+
+        return { success: true, paymentUrl: paymentUrl };
+
+    } catch (error) {
+        console.error("Escrow.com transaction creation failed - Full Error:", {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            config: {
+                url: error.config?.url,
+                method: error.config?.method,
+                headers: error.config?.headers
+            }
+        });
+        
+        // Log specific currency errors if available
+        if (error.response?.data?.errors?.currency) {
+            console.error("Currency Error Details:", error.response.data.errors.currency);
+        }
+        
+        // Log all validation errors if available
+        if (error.response?.data?.errors) {
+            console.error("All Validation Errors:", JSON.stringify(error.response.data.errors, null, 2));
+        }
+        
+        let errorMessage = 'Could not create the Escrow.com transaction.';
+        if (error.response?.status === 401) {
+            errorMessage = 'Escrow API authentication failed. Please check credentials.';
+        } else if (error.response?.status === 400) {
+            errorMessage = `Escrow API validation error: ${error.response?.data?.message || 'Invalid request data'}`;
+        } else if (error.response?.data?.message) {
+            errorMessage = `Escrow API error: ${error.response.data.message}`;
+        }
+        
+        throw new functions.https.HttpsError('internal', errorMessage);
+    }
+});
+
+exports.releaseEscrowFunds = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in.');
+    }
+    const { tradeId } = data;
+    if (!tradeId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing trade ID.');
+    }
+    const tradeRef = db.collection('trades').doc(tradeId);
+    const tradeDoc = await tradeRef.get();
+    if (!tradeDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Trade not found.');
+    }
+
+    const tradeData = tradeDoc.data();
+    const escrowTransactionId = tradeData.escrowTransactionId;
+
+    if (!escrowTransactionId) {
+       throw new functions.https.HttpsError('failed-precondition', 'This trade does not have an active escrow transaction.');
+    }
+    if (tradeData.buyerUid !== context.auth.uid) {
+        throw new functions.https.HttpsError('permission-denied', 'Only the buyer can release the funds.');
+    }
+    if (tradeData.status !== 'shipped') {
+       throw new functions.https.HttpsError('failed-precondition', `Trade must be marked as shipped before funds can be released. Current status: ${tradeData.status}`);
+    }
+
+    try {
+        await escrowApi.post(`transaction/${escrowTransactionId}/accept`);
+
+        const batch = db.batch();
+        tradeData.receiverCards.forEach(card => {
+            const newCardRef = db.collection('users').doc(tradeData.proposerId).collection('collection').doc();
+            const newCardData = { ...card, forSale: false, addedAt: admin.firestore.FieldValue.serverTimestamp() };
+            delete newCardData.id;
+            batch.set(newCardRef, newCardData);
+        });
+        tradeData.proposerCards.forEach(card => {
+            const newCardRef = db.collection('users').doc(tradeData.receiverId).collection('collection').doc();
+            const newCardData = { ...card, forSale: false, addedAt: admin.firestore.FieldValue.serverTimestamp() };
+            delete newCardData.id;
+            batch.set(newCardRef, newCardData);
+        });
+        batch.update(tradeRef, { status: 'completed', completedAt: admin.firestore.FieldValue.serverTimestamp() });
+        await batch.commit();
+
+        return { success: true, message: 'Funds released and trade completed successfully.' };
+
+    } catch (error) {
+        console.error("Error releasing escrow funds:", error.response ? error.response.data : error.message);
+        throw new functions.https.HttpsError('internal', 'Could not release the escrow funds.');
+    }
+});
 
 // =================================================================================================
 // ADMIN IMPERSONATION FUNCTION

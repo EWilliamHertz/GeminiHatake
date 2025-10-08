@@ -67,6 +67,14 @@ document.addEventListener('authReady', (e) => {
     const clearingInput = document.getElementById('clearing-number');
     const bankAccountInput = document.getElementById('bank-account');
 
+    // Payment Section
+    const paymentForm = document.getElementById('payment-settings-form');
+    const clearingKontonummerInput = document.getElementById('clearing-kontonummer');
+    const swishNummerInput = document.getElementById('swish-nummer');
+    const swiftIbanInput = document.getElementById('swift-iban');
+    const paymentInstructionsInput = document.getElementById('payment-instructions');
+    const savePaymentBtn = document.getElementById('save-payment-btn');
+
     // Account Section
     const accountEmailEl = document.getElementById('account-email');
     const primaryCurrencySelect = document.getElementById('primary-currency');
@@ -154,6 +162,14 @@ document.addEventListener('authReady', (e) => {
             if (data.notifications) {
                 emailNotificationsToggle.checked = data.notifications.email === true;
                 pushNotificationsToggle.checked = data.notifications.push === true;
+            }
+
+            // Payment Details
+            if (data.paymentDetails) {
+                clearingKontonummerInput.value = data.paymentDetails.clearingKontonummer || '';
+                swishNummerInput.value = data.paymentDetails.swishNummer || '';
+                swiftIbanInput.value = data.paymentDetails.swiftIban || '';
+                paymentInstructionsInput.value = data.paymentDetails.instructions || '';
             }
 
             // Payouts
@@ -398,6 +414,31 @@ document.addEventListener('authReady', (e) => {
         } finally {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save Payout Settings';
+        }
+    });
+
+    // Payment Settings Form Handler
+    paymentForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('save-payment-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        try {
+            await db.collection('users').doc(user.uid).set({
+                paymentDetails: {
+                    clearingKontonummer: clearingKontonummerInput.value.trim(),
+                    swishNummer: swishNummerInput.value.trim(),
+                    swiftIban: swiftIbanInput.value.trim(),
+                    instructions: paymentInstructionsInput.value.trim()
+                }
+            }, { merge: true });
+            (window.showToast || alert)('Payment details saved successfully!', 'success');
+        } catch (error) {
+            console.error("Error saving payment details:", error);
+            (window.showToast || alert)("Could not save payment details. " + error.message, "error");
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Payment Details';
         }
     });
 
