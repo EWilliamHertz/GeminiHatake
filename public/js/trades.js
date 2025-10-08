@@ -149,20 +149,34 @@ class TradeWindow {
             return isNaN(fallbackPrice) ? 0 : fallbackPrice;
         }
 
-        // Use the currency module's getNormalizedPriceUSD function for proper foil pricing
-        try {
-            // Import the function dynamically if not already available
-            if (typeof this.getNormalizedPriceUSD !== 'function') {
-                // Try to get it from the global scope or import it
-                if (window.currencyModule && window.currencyModule.getNormalizedPriceUSD) {
-                    this.getNormalizedPriceUSD = window.currencyModule.getNormalizedPriceUSD;
-                } else {
-                    // Fallback to basic pricing if currency module not available
-                    return this.calculateCardPriceFallback(cardData);
-                }
+        // FIXED: Use the exact same logic as the collection page for foil pricing
+        // This ensures MTG foil cards use usd_foil price when available
+        const isFoil = cardData.is_foil || cardData.foil || false;
+        
+        // For MTG cards, use usd_foil if card is foil, otherwise use usd
+        if (isFoil && cardData.prices.usd_foil) {
+            const foilPrice = parseFloat(cardData.prices.usd_foil);
+            if (!isNaN(foilPrice)) {
+                return foilPrice;
             }
-            
-            return this.getNormalizedPriceUSD(cardData.prices, cardData);
+        }
+        
+        // For non-foil MTG cards or if no foil price available, use regular usd price
+        if (cardData.prices.usd) {
+            const regularPrice = parseFloat(cardData.prices.usd);
+            if (!isNaN(regularPrice)) {
+                return regularPrice;
+            }
+        }
+
+        // For non-MTG games, use the currency module's getNormalizedPriceUSD function
+        try {
+            if (typeof this.getNormalizedPriceUSD === 'function') {
+                return this.getNormalizedPriceUSD(cardData.prices, cardData);
+            } else {
+                // Fallback to basic pricing if currency module not available
+                return this.calculateCardPriceFallback(cardData);
+            }
         } catch (error) {
             console.warn('Error using currency module for pricing, falling back:', error);
             return this.calculateCardPriceFallback(cardData);
