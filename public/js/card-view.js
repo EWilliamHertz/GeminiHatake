@@ -295,9 +295,6 @@ async function displayPriceChart(card, game, days = 30) {
             
             console.log(`[CardView] Generated ${priceData.length} sample data points for ${card.name || card.Name}`);
         }
-                });
-            }
-        }
         
         // Display price changes using consistent ScryDx data
         if (card.variants && card.variants[0] && card.variants[0].prices && card.variants[0].prices[0]) {

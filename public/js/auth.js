@@ -5,21 +5,8 @@
 * - RESTRUCTURE: Initializes UI components after authentication state is confirmed to prevent elements from being overwritten.
 */
 
-// --- Firebase Initialization (Stable & Global) ---
-const firebaseConfig = {
-    apiKey: "AIzaSyD2Z9tCmmgReMG77ywXukKC_YIXsbP3uoU",
-    authDomain: "hatakesocial-88b5e.firebaseapp.com",
-    projectId: "hatakesocial-88b5e",
-    storageBucket: "hatakesocial-88b5e.appspot.com",
-    messagingSenderId: "1091697032506",
-    appId: "1:1091697032506:web:6a7cf9f10bd12650b22403",
-    measurementId: "G-EH0PS2Z84J"
-};
-
-// Initialize Firebase and expose services globally for other scripts to use
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// --- Firebase Services (Already initialized in firebase-config.js) ---
+// Firebase is already initialized, just get the services
 // Initialize Firebase services safely
 try {
     window.auth = firebase.auth();
