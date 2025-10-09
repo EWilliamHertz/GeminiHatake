@@ -119,8 +119,7 @@ export async function createCardAutocomplete(query, suggestionsContainer, onSele
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <div class="font-medium">${card.name}</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">${card.set_name || 'Unknown Set'}</div>
-                    </div>
+<div class="text-sm text-gray-500 dark:text-gray-400">${card.set_name || (card.expansion && card.expansion.name) || 'Unknown Set'}</div>                    </div>
                     <div class="ml-2">
                         ${gameBadge}
                     </div>

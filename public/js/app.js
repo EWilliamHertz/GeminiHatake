@@ -351,7 +351,9 @@ lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
 posts.forEach(post => {
 postsContainer.appendChild(createPostElement(post));
 });
-
+if (window.initCardHover) {
+    window.initCardHover();
+}
 } catch (error) {
 console.error("Error loading posts:", error);
 if (error.code === 'failed-precondition') {

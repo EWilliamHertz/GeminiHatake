@@ -583,3 +583,51 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 console.log('Card view script functions defined and ready');
+// --- Initialize Buttons on DOMContentLoaded ---
+document.addEventListener('DOMContentLoaded', () => {
+    const collectionBtn = document.getElementById('add-to-collection-btn');
+    const wishlistBtn = document.getElementById('add-to-wishlist-btn');
+
+    if (collectionBtn) {
+        collectionBtn.addEventListener('click', addToCollection);
+    }
+
+    if (wishlistBtn) {
+        wishlistBtn.addEventListener('click', addToWishlist);
+    }
+});
+
+// --- Add to Wishlist Functionality ---
+async function addToWishlist() {
+    if (!currentCard) {
+        alert('No card data available to add to wishlist.');
+        return;
+    }
+
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        showToast('Please log in to add cards to your wishlist.', 'info');
+        return;
+    }
+
+    try {
+        const wishlistRef = firebase.firestore().collection('users').doc(user.uid).collection('wishlist');
+
+        // Use a unique ID for the document, e.g., the card's API ID
+        const cardId = currentCard.id || currentCard.scryfall_id || currentCard.api_id;
+        if (!cardId) {
+            throw new Error("Card is missing a unique ID.");
+        }
+
+        await wishlistRef.doc(cardId).set({
+            ...currentCard, // Store the full card data
+            addedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast('Card added to your wishlist!', 'success');
+
+    } catch (error) {
+        console.error('Error adding card to wishlist:', error);
+        showToast('Failed to add card to wishlist. Please try again.', 'error');
+    }
+}

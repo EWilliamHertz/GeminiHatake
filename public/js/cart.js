@@ -183,7 +183,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', proceedToCheckout);
     }
-
+// Also, let's add the event listener for the cart button here
+// to make sure it gets added after auth.js creates the button.
+document.addEventListener('authReady', () => {
+    const cartBtn = document.getElementById('cart-btn');
+    const cartModal = document.getElementById('cartModal');
+    if(cartBtn && cartModal) {
+        cartBtn.addEventListener('click', () => {
+            cartModal.classList.remove('hidden');
+            cartModal.classList.add('flex');
+        });
+    }
+});
 
     // Initial render on page load
     updateCartCount();

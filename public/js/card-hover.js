@@ -23,6 +23,7 @@ export function initCardHover() {
  * Handle mouse enter on card links
  */
 function handleCardHover(event) {
+    if (!(event.target instanceof Element)) return;
     const cardLink = event.target.closest('.card-link');
     if (!cardLink) return;
     
@@ -44,6 +45,7 @@ function handleCardHover(event) {
  * Handle mouse leave on card links
  */
 function handleCardLeave(event) {
+    if (!(event.target instanceof Element)) return;
     const cardLink = event.target.closest('.card-link');
     if (!cardLink) return;
     
@@ -91,7 +93,7 @@ async function showCardTooltip(element, cardName) {
         currentTooltip = tooltip;
         
         // Try to fetch card data
-        if (firebase.functions) {
+      if (typeof firebase.functions === 'function') {
             const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
             
             // Search all games in priority order
@@ -102,18 +104,27 @@ async function showCardTooltip(element, cardName) {
                 if (cardFound) break;
                 
                 try {
-                    const result = await searchScryDexFunction({ query: cardName, game: game });
-                    
-                    if (result.data && result.data.success && result.data.data && result.data.data.length > 0) {
-                        const card = result.data.data[0];
-                        
-                        // Update tooltip with card information
-                        if (currentTooltip === tooltip) {
-                            updateTooltipContent(tooltip, card, game);
-                            cardFound = true;
-                        }
-                        break;
-                    }
+                const result = await searchScryDexFunction({ query: cardName, game: game });
+
+let searchResults = [];
+if (result && result.data) {
+    if (result.data.success && Array.isArray(result.data.data)) {
+        searchResults = result.data.data;
+    } else if (Array.isArray(result.data)) {
+        // Fallback for different API response structures
+        searchResults = result.data;
+    }
+}
+
+if (searchResults.length > 0) {
+    const card = searchResults.find(c => c.name.toLowerCase() === cardName.toLowerCase()) || searchResults[0];
+
+    if (currentTooltip === tooltip) {
+        updateTooltipContent(tooltip, card, game);
+        cardFound = true;
+    }
+    break;
+}
                 } catch (error) {
                     console.warn(`[CardHover] Error searching ${game}:`, error);
                 }
@@ -153,7 +164,13 @@ async function showCardTooltip(element, cardName) {
  */
 function updateTooltipContent(tooltip, card, game) {
     const gameInfo = getGameInfo(game);
-    const cardImage = card.image_url || card.image || '';
+    let cardImage = card.image_url || card.image || '';
+if (!cardImage && card.image_uris) {
+    cardImage = card.image_uris.normal || card.image_uris.small || '';
+}
+if (!cardImage && card.images && card.images.length > 0) {
+    cardImage = card.images[0].medium || card.images[0].small || '';
+}
     
     tooltip.innerHTML = `
         <div class="flex space-x-3">
