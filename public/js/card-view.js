@@ -54,16 +54,29 @@ async function loadCardData() {
         let cardData = null;
         
         if (game) {
-            // Search specific game first
+            // Search specific game first using searchScryDex
             console.log('Searching specific game:', game, 'for:', cardName);
             try {
-                const { searchCards } = await import('./modules/api.js');
-                const result = await searchCards(cardName, game, 1, 10);
-                if (result && result.cards && result.cards.length > 0) {
+                const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+                const result = await searchScryDexFunction({ query: cardName, game: game });
+                
+                let searchResults = [];
+                if (result && result.data) {
+                    if (Array.isArray(result.data.data)) {
+                        searchResults = result.data.data;
+                    } else if (Array.isArray(result.data)) {
+                        searchResults = result.data;
+                    } else if (result.data.success && Array.isArray(result.data.cards)) {
+                        searchResults = result.data.cards;
+                    }
+                }
+                
+                if (searchResults.length > 0) {
                     // Find exact match or closest match
-                    cardData = result.cards.find(card => 
+                    cardData = searchResults.find(card => 
                         card.name.toLowerCase() === cardName.toLowerCase()
-                    ) || result.cards[0];
+                    ) || searchResults[0];
+                    cardData.game = game; // Ensure game is set
                 }
             } catch (error) {
                 console.warn('Error searching specific game:', error);

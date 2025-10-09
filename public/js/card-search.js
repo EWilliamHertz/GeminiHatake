@@ -1,17 +1,13 @@
 /**
- * card-search.js
- * Multi-game card search functionality using scrydex API
- * Supports Lorcana, Pokemon, Gundam, and Magic: The Gathering
- * Search order: lorcana -> pokemon -> gundam -> magic
+ * Card Search Module for Multi-Game Support
+ * Integrates with scrydex for Lorcana, Pokemon, Gundam, and Magic: The Gathering
+ * Search order: lorcana -> pokemon -> gundam -> mtg
  */
 
-// Import the searchCards function from api.js
-import { searchCards } from './modules/api.js';
-
 /**
- * Search for cards across multiple games using scrydex
+ * Search cards across multiple games using scrydex
  * @param {string} query - The card name to search for
- * @param {number} limit - Maximum number of results per game (default: 5)
+ * @param {number} limit - Maximum number of results per game
  * @returns {Promise<Array>} Array of card objects with game information
  */
 export async function searchCardsMultiGame(query, limit = 5) {
@@ -25,14 +21,27 @@ export async function searchCardsMultiGame(query, limit = 5) {
     for (const game of games) {
         try {
             console.log(`[CardSearch] Searching ${game} for: "${query}"`);
-            const result = await searchCards(query, game, 1, limit);
             
-            if (result && result.cards && result.cards.length > 0) {
-                // Add game info and limit results
-                const gameResults = result.cards.slice(0, limit).map(card => ({
+            // Use the searchScryDex function directly
+            const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+            const result = await searchScryDexFunction({ query: query, game: game });
+            
+            let searchResults = [];
+            if (result && result.data) {
+                if (Array.isArray(result.data.data)) {
+                    searchResults = result.data.data;
+                } else if (Array.isArray(result.data)) {
+                    searchResults = result.data;
+                } else if (result.data.success && Array.isArray(result.data.cards)) {
+                    searchResults = result.data.cards;
+                }
+            }
+            
+            if (searchResults.length > 0) {
+                // Add game information to each card and limit results
+                const gameResults = searchResults.slice(0, limit).map(card => ({
                     ...card,
                     game: game,
-                    displayName: card.name,
                     searchSource: 'scrydex'
                 }));
                 
@@ -46,73 +55,90 @@ export async function searchCardsMultiGame(query, limit = 5) {
     }
 
     // Sort results by relevance (exact matches first, then partial matches)
-    const queryLower = query.toLowerCase();
-    return allResults.sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
+    const sortedResults = allResults.sort((a, b) => {
+        const aName = (a.name || '').toLowerCase();
+        const bName = (b.name || '').toLowerCase();
+        const queryLower = query.toLowerCase();
         
         // Exact matches first
         if (aName === queryLower && bName !== queryLower) return -1;
         if (bName === queryLower && aName !== queryLower) return 1;
         
-        // Then matches that start with the query
-        if (aName.startsWith(queryLower) && !bName.startsWith(queryLower)) return -1;
-        if (bName.startsWith(queryLower) && !aName.startsWith(queryLower)) return 1;
+        // Then by game priority (lorcana, pokemon, gundam, mtg)
+        const gameOrder = { lorcana: 0, pokemon: 1, gundam: 2, mtg: 3 };
+        const aGamePriority = gameOrder[a.game] || 999;
+        const bGamePriority = gameOrder[b.game] || 999;
         
-        // Finally alphabetical order
+        if (aGamePriority !== bGamePriority) {
+            return aGamePriority - bGamePriority;
+        }
+        
+        // Finally by name alphabetically
         return aName.localeCompare(bName);
     });
+
+    console.log(`[CardSearch] Total results found: ${sortedResults.length}`);
+    return sortedResults;
 }
 
 /**
- * Create autocomplete suggestions for card names
- * @param {string} query - The partial card name
- * @param {HTMLElement} suggestionsContainer - Container to display suggestions
+ * Create autocomplete suggestions for card search
+ * @param {string} query - The search query
+ * @param {HTMLElement} suggestionsContainer - The container to display suggestions
  * @param {Function} onSelect - Callback when a card is selected
  */
 export async function createCardAutocomplete(query, suggestionsContainer, onSelect) {
-    if (!query || query.length < 2) {
-        suggestionsContainer.classList.add('hidden');
-        return;
-    }
-
     try {
-        const cards = await searchCardsMultiGame(query, 7);
+        console.log(`[CardAutocomplete] Searching for: "${query}"`);
         
+        // Clear previous suggestions
         suggestionsContainer.innerHTML = '';
         
-        if (cards.length > 0) {
-            suggestionsContainer.classList.remove('hidden');
+        if (query.length < 2) {
+            suggestionsContainer.classList.add('hidden');
+            return;
+        }
+        
+        // Search for cards
+        const results = await searchCardsMultiGame(query, 7);
+        
+        if (results.length === 0) {
+            suggestionsContainer.classList.add('hidden');
+            return;
+        }
+        
+        // Create suggestion elements
+        results.forEach(card => {
+            const suggestionEl = document.createElement('div');
+            suggestionEl.className = 'p-3 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600 last:border-b-0';
             
-            cards.forEach(card => {
-                const suggestionEl = document.createElement('div');
-                suggestionEl.className = 'p-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800 text-gray-800 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600 last:border-b-0';
-                
-                // Create game badge
-                const gameBadge = getGameBadge(card.game);
-                
-                suggestionEl.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="font-medium">${escapeHtml(card.name)}</span>
+            // Create game badge
+            const gameBadge = getGameBadge(card.game);
+            
+            suggestionEl.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="font-medium">${card.name}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${card.set_name || 'Unknown Set'}</div>
+                    </div>
+                    <div class="ml-2">
                         ${gameBadge}
                     </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        ${escapeHtml(card.set_name || 'Unknown Set')}
-                    </div>
-                `;
-                
-                suggestionEl.addEventListener('click', () => {
-                    onSelect(card);
-                    suggestionsContainer.classList.add('hidden');
-                });
-                
-                suggestionsContainer.appendChild(suggestionEl);
+                </div>
+            `;
+            
+            suggestionEl.addEventListener('click', () => {
+                onSelect(card);
             });
-        } else {
-            suggestionsContainer.classList.add('hidden');
-        }
+            
+            suggestionsContainer.appendChild(suggestionEl);
+        });
+        
+        // Show suggestions
+        suggestionsContainer.classList.remove('hidden');
+        
     } catch (error) {
-        console.error('[CardSearch] Error creating autocomplete:', error);
+        console.error('[CardAutocomplete] Error:', error);
         suggestionsContainer.classList.add('hidden');
     }
 }
@@ -134,60 +160,55 @@ function getGameBadge(game) {
 }
 
 /**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string} Escaped HTML
+ * Get display name for a game
+ * @param {string} game - The game identifier
+ * @returns {string} Human-readable game name
  */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-/**
- * Generate card link URL based on game
- * @param {Object} card - Card object with game and name
- * @returns {string} URL for the card view
- */
-export function getCardViewUrl(card) {
-    const params = new URLSearchParams({
-        name: card.name,
-        game: card.game
-    });
-    
-    return `card-view.html?${params.toString()}`;
-}
-
-/**
- * Format card name for display in posts
- * @param {Object} card - Card object
- * @returns {string} Formatted card name with game context if needed
- */
-export function formatCardForPost(card) {
-    // For common card names that might exist in multiple games,
-    // include the game context
-    const commonNames = ['Charizard', 'Pikachu', 'Lightning Bolt', 'Counterspell'];
-    
-    if (commonNames.some(name => card.name.toLowerCase().includes(name.toLowerCase()))) {
-        return `${card.name} (${getGameDisplayName(card.game)})`;
-    }
-    
-    return card.name;
-}
-
-/**
- * Get display name for game
- * @param {string} game - Game identifier
- * @returns {string} Display name
- */
-function getGameDisplayName(game) {
+export function getGameDisplayName(game) {
     const names = {
         'lorcana': 'Lorcana',
         'pokemon': 'Pokémon',
         'gundam': 'Gundam',
-        'mtg': 'Magic'
+        'mtg': 'Magic: The Gathering'
     };
     
     return names[game] || game;
+}
+
+/**
+ * Search a specific game for cards
+ * @param {string} query - The search query
+ * @param {string} game - The game to search
+ * @param {number} limit - Maximum number of results
+ * @returns {Promise<Array>} Array of card objects
+ */
+export async function searchSpecificGame(query, game, limit = 10) {
+    try {
+        console.log(`[CardSearch] Searching specific game ${game} for: "${query}"`);
+        
+        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+        const result = await searchScryDexFunction({ query: query, game: game });
+        
+        let searchResults = [];
+        if (result && result.data) {
+            if (Array.isArray(result.data.data)) {
+                searchResults = result.data.data;
+            } else if (Array.isArray(result.data)) {
+                searchResults = result.data;
+            } else if (result.data.success && Array.isArray(result.data.cards)) {
+                searchResults = result.data.cards;
+            }
+        }
+        
+        // Add game information and limit results
+        return searchResults.slice(0, limit).map(card => ({
+            ...card,
+            game: game,
+            searchSource: 'scrydex'
+        }));
+        
+    } catch (error) {
+        console.error(`[CardSearch] Error searching ${game}:`, error);
+        return [];
+    }
 }
