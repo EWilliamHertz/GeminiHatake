@@ -3,27 +3,6 @@ console.log('Card view script loading...');
 let currentCard = null;
 let priceChart = null;
 
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Card view DOM ready, waiting for authentication...');
-    
-    // Wait for Firebase Auth to initialize
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            console.log('User authenticated, loading card data...');
-            try {
-                await loadCardData();
-            } catch (error) {
-                console.error('Error loading card:', error);
-                showError();
-            }
-        } else {
-            console.log('User not authenticated, showing login prompt...');
-            // Show a message that user needs to log in
-            showLoginRequired();
-        }
-    });
-});
-
 function showLoginRequired() {
     // Hide loading and card content
     document.getElementById('loading').classList.add('hidden');
@@ -54,7 +33,7 @@ function showLoginRequired() {
 async function loadCardData() {
     const urlParams = new URLSearchParams(window.location.search);
     const cardName = urlParams.get('name');
-    const game = urlParams.get('tcg') || 'pokemon'; // Default to Pokemon
+    const game = urlParams.get('game') || urlParams.get('tcg'); // Support both parameters
     const cardId = urlParams.get('id');
     
     console.log('Loading card:', { cardName, game, cardId });
@@ -69,69 +48,59 @@ async function loadCardData() {
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('card-content').classList.add('hidden');
         
-        // Search for the card using ScryDx - REAL DATA ONLY
-        console.log('Searching ScryDx for:', cardName, 'in game:', game);
-        const searchScryDxFunction = firebase.functions().httpsCallable('searchScryDx');
-        const result = await searchScryDxFunction({ cardName: cardName, game: game });
-        console.log('ScryDx search result:', result);
+        // Import the multi-game search function
+        const { searchCardsMultiGame } = await import('./card-search.js');
         
-        let searchResults = [];
-        if (result && result.data) {
-            if (Array.isArray(result.data.data)) {
-                searchResults = result.data.data;
-            } else if (Array.isArray(result.data)) {
-                searchResults = result.data;
-            } else if (result.data.success && Array.isArray(result.data.cards)) {
-                searchResults = result.data.cards;
+        let cardData = null;
+        
+        if (game) {
+            // Search specific game first
+            console.log('Searching specific game:', game, 'for:', cardName);
+            try {
+                const { searchCards } = await import('./modules/api.js');
+                const result = await searchCards(cardName, game, 1, 10);
+                if (result && result.cards && result.cards.length > 0) {
+                    // Find exact match or closest match
+                    cardData = result.cards.find(card => 
+                        card.name.toLowerCase() === cardName.toLowerCase()
+                    ) || result.cards[0];
+                }
+            } catch (error) {
+                console.warn('Error searching specific game:', error);
             }
         }
         
-        console.log('Parsed search results:', searchResults);
-        console.log('Number of results:', searchResults.length);
-        
-        if (searchResults.length === 0) {
-            throw new Error(`No results found for "${cardName}" in ScryDx. Please check the card name and try again.`);
-        }
-        
-        // Find exact match by ID or name
-        let cardData = null;
-        
-        if (cardId) {
-            // Try to find by ID first
-            cardData = searchResults.find(card => 
-                card.id === cardId || 
-                card.scryfall_id === cardId ||
-                card.api_id === cardId
-            );
-        }
-        
         if (!cardData) {
-            // Find by name match
-            const searchName = cardName.toLowerCase().replace(/[-\s]+/g, ' ');
-            cardData = searchResults.find(card => {
-                const cardNameNormalized = (card.name || card.Name || '').toLowerCase().replace(/[-\s]+/g, ' ');
-                return cardNameNormalized === searchName;
-            });
+            // Search all games using multi-game search
+            console.log('Searching all games for:', cardName);
+            const results = await searchCardsMultiGame(cardName, 10);
+            
+            if (results.length === 0) {
+                throw new Error(`No results found for "${cardName}". Please check the card name and try again.`);
+            }
+            
+            // Find exact match or use first result
+            cardData = results.find(card => 
+                card.name.toLowerCase() === cardName.toLowerCase()
+            ) || results[0];
         }
         
-        if (!cardData) {
-            // Take the first result if no exact match
-            cardData = searchResults[0];
-            console.log('No exact match found, using first result:', cardData.name || cardData.Name);
-        }
+        console.log('Found card data:', cardData);
         
-        console.log('Selected card data:', cardData);
+        // Store the current card
         currentCard = cardData;
         
-        // Add card to tracking for price history collection
+        // Add card to tracking for price history collection (optional)
         try {
-            const addToTrackingFunction = firebase.functions().httpsCallable('addCardToTracking');
-            await addToTrackingFunction({
-                cardId: cardData.id,
-                game: game,
-                cardName: cardData.name || cardData.Name
-            });
-            console.log('Card added to price tracking');
+            if (firebase.functions) {
+                const addToTrackingFunction = firebase.functions().httpsCallable('addCardToTracking');
+                await addToTrackingFunction({
+                    cardId: cardData.api_id || cardData.id,
+                    game: cardData.game || game || 'unknown',
+                    cardName: cardData.name
+                });
+                console.log('Card added to price tracking');
+            }
         } catch (trackingError) {
             console.warn('Could not add card to tracking:', trackingError);
         }
@@ -140,7 +109,7 @@ async function loadCardData() {
         await displayCard(cardData);
         
         // Load and display price history
-        await displayPriceChart(cardData, game);
+        await displayPriceChart(cardData, cardData.game || game);
         
         // Show the card content
         document.getElementById('loading').classList.add('hidden');
@@ -148,7 +117,7 @@ async function loadCardData() {
         
     } catch (error) {
         console.error('Error loading card data:', error);
-        throw error;
+        showError();
     }
 }
 
@@ -582,3 +551,25 @@ async function setPriceAlert() {
         alert('Error setting price alert');
     }
 }
+
+
+// Make functions global for debugging
+window.loadCardData = loadCardData;
+window.showError = showError;
+window.displayCard = displayCard;
+window.showLoginRequired = showLoginRequired;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Card view DOM ready, loading card data...');
+    
+    // Load card data immediately without requiring authentication
+    try {
+        await loadCardData();
+    } catch (error) {
+        console.error('Error loading card:', error);
+        showError();
+    }
+});
+
+console.log('Card view script functions defined and ready');

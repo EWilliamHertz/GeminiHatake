@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Card Links Test - HatakeSocial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Card Links Test</h1>
+        
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Card Links</h2>
+            <div id="testContent" class="space-y-4">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Raw Text</h2>
+            <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded font-mono text-sm">
+                <p>Check out these amazing cards:</p>
+                <p>[Brainstorm] is a classic Magic card</p>
+                <p>[Elsa, Spirit of Winter] is from Lorcana</p>
+                <p>[Charizard] is the most famous Pokemon</p>
+                <p>[RX-78-2 Gundam] is a powerful Gundam card</p>
+                <p>You can also mention @username and use #hashtags</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulate the formatContent function from app.js
+        const sanitizeHTML = (str) => {
+            if (!str) return '';
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        };
+
+        const formatContent = (str) => {
+            const sanitized = sanitizeHTML(str);
+            return sanitized
+                .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
+                .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
+                .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
+                .replace(/\[([^\]\[:]+)\]/g, (match, cardName) => {
+                    // Create card link that will search all games - card-view.html will handle multi-game search
+                    return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link hover:underline" data-card-name="${cardName}" title="View ${cardName}">[${cardName}]</a>`;
+                });
+        };
+
+        // Test content
+        const testText = `Check out these amazing cards:
+[Brainstorm] is a classic Magic card
+[Elsa, Spirit of Winter] is from Lorcana  
+[Charizard] is the most famous Pokemon
+[RX-78-2 Gundam] is a powerful Gundam card
+You can also mention @username and use #hashtags`;
+
+        // Format and display the content
+        document.addEventListener('DOMContentLoaded', () => {
+            const testContent = document.getElementById('testContent');
+            const formattedContent = formatContent(testText);
+            
+            testContent.innerHTML = `
+                <div class="prose dark:prose-invert">
+                    ${formattedContent.split('\n').map(line => `<p>${line}</p>`).join('')}
+                </div>
+                <div class="mt-4 p-4 bg-green-100 dark:bg-green-900 rounded">
+                    <h3 class="font-semibold text-green-800 dark:text-green-200">Test Instructions:</h3>
+                    <ul class="mt-2 text-green-700 dark:text-green-300 text-sm">
+                        <li>• Click on any [Card Name] link to test card-view.html</li>
+                        <li>• Hover over links to see tooltips</li>
+                        <li>• Links should be blue and underlined</li>
+                        <li>• Card names should be properly URL encoded</li>
+                    </ul>
+                </div>
+            `;
+
+            // Add click event listeners to card links for testing
+            const cardLinks = testContent.querySelectorAll('.card-link');
+            cardLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    console.log('Card link clicked:', {
+                        cardName: link.dataset.cardName,
+                        href: link.href,
+                        text: link.textContent
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

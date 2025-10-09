@@ -58,9 +58,8 @@ return sanitized
 .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
 .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
 .replace(/\[([^\]\[:]+)\]/g, (match, cardName) => {
-// For now, we'll use a generic card-view link since we don't know the game from the text
-// The card-view.html page will need to handle multi-game search
-return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link" data-card-name="${cardName}">[${cardName}]</a>`;
+// Create card link that will search all games - card-view.html will handle multi-game search
+return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link hover:underline" data-card-name="${cardName}" title="View ${cardName}">[${cardName}]</a>`;
 });
 };
 
