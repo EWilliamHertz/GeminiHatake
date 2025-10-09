@@ -349,8 +349,13 @@ return;
 
 lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
 posts.forEach(post => {
-postsContainer.appendChild(createPostElement(post));
+    postsContainer.appendChild(createPostElement(post));
 });
+
+// Re-initialize hover for newly added posts
+if (typeof initCardHover === 'function') {
+    initCardHover();
+}
 if (window.initCardHover) {
     window.initCardHover();
 }
