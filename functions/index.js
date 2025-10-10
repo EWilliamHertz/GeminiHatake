@@ -1944,3 +1944,55 @@ exports.getCollectionPriceAnalytics = functions.https.onCall(async (data, contex
         throw new functions.https.HttpsError('unknown', `Analytics error: ${error.message}`);
     }
 });
+
+// NEW FUNCTION: Handles the logic after a friend request is accepted.
+exports.onFriendRequestAccept = functions.firestore
+    .document("friendRequests/{requestId}")
+    .onUpdate(async (change, context) => {
+      const beforeData = change.before.data();
+      const afterData = change.after.data();
+
+      // Check if the status was changed from 'pending' to 'accepted'
+      if (beforeData.status === "pending" && afterData.status === "accepted") {
+        const senderId = afterData.senderId;
+        const receiverId = afterData.receiverId;
+
+        functions.logger.log(
+            `Processing accepted friend request between ${senderId} and ${receiverId}`
+        );
+
+        // Get references to both user documents
+        const db = admin.firestore();
+        const senderRef = db.collection("users").doc(senderId);
+        const receiverRef = db.collection("users").doc(receiverId);
+
+        try {
+          // Use a batch to update both documents atomically
+          const batch = db.batch();
+
+          // Add receiver to sender's friends map
+          batch.update(senderRef, {
+            [`friends.${receiverId}`]: true,
+            friendCount: admin.firestore.FieldValue.increment(1),
+          });
+
+          // Add sender to receiver's friends map
+          batch.update(receiverRef, {
+            [`friends.${senderId}`]: true,
+            friendCount: admin.firestore.FieldValue.increment(1),
+          });
+
+          // You could also delete the friend request doc now
+          // batch.delete(change.after.ref);
+
+          await batch.commit();
+          functions.logger.log("Successfully created friendship.");
+        } catch (error) {
+          functions.logger.error(
+              "Error creating friendship:",
+              error
+          );
+        }
+      }
+      return null;
+    });

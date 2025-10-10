@@ -136,277 +136,236 @@ document.addEventListener('authReady', (e) => {
                 }
             }
         };
-        // Friend request button handlers
-        document.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('accept-friend-btn')) {
-                const requestId = e.target.dataset.requestId;
-                const senderId = e.target.dataset.senderId;
-                try {
-                    // Accept the friend request
-                    await db.collection('friendRequests').doc(requestId).update({
-                        status: 'accepted'
-                    });
-                    
-                    // Add to friends list for both users
-                    const batch = db.batch();
-                    const currentUserRef = db.collection('users').doc(currentUser.uid);
-                    const senderUserRef = db.collection('users').doc(senderId);
-                    
-                    batch.update(currentUserRef, {
-                        friends: firebase.firestore.FieldValue.arrayUnion(senderId)
-                    });
-                    batch.update(senderUserRef, {
-                        friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
-                    });
-                    
-                    await batch.commit();
-                    
-                    // Reload friend requests
-                    loadFriendRequests();
-                    
-                    // Show success message
-                    if (typeof showToast === 'function') {
-                        showToast('Friend request accepted!', 'success');
-                    }
-                } catch (error) {
-                    console.error('Error accepting friend request:', error);
-                    if (typeof showToast === 'function') {
-                        showToast('Error accepting friend request.', 'error');
-                    }
-                }
-            }
+        // Add this new function
+async function acceptFriendRequest(senderId) {
+    const user = auth.currentUser;
+    if (!user) {
+        console.error("User not logged in.");
+        return;
+    }
 
-            if (e.target.classList.contains('reject-friend-btn')) {
-                const requestId = e.target.dataset.requestId;
-                try {
-                    // Reject the friend request
-                    await db.collection('friendRequests').doc(requestId).update({
-                        status: 'rejected'
-                    });
-                    
-                    // Reload friend requests
-                    loadFriendRequests();
-                    
-                    // Show success message
-                    if (typeof showToast === 'function') {
-                        showToast('Friend request declined.', 'info');
-                    }
-                } catch (error) {
-                    console.error('Error declining friend request:', error);
-                    if (typeof showToast === 'function') {
-                        showToast('Error declining friend request.', 'error');
-                    }
-                }
+    const receiverId = user.uid;
+
+    try {
+        // Find the specific friend request document
+        const requestQuery = await db.collection('friendRequests')
+            .where('senderId', '==', senderId)
+            .where('receiverId', '==', receiverId)
+            .where('status', '==', 'pending')
+            .limit(1)
+            .get();
+
+        if (requestQuery.empty) {
+            console.error("Friend request not found or already handled.");
+            // Optionally remove the request from the UI
+            const requestElement = document.querySelector(`.friend-request[data-sender-id="${senderId}"]`);
+            if (requestElement) {
+                requestElement.remove();
+            }
+            return;
+        }
+
+        const friendRequestDoc = requestQuery.docs[0];
+
+        // Update the status to 'accepted'. This is the ONLY action the client takes.
+        // The Cloud Function will handle the rest.
+        await friendRequestDoc.ref.update({ status: 'accepted' });
+
+        console.log('Friend request accepted. Server will finalize the connection.');
+        // The UI will update automatically via the listener that initially loaded the requests.
+        if (typeof showToast === 'function') {
+            showToast('Friend request accepted!', 'success');
+        }
+
+    } catch (error) {
+        console.error("Error accepting friend request:", error);
+        alert(`Could not accept friend request: ${error.message}`);
+        if (typeof showToast === 'function') {
+            showToast('Error accepting friend request.', 'error');
+        }
+    }
+}
+// Add this new, simple event listener
+document.addEventListener('click', (e) => {
+    const acceptBtn = e.target.closest('.accept-friend-btn');
+    if (acceptBtn) {
+        const senderId = acceptBtn.dataset.senderId;
+        acceptBtn.disabled = true; // Disable button to prevent double clicks
+        acceptFriendRequest(senderId);
+    }
+});
+       // In public/js/community.js
+
+const loadFriendsList = async (locationQuery = '') => {
+    if (!friendsListEl) return;
+    friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friends...</p>';
+    try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        
+        // ** THE FIX IS HERE **
+        // We now get the keys from the 'friends' map instead of reading an array.
+        const friendsMap = userDoc.data()?.friends || {};
+        const friendIds = Object.keys(friendsMap);
+
+        if (friendIds.length === 0) {
+            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\'t added any friends yet. Check the "Suggestions" tab to find people!</p>';
+            return;
+        }
+
+        // Fetch all friend documents in parallel for faster loading
+        const friendPromises = friendIds.map(id => db.collection('users').doc(id).get());
+        const friendDocs = await Promise.all(friendPromises);
+
+        let friends = [];
+        friendDocs.forEach(friendDoc => {
+            if (friendDoc.exists) {
+                friends.push({ id: friendDoc.id, ...friendDoc.data() });
             }
         });
-        const loadFriendsList = async (locationQuery = '') => {
-            if (!friendsListEl) return;
-            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friends...</p>';
-            try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                const friendIds = userDoc.data()?.friends || [];
 
-                if (friendIds.length === 0) {
-                    friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">You haven\'t added any friends yet.</p>';
-                    return;
+        // The rest of the function remains the same for filtering and displaying
+        if (locationQuery) {
+            friends = friends.filter(friend => {
+                const city = friend.city || '';
+                const country = friend.country || '';
+                return city.toLowerCase().includes(locationQuery) || country.toLowerCase().includes(locationQuery);
+            });
+        }
+
+        if (friends.length === 0) {
+            friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No friends found for this location.</p>';
+            return;
+        }
+        
+        friendsListEl.innerHTML = '';
+        for (const friend of friends) {
+            const friendCard = document.createElement('a');
+            friendCard.href = `profile.html?uid=${friend.id}`;
+            friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
+            friendCard.innerHTML = `
+                <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
+                <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
+            `;
+            friendsListEl.appendChild(friendCard);
+        }
+    } catch (error) {
+        console.error("Error loading friends list:", error);
+        friendsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load friends.</p>';
+    }
+};
+       // In public/js/community.js
+
+const loadFriendSuggestions = async () => {
+    if (!suggestionsListEl) return;
+    suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Finding potential friends...</p>';
+    try {
+        const currentUserData = (await db.collection('users').doc(currentUser.uid).get()).data();
+        
+        // ** THE FIX IS HERE **
+        const friendsMap = currentUserData.friends || {};
+        const myFriends = Object.keys(friendsMap);
+        
+        const myRequestsSent = (await db.collection('friendRequests').where('senderId', '==', currentUser.uid).get()).docs.map(d => d.data().receiverId);
+        const myRequestsReceived = (await db.collection('friendRequests').where('receiverId', '==', currentUser.uid).get()).docs.map(d => d.data().senderId);
+        const excludedIds = [currentUser.uid, ...myFriends, ...myRequestsSent, ...myRequestsReceived];
+
+        let suggestions = new Map();
+
+        if (currentUserData.country) {
+            const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
+            countrySnapshot.forEach(doc => {
+                if (!excludedIds.includes(doc.id)) {
+                    suggestions.set(doc.id, doc.data());
                 }
+            });
+        }
+        suggestionsListEl.innerHTML = '';
+        if (suggestions.size === 0) {
+            suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No suggestions right now. Try joining some groups!</p>';
+            return;
+        }
 
-                let friends = [];
-                for (const friendId of friendIds) {
-                    const friendDoc = await db.collection('users').doc(friendId).get();
-                    if (friendDoc.exists) {
-                        friends.push({ id: friendDoc.id, ...friendDoc.data() });
-                    }
-                }
+        suggestions.forEach((user, userId) => {
+            const suggestionCard = document.createElement('div');
+            suggestionCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
+            suggestionCard.innerHTML = `
+            <a href="profile.html?uid=${userId}" class="flex items-center space-x-3">
+                <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
+                <div>
+                    <p class="font-semibold text-gray-800 dark:text-white">${user.displayName}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>
+                </div>
+            </a>
+            <button class="add-friend-sugg-btn bg-blue-500 text-white w-8 h-8 rounded-full hover:bg-blue-600 transition" data-uid="${userId}"><i class="fas fa-plus"></i></button>
+            `;
+            suggestionsListEl.appendChild(suggestionCard);
+        });
+    } catch (error) {
+        console.error("Error loading friend suggestions:", error);
+        suggestionsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load suggestions.</p>';
+    }
+};
 
-                if (locationQuery) {
-                    friends = friends.filter(friend => {
-                        const city = friend.city || '';
-                        const country = friend.country || '';
-                        return city.toLowerCase().includes(locationQuery) || country.toLowerCase().includes(locationQuery);
-                    });
-                }
+    // In public/js/community.js
 
-                if (friends.length === 0) {
-                    friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No friends found for this location.</p>';
-                    return;
-                }
-                friendsListEl.innerHTML = '';
-                for (const friend of friends) {
-                    const friendCard = document.createElement('a');
-                    friendCard.href = `profile.html?uid=${friend.id}`;
-                    friendCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center text-center hover:shadow-lg transition';
-                    friendCard.innerHTML = `
-                    <img src="${friend.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-24 h-24 rounded-full object-cover mb-4">
-                    <p class="font-semibold text-gray-800 dark:text-white">${friend.displayName}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">@${friend.handle}</p>
-                    `;
-                    friendsListEl.appendChild(friendCard);
-                }
-            } catch (error) {
-                console.error("Error loading friends list:", error);
-                friendsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load friends.</p>';
-            }
-        };
+const loadFriendActivityFeed = async () => {
+    if (!activityFeedEl) return;
+    activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friend activity...</p>';
+    
+    try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        
+        // ** THE FIX IS HERE **
+        const friendsMap = userDoc.data()?.friends || {};
+        const myFriends = Object.keys(friendsMap);
 
-        const loadFriendSuggestions = async () => {
-            if (!suggestionsListEl) return;
-            suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Finding potential friends...</p>';
-            try {
-                const currentUserData = (await db.collection('users').doc(currentUser.uid).get()).data();
-                const myFriends = currentUserData.friends || [];
-                const myRequestsSent = (await db.collection('friendRequests').where('senderId', '==', currentUser.uid).get()).docs.map(d => d.data().receiverId);
-                const myRequestsReceived = (await db.collection('friendRequests').where('receiverId', '==', currentUser.uid).get()).docs.map(d => d.data().senderId);
-                const excludedIds = [currentUser.uid, ...myFriends, ...myRequestsSent, ...myRequestsReceived];
+        if (myFriends.length === 0) {
+            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Add some friends to see their activity here.</p>';
+            return;
+        }
 
-                let suggestions = new Map();
+        const postsSnapshot = await db.collection('posts').where('authorId', 'in', myFriends).orderBy('timestamp', 'desc').limit(10).get();
+        let activities = [];
+        postsSnapshot.forEach(doc => activities.push({ type: 'post', data: doc.data(), id: doc.id, timestamp: doc.data().timestamp.toDate() }));
+        activities.sort((a, b) => b.timestamp - a.timestamp);
 
-                if (currentUserData.country) {
-                    const countrySnapshot = await db.collection('users').where('country', '==', currentUserData.country).limit(10).get();
-                    countrySnapshot.forEach(doc => {
-                        if (!excludedIds.includes(doc.id)) {
-                            suggestions.set(doc.id, doc.data());
-                        }
-                    });
-                }
-                suggestionsListEl.innerHTML = '';
-                if (suggestions.size === 0) {
-                    suggestionsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No suggestions right now. Try joining some groups!</p>';
-                    return;
-                }
+        if (activities.length === 0) {
+            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
+            return;
+        }
 
-                suggestions.forEach((user, userId) => {
-                    const suggestionCard = document.createElement('div');
-                    suggestionCard.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between';
-                    suggestionCard.innerHTML = `
-                    <a href="profile.html?uid=${userId}" class="flex items-center space-x-3">
-                        <img src="${user.photoURL || 'https://i.imgur.com/B06rBhI.png'}" class="w-12 h-12 rounded-full object-cover">
-                        <div>
-                            <p class="font-semibold text-gray-800 dark:text-white">${user.displayName}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">@${user.handle}</p>
-                        </div>
-                    </a>
-                    <button class="add-friend-sugg-btn bg-blue-500 text-white w-8 h-8 rounded-full hover:bg-blue-600 transition" data-uid="${userId}"><i class="fas fa-plus"></i></button>
-                    `;
-                    suggestionsListEl.appendChild(suggestionCard);
-                });
-            } catch (error) {
-                console.error("Error loading friend suggestions:", error);
-                suggestionsListEl.innerHTML = '<p class="text-red-500 dark:text-red-400">Could not load suggestions.</p>';
-            }
-        };
-
-        const loadFriendActivityFeed = async () => {
-            if (!activityFeedEl) return;
-            activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friend activity...</p>';
-            const myFriends = (await db.collection('users').doc(currentUser.uid).get()).data()?.friends || [];
-
-            if (myFriends.length === 0) {
-                activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Add some friends to see their activity here.</p>';
-                return;
-            }
-
-            try {
-                const postsSnapshot = await db.collection('posts').where('authorId', 'in', myFriends).orderBy('timestamp', 'desc').limit(10).get();
-                let activities = [];
-                postsSnapshot.forEach(doc => activities.push({ type: 'post', data: doc.data(), id: doc.id, timestamp: doc.data().timestamp.toDate() }));
-                activities.sort((a, b) => b.timestamp - a.timestamp);
-
-                if (activities.length === 0) {
-                    activityFeedEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Your friends haven\'t been active recently.</p>';
-                    return;
-                }
-
-                activityFeedEl.innerHTML = '';
-                activities.forEach(activity => {
-                    const post = activity.data;
-                    const postElement = document.createElement('div');
-                    postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
-                    postElement.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
-                        <div>
-                            <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white">${post.author}</a>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
-                        </div>
-                    </div>
-                    <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
-                    `;
-                    activityFeedEl.appendChild(postElement);
-                });
-            } catch (error) {
-                console.error("Error loading friend activity:", error);
-                if (error.code === 'failed-precondition') {
-                    const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
-                    displayIndexError(activityFeedEl, indexLink);
-                } else {
-                    activityFeedEl.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred.</p>`;
-                }
-            }
-        };
-
+        activityFeedEl.innerHTML = '';
+        activities.forEach(activity => {
+            const post = activity.data;
+            const postElement = document.createElement('div');
+            postElement.className = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md';
+            postElement.innerHTML = `
+            <div class="flex items-center mb-4">
+                <a href="profile.html?uid=${post.authorId}"><img src="${post.authorPhotoURL}" alt="author" class="h-10 w-10 rounded-full mr-4 object-cover"></a>
+                <div>
+                    <a href="profile.html?uid=${post.authorId}" class="font-bold text-gray-800 dark:text-white">${post.author}</a>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">${new Date(post.timestamp?.toDate()).toLocaleString()}</p>
+                </div>
+            </div>
+            <p class="mb-4 whitespace-pre-wrap dark:text-gray-300">${post.content}</p>
+            `;
+            activityFeedEl.appendChild(postElement);
+        });
+    } catch (error) {
+        console.error("Error loading friend activity:", error);
+        if (error.code === 'failed-precondition') {
+            const indexLink = generateIndexCreationLink('posts', [{ name: 'authorId', order: 'asc' }, { name: 'timestamp', order: 'desc' }]);
+            displayIndexError(activityFeedEl, indexLink);
+        } else {
+            activityFeedEl.innerHTML = `<p class="text-red-500 p-4 text-center">An unknown error occurred.</p>`;
+        }
+    }
+};
         if (locationSearchInput) {
             locationSearchInput.addEventListener('input', (e) => loadFriendsList(e.target.value.toLowerCase()));
         }
-        friendsPageContainer.addEventListener('click', async (event) => {
-            const button = event.target.closest('button');
-            if (!button) return;
-
-            if (button.classList.contains('accept-friend-btn')) {
-                button.disabled = true;
-                const requestId = button.dataset.requestId;
-                const senderId = button.dataset.senderId;
-
-                try {
-                    const requestRef = db.collection('friendRequests').doc(requestId);
-                    const userRef = db.collection('users').doc(currentUser.uid);
-                    const senderRef = db.collection('users').doc(senderId);
-
-                    const batch = db.batch();
-                    batch.update(userRef, { friends: firebase.firestore.FieldValue.arrayUnion(senderId) });
-                    batch.update(senderRef, { friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid) });
-                    batch.update(requestRef, { status: 'accepted' });
-                    await batch.commit();
-
-                } catch (error) {
-                    console.error("Error accepting friend request:", error);
-                    alert(`Could not accept friend request: ${error.message}`);
-                    button.disabled = false;
-                }
-            }
-
-            if (button.classList.contains('reject-friend-btn')) {
-                button.disabled = true;
-                const requestId = button.dataset.requestId;
-                try {
-                    await db.collection('friendRequests').doc(requestId).delete();
-                } catch(error) {
-                    console.error("Error rejecting friend request:", error);
-                    alert("Could not reject friend request.");
-                    button.disabled = false;
-                }
-            }
-
-            if (button.classList.contains('add-friend-sugg-btn')) {
-                const receiverId = button.dataset.uid;
-                button.disabled = true;
-                button.innerHTML = '<i class="fas fa-check"></i>';
-                await db.collection('friendRequests').add({
-                    senderId: currentUser.uid,
-                    receiverId: receiverId,
-                    status: 'pending',
-                    createdAt: new Date()
-                });
-                const notificationData = {
-                    message: `${currentUser.displayName} sent you a friend request.`,
-                    link: `/community.html`,
-                    isRead: false,
-                    timestamp: new Date()
-                };
-                await db.collection('users').doc(receiverId).collection('notifications').add(notificationData);
-            }
-        });
-
+      
         // Function to update friend request count badge
         const updateFriendRequestCount = async () => {
             try {

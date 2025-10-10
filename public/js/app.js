@@ -252,7 +252,7 @@ const renderComments = (container, comments, post) => {
                 <div class="flex-1">
                     <div class="bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
                         <a href="profile.html?uid=${comment.authorId}" class="font-semibold text-sm text-gray-800 dark:text-white hover:underline">${sanitizeHTML(comment.author)}</a>
-                        <p class="text-sm text-gray-700 dark:text-gray-300">${formatContent(comment.content)}</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">${formatContent(comment)}</p>
                     </div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1 flex items-center space-x-3">
                         <span>${formatTimestamp(comment.timestamp)}</span>
@@ -633,7 +633,7 @@ const openPostModal = async (postId, groupId) => {
                 <p class="text-sm text-gray-500 dark:text-gray-400">${formatTimestamp(post.timestamp)}</p>
             </div>`;
 
-        let contentHTML = post.poll ? `<p class="font-semibold">${sanitizeHTML(post.poll.question)}</p>` : formatContent(post.content || '');
+        let contentHTML = post.poll ? `<p class="font-semibold">${sanitizeHTML(post.poll.question)}</p>` : formatContent(post);
         modal.querySelector('#modal-post-content').innerHTML = contentHTML;
 
         const mediaContainer = modal.querySelector('#modal-post-media-container');
@@ -1033,7 +1033,19 @@ if (e.target.closest('.cancel-edit-btn')) {
 const postBody = postElement.querySelector('.post-body-content');
 const rawContent = postElement.dataset.rawContent;
 const mediaHTML = postElement.querySelector('.post-clickable-area img, .post-clickable-area video')?.outerHTML || '';
-postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(rawContent)}</p>${mediaHTML}`;
+// Fetch full post data to ensure card data is available for formatting
+try {
+    const postDoc = await postRef.get();
+    if (postDoc.exists) {
+        const postData = { id: postDoc.id, ...postDoc.data(), content: rawContent };
+        postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(postData)}</p>${mediaHTML}`;
+    } else {
+        postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(rawContent)}</p>${mediaHTML}`;
+    }
+} catch (error) {
+    console.error("Error fetching post data for cancel edit:", error);
+    postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(rawContent)}</p>${mediaHTML}`;
+}
 }
 if (e.target.closest('.save-edit-btn')) {
 const postBody = postElement.querySelector('.post-body-content');
