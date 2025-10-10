@@ -51,37 +51,44 @@ temp.textContent = str;
 return temp.innerHTML;
 };
 
-const formatContent = (data) => {
-const isPostObject = typeof data === 'object' && data !== null && data.content;
-const postContent = isPostObject ? data.content : data;
-    
-if (!postContent) return '';
-const sanitized = sanitizeHTML(postContent);
+// Import the enhanced card tagging functionality
+let formatContent;
+let enhancePostWithCardData;
+let handleCardAutocomplete;
+let initializeCardHoverForPosts;
 
-return sanitized
-.replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
-.replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
-.replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
-.replace(/\[([^\]\[:]+)\]/g, (match, cardNameInBrackets) => {
-// Check if we have a full post object with the specific card data
-if (isPostObject && data.cardName && data.cardSet && cardNameInBrackets.toLowerCase() === data.cardName.toLowerCase()) {
-    // Build the rich link that mimics the collection page
-    return `<a href="card-view.html?name=${encodeURIComponent(data.cardName)}&set=${encodeURIComponent(data.cardSet)}" 
-               class="text-blue-500 dark:text-blue-400 card-link hover:underline" 
-               data-card-name="${sanitizeHTML(data.cardName)}"
-               data-card-set="${sanitizeHTML(data.cardSet)}"
-               data-card-image-url="${sanitizeHTML(data.cardImageUrl || '')}"
-               data-card-game="${sanitizeHTML(data.cardGame || '')}"
-               title="View ${sanitizeHTML(data.cardName)}">[${cardNameInBrackets}]</a>`;
-} else {
-    // Fallback for comments or old posts: build a simple link
-    return `<a href="card-view.html?name=${encodeURIComponent(cardNameInBrackets)}" 
-               class="text-blue-500 dark:text-blue-400 card-link hover:underline" 
-               data-card-name="${sanitizeHTML(cardNameInBrackets)}"
-               title="View ${cardNameInBrackets}">[${cardNameInBrackets}]</a>`;
-}
-});
-};
+// Load the card tagging fix module
+(async () => {
+    try {
+        const cardTaggingModule = await import('./card-tagging-fix.js');
+        formatContent = cardTaggingModule.formatContent;
+        enhancePostWithCardData = cardTaggingModule.enhancePostWithCardData;
+        handleCardAutocomplete = cardTaggingModule.handleCardAutocomplete;
+        initializeCardHoverForPosts = cardTaggingModule.initializeCardHoverForPosts;
+        console.log('[App] Card tagging fix module loaded successfully');
+    } catch (error) {
+        console.error('[App] Failed to load card tagging fix module:', error);
+        // Fallback to original formatContent function
+        formatContent = (data) => {
+            const isPostObject = typeof data === 'object' && data !== null && data.content;
+            const postContent = isPostObject ? data.content : data;
+            
+            if (!postContent) return '';
+            const sanitized = sanitizeHTML(postContent);
+
+            return sanitized
+            .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
+            .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
+            .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
+            .replace(/\[([^\]\[:]+)\]/g, (match, cardNameInBrackets) => {
+                return `<a href="card-view.html?name=${encodeURIComponent(cardNameInBrackets)}" 
+                           class="text-blue-500 dark:text-blue-400 card-link hover:underline" 
+                           data-card-name="${sanitizeHTML(cardNameInBrackets)}"
+                           title="View ${cardNameInBrackets}">[${cardNameInBrackets}]</a>`;
+            });
+        };
+    }
+})();
 
 // --- Firestore Index Error Helpers ---
 const generateIndexCreationLink = (collection, fields) => {
@@ -373,11 +380,16 @@ posts.forEach(post => {
 });
 
 // Re-initialize hover for newly added posts
-if (typeof initCardHover === 'function') {
-    initCardHover();
-}
-if (window.initCardHover) {
-    window.initCardHover();
+if (initializeCardHoverForPosts) {
+    initializeCardHoverForPosts();
+} else {
+    // Fallback to original initialization
+    if (typeof initCardHover === 'function') {
+        initCardHover();
+    }
+    if (window.initCardHover) {
+        window.initCardHover();
+    }
 }
 } catch (error) {
 console.error("Error loading posts:", error);
@@ -531,17 +543,23 @@ suggestionsContainer.classList.add('hidden');
 return;
 }
 
+// Use enhanced card autocomplete if available
+if (handleCardAutocomplete) {
+await handleCardAutocomplete(textarea, suggestionsContainer, (card) => {
+selectedCardForPost = card;
+});
+return;
+}
+
+// Fallback to original card autocomplete
 const cardMatch = /\[([^\]]*)$/.exec(text.substring(0, cursorPos));
 if (cardMatch) {
 const query = cardMatch[1];
 if (query.length > 2) {
-// Use scrydex multi-game search instead of Scryfall
 try {
-// Import the card search function dynamically
 const { createCardAutocomplete } = await import('./card-search.js');
 
 await createCardAutocomplete(query, suggestionsContainer, (card) => {
-// Store the complete card object for use when creating the post
 selectedCardForPost = card;
 
 const displayName = card.name;
@@ -552,7 +570,6 @@ textarea.focus();
 });
 } catch (error) {
 console.error('Error loading card search:', error);
-// Fallback to hide suggestions on error
 suggestionsContainer.classList.add('hidden');
 }
 }
@@ -802,20 +819,26 @@ likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags
 
 // Add card data if a card was selected during post creation
 if (selectedCardForPost && content.includes(`[${selectedCardForPost.name}]`)) {
-console.log('[DEBUG] Saving card data to post:', {
-    name: selectedCardForPost.name,
-    set: selectedCardForPost.expansion?.name,
-    game: selectedCardForPost.game
-});
-postData.cardName = selectedCardForPost.name;
-postData.cardSet = selectedCardForPost.expansion?.name || selectedCardForPost.set_name || 'Unknown Set';
-postData.cardImageUrl = selectedCardForPost.images?.[0]?.large || selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
-postData.cardGame = selectedCardForPost.game || 'unknown';
-console.log('[DEBUG] Final postData card fields:', {
-    cardName: postData.cardName,
-    cardSet: postData.cardSet,
-    cardGame: postData.cardGame
-});
+    // Use enhanced card data function if available
+    if (enhancePostWithCardData) {
+        postData = enhancePostWithCardData(postData, selectedCardForPost, content);
+    } else {
+        // Fallback to original logic
+        console.log('[DEBUG] Saving card data to post:', {
+            name: selectedCardForPost.name,
+            set: selectedCardForPost.expansion?.name,
+            game: selectedCardForPost.game
+        });
+        postData.cardName = selectedCardForPost.name;
+        postData.cardSet = selectedCardForPost.expansion?.name || selectedCardForPost.set_name || 'Unknown Set';
+        postData.cardImageUrl = selectedCardForPost.images?.[0]?.large || selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
+        postData.cardGame = selectedCardForPost.game || 'unknown';
+        console.log('[DEBUG] Final postData card fields:', {
+            cardName: postData.cardName,
+            cardSet: postData.cardSet,
+            cardGame: postData.cardGame
+        });
+    }
 }
 
 const postRef = await db.collection('posts').add(postData);
