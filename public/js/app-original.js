@@ -52,12 +52,6 @@ return temp.innerHTML;
 };
 
 const formatContent = (data) => {
-// Use the new card system formatter if available
-if (window.cardSystemFormatContent) {
-    return window.cardSystemFormatContent(data);
-}
-
-// Fallback to original formatting
 const isPostObject = typeof data === 'object' && data !== null && data.content;
 const postContent = isPostObject ? data.content : data;
     
@@ -378,12 +372,11 @@ posts.forEach(post => {
     postsContainer.appendChild(createPostElement(post));
 });
 
-// Re-initialize hover for newly added posts using the new card system
-if (window.cardSystemInitializeHover) {
-    window.cardSystemInitializeHover();
-} else if (typeof initCardHover === 'function') {
+// Re-initialize hover for newly added posts
+if (typeof initCardHover === 'function') {
     initCardHover();
-} else if (window.initCardHover) {
+}
+if (window.initCardHover) {
     window.initCardHover();
 }
 } catch (error) {
@@ -506,49 +499,6 @@ likesListEl.innerHTML = '<p class="text-center text-red-500">Could not load like
 }
 };
 
-// Card system integration variables
-let selectedCardForPost = null;
-let cardSystemReady = false;
-let handleCardAutocomplete = null;
-
-// Check if card system functions are available
-const checkCardSystem = () => {
-    if (window.cardSystemHandleAutocomplete && window.cardSystemSetSelectedCard) {
-        handleCardAutocomplete = window.cardSystemHandleAutocomplete;
-        cardSystemReady = true;
-        console.log('[App] Card system integration complete');
-        return true;
-    }
-    return false;
-};
-
-// Try to connect to card system immediately
-if (!checkCardSystem()) {
-    // Wait for card system to load
-    const cardSystemInterval = setInterval(() => {
-        if (checkCardSystem()) {
-            clearInterval(cardSystemInterval);
-        }
-    }, 100);
-    
-    // Fallback after 5 seconds
-    setTimeout(() => {
-        if (!cardSystemReady) {
-            console.warn('[App] Card system not available, using fallback');
-            clearInterval(cardSystemInterval);
-            setupFallbackCardSystem();
-        }
-    }, 5000);
-}
-
-// Fallback card system if the main one fails to load
-const setupFallbackCardSystem = () => {
-    handleCardAutocomplete = async (textarea, suggestionsContainer, onCardSelect) => {
-        // Basic fallback - just hide suggestions
-        suggestionsContainer.classList.add('hidden');
-    };
-};
-
 const handleAutocomplete = async (textarea, suggestionsContainer) => {
 const text = textarea.value;
 const cursorPos = textarea.selectionStart;
@@ -581,23 +531,11 @@ suggestionsContainer.classList.add('hidden');
 return;
 }
 
-// Handle card autocomplete using the new card system
-if (handleCardAutocomplete) {
-    await handleCardAutocomplete(textarea, suggestionsContainer, (card) => {
-        selectedCardForPost = card;
-        if (window.cardSystemSetSelectedCard) {
-            window.cardSystemSetSelectedCard(card);
-        }
-    });
-    return;
-}
-
-// Fallback card matching if card system is not available
 const cardMatch = /\[([^\]]*)$/.exec(text.substring(0, cursorPos));
 if (cardMatch) {
 const query = cardMatch[1];
 if (query.length > 2) {
-// Use scrydx multi-game search instead of Scryfall
+// Use scrydex multi-game search instead of Scryfall
 try {
 // Import the card search function dynamically
 const { createCardAutocomplete } = await import('./card-search.js');
@@ -862,27 +800,22 @@ content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
 likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags
 };
 
-// Add card data using the new card system
-if (window.cardSystemEnhancePost && selectedCardForPost) {
-    const enhancedPostData = window.cardSystemEnhancePost(postData, selectedCardForPost, content);
-    Object.assign(postData, enhancedPostData);
-    console.log('[App] Enhanced post with card data:', postData);
-} else if (selectedCardForPost && content.includes(`[${selectedCardForPost.name}]`)) {
-    // Fallback to original card data handling
-    console.log('[DEBUG] Saving card data to post:', {
-        name: selectedCardForPost.name,
-        set: selectedCardForPost.expansion?.name,
-        game: selectedCardForPost.game
-    });
-    postData.cardName = selectedCardForPost.name;
-    postData.cardSet = selectedCardForPost.expansion?.name || selectedCardForPost.set_name || 'Unknown Set';
-    postData.cardImageUrl = selectedCardForPost.images?.[0]?.large || selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
-    postData.cardGame = selectedCardForPost.game || 'unknown';
-    console.log('[DEBUG] Final postData card fields:', {
-        cardName: postData.cardName,
-        cardSet: postData.cardSet,
-        cardGame: postData.cardGame
-    });
+// Add card data if a card was selected during post creation
+if (selectedCardForPost && content.includes(`[${selectedCardForPost.name}]`)) {
+console.log('[DEBUG] Saving card data to post:', {
+    name: selectedCardForPost.name,
+    set: selectedCardForPost.expansion?.name,
+    game: selectedCardForPost.game
+});
+postData.cardName = selectedCardForPost.name;
+postData.cardSet = selectedCardForPost.expansion?.name || selectedCardForPost.set_name || 'Unknown Set';
+postData.cardImageUrl = selectedCardForPost.images?.[0]?.large || selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
+postData.cardGame = selectedCardForPost.game || 'unknown';
+console.log('[DEBUG] Final postData card fields:', {
+    cardName: postData.cardName,
+    cardSet: postData.cardSet,
+    cardGame: postData.cardGame
+});
 }
 
 const postRef = await db.collection('posts').add(postData);
