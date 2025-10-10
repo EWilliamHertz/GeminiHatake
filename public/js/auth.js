@@ -497,6 +497,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
                 document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
                 document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
+                
+                // Add cart button event listener
+                const cartBtn = document.getElementById('cart-btn');
+                const cartModal = document.getElementById('cartModal');
+                if (cartBtn && cartModal) {
+                    cartBtn.addEventListener('click', () => {
+                        cartModal.classList.remove('hidden');
+                        cartModal.classList.add('flex');
+                    });
+                }
+                
+                // Dispatch authReady event for cart.js to initialize
+                document.dispatchEvent(new CustomEvent('authReady'));
             }
 
             if (unsubscribeNotifications) unsubscribeNotifications();

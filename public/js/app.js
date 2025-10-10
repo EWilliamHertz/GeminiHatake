@@ -802,10 +802,20 @@ likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags
 
 // Add card data if a card was selected during post creation
 if (selectedCardForPost && content.includes(`[${selectedCardForPost.name}]`)) {
+console.log('[DEBUG] Saving card data to post:', {
+    name: selectedCardForPost.name,
+    set: selectedCardForPost.expansion?.name,
+    game: selectedCardForPost.game
+});
 postData.cardName = selectedCardForPost.name;
-postData.cardSet = selectedCardForPost.set_name || (selectedCardForPost.expansion && selectedCardForPost.expansion.name) || 'Unknown Set';
-postData.cardImageUrl = selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
+postData.cardSet = selectedCardForPost.expansion?.name || selectedCardForPost.set_name || 'Unknown Set';
+postData.cardImageUrl = selectedCardForPost.images?.[0]?.large || selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
 postData.cardGame = selectedCardForPost.game || 'unknown';
+console.log('[DEBUG] Final postData card fields:', {
+    cardName: postData.cardName,
+    cardSet: postData.cardSet,
+    cardGame: postData.cardGame
+});
 }
 
 const postRef = await db.collection('posts').add(postData);
@@ -1033,7 +1043,7 @@ if (e.target.closest('.cancel-edit-btn')) {
 const postBody = postElement.querySelector('.post-body-content');
 const rawContent = postElement.dataset.rawContent;
 const mediaHTML = postElement.querySelector('.post-clickable-area img, .post-clickable-area video')?.outerHTML || '';
-// Fetch full post data to ensure card data is available for formatting
+// Fetch full post data to preserve card information
 try {
     const postDoc = await postRef.get();
     if (postDoc.exists) {
@@ -1043,7 +1053,7 @@ try {
         postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(rawContent)}</p>${mediaHTML}`;
     }
 } catch (error) {
-    console.error("Error fetching post data for cancel edit:", error);
+    console.error("Error fetching post data:", error);
     postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(rawContent)}</p>${mediaHTML}`;
 }
 }
@@ -1055,7 +1065,14 @@ try {
 await postRef.update({ content: newContent, hashtags: (newContent.match(/#(\w+)/g) || []).map(tag => tag.substring(1)) });
 postElement.dataset.rawContent = newContent;
 const mediaHTML = postElement.querySelector('.post-clickable-area img, .post-clickable-area video')?.outerHTML || '';
-postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(newContent)}</p>${mediaHTML}`;
+// Fetch updated post data to preserve card information
+const postDoc = await postRef.get();
+if (postDoc.exists) {
+    const postData = { id: postDoc.id, ...postDoc.data(), content: newContent };
+    postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(postData)}</p>${mediaHTML}`;
+} else {
+    postBody.innerHTML = `<p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formatContent(newContent)}</p>${mediaHTML}`;
+}
 showToast("Post updated!", "success");
 } catch (error) { console.error("Error updating post:", error); showToast("Could not save changes.", "error"); }
 }

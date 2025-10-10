@@ -79,7 +79,7 @@ const renderCartItems = () => {
 };
 
 // --- Public Functions ---
-function addToCart(productId, productData) {
+window.addToCart = function addToCart(productId, productData) {
     const cart = getCart();
     const existingItem = cart.find(item => item.id === productId);
 
