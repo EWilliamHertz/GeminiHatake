@@ -136,75 +136,69 @@ document.addEventListener('authReady', (e) => {
                 }
             }
         };
-const friendRequestList = document.getElementById('friend-requests-list');
-if (friendRequestList && user) {
-    db.collection('friendRequests')
-      .where('receiverId', '==', user.uid)
-      .where('status', '==', 'pending')
-      .onSnapshot(snapshot => {
-        if (snapshot.empty) {
-            friendRequestList.innerHTML = '<p class="text-gray-500 dark:text-gray-400">No new friend requests.</p>';
-            return;
-        }
-
-        friendRequestList.innerHTML = ''; // Clear the list
-        snapshot.forEach(async doc => {
-            const request = doc.data();
-            let senderName = request.senderName;
-
-            // If senderName is missing, fetch it from the users collection
-            if (!senderName) {
+        // Friend request button handlers
+        document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('accept-friend-btn')) {
+                const requestId = e.target.dataset.requestId;
+                const senderId = e.target.dataset.senderId;
                 try {
-                    const userDoc = await db.collection('users').doc(request.senderId).get();
-                    if (userDoc.exists) {
-                        senderName = userDoc.data().displayName || 'Unknown User';
-                    } else {
-                        senderName = 'Unknown User';
+                    // Accept the friend request
+                    await db.collection('friendRequests').doc(requestId).update({
+                        status: 'accepted'
+                    });
+                    
+                    // Add to friends list for both users
+                    const batch = db.batch();
+                    const currentUserRef = db.collection('users').doc(currentUser.uid);
+                    const senderUserRef = db.collection('users').doc(senderId);
+                    
+                    batch.update(currentUserRef, {
+                        friends: firebase.firestore.FieldValue.arrayUnion(senderId)
+                    });
+                    batch.update(senderUserRef, {
+                        friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+                    });
+                    
+                    await batch.commit();
+                    
+                    // Reload friend requests
+                    loadFriendRequests();
+                    
+                    // Show success message
+                    if (typeof showToast === 'function') {
+                        showToast('Friend request accepted!', 'success');
                     }
                 } catch (error) {
-                    console.error("Error fetching sender's name:", error);
-                    senderName = 'Unknown User';
+                    console.error('Error accepting friend request:', error);
+                    if (typeof showToast === 'function') {
+                        showToast('Error accepting friend request.', 'error');
+                    }
                 }
             }
 
-            const requestEl = document.createElement('div');
-            requestEl.className = 'flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-sm';
-            requestEl.innerHTML = `
-                <div class="flex items-center">
-                    <p class="font-semibold text-gray-800 dark:text-gray-200">${senderName}</p>
-                </div>
-                <div class="flex space-x-2">
-                    <button class="accept-friend-request-btn px-3 py-1 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" data-id="${doc.id}">Accept</button>
-                    <button class="decline-friend-request-btn px-3 py-1 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" data-id="${doc.id}">Decline</button>
-                </div>
-            `;
-            friendRequestList.appendChild(requestEl);
+            if (e.target.classList.contains('reject-friend-btn')) {
+                const requestId = e.target.dataset.requestId;
+                try {
+                    // Reject the friend request
+                    await db.collection('friendRequests').doc(requestId).update({
+                        status: 'rejected'
+                    });
+                    
+                    // Reload friend requests
+                    loadFriendRequests();
+                    
+                    // Show success message
+                    if (typeof showToast === 'function') {
+                        showToast('Friend request declined.', 'info');
+                    }
+                } catch (error) {
+                    console.error('Error declining friend request:', error);
+                    if (typeof showToast === 'function') {
+                        showToast('Error declining friend request.', 'error');
+                    }
+                }
+            }
         });
-    });
-}}
-document.addEventListener('click', async (e) => {
-    if (e.target.classList.contains('accept-friend-request-btn')) {
-        const requestId = e.target.dataset.id;
-        const acceptFriendRequest = firebase.functions().httpsCallable('acceptFriendRequest');
-        try {
-            await acceptFriendRequest({ requestId: requestId });
-            showToast('Friend request accepted!', 'success');
-        } catch (error) {
-            showToast('Error accepting friend request.', 'error');
-        }
-    }
-
-    if (e.target.classList.contains('decline-friend-request-btn')) {
-        const requestId = e.target.dataset.id;
-        const declineFriendRequest = firebase.functions().httpsCallable('declineFriendRequest');
-        try {
-            await declineFriendRequest({ requestId: requestId });
-            showToast('Friend request declined.', 'info');
-        } catch (error) {
-            showToast('Error declining friend request.', 'error');
-        }
-    }
-});
         const loadFriendsList = async (locationQuery = '') => {
             if (!friendsListEl) return;
             friendsListEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading friends...</p>';
@@ -412,8 +406,32 @@ document.addEventListener('click', async (e) => {
                 await db.collection('users').doc(receiverId).collection('notifications').add(notificationData);
             }
         });
+
+        // Function to update friend request count badge
+        const updateFriendRequestCount = async () => {
+            try {
+                const requestsSnapshot = await db.collection('friendRequests')
+                    .where('receiverId', '==', currentUser.uid)
+                    .where('status', '==', 'pending')
+                    .get();
+
+                if (requestCountBadge) {
+                    if (requestsSnapshot.empty) {
+                        requestCountBadge.classList.add('hidden');
+                    } else {
+                        requestCountBadge.textContent = requestsSnapshot.size;
+                        requestCountBadge.classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error("Error updating friend request count:", error);
+            }
+        };
+
+        // Initialize the page
         loadFriendsList();
         loadFriendRequests();
+        updateFriendRequestCount();
     }
 
 

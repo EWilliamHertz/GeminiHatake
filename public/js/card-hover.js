@@ -92,41 +92,84 @@ async function showCardTooltip(element, cardName) {
         document.body.appendChild(tooltip);
         currentTooltip = tooltip;
         
+        // Check if we have specific card data from the element's data attributes
+        const cardSet = element.dataset.cardSet;
+        const cardGame = element.dataset.cardGame;
+        
         // Try to fetch card data
-      if (typeof firebase.functions === 'function') {
+        if (typeof firebase.functions === 'function') {
             const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-            
-            // Search all games in priority order
-            const games = ['lorcana', 'pokemon', 'gundam', 'mtg'];
             let cardFound = false;
             
-            for (const game of games) {
-                if (cardFound) break;
-                
+            // If we have specific set and game info, search that game first
+            if (cardSet && cardGame && cardSet !== 'Unknown Set') {
                 try {
-                const result = await searchScryDexFunction({ query: cardName, game: game });
-
-let searchResults = [];
-if (result && result.data) {
-    if (result.data.success && Array.isArray(result.data.data)) {
-        searchResults = result.data.data;
-    } else if (Array.isArray(result.data)) {
-        // Fallback for different API response structures
-        searchResults = result.data;
-    }
-}
-
-if (searchResults.length > 0) {
-    const card = searchResults.find(c => c.name.toLowerCase() === cardName.toLowerCase()) || searchResults[0];
-
-    if (currentTooltip === tooltip) {
-        updateTooltipContent(tooltip, card, game);
-        cardFound = true;
-    }
-    break;
-}
+                    console.log(`[CardHover] Searching specific game ${cardGame} for ${cardName} from ${cardSet}`);
+                    const result = await searchScryDexFunction({ query: cardName, game: cardGame });
+                    
+                    let searchResults = [];
+                    if (result && result.data) {
+                        if (result.data.success && Array.isArray(result.data.data)) {
+                            searchResults = result.data.data;
+                        } else if (Array.isArray(result.data)) {
+                            searchResults = result.data;
+                        }
+                    }
+                    
+                    if (searchResults.length > 0) {
+                        // Try to find the card from the specific set first
+                        let card = searchResults.find(c => {
+                            const cardSetName = c.set_name || (c.expansion && c.expansion.name) || '';
+                            return c.name.toLowerCase() === cardName.toLowerCase() && 
+                                   cardSetName.toLowerCase() === cardSet.toLowerCase();
+                        });
+                        
+                        // If not found in specific set, use any card with the same name
+                        if (!card) {
+                            card = searchResults.find(c => c.name.toLowerCase() === cardName.toLowerCase()) || searchResults[0];
+                        }
+                        
+                        if (currentTooltip === tooltip) {
+                            updateTooltipContent(tooltip, card, cardGame);
+                            cardFound = true;
+                        }
+                    }
                 } catch (error) {
-                    console.warn(`[CardHover] Error searching ${game}:`, error);
+                    console.warn(`[CardHover] Error searching specific game ${cardGame}:`, error);
+                }
+            }
+            
+            // If not found with specific data, search all games in priority order
+            if (!cardFound) {
+                const games = ['lorcana', 'pokemon', 'gundam', 'mtg'];
+                
+                for (const game of games) {
+                    if (cardFound) break;
+                    
+                    try {
+                        const result = await searchScryDexFunction({ query: cardName, game: game });
+
+                        let searchResults = [];
+                        if (result && result.data) {
+                            if (result.data.success && Array.isArray(result.data.data)) {
+                                searchResults = result.data.data;
+                            } else if (Array.isArray(result.data)) {
+                                searchResults = result.data;
+                            }
+                        }
+
+                        if (searchResults.length > 0) {
+                            const card = searchResults.find(c => c.name.toLowerCase() === cardName.toLowerCase()) || searchResults[0];
+
+                            if (currentTooltip === tooltip) {
+                                updateTooltipContent(tooltip, card, game);
+                                cardFound = true;
+                            }
+                            break;
+                        }
+                    } catch (error) {
+                        console.warn(`[CardHover] Error searching ${game}:`, error);
+                    }
                 }
             }
             

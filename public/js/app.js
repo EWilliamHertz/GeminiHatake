@@ -58,8 +58,18 @@ return sanitized
 .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
 .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
 .replace(/\[([^\]\[:]+)\]/g, (match, cardName) => {
+// Check if we have selected card data for this card
+const cardKey = cardName.toLowerCase();
+const selectedCard = window.selectedCardData && window.selectedCardData[cardKey];
+let dataAttributes = `data-card-name="${cardName}"`;
+
+if (selectedCard) {
+    // Include the selected card's edition and game information
+    dataAttributes += ` data-card-set="${selectedCard.setName}" data-card-game="${selectedCard.game}"`;
+}
+
 // Create card link that will search all games - card-view.html will handle multi-game search
-return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link hover:underline" data-card-name="${cardName}" title="View ${cardName}">[${cardName}]</a>`;
+return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link hover:underline" ${dataAttributes} title="View ${cardName}">[${cardName}]</a>`;
 });
 };
 
@@ -521,8 +531,23 @@ try {
 const { createCardAutocomplete } = await import('./card-search.js');
 
 await createCardAutocomplete(query, suggestionsContainer, (card) => {
-const cardName = card.name;
-const newText = text.substring(0, text.lastIndexOf('[')) + `[${cardName}] ` + text.substring(cursorPos);
+// Store selected card information globally for use in formatContent
+const setName = card.set_name || (card.expansion && card.expansion.name) || 'Unknown Set';
+const cardKey = `${card.name.toLowerCase()}`;
+
+// Store the selected card data globally
+if (!window.selectedCardData) {
+    window.selectedCardData = {};
+}
+window.selectedCardData[cardKey] = {
+    name: card.name,
+    setName: setName,
+    game: card.game,
+    fullCardData: card
+};
+
+const displayName = card.name;
+const newText = text.substring(0, text.lastIndexOf('[')) + `[${displayName}] ` + text.substring(cursorPos);
 textarea.value = newText;
 suggestionsContainer.classList.add('hidden');
 textarea.focus();
