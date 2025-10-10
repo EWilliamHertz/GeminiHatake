@@ -673,22 +673,15 @@ nav[aria-label="Tabs"] {
     display: inline-block;
 }
 
+/* --- Card Link Tooltip --- */
 .card-tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: none;
-    background-color: white;
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-}
-
-.card-link:hover .card-tooltip {
-    display: block;
+    /* This class is now just a marker for the JS-created element. */
+    /* The JS sets the position and content, so most styling here is a fallback. */
+    /* We are removing 'display: none' which was the primary issue. */
+    position: fixed; /* Changed from absolute to fixed to work with JS positioning */
+    z-index: 50; /* Ensure it appears above other content */
+    max-width: 320px; /* Set a max-width for the tooltip */
+    pointer-events: none; /* Prevents the tooltip from interfering with mouse events */
 }
 
 .card-tooltip img {

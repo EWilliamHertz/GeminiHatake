@@ -51,25 +51,35 @@ temp.textContent = str;
 return temp.innerHTML;
 };
 
-const formatContent = (str) => {
-const sanitized = sanitizeHTML(str);
+const formatContent = (data) => {
+const isPostObject = typeof data === 'object' && data !== null && data.content;
+const postContent = isPostObject ? data.content : data;
+    
+if (!postContent) return '';
+const sanitized = sanitizeHTML(postContent);
+
 return sanitized
 .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
 .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
 .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
-.replace(/\[([^\]\[:]+)\]/g, (match, cardName) => {
-// Check if we have selected card data for this card
-const cardKey = cardName.toLowerCase();
-const selectedCard = window.selectedCardData && window.selectedCardData[cardKey];
-let dataAttributes = `data-card-name="${cardName}"`;
-
-if (selectedCard) {
-    // Include the selected card's edition and game information
-    dataAttributes += ` data-card-set="${selectedCard.setName}" data-card-game="${selectedCard.game}"`;
+.replace(/\[([^\]\[:]+)\]/g, (match, cardNameInBrackets) => {
+// Check if we have a full post object with the specific card data
+if (isPostObject && data.cardName && data.cardSet && cardNameInBrackets.toLowerCase() === data.cardName.toLowerCase()) {
+    // Build the rich link that mimics the collection page
+    return `<a href="card-view.html?name=${encodeURIComponent(data.cardName)}&set=${encodeURIComponent(data.cardSet)}" 
+               class="text-blue-500 dark:text-blue-400 card-link hover:underline" 
+               data-card-name="${sanitizeHTML(data.cardName)}"
+               data-card-set="${sanitizeHTML(data.cardSet)}"
+               data-card-image-url="${sanitizeHTML(data.cardImageUrl || '')}"
+               data-card-game="${sanitizeHTML(data.cardGame || '')}"
+               title="View ${sanitizeHTML(data.cardName)}">[${cardNameInBrackets}]</a>`;
+} else {
+    // Fallback for comments or old posts: build a simple link
+    return `<a href="card-view.html?name=${encodeURIComponent(cardNameInBrackets)}" 
+               class="text-blue-500 dark:text-blue-400 card-link hover:underline" 
+               data-card-name="${sanitizeHTML(cardNameInBrackets)}"
+               title="View ${cardNameInBrackets}">[${cardNameInBrackets}]</a>`;
 }
-
-// Create card link that will search all games - card-view.html will handle multi-game search
-return `<a href="card-view.html?name=${encodeURIComponent(cardName)}" class="text-blue-500 dark:text-blue-400 card-link hover:underline" ${dataAttributes} title="View ${cardName}">[${cardName}]</a>`;
 });
 };
 
@@ -157,7 +167,7 @@ if (post.poll) {
     `;
 
 } else {
-    const formattedContent = formatContent(post.content || '');
+    const formattedContent = formatContent(post); // Pass the full post object instead of just content
     const mediaHTML = post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="max-h-96 w-full object-cover rounded-lg my-2">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`) : '';
     postBodyHTML = `
         <div class="post-body-content post-clickable-area cursor-pointer">
@@ -531,20 +541,8 @@ try {
 const { createCardAutocomplete } = await import('./card-search.js');
 
 await createCardAutocomplete(query, suggestionsContainer, (card) => {
-// Store selected card information globally for use in formatContent
-const setName = card.set_name || (card.expansion && card.expansion.name) || 'Unknown Set';
-const cardKey = `${card.name.toLowerCase()}`;
-
-// Store the selected card data globally
-if (!window.selectedCardData) {
-    window.selectedCardData = {};
-}
-window.selectedCardData[cardKey] = {
-    name: card.name,
-    setName: setName,
-    game: card.game,
-    fullCardData: card
-};
+// Store the complete card object for use when creating the post
+selectedCardForPost = card;
 
 const displayName = card.name;
 const newText = text.substring(0, text.lastIndexOf('[')) + `[${displayName}] ` + text.substring(cursorPos);
@@ -757,6 +755,7 @@ const pollMediaFileName = document.getElementById('pollMediaFileName');
 
 let selectedFile = null;
 let selectedPollMediaFile = null;
+let selectedCardForPost = null; // Store the complete card object when user selects from autocomplete
 
 feedTabs?.addEventListener('click', (e) => {
 const button = e.target.closest('.feed-tab-button');
@@ -801,6 +800,14 @@ content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
 likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags
 };
 
+// Add card data if a card was selected during post creation
+if (selectedCardForPost && content.includes(`[${selectedCardForPost.name}]`)) {
+postData.cardName = selectedCardForPost.name;
+postData.cardSet = selectedCardForPost.set_name || (selectedCardForPost.expansion && selectedCardForPost.expansion.name) || 'Unknown Set';
+postData.cardImageUrl = selectedCardForPost.image_uris?.normal || selectedCardForPost.image || '';
+postData.cardGame = selectedCardForPost.game || 'unknown';
+}
+
 const postRef = await db.collection('posts').add(postData);
 
 for (const handle of mentions) {
@@ -821,6 +828,7 @@ timestamp: new Date()
 postContentInput.value = '';
 postMediaUpload.value = '';
 selectedFile = null;
+selectedCardForPost = null; // Reset card selection for next post
 postStatusMessage.textContent = '';
 showToast('Posted successfully!', 'success');
 if (activeFeedType === 'for-you') {
