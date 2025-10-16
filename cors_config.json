@@ -1,0 +1,17 @@
+[
+  {
+    "origin": [
+      "https://hatake.eu",
+      "https://www.hatake.eu",
+      "http://localhost:5000" 
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Authorization",
+      "X-Goog-Resumable"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

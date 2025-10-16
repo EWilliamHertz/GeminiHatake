@@ -1070,59 +1070,126 @@ async function fetchAllCards(query, game) {
     return allCards;
 }
 
-// This is the updated search handler that calls fetchAllCards
+// ===================================================================
+// === START: NEW DYNAMIC SEARCH AND FILTER LOGIC ====================
+// ===================================================================
+
+let allFoundCards = []; // This will store all card versions from a search
 let searchTimeout;
+
+// This function's only job is to display cards in the results area.
+function renderSearchResults(cards) {
+    const resultsContainer = document.getElementById('search-results-container');
+    if (!resultsContainer) return;
+
+    if (cards.length === 0) {
+        resultsContainer.innerHTML = '<p class="text-center text-gray-500">No cards match the filters.</p>';
+        return;
+    }
+
+    resultsContainer.innerHTML = cards.map(card => {
+        const jsonString = JSON.stringify(card);
+        const escapedCardData = jsonString
+            .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `
+            <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>
+                <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
+                <div class="flex-grow">
+                    <p class="font-semibold">${card.name} (${card.collector_number || 'N/A'})</p>
+                    <p class="text-sm text-gray-500">${card.set_name}</p>
+                </div>
+                <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
+            </div>`;
+    }).join('');
+}
+
+// This function builds the searchable dropdown based on the cards found.
+function createAndPopulateSetFilter(cards) {
+    const filterContainer = document.getElementById('modal-set-filter-container');
+    if (!filterContainer) return;
+
+    // Get a unique list of set names from the search results
+    const uniqueSets = [...new Map(cards.map(card => [card.set_name, card])).values()]
+        .map(card => ({ id: card.set_name, text: `${card.set_name}` }))
+        .sort((a, b) => a.text.localeCompare(b.text));
+
+    // If there's only one set, we don't need to show a filter.
+    if (uniqueSets.length <= 1) {
+        filterContainer.innerHTML = '';
+        return;
+    }
+
+    // Create the <select> element and initialize it with Select2
+    filterContainer.innerHTML = '<select id="dynamic-set-filter" class="w-full"></select>';
+    const setFilter = $('#dynamic-set-filter');
+
+    setFilter.select2({
+        placeholder: `Filter by set (${uniqueSets.length} found)...`,
+        allowClear: true,
+        data: [{ id: '', text: 'All Sets' }, ...uniqueSets],
+        dropdownParent: $('#search-modal') // This makes it work correctly inside a modal
+    });
+
+    // When the user selects a set, filter the results on the client side
+    setFilter.on('change', (e) => {
+        const selectedSet = e.target.value;
+        if (!selectedSet) {
+            renderSearchResults(allFoundCards); // If 'All Sets' is chosen, show everything
+        } else {
+            const filteredCards = allFoundCards.filter(card => card.set_name === selectedSet);
+            renderSearchResults(filteredCards);
+        }
+    });
+}
+
+// This is the main function that runs when you type in the search bar.
 function handleSearchInput() {
     clearTimeout(searchTimeout);
     const query = document.getElementById('card-search-input').value;
     const game = document.getElementById('game-selector').value;
     const resultsContainer = document.getElementById('search-results-container');
-    if(!resultsContainer) return;
+    const filterContainer = document.getElementById('modal-set-filter-container');
+
+    if (!resultsContainer || !filterContainer) return;
+
+    // Always clear the old set filter when starting a new search
+    filterContainer.innerHTML = '';
 
     if (query.length < 3) {
-        resultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 3 characters.</p>';
+        resultsContainer.innerHTML = '<p class="text-center text-gray-500">Enter at least 3 characters to search.</p>';
+        allFoundCards = []; // Clear the stored cards
         return;
     }
-    resultsContainer.innerHTML = '<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Searching all pages...</p>';
-    
+
+    resultsContainer.innerHTML = '<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Searching for all versions...</p>';
+
     searchTimeout = setTimeout(async () => {
         try {
-            const results = await fetchAllCards(query, game); 
-            
-           resultsContainer.innerHTML = results.length === 0 ? '<p class="text-center text-gray-500">No cards found.</p>' :
-    results.map(card => {
-        // --- THIS IS THE FIX ---
-        // 1. Stringify the card object into JSON.
-        const jsonString = JSON.stringify(card);
+            // 1. Fetch ALL cards matching the name from your ScryDex function
+            allFoundCards = await fetchAllCards(query, game);
 
-        // 2. Escape the JSON string to be safely placed inside an HTML attribute.
-        const escapedCardData = jsonString
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-        // --- END OF FIX ---
+            if (allFoundCards.length === 0) {
+                 resultsContainer.innerHTML = '<p class="text-center text-gray-500">No cards found.</p>';
+                 return;
+            }
 
-        return `
-            <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>
-                <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
-                <div class="flex-grow">
-                    <p class="font-semibold">${card.name} (${card.collector_number})</p>
-                    <p class="text-sm text-gray-500">${card.set_name}</p>
-                </div>
-                <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
-            </div>
-        `;
-    }).join('');
+            // 2. Automatically create the set filter based on the results
+            createAndPopulateSetFilter(allFoundCards);
+
+            // 3. Show the initial, unfiltered list of cards
+            renderSearchResults(allFoundCards);
 
         } catch (error) {
             resultsContainer.innerHTML = `<p class="text-center text-red-500">Error: ${error.message}</p>`;
+            allFoundCards = [];
         }
-    }, 300);
+    }, 500); // Increased debounce timer for a better experience
 }
 
-
+// ===================================================================
+// ===  END: NEW DYNAMIC SEARCH AND FILTER LOGIC  ====================
+// ===================================================================
 function handleSearchResultClick(item) {
     if (item) {
         // --- THIS IS THE CORRESPONDING FIX ---
@@ -2019,6 +2086,7 @@ if (filterPanel) {
         document.getElementById('card-form')?.addEventListener('submit', handleCardFormSubmit);
         document.getElementById('delete-card-btn')?.addEventListener('click', handleDeleteCard);
         document.getElementById('card-search-input')?.addEventListener('input', handleSearchInput);
+           document.getElementById('game-selector')?.addEventListener('change', handleSearchInput);
         document.getElementById('search-results-container')?.addEventListener('click', (e) => {
             const item = e.target.closest('.search-result-item');
             if (item) handleSearchResultClick(item);

@@ -1,683 +1,306 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
  <head>
-  <meta charset="UTF-8"/>
+  <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>
    Feed - HatakeSocial
   </title>
   <script src="https://cdn.tailwindcss.com">
   </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
   <link href="css/style.css" rel="stylesheet"/>
-  <link href="css/enhanced-pricing.css" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <link href="manifest.json" rel="manifest"/>
-  <meta content="#1f2937" name="theme-color"/>
-  <meta content="HatakeSocial - The Ultimate TCG Social Platform" name="description"/>
-  <meta content="HatakeSocial, TCG, Trading Card Games, Magic, Pokemon, Lorcana, Social Platform" name="keywords"/>
-  <meta content="HatakeSocial" property="og:title"/>
-  <meta content="The Ultimate TCG Social Platform" property="og:description"/>
-  <meta content="https://hatake.eu/images/og-image.jpg" property="og:image"/>
-  <meta content="website" property="og:type"/>
-  <meta content="@HatakeSocial" name="twitter:card"/>
-  <style>
-   .sidebar-item {
-            transition: all 0.3s ease;
-        }
-        .sidebar-item:hover {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transform: translateX(5px);
-        }
-        .sidebar-item.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .sidebar-item.active .sidebar-icon {
-            color: white;
-        }
-        .notification-badge {
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .post-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .post-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .feed-tab {
-            transition: all 0.3s ease;
-        }
-        .feed-tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .suggestions-container {
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-  </style>
+  <script>
+   tailwind.config = { darkMode: 'class' };
+  </script>
+  <link href="/manifest.json" rel="manifest"/>
  </head>
- <body class="bg-gray-100 dark:bg-gray-900 font-inter">
-  <!-- Navigation -->
-  <nav class="bg-white dark:bg-gray-800 shadow-lg fixed top-0 left-0 right-0 z-50">
-   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between items-center h-16">
-     <!-- Logo -->
+ <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
+  <div class="flex h-screen">
+   <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay">
+   </div>
+   <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+    <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+     <a class="flex flex-col items-center space-y-1" href="app.html">
+      <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+      <span class="font-bold text-lg text-blue-600 dark:text-blue-400">
+       HatakeSocial
+      </span>
+     </a>
+    </div>
+    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+      <i class="fas fa-home w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Feed
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+      <i class="fas fa-comments w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Messages
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+      <i class="fas fa-users w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Community
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+      <i class="fas fa-newspaper w-6 text-center">
+      </i>
+      <span class="ml-3">
+       TCG Articles
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+      <i class="fas fa-blog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Hatake Blog
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+      <i class="fas fa-calendar-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Events
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+      <i class="fas fa-layer-group w-6 text-center">
+      </i>
+      <span class="ml-3">
+       My Collection
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+      <i class="fas fa-book-open w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Deck Builder
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+      <i class="fas fa-shopping-cart w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Shop
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+      <i class="fas fa-store w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Marketplace
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+      <i class="fas fa-exchange-alt w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Trades
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+      <i class="fas fa-user w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Profile
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+      <i class="fas fa-cog w-6 text-center">
+      </i>
+      <span class="ml-3">
+       Settings
+      </span>
+     </a>
+     <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+      <i class="fas fa-info-circle w-6 text-center">
+      </i>
+      <span class="ml-3">
+       About Us
+      </span>
+     </a>
+    </nav>
+    <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+     <div id="auth-container-sidebar">
+     </div>
+    </div>
+   </aside>
+   <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
      <div class="flex items-center">
-      <a class="flex items-center space-x-2" href="index.html">
-       <img alt="HatakeSocial Logo" class="h-8 w-8" src="https://i.imgur.com/B06rBhI.png"/>
-       <span class="text-xl font-bold text-gray-800 dark:text-white">
-        HatakeSocial
-       </span>
-      </a>
-     </div>
-     <!-- Search Bar -->
-     <div class="flex-1 max-w-lg mx-8">
-      <div class="relative">
-       <input class="w-full px-4 py-2 pl-10 pr-4 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Search for cards, users, or articles..." type="text"/>
-       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <i class="fas fa-search text-gray-400">
-        </i>
-       </div>
-      </div>
-     </div>
-     <!-- Right Side Icons -->
-     <div class="flex items-center space-x-4">
-      <!-- Dark Mode Toggle -->
-      <button class="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors" id="darkModeToggle">
-       <i class="fas fa-moon">
+      <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation relative" id="sidebar-toggle" style="min-width: 44px; min-height: 44px; z-index: 1000; position: relative;">
+       <i class="fas fa-bars text-xl">
        </i>
       </button>
-      <!-- Currency Selector -->
-      <select class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" id="currencySelector">
-       <option value="USD">
-        USD
-       </option>
-       <option value="SEK">
-        SEK
-       </option>
-       <option value="EUR">
-        EUR
-       </option>
-       <option value="GBP">
-        GBP
-       </option>
-       <option value="NOK">
-        NOK
-       </option>
-       <option value="DKK">
-        DKK
-       </option>
-      </select>
-      <!-- Notifications -->
       <div class="relative">
-       <button class="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors" id="notificationButton">
-        <i class="fas fa-bell">
-        </i>
-        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center notification-badge" id="notificationCount">
-         0
-        </span>
-       </button>
-       <!-- Notification Dropdown -->
-       <div class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden" id="notificationDropdown">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-         <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-          Notifications
-         </h3>
-        </div>
-        <div class="max-h-96 overflow-y-auto" id="notificationList">
-         <!-- Notifications will be loaded here -->
-        </div>
-        <div class="p-3 border-t border-gray-200 dark:border-gray-700 text-center">
-         <a class="text-blue-500 hover:text-blue-600 text-sm" href="notifications.html">
-          View all
-         </a>
-        </div>
-       </div>
-      </div>
-      <!-- Shopping Cart -->
-      <button class="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors relative" id="cartButton">
-       <i class="fas fa-shopping-cart">
+       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
        </i>
-       <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" id="cartCount">
-        7
-       </span>
-      </button>
-      <!-- User Avatar -->
-      <div class="relative">
-       <button class="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="userMenuButton">
-        <img alt="User Avatar" class="h-8 w-8 rounded-full" id="userAvatar" src="https://ui-avatars.com/api/?name=User&amp;background=random"/>
-       </button>
+       <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
       </div>
      </div>
-    </div>
-   </div>
-  </nav>
-  <!-- Main Content -->
-  <div class="flex pt-16 min-h-screen">
-   <!-- Sidebar -->
-   <div class="w-64 bg-white dark:bg-gray-800 shadow-lg fixed left-0 top-16 bottom-0 overflow-y-auto">
-    <div class="p-4">
-     <nav class="space-y-2">
-      <a class="sidebar-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="app.html">
-       <i class="fas fa-home sidebar-icon">
-       </i>
-       <span>
-        Feed
-       </span>
-       <span class="ml-auto bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-        2
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="messages.html">
-       <i class="fas fa-comments sidebar-icon">
-       </i>
-       <span>
-        Messages
-       </span>
-       <span class="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-        1
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="community.html">
-       <i class="fas fa-users sidebar-icon">
-       </i>
-       <span>
-        Community
-       </span>
-       <span class="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-        4
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="articles.html">
-       <i class="fas fa-newspaper sidebar-icon">
-       </i>
-       <span>
-        TCG Articles
-       </span>
-       <span class="ml-auto bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
-        5
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="blog.html">
-       <i class="fas fa-blog sidebar-icon">
-       </i>
-       <span>
-        Hatake Blog
-       </span>
-       <span class="ml-auto bg-pink-500 text-white text-xs px-2 py-1 rounded-full">
-        1
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="events.html">
-       <i class="fas fa-calendar sidebar-icon">
-       </i>
-       <span>
-        Events
-       </span>
-       <span class="ml-auto bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">
-        7
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="collection.html">
-       <i class="fas fa-layer-group sidebar-icon">
-       </i>
-       <span>
-        My Collection
-       </span>
-       <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-        8
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="deck-builder.html">
-       <i class="fas fa-hammer sidebar-icon">
-       </i>
-       <span>
-        Deck Builder
-       </span>
-       <span class="ml-auto bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">
-        6
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="shop.html">
-       <i class="fas fa-store sidebar-icon">
-       </i>
-       <span>
-        Shop
-       </span>
-       <span class="ml-auto bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-        10
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="marketplace.html">
-       <i class="fas fa-shopping-bag sidebar-icon">
-       </i>
-       <span>
-        Marketplace
-       </span>
-       <span class="ml-auto bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-        11
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="trades.html">
-       <i class="fas fa-exchange-alt sidebar-icon">
-       </i>
-       <span>
-        Trades
-       </span>
-       <span class="ml-auto bg-orange-600 text-white text-xs px-2 py-1 rounded-full">
-        12
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="profile.html">
-       <i class="fas fa-user sidebar-icon">
-       </i>
-       <span>
-        Profile
-       </span>
-       <span class="ml-auto bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
-        13
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="settings.html">
-       <i class="fas fa-cog sidebar-icon">
-       </i>
-       <span>
-        Settings
-       </span>
-       <span class="ml-auto bg-gray-500 text-white text-xs px-2 py-1 rounded-full">
-        14
-       </span>
-      </a>
-      <a class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" href="about.html">
-       <i class="fas fa-info-circle sidebar-icon">
-       </i>
-       <span>
-        About Us
-       </span>
-       <span class="ml-auto bg-yellow-600 text-white text-xs px-2 py-1 rounded-full">
-        15
-       </span>
-      </a>
-      <button class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors w-full text-left" id="logoutButton">
-       <i class="fas fa-sign-out-alt sidebar-icon">
-       </i>
-       <span>
-        Logout
-       </span>
-      </button>
-     </nav>
-    </div>
-    <!-- User Profile Section -->
-    <div class="p-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
-     <div class="flex items-center space-x-3">
-      <img alt="ernst" class="w-10 h-10 rounded-full" id="sidebarUserAvatar" src="https://ui-avatars.com/api/?name=ernst&amp;background=random"/>
-      <div class="flex-1 min-w-0">
-       <p class="text-sm font-medium text-gray-900 dark:text-white truncate" id="sidebarUserName">
-        ernst
-       </p>
-       <p class="text-xs text-gray-500 dark:text-gray-400" id="sidebarUserLevel">
-        Lvl 16
-       </p>
-      </div>
+     <div class="flex items-center space-x-5" id="user-actions">
+      <!-- This container is dynamically filled by auth.js -->
      </div>
-    </div>
-   </div>
-   <!-- Main Feed Area -->
-   <div class="flex-1 ml-64 p-6">
-    <div class="max-w-4xl mx-auto">
-     <!-- Post Creation -->
-     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-      <div class="flex items-start space-x-4">
-       <img alt="User Avatar" class="w-12 h-12 rounded-full" id="postUserAvatar" src="https://ui-avatars.com/api/?name=User&amp;background=random"/>
-       <div class="flex-1">
-        <div class="relative">
-         <textarea class="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200" id="postContent" placeholder="What's on your mind? Use @ to mention, # for tags, and [Card Name] for cards..." rows="3"></textarea>
-         <!-- Autocomplete Suggestions -->
-         <div class="absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg mt-1 hidden suggestions-container" id="suggestionsContainer">
-          <!-- Suggestions will be populated here -->
-         </div>
+    </header>
+    <main class="flex-1 overflow-y-auto p-6">
+     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hidden" id="create-post-section">
+        <textarea class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="postContent" placeholder="What's on your mind? Use @ to mention, # for tags, and [Card Name] for cards."></textarea>
+        <div class="relative" id="autocomplete-suggestions">
         </div>
-        <div class="flex items-center justify-between mt-4">
-         <div class="flex items-center space-x-4">
-          <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-500 transition-colors" id="attachImageButton">
+        <div class="flex justify-between items-center mt-2">
+         <div class="space-x-2">
+          <button class="text-blue-500 hover:text-blue-600" id="uploadMediaBtn">
            <i class="fas fa-image">
            </i>
-           <span class="text-sm">
-            Attach Image/Video (Optional)
-           </span>
           </button>
-          <input accept="image/*,video/*" class="hidden" id="mediaInput" type="file"/>
+          <button class="text-blue-500 hover:text-blue-600" id="createPollBtn">
+           <i class="fas fa-poll">
+           </i>
+          </button>
+          <input accept="image/*,video/*" class="hidden" id="postMediaUpload" type="file"/>
          </div>
-         <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors" id="postButton">
+         <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="submitPostBtn">
           Post
          </button>
         </div>
-       </div>
-      </div>
-     </div>
-     <!-- Feed Tabs -->
-     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md mb-6">
-      <div class="flex border-b border-gray-200 dark:border-gray-700">
-       <button class="feed-tab active flex-1 py-4 px-6 text-center font-medium transition-colors" data-feed-filter="all">
-        For You
-        <span class="ml-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-         23
-        </span>
-       </button>
-       <button class="feed-tab flex-1 py-4 px-6 text-center font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" data-feed-filter="friends">
-        Friends
-        <span class="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-         24
-        </span>
-       </button>
-       <button class="feed-tab flex-1 py-4 px-6 text-center font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" data-feed-filter="groups">
-        Groups
-        <span class="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-         25
-        </span>
-       </button>
-      </div>
-     </div>
-     <!-- Posts Container -->
-     <div id="postsContainer">
-      <!-- Posts will be loaded here -->
-     </div>
-    </div>
-   </div>
-   <!-- Right Sidebar -->
-   <div class="w-80 bg-white dark:bg-gray-800 shadow-lg fixed right-0 top-16 bottom-0 overflow-y-auto">
-    <!-- Who to Follow -->
-    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-     <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-      Who to Follow
-     </h3>
-     <div id="whoToFollowContainer">
-      <!-- Suggestions will be loaded here -->
-     </div>
-    </div>
-    <!-- Trending -->
-    <div class="p-6">
-     <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-      Trending
-     </h3>
-     <div id="trendingContainer">
-      <!-- Trending topics will be loaded here -->
-     </div>
-    </div>
-   </div>
-  </div>
-  <!-- Loading Overlay -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="loadingOverlay">
-   <div class="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center space-x-4">
-    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500">
-    </div>
-    <span class="text-gray-800 dark:text-white">
-     Loading...
-    </span>
-   </div>
-  </div>
-  <!-- Media Preview Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden" id="mediaPreviewModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg p-4 max-w-2xl max-h-full overflow-auto">
-    <div class="flex justify-between items-center mb-4">
-     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-      Media Preview
-     </h3>
-     <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="closeMediaPreview">
-      <i class="fas fa-times">
-      </i>
-     </button>
-    </div>
-    <div id="mediaPreviewContent">
-     <!-- Media preview will be shown here -->
-    </div>
-    <div class="flex justify-end space-x-3 mt-4">
-     <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" id="cancelMediaUpload">
-      Cancel
-     </button>
-     <button class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg" id="confirmMediaUpload">
-      Use This Media
-     </button>
-    </div>
-   </div>
-  </div>
-  <!-- Post Options Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="postOptionsModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-    <div class="p-6">
-     <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-      Post Options
-     </h3>
-     <div class="space-y-3">
-      <button class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="editPostOption">
-       <i class="fas fa-edit mr-3 text-blue-500">
-       </i>
-       Edit Post
-      </button>
-      <button class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-red-600" id="deletePostOption">
-       <i class="fas fa-trash mr-3">
-       </i>
-       Delete Post
-      </button>
-     </div>
-     <div class="flex justify-end space-x-3 mt-6">
-      <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" id="cancelPostOptions">
-       Cancel
-      </button>
-     </div>
-    </div>
-   </div>
-  </div>
-  <!-- Comment Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="commentModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
-    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-     <div class="flex justify-between items-center">
-      <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-       Comments
-      </h3>
-      <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="closeCommentModal">
-       <i class="fas fa-times">
-       </i>
-      </button>
-     </div>
-    </div>
-    <div class="p-6 max-h-96 overflow-y-auto" id="commentsContainer">
-     <!-- Comments will be loaded here -->
-    </div>
-    <div class="p-6 border-t border-gray-200 dark:border-gray-700">
-     <div class="flex space-x-3">
-      <img alt="User Avatar" class="w-8 h-8 rounded-full" src="https://ui-avatars.com/api/?name=User&amp;background=random"/>
-      <div class="flex-1">
-       <textarea class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200" id="commentInput" placeholder="Write a comment..." rows="2"></textarea>
-       <div class="flex justify-end mt-2">
-        <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" id="submitComment">
-         Comment
-        </button>
-       </div>
-      </div>
-     </div>
-    </div>
-   </div>
-  </div>
-  <!-- Likes Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="likesModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[60vh] overflow-hidden">
-    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-     <div class="flex justify-between items-center">
-      <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-       Likes
-      </h3>
-      <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="closeLikesModal">
-       <i class="fas fa-times">
-       </i>
-      </button>
-     </div>
-    </div>
-    <div class="p-6 max-h-80 overflow-y-auto" id="likesContainer">
-     <!-- Likes will be loaded here -->
-    </div>
-   </div>
-  </div>
-  <!-- User Profile Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="userProfileModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg">
-    <div class="p-6">
-     <div class="flex justify-between items-start mb-6">
-      <div class="flex items-center space-x-4">
-       <img alt="User Avatar" class="w-16 h-16 rounded-full" id="modalUserAvatar"/>
-       <div>
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-white" id="modalUserName">
-        </h3>
-        <p class="text-gray-600 dark:text-gray-400" id="modalUserHandle">
+        <p class="text-sm mt-2" id="postStatusMessage">
         </p>
        </div>
-      </div>
-      <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="closeUserProfileModal">
-       <i class="fas fa-times">
-       </i>
-      </button>
-     </div>
-     <div class="space-y-4">
-      <div class="flex justify-between">
-       <span class="text-gray-600 dark:text-gray-400">
-        Posts
-       </span>
-       <span class="font-semibold text-gray-800 dark:text-white" id="modalUserPosts">
-        0
-       </span>
-      </div>
-      <div class="flex justify-between">
-       <span class="text-gray-600 dark:text-gray-400">
-        Followers
-       </span>
-       <span class="font-semibold text-gray-800 dark:text-white" id="modalUserFollowers">
-        0
-       </span>
-      </div>
-      <div class="flex justify-between">
-       <span class="text-gray-600 dark:text-gray-400">
-        Following
-       </span>
-       <span class="font-semibold text-gray-800 dark:text-white" id="modalUserFollowing">
-        0
-       </span>
-      </div>
-     </div>
-     <div class="flex space-x-3 mt-6">
-      <button class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg font-medium transition-colors" id="followUserButton">
-       Follow
-      </button>
-      <button class="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 py-2 px-4 rounded-lg font-medium transition-colors" id="messageUserButton">
-       Message
-      </button>
-     </div>
-    </div>
-   </div>
-  </div>
-  <!-- Share Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="shareModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-    <div class="p-6">
-     <div class="flex justify-between items-center mb-6">
-      <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-       Share Post
-      </h3>
-      <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="closeShareModal">
-       <i class="fas fa-times">
-       </i>
-      </button>
-     </div>
-     <div class="space-y-3">
-      <button class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="shareToFeed">
-       <i class="fas fa-share text-blue-500">
-       </i>
-       <span class="text-gray-800 dark:text-white">
-        Share to Feed
-       </span>
-      </button>
-      <button class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="copyLink">
-       <i class="fas fa-link text-green-500">
-       </i>
-       <span class="text-gray-800 dark:text-white">
-        Copy Link
-       </span>
-      </button>
-      <button class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="shareToTwitter">
-       <i class="fab fa-twitter text-blue-400">
-       </i>
-       <span class="text-gray-800 dark:text-white">
-        Share to Twitter
-       </span>
-      </button>
-     </div>
-    </div>
-   </div>
-  </div>
-  <!-- Report Modal -->
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="reportModal">
-   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-    <div class="p-6">
-     <div class="flex justify-between items-center mb-6">
-      <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-       Report Post
-      </h3>
-      <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="closeReportModal">
-       <i class="fas fa-times">
-       </i>
-      </button>
-     </div>
-     <form id="reportForm">
-      <div class="space-y-4">
-       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-         Reason for reporting
-        </label>
-        <select class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" id="reportReason" required="">
-         <option value="">
-          Select a reason
-         </option>
-         <option value="spam">
-          Spam
-         </option>
-         <option value="harassment">
-          Harassment
-         </option>
-         <option value="inappropriate">
-          Inappropriate content
-         </option>
-         <option value="copyright">
-          Copyright violation
-         </option>
-         <option value="other">
-          Other
-         </option>
-        </select>
+       <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full" id="feed-tabs">
+        <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold active" data-feed-type="for-you">
+         For You
+        </button>
+        <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold" data-feed-type="friends">
+         Friends
+        </button>
+        <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold" data-feed-type="groups">
+         Groups
+        </button>
        </div>
-       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-         Additional details (optional)
-        </label>
-        <textarea class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200" id="reportDetails" placeholder="Provide more details about the issue..." rows="3"></textarea>
+       <div class="space-y-6" id="feed-container">
        </div>
       </div>
-      <div class="flex justify-end space-x-3 mt-6">
-       <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200" id="cancelReport" type="button">
-        Cancel
-       </button>
-       <button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors" type="submit">
-        Submit Report
-       </button>
+      <div class="hidden lg:block space-y-6">
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h3 class="font-bold text-lg mb-4">
+         Who to Follow
+        </h3>
+        <div class="space-y-4" id="who-to-follow-container">
+        </div>
+       </div>
+       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h3 class="font-bold text-lg mb-4">
+         Trending
+        </h3>
+        <div class="space-y-2" id="trending-hashtags-container">
+        </div>
+       </div>
       </div>
-     </form>
+     </div>
+    </main>
+   </div>
+  </div>
+  <div class="fixed bottom-5 right-5 z-50" id="toast-container">
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="pollModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Create Poll
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closePollModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="pollForm">
+     <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="pollQuestion">
+       Question
+      </label>
+      <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700" id="pollQuestion" required="" type="text"/>
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+       Attach Image/Video (Optional)
+      </label>
+      <div class="mt-1 flex items-center space-x-2">
+       <button class="text-blue-500 hover:text-blue-600 p-2 rounded-full bg-gray-100 dark:bg-gray-700" id="attachPollMediaBtn" type="button">
+        <i class="fas fa-image">
+        </i>
+       </button>
+       <span class="text-sm text-gray-500 dark:text-gray-400" id="pollMediaFileName">
+       </span>
+      </div>
+      <input accept="image/*,video/*" class="hidden" id="pollMediaUpload" type="file"/>
+     </div>
+     <div id="pollOptionsContainer">
+      <div>
+       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Option 1
+       </label>
+       <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
+      </div>
+      <div>
+       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Option 2
+       </label>
+       <input class="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md shadow-sm p-2 dark:bg-gray-700 poll-option" required="" type="text"/>
+      </div>
+     </div>
+     <button class="text-sm text-blue-500 hover:text-blue-600" id="addPollOptionBtn" type="button">
+      + Add Option
+     </button>
+     <div class="text-right pt-4">
+      <button class="px-6 py-2 bg-green-600 text-white font-semibold rounded-full hover:bg-green-700" type="submit">
+       Create Poll Post
+      </button>
+     </div>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-[1002] p-4" id="postDetailModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl flex flex-col h-[95vh]">
+    <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
+     <h2 class="text-xl font-bold" id="modal-post-header">
+      Post Details
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closePostDetailModal">
+      ×
+     </button>
+    </div>
+    <div class="flex-grow overflow-y-auto grid grid-cols-1 md:grid-cols-2" id="modal-grid-container">
+     <div class="bg-black flex items-center justify-center md:h-full" id="modal-post-media-container">
+     </div>
+     <div class="flex flex-col h-full">
+      <div class="p-4 space-y-3 flex-shrink-0">
+       <div class="flex items-center" id="modal-post-author">
+       </div>
+       <div class="whitespace-pre-wrap text-gray-800 dark:text-gray-200 text-sm max-h-48 overflow-y-auto" id="modal-post-content">
+       </div>
+       <div class="flex justify-start items-center text-gray-600 dark:text-gray-400 border-t dark:border-gray-700 pt-3" id="modal-post-actions">
+       </div>
+      </div>
+      <div class="flex-grow overflow-y-auto border-t dark:border-gray-700 p-4 space-y-4" id="modal-post-comments-list">
+      </div>
+      <div class="p-4 border-t dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900/50">
+       <form class="modal-comment-form flex">
+        <input class="w-full border border-gray-300 dark:border-gray-600 rounded-l-lg p-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a comment..." required="" type="text"/>
+        <button class="bg-blue-500 text-white px-4 rounded-r-lg font-semibold hover:bg-blue-600" type="submit">
+         Post
+        </button>
+       </form>
+      </div>
+     </div>
     </div>
    </div>
   </div>
@@ -697,41 +320,157 @@
   </script>
   <script src="js/mobile-navigation-fixed.js">
   </script>
-  <!-- Load the rebuilt card system first -->
-  <script type="module" src="js/card-system-rebuild.js"></script>
-  <!-- Then load the original app.js with card system integration -->
-  <script src="js/app.js"></script>
-  <script type="module" src="js/card-hover.js"></script>
+<script src="js/app.js"></script>
+<script type="module" src="js/card-hover.js"></script>
   <script src="js/darkmode.js">
   </script>
   <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
     <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
      <h2 class="text-xl font-bold">
-      Shopping Cart
+      Your Cart
      </h2>
-     <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" id="closeCartModal">
-      <i class="fas fa-times text-xl">
-      </i>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
+      ×
      </button>
     </div>
-    <div class="flex-1 overflow-y-auto p-4" id="cartItems">
-     <!-- Cart items will be populated here -->
+    <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+     <p class="text-center text-gray-500 dark:text-gray-400">
+      Your cart is empty.
+     </p>
     </div>
-    <div class="border-t dark:border-gray-700 p-4">
-     <div class="flex justify-between items-center mb-4">
-      <span class="text-lg font-semibold">
-       Total:
+    <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+     <div class="flex justify-between items-center font-bold text-lg">
+      <span>
+       Subtotal
       </span>
-      <span class="text-lg font-bold text-blue-600" id="cartTotal">
+      <span id="cart-subtotal">
        $0.00
       </span>
      </div>
-     <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors" id="checkoutButton">
+     <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      Shipping &amp; taxes calculated at checkout.
+     </p>
+     <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
       Proceed to Checkout
      </button>
     </div>
    </div>
   </div>
+  <script src="js/cart.js">
+  </script>
+  <script>
+   const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+if (sidebarToggle) {
+sidebarToggle.addEventListener('click', () => {
+if (sidebar.classList.contains('-translate-x-full')) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                    sidebarOverlay.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                    sidebarOverlay.classList.add('hidden');
+                }
+});
+}
+
+if (sidebarOverlay) {
+sidebarOverlay.addEventListener('click', () => {
+sidebar.classList.add('-translate-x-full');
+sidebarOverlay.classList.add('hidden');
+});
+}
+  </script>
+  <script src="js/messenger.js">
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[1001]" id="new-conversation-modal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-4">
+     Start a new conversation
+    </h2>
+    <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 mb-4" id="user-search-input" placeholder="Search for a user by handle..." type="text"/>
+    <div class="max-h-60 overflow-y-auto" id="user-search-results">
+    </div>
+    <button class="mt-4 w-full bg-gray-200 dark:bg-gray-700 py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 close-modal-btn" id="close-modal-btn">
+     Cancel
+    </button>
+   </div>
+  </div>
+  <script>
+   // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+  </script>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Login
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeLoginModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="loginForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="loginPassword" placeholder="Password" required="" type="password"/>
+     <p class="text-red-500 text-sm hidden" id="login-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Login
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleLoginButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Sign in with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
+   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+    <div class="flex justify-between items-center">
+     <h2 class="text-xl font-bold">
+      Register
+     </h2>
+     <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeRegisterModal">
+      ×
+     </button>
+    </div>
+    <form class="mt-4 space-y-4" id="registerForm">
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerEmail" placeholder="Email" required="" type="email"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerPassword" placeholder="Password" required="" type="password"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCity" placeholder="City" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerCountry" placeholder="Country" type="text"/>
+     <input class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" id="registerFavoriteTcg" placeholder="Favorite TCG" type="text"/>
+     <p class="text-red-500 text-sm hidden" id="register-error-message">
+     </p>
+     <button class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700" type="submit">
+      Register
+     </button>
+     <button class="w-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-md border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center" id="googleRegisterButton" type="button">
+      <img alt="Google icon" class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg"/>
+      Register with Google
+     </button>
+    </form>
+   </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js">
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
+  <script src="/js/tour.js" type="module">
+  </script>
  </body>
 </html>
