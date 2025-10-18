@@ -173,7 +173,7 @@ if (card.game === 'optcg' && card.optcg_details) {
         });
         container.appendChild(grid);
     },
-    renderListView: (cards, activeTab, isBulkMode) => {
+   renderListView: (cards, activeTab, isBulkMode) => {
         const container = document.getElementById('collection-display');
         if (!container) return;
         if (cards.length === 0) {
@@ -187,7 +187,7 @@ if (card.game === 'optcg' && card.optcg_details) {
                         ${isBulkMode ? '<th class="px-4 py-3"></th>' : ''}
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Set</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Qty</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider">Qty</th> {/* Centered Qty Header */}
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Condition</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Value</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
@@ -196,32 +196,48 @@ if (card.game === 'optcg' && card.optcg_details) {
                 <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                     ${cards.map(card => {
                         const isSelected = Collection.getState().bulkEdit.selected.has(card.id);
-// Use foil price if card is foil, otherwise use normal price
-const priceToUse = card.is_foil && card.prices?.usd_foil ? 
-    { usd: card.prices.usd_foil } : 
-    { usd: card.prices?.usd || 0 };
-const marketValue = Currency.convertAndFormat(priceToUse, card);                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
-                            ? `<span class="block text-green-500 font-semibold text-xs">FOR SALE: $${card.sale_price.toFixed(2)}</span>`
+                        const priceToUse = card.is_foil && card.prices?.usd_foil ?
+                            { usd: card.prices.usd_foil } :
+                            { usd: card.prices?.usd || 0 };
+                        const marketValue = Currency.convertAndFormat(priceToUse, card);
+                        // Correctly format sale price using currency module
+                        const saleInfo = (card.for_sale && typeof card.sale_price === 'number')
+                            ? `<span class="block text-green-500 font-semibold text-xs mt-1">FOR SALE: ${Currency.formatPrice(card.sale_price, card.sale_currency)}</span>`
                             : '';
+
+                        // *** DEFINE OPTCG INFO ***
+                        let optcgInfo = '';
+                        if (card.game === 'optcg' && card.optcg_details) {
+                            const details = card.optcg_details;
+                            optcgInfo = `
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                    C:${details.cost ?? '-'} | P:${details.power ?? '-'} | ${details.color || ''} | ${details.attribute || ''}
+                                </p>`;
+                        }
+                        // *** END OPTCG INFO DEFINITION ***
+
                         return `
                         <tr class="card-container hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}" data-id="${card.id}">
-                            ${isBulkMode ? `<td class="px-4 py-3"><input type="checkbox" class="bulk-select-checkbox" ${isSelected ? 'checked' : ''}></td>` : ''}
-            <td class="px-4 py-3 whitespace-nowrap">
-                <div class="flex items-center">
-                    <img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="">
-                    <div> {/* Name and info wrapped */}
-                        ${card.name}
-                        ${optcgListInfo} {/* <-- Correctly placed here */}
-                    </div>
-                </div>
-            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm">${card.set_name}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm">${card.quantity}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm">${card.condition}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-mono">${marketValue}${saleInfo}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                            ${isBulkMode ? `<td class="px-4 py-3 align-middle"><input type="checkbox" class="bulk-select-checkbox" ${isSelected ? 'checked' : ''}></td>` : ''}
+                            <td class="px-4 py-3 whitespace-nowrap align-middle">
+                                <div class="flex items-center">
+                                    <img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="${card.name}">
+                                    <div class="min-w-0"> {/* Helps with truncation */}
+                                        <p class="font-medium truncate">${card.name}</p>
+                                        ${optcgInfo} {/* <-- *** USE THE CORRECT VARIABLE HERE *** */}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm align-middle">${card.set_name}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-center align-middle">${card.quantity}</td> {/* Centered Quantity */}
+                            <td class="px-4 py-3 whitespace-nowrap text-sm align-middle">${card.condition}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-mono align-middle">
+                                ${marketValue}
+                                ${saleInfo}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium align-middle">
                                 <div class="card-actions flex items-center space-x-3">
-                                    ${card.for_sale 
+                                    ${card.for_sale
                                         ? `<button data-action="update-price" title="Update Price" class="text-green-600 hover:text-green-800"><i class="fas fa-tag"></i></button>
                                            <button data-action="remove-sale" title="Remove from Sale" class="text-orange-600 hover:text-orange-800"><i class="fas fa-store-slash"></i></button>`
                                         : `<button data-action="list-sale" title="List for Sale" class="text-green-600 hover:text-green-800"><i class="fas fa-dollar-sign"></i></button>`
@@ -237,8 +253,7 @@ const marketValue = Currency.convertAndFormat(priceToUse, card);                
             </table>
         `;
         container.innerHTML = tableHtml;
-    },
-    updateStats: (stats, activeTab) => {
+    }, // End of renderListView updateStats: (stats, activeTab) => {
         const statsToUpdate = {
             'stats-total-cards': stats.totalCards,
             'stats-unique-cards': stats.uniqueCards,
