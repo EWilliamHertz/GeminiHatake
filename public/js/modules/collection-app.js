@@ -1113,10 +1113,14 @@ function renderSearchResults(cards) {
             .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
             .replace(/</g, '&lt;').replace(/>/g, '&gt;');
             // --- ADD OPTCG SPECIFIC DISPLAY ---
-let optcgListInfo = '';
-if (card.game === 'optcg' && card.optcg_details) {
+let optcgInfo = '';
+if (card.game === 'optcg' && card.optcg_details) { // <--- CORRECTED LINE
+    // You can customize how you want to display this info
     const details = card.optcg_details;
-    optcgListInfo = `<span class="block text-xs text-gray-400">C:${details.cost || '-'} P:${details.power || '-'} ${details.color || ''}</span>`;
+    optcgInfo = `
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+            C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
+        </p>`;
 }
 // --- END OPTCG SPECIFIC DISPLAY ---
         return `

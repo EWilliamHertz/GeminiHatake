@@ -181,7 +181,7 @@ export async function addMultipleCards(cardVersions, customImageFile) {
             quantity: cardData.quantity || 1,
             prices: cardData.prices || {},
             priceLastUpdated: cardData.priceLastUpdated || new Date().toISOString(), // <-- FIX: Added comma
-            game: cardData.game
+           game: cardData.game
         };
 
         const matchingCard = findMatchingCard(cleanCardData);

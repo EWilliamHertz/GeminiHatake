@@ -241,7 +241,6 @@ function cleanData(card, game) {
              };
         }
 
-
         // --- Game-Specific Fields (from ScryDex raw data if not OPTCG) ---
         if (game !== 'optcg') {
             switch (game) {
