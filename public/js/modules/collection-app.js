@@ -125,13 +125,24 @@ const UI = {
                 : '';
 
            const foilClass = card.is_foil ? 'foil-effect' : '';
-// Use foil price if card is foil, otherwise use normal price
-const priceToUse = card.is_foil && card.prices?.usd_foil ? 
-    { usd: card.prices.usd_foil } : 
-    { usd: card.prices?.usd || 0 };
-const priceDisplay = Currency.convertAndFormat(priceToUse, card);
-const foilPriceIndicator = card.is_foil && (card.prices?.usd_foil || card.prices?.eur_foil) ? '<span class="text-xs text-blue-400"> (Foil)</span>' : '';
-const cardHtml = `
+            // Use foil price if card is foil, otherwise use normal price
+            const priceToUse = card.is_foil && card.prices?.usd_foil ? 
+                { usd: card.prices.usd_foil } : 
+                { usd: card.prices?.usd || 0 };
+            const priceDisplay = Currency.convertAndFormat(priceToUse, card);
+            const foilPriceIndicator = card.is_foil && (card.prices?.usd_foil || card.prices?.eur_foil) ? '<span class="text-xs text-blue-400"> (Foil)</span>' : '';
+            
+            // --- ADD OPTCG SPECIFIC DISPLAY ---
+            let optcgInfo = '';
+            if (card.game === 'optcg' && card.optcg_details) {
+                const details = card.optcg_details;
+                optcgInfo = `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                    C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
+                </p>`;
+            }
+            // --- END OPTCG SPECIFIC DISPLAY ---
+            
+            const cardHtml = `
     <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
         <div class="relative ${foilClass}">
             ${forSaleIndicator}
@@ -148,24 +159,13 @@ const cardHtml = `
                 <button data-action="delete" class="p-2 bg-red-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-trash"></i></button>
             </div>
         </div>
-        // --- ADD OPTCG SPECIFIC DISPLAY ---
-let optcgInfo = '';
-if (card.game === 'optcg' && card.optcg_details) {
-    // You can customize how you want to display this info
-    const details = card.optcg_details;
-    optcgInfo = `
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-            C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
-        </p>`;
-}
-// --- END OPTCG SPECIFIC DISPLAY ---
         <div class="p-2 text-xs flex-grow flex flex-col justify-between">
-        <div>
-            <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
-            <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
-            ${optcgInfo} {/* <-- Correctly placed here */}
-        </div>
-        <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${priceDisplay}${foilPriceIndicator}</p>
+            <div>
+                <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
+                <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
+                ${optcgInfo}
+            </div>
+            <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${priceDisplay}${foilPriceIndicator}</p>
         </div>
     </div>
 `;
@@ -253,7 +253,8 @@ if (card.game === 'optcg' && card.optcg_details) {
             </table>
         `;
         container.innerHTML = tableHtml;
-    }, // End of renderListView updateStats: (stats, activeTab) => {
+    },
+    updateStats: (stats, activeTab) => {
         const statsToUpdate = {
             'stats-total-cards': stats.totalCards,
             'stats-unique-cards': stats.uniqueCards,
@@ -1127,23 +1128,24 @@ function renderSearchResults(cards) {
         const escapedCardData = jsonString
             .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
             .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            // --- ADD OPTCG SPECIFIC DISPLAY ---
-let optcgInfo = '';
-if (card.game === 'optcg' && card.optcg_details) { // <--- CORRECTED LINE
-    // You can customize how you want to display this info
-    const details = card.optcg_details;
-    optcgInfo = `
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-            C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
-        </p>`;
-}
-// --- END OPTCG SPECIFIC DISPLAY ---
+        
+        // --- ADD OPTCG SPECIFIC DISPLAY ---
+        let optcgInfo = '';
+        if (card.game === 'optcg' && card.optcg_details) {
+            const details = card.optcg_details;
+            optcgInfo = `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
+            </p>`;
+        }
+        // --- END OPTCG SPECIFIC DISPLAY ---
+        
         return `
             <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>
                 <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
                 <div class="flex-grow">
                     <p class="font-semibold">${card.name} (${card.collector_number || 'N/A'})</p>
                     <p class="text-sm text-gray-500">${card.set_name}</p>
+                    ${optcgInfo}
                 </div>
                 <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
             </div>`;
