@@ -1,11 +1,12 @@
 /**
- * Card Search Module for Multi-Game Support
+ * Card Search Module for Multi-Game Support - WITH OPTCG
  * Integrates with scrydex for Lorcana, Pokemon, Gundam, and Magic: The Gathering
- * Search order: lorcana -> pokemon -> gundam -> mtg
+ * Integrates with OPTCGAPI for One Piece TCG
+ * Search order: lorcana -> pokemon -> gundam -> optcg -> mtg
  */
 
 /**
- * Search cards across multiple games using scrydex
+ * Search cards across multiple games using scrydex and OPTCGAPI
  * @param {string} query - The card name to search for
  * @param {number} limit - Maximum number of results per game
  * @returns {Promise<Array>} Array of card objects with game information
@@ -15,38 +16,62 @@ export async function searchCardsMultiGame(query, limit = 5) {
         return [];
     }
 
-    const games = ['lorcana', 'pokemon', 'gundam', 'mtg'];
+    // Updated games list to include OPTCG
+    const games = ['lorcana', 'pokemon', 'gundam', 'optcg', 'mtg'];
     const allResults = [];
 
     for (const game of games) {
         try {
             console.log(`[CardSearch] Searching ${game} for: "${query}"`);
             
-            // Use the searchScryDex function directly
-            const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-            const result = await searchScryDexFunction({ query: query, game: game });
-            
-            let searchResults = [];
-            if (result && result.data) {
-                if (Array.isArray(result.data.data)) {
-                    searchResults = result.data.data;
-                } else if (Array.isArray(result.data)) {
-                    searchResults = result.data;
-                } else if (result.data.success && Array.isArray(result.data.cards)) {
-                    searchResults = result.data.cards;
-                }
-            }
-            
-            if (searchResults.length > 0) {
-                // Add game information to each card and limit results
-                const gameResults = searchResults.slice(0, limit).map(card => ({
-                    ...card,
-                    game: game,
-                    searchSource: 'scrydex'
-                }));
+            if (game === 'optcg') {
+                // Use the new searchOPTCG function for One Piece cards
+                const searchOPTCGFunction = firebase.functions().httpsCallable('searchOPTCG');
+                const result = await searchOPTCGFunction({ query: query });
                 
-                allResults.push(...gameResults);
-                console.log(`[CardSearch] Found ${gameResults.length} results in ${game}`);
+                let searchResults = [];
+                if (result && result.data && result.data.success) {
+                    searchResults = result.data.data || [];
+                }
+                
+                if (searchResults.length > 0) {
+                    // Add game information to each card and limit results
+                    const gameResults = searchResults.slice(0, limit).map(card => ({
+                        ...card,
+                        game: 'optcg',
+                        searchSource: 'optcgapi'
+                    }));
+                    
+                    allResults.push(...gameResults);
+                    console.log(`[CardSearch] Found ${gameResults.length} results in ${game}`);
+                }
+            } else {
+                // Use the searchScryDex function for other games
+                const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+                const result = await searchScryDexFunction({ query: query, game: game });
+                
+                let searchResults = [];
+                if (result && result.data) {
+                    if (Array.isArray(result.data.data)) {
+                        searchResults = result.data.data;
+                    } else if (Array.isArray(result.data)) {
+                        searchResults = result.data;
+                    } else if (result.data.success && Array.isArray(result.data.cards)) {
+                        searchResults = result.data.cards;
+                    }
+                }
+                
+                if (searchResults.length > 0) {
+                    // Add game information to each card and limit results
+                    const gameResults = searchResults.slice(0, limit).map(card => ({
+                        ...card,
+                        game: game,
+                        searchSource: 'scrydex'
+                    }));
+                    
+                    allResults.push(...gameResults);
+                    console.log(`[CardSearch] Found ${gameResults.length} results in ${game}`);
+                }
             }
         } catch (error) {
             console.error(`[CardSearch] Error searching ${game}:`, error);
@@ -64,8 +89,8 @@ export async function searchCardsMultiGame(query, limit = 5) {
         if (aName === queryLower && bName !== queryLower) return -1;
         if (bName === queryLower && aName !== queryLower) return 1;
         
-        // Then by game priority (lorcana, pokemon, gundam, mtg)
-        const gameOrder = { lorcana: 0, pokemon: 1, gundam: 2, mtg: 3 };
+        // Then by game priority (lorcana, pokemon, gundam, optcg, mtg)
+        const gameOrder = { lorcana: 0, pokemon: 1, gundam: 2, optcg: 3, mtg: 4 };
         const aGamePriority = gameOrder[a.game] || 999;
         const bGamePriority = gameOrder[b.game] || 999;
         
@@ -119,7 +144,8 @@ export async function createCardAutocomplete(query, suggestionsContainer, onSele
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <div class="font-medium">${card.name}</div>
-<div class="text-sm text-gray-500 dark:text-gray-400">${card.set_name || (card.expansion && card.expansion.name) || 'Unknown Set'}</div>                    </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${card.set_name || (card.expansion && card.expansion.name) || 'Unknown Set'}</div>
+                    </div>
                     <div class="ml-2">
                         ${gameBadge}
                     </div>
@@ -152,6 +178,7 @@ function getGameBadge(game) {
         'lorcana': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">Lorcana</span>',
         'pokemon': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">Pokémon</span>',
         'gundam': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">Gundam</span>',
+        'optcg': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100">One Piece</span>',
         'mtg': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">Magic</span>'
     };
     
@@ -168,6 +195,7 @@ export function getGameDisplayName(game) {
         'lorcana': 'Lorcana',
         'pokemon': 'Pokémon',
         'gundam': 'Gundam',
+        'optcg': 'One Piece',
         'mtg': 'Magic: The Gathering'
     };
     
@@ -185,29 +213,49 @@ export async function searchSpecificGame(query, game, limit = 10) {
     try {
         console.log(`[CardSearch] Searching specific game ${game} for: "${query}"`);
         
-        const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
-        const result = await searchScryDexFunction({ query: query, game: game });
-        
-        let searchResults = [];
-        if (result && result.data) {
-            if (Array.isArray(result.data.data)) {
-                searchResults = result.data.data;
-            } else if (Array.isArray(result.data)) {
-                searchResults = result.data;
-            } else if (result.data.success && Array.isArray(result.data.cards)) {
-                searchResults = result.data.cards;
+        if (game === 'optcg') {
+            // Use searchOPTCG for One Piece
+            const searchOPTCGFunction = firebase.functions().httpsCallable('searchOPTCG');
+            const result = await searchOPTCGFunction({ query: query });
+            
+            let searchResults = [];
+            if (result && result.data && result.data.success) {
+                searchResults = result.data.data || [];
             }
+            
+            // Add game information and limit results
+            return searchResults.slice(0, limit).map(card => ({
+                ...card,
+                game: 'optcg',
+                searchSource: 'optcgapi'
+            }));
+        } else {
+            // Use searchScryDex for other games
+            const searchScryDexFunction = firebase.functions().httpsCallable('searchScryDex');
+            const result = await searchScryDexFunction({ query: query, game: game });
+            
+            let searchResults = [];
+            if (result && result.data) {
+                if (Array.isArray(result.data.data)) {
+                    searchResults = result.data.data;
+                } else if (Array.isArray(result.data)) {
+                    searchResults = result.data;
+                } else if (result.data.success && Array.isArray(result.data.cards)) {
+                    searchResults = result.data.cards;
+                }
+            }
+            
+            // Add game information and limit results
+            return searchResults.slice(0, limit).map(card => ({
+                ...card,
+                game: game,
+                searchSource: 'scrydex'
+            }));
         }
-        
-        // Add game information and limit results
-        return searchResults.slice(0, limit).map(card => ({
-            ...card,
-            game: game,
-            searchSource: 'scrydex'
-        }));
         
     } catch (error) {
         console.error(`[CardSearch] Error searching ${game}:`, error);
         return [];
     }
 }
+

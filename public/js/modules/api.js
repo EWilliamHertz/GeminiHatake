@@ -275,6 +275,16 @@ function cleanScryDexData(card, game) {
                 cleaned.color = card.color || '';
                 cleaned.card_type = card.card_type || '';
                 break;
+            case 'optcg':
+                cleaned.cost = card.cost || card.card_cost || 0;
+                cleaned.color = card.color || card.card_color || '';
+                cleaned.type = card.type || card.card_type || '';
+                cleaned.power = card.power || card.card_power || null;
+                cleaned.life = card.life || null;
+                cleaned.attribute = card.attribute || '';
+                cleaned.counter = card.counter || card.counter_amount || 0;
+                cleaned.sub_types = card.sub_types || '';
+                break;
         }
         return cleaned;
 

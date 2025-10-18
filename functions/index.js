@@ -341,6 +341,173 @@ exports.collectCardPriceSnapshot = functions.https.onCall(async (data, context) 
 /**
  * Retrieves historical price data for a card from Firestore.
  */
+
+// =================================================================================================
+// OPTCG (ONE PIECE TCG) SEARCH FUNCTIONS
+// =================================================================================================
+
+// Cache for storing all OPTCG cards (to avoid repeated API calls)
+let optcgCardsCache = null;
+let optcgCacheTimestamp = null;
+const OPTCG_CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+/**
+ * Fetch all OPTCG cards from all sets
+ * This is necessary because OPTCGAPI doesn't have a search endpoint
+ * NO API KEY REQUIRED - OPTCGAPI.com is free and open
+ */
+async function fetchAllOPTCGCards() {
+    try {
+        // Check if cache is still valid
+        if (optcgCardsCache && optcgCacheTimestamp && (Date.now() - optcgCacheTimestamp < OPTCG_CACHE_DURATION_MS)) {
+            console.log('Using cached OPTCG cards');
+            return optcgCardsCache;
+        }
+
+        console.log('Fetching fresh OPTCG card data...');
+        
+        // Get all sets
+        const setsResponse = await axios.get('https://optcgapi.com/api/allSets/');
+        const sets = setsResponse.data;
+        
+        // Get all starter decks
+        const decksResponse = await axios.get('https://optcgapi.com/api/allDecks/');
+        const decks = decksResponse.data;
+        
+        let allCards = [];
+        
+        // Fetch cards from all sets
+        for (const set of sets) {
+            try {
+                const setCardsResponse = await axios.get(`https://optcgapi.com/api/sets/${set.set_id}/`);
+                const setCards = setCardsResponse.data;
+                
+                // Add set information to each card
+                const cardsWithSetInfo = setCards.map(card => ({
+                    ...card,
+                    source: 'set',
+                    set_info: set
+                }));
+                
+                allCards = allCards.concat(cardsWithSetInfo);
+            } catch (error) {
+                console.error(`Error fetching set ${set.set_id}:`, error.message);
+            }
+        }
+        
+        // Fetch cards from all starter decks
+        for (const deck of decks) {
+            try {
+                const deckCardsResponse = await axios.get(`https://optcgapi.com/api/decks/${deck.st_id}/`);
+                const deckCards = deckCardsResponse.data;
+                
+                // Add deck information to each card
+                const cardsWithDeckInfo = deckCards.map(card => ({
+                    ...card,
+                    source: 'deck',
+                    deck_info: deck
+                }));
+                
+                allCards = allCards.concat(cardsWithDeckInfo);
+            } catch (error) {
+                console.error(`Error fetching deck ${deck.st_id}:`, error.message);
+            }
+        }
+        
+        // Update cache
+        optcgCardsCache = allCards;
+        optcgCacheTimestamp = Date.now();
+        
+        console.log(`Cached ${allCards.length} OPTCG cards`);
+        return allCards;
+        
+    } catch (error) {
+        console.error('Error fetching OPTCG cards:', error);
+        throw error;
+    }
+}
+
+/**
+ * Search OPTCG cards by name
+ * Compatible with searchScryDex function signature
+ * NO API KEY REQUIRED - OPTCGAPI.com is completely free and open
+ */
+exports.searchOPTCG = functions.https.onCall(async (data, context) => {
+    console.log("--- OPTCG search function invoked ---");
+    
+    try {
+        const { query } = data;
+        
+        if (!query || query.length < 2) {
+            return {
+                success: false,
+                error: 'Query must be at least 2 characters'
+            };
+        }
+        
+        // Fetch all cards (will use cache if available)
+        const allCards = await fetchAllOPTCGCards();
+        
+        // Search cards by name (case-insensitive)
+        const queryLower = query.toLowerCase();
+        const matchedCards = allCards.filter(card => {
+            const cardName = (card.card_name || '').toLowerCase();
+            return cardName.includes(queryLower);
+        });
+        
+        // Sort results: exact matches first, then partial matches
+        matchedCards.sort((a, b) => {
+            const aName = (a.card_name || '').toLowerCase();
+            const bName = (b.card_name || '').toLowerCase();
+            
+            const aExact = aName === queryLower;
+            const bExact = bName === queryLower;
+            
+            if (aExact && !bExact) return -1;
+            if (bExact && !aExact) return 1;
+            
+            return aName.localeCompare(bName);
+        });
+        
+        // Transform to match expected format (similar to ScryDex response)
+        const formattedCards = matchedCards.map(card => ({
+            name: card.card_name,
+            set_name: card.set_name,
+            card_id: card.card_set_id,
+            rarity: card.rarity,
+            color: card.card_color,
+            type: card.card_type,
+            cost: card.card_cost,
+            power: card.card_power,
+            life: card.life,
+            attribute: card.attribute,
+            text: card.card_text,
+            sub_types: card.sub_types,
+            counter: card.counter_amount,
+            image: card.card_image,
+            market_price: card.market_price,
+            inventory_price: card.inventory_price,
+            game: 'optcg'
+        }));
+        
+        console.log(`Successfully found ${formattedCards.length} OPTCG cards for '${query}'.`);
+        
+        return {
+            success: true,
+            data: formattedCards,
+            count: formattedCards.length
+        };
+        
+    } catch (error) {
+        console.error('Error in searchOPTCG:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+});
+
+
 exports.getCardPriceHistory = functions.https.onCall(async (data, context) => {
     console.log("--- getCardPriceHistory function invoked ---");
     const { cardId, days = 30, variant = 'default', condition = 'NM' } = data;

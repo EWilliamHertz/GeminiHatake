@@ -1771,7 +1771,13 @@ async function handleCSVUpload() {
     }
 }
 
-async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an argument
+// In js/modules/collection-app.js
+// REPLACE the entire openCsvReviewModal function with this one.
+
+// In js/modules/collection-app.js
+// REPLACE the entire openCsvReviewModal function with this simplified version.
+
+async function openCsvReviewModal(cards, game) {
     const modal = document.getElementById('csv-review-modal');
     const tableBody = document.getElementById('csv-review-table-body') || document.querySelector('#csv-review-modal tbody');
     if (!modal || !tableBody) {
@@ -1779,11 +1785,9 @@ async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an
         return;
     }
 
-    // Clear existing content
     tableBody.innerHTML = '';
     let reviewData = [];
 
-    // Add rows for each card
     cards.forEach((card, index) => {
         const row = document.createElement('tr');
         row.dataset.index = index;
@@ -1809,7 +1813,6 @@ async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an
         reviewData.push({ raw: card, enriched: null, status: 'pending' });
     });
 
-    // Process cards to validate them
     for (let i = 0; i < reviewData.length; i++) {
         if (reviewData[i].status === 'removed') continue;
 
@@ -1818,73 +1821,66 @@ async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an
 
         const statusCell = row.querySelector('.status-cell');
 
-      try {
-    // First, try with set and collector number if available
-    let response = null;
-    
-    if (reviewData[i].raw.set && reviewData[i].raw.collector_number) {
-        const specificQuery = `${reviewData[i].raw.name} set:${reviewData[i].raw.set.toLowerCase()} cn:${reviewData[i].raw.collector_number}`;
-        response = await API.searchCards(specificQuery, game);
-    }
-    
-    // If no results, try with just set
-    if (!response || !response.cards || response.cards.length === 0) {
-        if (reviewData[i].raw.set) {
-            const setQuery = `${reviewData[i].raw.name} set:${reviewData[i].raw.set.toLowerCase()}`;
-            response = await API.searchCards(setQuery, game);
+        try {
+            // --- THIS IS THE NEW, SIMPLIFIED FIX ---
+            let cardName = reviewData[i].raw.name;
+
+            // If the card is a double-faced card (contains "//"),
+            // search for only the front face name.
+            if (cardName.includes('//')) {
+                cardName = cardName.split('//')[0].trim();
+            }
+            
+            // We now use the simplified name for the search.
+            // No more special quotes or syntax.
+            const response = await API.searchCards(cardName, game);
+            // --- END OF FIX ---
+
+            if (response && response.cards && response.cards.length > 0) {
+                let bestMatch = response.cards[0];
+                const csvSet = reviewData[i].raw.set_name;
+
+                if (csvSet && csvSet !== 'Any') {
+                    const setMatch = response.cards.find(c => 
+                        c.set.toLowerCase() === csvSet.toLowerCase() || 
+                        c.set_name.toLowerCase() === csvSet.toLowerCase()
+                    );
+                    if (setMatch) {
+                        bestMatch = setMatch;
+                    }
+                }
+
+                reviewData[i].enriched = {
+                    ...bestMatch,
+                    quantity: reviewData[i].raw.quantity,
+                    condition: reviewData[i].raw.condition,
+                    language: reviewData[i].raw.language,
+                    is_foil: reviewData[i].raw.is_foil,
+                    addedAt: new Date()
+                };
+                reviewData[i].status = 'found';
+                statusCell.innerHTML = '<i class="fas fa-check-circle text-green-500"></i><span class="ml-2 text-green-600">Found</span>';
+            } else {
+                throw new Error(`Card not found for search term: "${cardName}"`);
+            }
+        } catch (error) {
+            reviewData[i].status = 'error';
+            statusCell.innerHTML = `<i class="fas fa-exclamation-triangle text-red-500"></i><span class="ml-2 text-red-600" title="${error.message}">Not found</span>`;
         }
-    }
-    
-    // If still no results, try name with quotes
-    if (!response || !response.cards || response.cards.length === 0) {
-        const quotedQuery = `"${reviewData[i].raw.name}"`;
-        response = await API.searchCards(quotedQuery, game);
-    }
-
-    // Final fallback: name only without quotes
-    if (!response || !response.cards || response.cards.length === 0) {
-        console.warn(`Specific queries failed for "${reviewData[i].raw.name}". Falling back to name-only search.`);
-        response = await API.searchCards(reviewData[i].raw.name, game);
-    }
-
-    if (response && response.cards && response.cards.length > 0) {
-        // Merge CSV data with the first found card data
-        reviewData[i].enriched = {
-            ...response.cards[0],
-            quantity: reviewData[i].raw.quantity,
-            condition: reviewData[i].raw.condition,
-            language: reviewData[i].raw.language,
-            is_foil: reviewData[i].raw.is_foil,
-            addedAt: new Date()
-        };
-        reviewData[i].status = 'found';
-        statusCell.innerHTML = '<i class="fas fa-check-circle text-green-500"></i><span class="ml-2 text-green-600">Found</span>';
-    } else {
-        // If even the simple query fails, then it's not found
-        throw new Error("Card not found");
-    }
-} catch (error) {
-    reviewData[i].status = 'error';
-    statusCell.innerHTML = '<i class="fas fa-exclamation-triangle text-red-500"></i><span class="ml-2 text-red-600">Not found</span>';
-}
-        // Small delay to prevent overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Set up the finalize button
     const finalizeBtn = document.getElementById('finalize-csv-import-btn');
     if (finalizeBtn) {
         finalizeBtn.onclick = () => finalizeCsvImport(reviewData);
     }
 
-    // Set up remove buttons
     tableBody.addEventListener('click', (e) => {
         if (e.target.closest('.remove-row-btn')) {
             const index = parseInt(e.target.closest('.remove-row-btn').dataset.index);
-            const row = tableBody.querySelector(`tr[data-index="${index}"]`);
-            if (row) {
-                row.remove();
-                // Mark as removed in reviewData
+            const rowToRemove = tableBody.querySelector(`tr[data-index="${index}"]`);
+            if (rowToRemove) {
+                rowToRemove.remove();
                 if (reviewData[index]) {
                     reviewData[index].status = 'removed';
                 }
@@ -1892,6 +1888,8 @@ async function openCsvReviewModal(cards, game) { // <-- FIX: Accept 'game' as an
         }
     });
 }
+
+
 async function finalizeCsvImport(reviewData) {
     const finalizeBtn = document.getElementById('finalize-csv-import-btn');
     
