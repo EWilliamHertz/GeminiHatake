@@ -148,12 +148,24 @@ const cardHtml = `
                 <button data-action="delete" class="p-2 bg-red-600 bg-opacity-80 rounded-full text-white hover:bg-opacity-100"><i class="fas fa-trash"></i></button>
             </div>
         </div>
+        // --- ADD OPTCG SPECIFIC DISPLAY ---
+let optcgInfo = '';
+if (card.game === 'optcg' && card.optcg_details) {
+    // You can customize how you want to display this info
+    const details = card.optcg_details;
+    optcgInfo = `
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+            C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
+        </p>`;
+}
+// --- END OPTCG SPECIFIC DISPLAY ---
         <div class="p-2 text-xs flex-grow flex flex-col justify-between">
-            <div>
-                <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
-                <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
-            </div>
-            <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${priceDisplay}${foilPriceIndicator}</p>
+        <div>
+            <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
+            <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
+            ${optcgInfo} {/* <-- Correctly placed here */}
+        </div>
+        <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${priceDisplay}${foilPriceIndicator}</p>
         </div>
     </div>
 `;
@@ -194,7 +206,15 @@ const marketValue = Currency.convertAndFormat(priceToUse, card);                
                         return `
                         <tr class="card-container hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}" data-id="${card.id}">
                             ${isBulkMode ? `<td class="px-4 py-3"><input type="checkbox" class="bulk-select-checkbox" ${isSelected ? 'checked' : ''}></td>` : ''}
-                            <td class="px-4 py-3 whitespace-nowrap"><div class="flex items-center"><img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="">${card.name}</div></td>
+            <td class="px-4 py-3 whitespace-nowrap">
+                <div class="flex items-center">
+                    <img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="">
+                    <div> {/* Name and info wrapped */}
+                        ${card.name}
+                        ${optcgListInfo} {/* <-- Correctly placed here */}
+                    </div>
+                </div>
+            </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.set_name}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.quantity}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm">${card.condition}</td>
@@ -1092,6 +1112,13 @@ function renderSearchResults(cards) {
         const escapedCardData = jsonString
             .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
             .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            // --- ADD OPTCG SPECIFIC DISPLAY ---
+let optcgListInfo = '';
+if (card.game === 'optcg' && card.optcg_details) {
+    const details = card.optcg_details;
+    optcgListInfo = `<span class="block text-xs text-gray-400">C:${details.cost || '-'} P:${details.power || '-'} ${details.color || ''}</span>`;
+}
+// --- END OPTCG SPECIFIC DISPLAY ---
         return `
             <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>
                 <img src="${getCardImageUrl(card)}" class="w-10 h-auto rounded-sm mr-4">
@@ -1791,6 +1818,7 @@ async function openCsvReviewModal(cards, game) {
     cards.forEach((card, index) => {
         const row = document.createElement('tr');
         row.dataset.index = index;
+        
         row.innerHTML = `
             <td class="p-3">${card.name}</td>
             <td class="p-3">${card.set_name || 'Any'}</td>

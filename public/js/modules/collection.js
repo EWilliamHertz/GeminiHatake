@@ -70,7 +70,8 @@ function findMatchingCard(cardData) {
         card.is_signed === cardData.is_signed &&
         card.is_altered === cardData.is_altered &&
         card.is_graded === cardData.is_graded &&
-        (!cardData.is_graded || (card.grading_company === cardData.grading_company && card.grade === cardData.grade))
+        (!cardData.is_graded || (card.grading_company === cardData.grading_company && card.grade === cardData.grade)) && // <-- FIX: Added '&&'
+        card.game === cardData.game    
     );
 }
 
@@ -156,6 +157,8 @@ export function toggleShowAdditionalInfo() {
     state.showAdditionalInfo = !state.showAdditionalInfo;
 }
 
+// In public/js/modules/collection.js
+
 export async function addMultipleCards(cardVersions, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
     
@@ -165,8 +168,6 @@ export async function addMultipleCards(cardVersions, customImageFile) {
             continue;
         }
 
-        // CRITICAL FIX: Ensure we're using the correct card data for matching
-        // Create a clean copy of the card data to avoid reference issues, preserving price data
         const cleanCardData = {
             api_id: cardData.api_id,
             condition: cardData.condition || 'NM',
@@ -178,10 +179,9 @@ export async function addMultipleCards(cardVersions, customImageFile) {
             grading_company: cardData.grading_company || null,
             grade: cardData.grade || null,
             quantity: cardData.quantity || 1,
-            // IMPORTANT: Preserve price data from ScryDx/Scryfall
             prices: cardData.prices || {},
-            // Also preserve the timestamp for price data freshness
-            priceLastUpdated: cardData.priceLastUpdated || new Date().toISOString()
+            priceLastUpdated: cardData.priceLastUpdated || new Date().toISOString(), // <-- FIX: Added comma
+            game: cardData.game
         };
 
         const matchingCard = findMatchingCard(cleanCardData);
@@ -193,8 +193,11 @@ export async function addMultipleCards(cardVersions, customImageFile) {
                 state.fullCollection[cardIndex].quantity = newQuantity;
             }
         } else {
-            // Merge the clean card data with the original card data for complete information
             const completeCardData = { ...cardData, ...cleanCardData };
+             if (!completeCardData.game) {
+                 console.warn("Card data missing game property, defaulting to unknown:", completeCardData);
+                 completeCardData.game = 'unknown'; 
+             }
             const cardId = await API.addCardToCollection(state.currentUser.uid, completeCardData);
             let finalCardData = { ...completeCardData, id: cardId };
             
@@ -208,7 +211,6 @@ export async function addMultipleCards(cardVersions, customImageFile) {
     }
     applyFilters();
 }
-
 export async function updateCard(cardId, updates, customImageFile) {
     if (!state.currentUser) throw new Error("User not logged in.");
 

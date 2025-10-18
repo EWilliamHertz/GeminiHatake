@@ -434,79 +434,108 @@ async function fetchAllOPTCGCards() {
  */
 exports.searchOPTCG = functions.https.onCall(async (data, context) => {
     console.log("--- OPTCG search function invoked ---");
-    
+
     try {
-        const { query } = data;
-        
+        const { query, page = 1, limit = 100 } = data; // Add page and limit for consistency
+
         if (!query || query.length < 2) {
             return {
                 success: false,
                 error: 'Query must be at least 2 characters'
             };
         }
-        
+
         // Fetch all cards (will use cache if available)
         const allCards = await fetchAllOPTCGCards();
-        
+
         // Search cards by name (case-insensitive)
         const queryLower = query.toLowerCase();
         const matchedCards = allCards.filter(card => {
             const cardName = (card.card_name || '').toLowerCase();
             return cardName.includes(queryLower);
         });
-        
+
         // Sort results: exact matches first, then partial matches
         matchedCards.sort((a, b) => {
             const aName = (a.card_name || '').toLowerCase();
             const bName = (b.card_name || '').toLowerCase();
-            
             const aExact = aName === queryLower;
             const bExact = bName === queryLower;
-            
             if (aExact && !bExact) return -1;
             if (bExact && !aExact) return 1;
-            
             return aName.localeCompare(bName);
         });
-        
-        // Transform to match expected format (similar to ScryDex response)
+
+        // --- FORMATTING LOGIC ---
         const formattedCards = matchedCards.map(card => ({
+            // Common fields matching ScryDex structure
+            id: card.card_set_id, // Use card_set_id as the primary ID
+            api_id: card.card_set_id, // Duplicate for consistency if needed
             name: card.card_name,
-            set_name: card.set_name,
-            card_id: card.card_set_id,
+            expansion: { // Mimic ScryDex structure
+                id: card.set_info?.set_id || card.deck_info?.st_id || 'unknown',
+                name: card.set_info?.set_name || card.deck_info?.deck_name || 'Unknown Source'
+            },
+            set_name: card.set_info?.set_name || card.deck_info?.deck_name || 'Unknown Source', // Keep for compatibility
             rarity: card.rarity,
-            color: card.card_color,
-            type: card.card_type,
-            cost: card.card_cost,
-            power: card.card_power,
-            life: card.life,
-            attribute: card.attribute,
-            text: card.card_text,
-            sub_types: card.sub_types,
-            counter: card.counter_amount,
-            image: card.card_image,
-            market_price: card.market_price,
-            inventory_price: card.inventory_price,
-            game: 'optcg'
+            images: [{ // Mimic ScryDex structure
+                small: card.card_image,
+                medium: card.card_image,
+                large: card.card_image
+            }],
+            image_uris: { // Keep for compatibility
+                 small: card.card_image,
+                 normal: card.card_image,
+                 large: card.card_image
+            },
+            number: card.card_set_id.split('-')[1] || '', // Extract number if possible
+            collector_number: card.card_set_id.split('-')[1] || '', // Keep for compatibility
+            game: 'optcg',
+            prices: { // Add placeholder for prices; OPTCGAPI doesn't provide them directly
+                usd: card.market_price ? parseFloat(card.market_price) : null,
+                usd_foil: null, // No specific foil price from this API
+                eur: null,
+                eur_foil: null
+            },
+            // OPTCG Specific fields (add under a nested object or keep flat)
+            optcg_details: {
+                 cost: card.card_cost,
+                 color: card.card_color,
+                 type: card.card_type,
+                 power: card.card_power,
+                 life: card.life,
+                 attribute: card.attribute,
+                 counter: card.counter_amount,
+                 text: card.card_text,
+                 sub_types: card.sub_types
+            }
         }));
-        
+
         console.log(`Successfully found ${formattedCards.length} OPTCG cards for '${query}'.`);
-        
+
+        // --- PAGINATION (Simple slice for now) ---
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedCards = formattedCards.slice(startIndex, endIndex);
+        const has_more = endIndex < formattedCards.length;
+
         return {
             success: true,
-            data: formattedCards,
-            count: formattedCards.length
+            data: paginatedCards, // Return paginated data
+            has_more: has_more, // Indicate if there are more results
+            count: formattedCards.length // Total count before pagination
         };
-        
+
     } catch (error) {
         console.error('Error in searchOPTCG:', error);
         return {
             success: false,
-            error: error.message
+            error: error.message,
+            data: [],
+            has_more: false
         };
     }
 });
-
 
 exports.getCardPriceHistory = functions.https.onCall(async (data, context) => {
     console.log("--- getCardPriceHistory function invoked ---");

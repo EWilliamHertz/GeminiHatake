@@ -14,6 +14,7 @@ const functions = firebase.functions();
 
 // ScryDex cloud function
 const searchScryDexFunction = functions.httpsCallable('searchScryDex');
+const searchOptcgFunction = functions.httpsCallable('searchOPTCG');
 const getScryDexHistoryFunction = functions.httpsCallable('getScryDexHistory');
 const getGradedPriceFunction = functions.httpsCallable('getGradedPrice'); // New function for graded prices
 // --- CARD SEARCH APIS ---
@@ -48,57 +49,52 @@ const scrydexSearchProxy = firebase.functions().httpsCallable('searchScryDex');
 
 // In api.js, REPLACE the entire searchCards function with this:
 
+// --- REPLACE the entire searchCards function with this ---
 export async function searchCards(rawQuery, game = 'mtg', page = 1, limit = 100) {
-
-    // --- THIS IS THE NEW, CORRECTED FIX ---
-    // 1. Trim whitespace from both ends (e.g., " Zodiark ").
-    // 2. Remove any trailing non-alphanumeric characters (like commas, periods, etc.).
-    //    The regex /[\W_]+$/ matches one or more non-word characters at the end of the string.
     let finalQuery = rawQuery.trim().replace(/[\W_]+$/, '');
-    // For "Zodiark,", this line results in finalQuery = "Zodiark"
-    // For "Zodiark, Umbral God", this line does nothing, which is correct.
-    // --- END OF FIX ---
 
-    // This block for exact matching is still useful for multi-word names.
+    // Exact match wrapping (optional, keep if you like it)
     const hasSpecialChars = /[,'":&]/.test(finalQuery);
     const hasAdvancedSyntax = /[:=]/.test(finalQuery);
     const alreadyWrapped = finalQuery.startsWith('!"') || finalQuery.startsWith('!');
-
-    if ((finalQuery.includes(' ') || hasSpecialChars) && !hasAdvancedSyntax && !alreadyWrapped) {
+    if ((finalQuery.includes(' ') || hasSpecialChars) && !hasAdvancedSyntax && !alreadyWrapped && game !== 'optcg') { // Don't wrap for OPTCG yet
         const escapedName = finalQuery.replace(/"/g, '\\"');
         finalQuery = `!"${escapedName}"`;
         console.log(`[API] Wrapped query for exact match: ${finalQuery}`);
     }
 
     try {
-        console.log(`[API] Proxying search for: "${finalQuery}", game: ${game}, page: ${page}`);
+        let result;
+        if (game === 'optcg') {
+            console.log(`[API] Calling searchOPTCG for: "${finalQuery}", page: ${page}`);
+            result = await searchOptcgFunction({ query: finalQuery, page: page, limit: limit });
+        } else {
+            console.log(`[API] Calling searchScryDex for: "${finalQuery}", game: ${game}, page: ${page}`);
+            result = await searchScryDexFunction({ query: finalQuery, game: game, page: page, limit: limit });
+        }
 
-        const result = await scrydexSearchProxy({
-            query: finalQuery,
-            game: game,
-            page: page,
-            limit: limit
-        });
+        console.log(`[API] Raw result for "${finalQuery}" (${game}):`, result); // Log the raw result
 
         if (result.data && result.data.success) {
             const rawData = result.data.data || [];
-            console.log(`[API] Received ${rawData.length} raw results. Has more: ${result.data.has_more}`);
+            console.log(`[API] Received ${rawData.length} raw results for ${game}. Has more: ${result.data.has_more}`);
             const has_more = result.data.has_more === true;
+
+            // --- USE cleanData function ---
             return {
-                cards: rawData.map(card => cleanScryDexData(card, game)),
+                cards: rawData.map(card => cleanData(card, game)), // Use the generic cleaner
                 has_more: has_more
             };
         } else {
-            console.error(`[API] Proxy returned error for query "${finalQuery}":`, result.data?.error);
+            console.error(`[API] Cloud function returned error for query "${finalQuery}" (${game}):`, result.data?.error);
             return { cards: [], has_more: false };
         }
 
     } catch (error) {
-        console.error(`[API] Error calling the 'scrydexSearch' proxy function for query "${finalQuery}":`, error);
+        console.error(`[API] Error calling the cloud function for query "${finalQuery}" (${game}):`, error);
         return { cards: [], has_more: false };
     }
 }
-
 
 /**
  * A debounced version of the searchCards function to limit API calls while typing.
@@ -188,111 +184,106 @@ function cleanScryfallData(card) {
 
 // In api.js, REPLACE the entire cleanScryDexData function with this:
 
-function cleanScryDexData(card, game) {
+// --- RENAME cleanScryDexData to cleanData AND MODIFY ---
+// This function now handles cleaning for BOTH ScryDex and OPTCG
+function cleanData(card, game) {
     try {
-        console.log('[API] Raw ScryDex card data:', card);
-        
-        // --- THIS IS THE CORRECTED PRICE LOGIC ---
-        // It correctly loops through the 'variants' array from the API.
-        const prices = {
-            usd: null,
-            usd_foil: null,
-            eur: null,
-            eur_foil: null
-        };
-
-        if (card.variants && Array.isArray(card.variants)) {
-            card.variants.forEach(variant => {
-                // Check for the "Normal" or non-foil variant for the regular price
-                if (variant.name.toLowerCase() === 'normal' || variant.name.toLowerCase() === 'non-foil') {
-                    if (variant.prices && variant.prices[0]?.market) {
-                        prices.usd = parseFloat(variant.prices[0].market);
-                    }
-                }
-                // Check for the "Foil" variant for the foil price
-                if (variant.name.toLowerCase() === 'foil') {
-                    if (variant.prices && variant.prices[0]?.market) {
-                        prices.usd_foil = parseFloat(variant.prices[0].market);
-                    }
-                }
-            });
-        }
-        
-        // Fallback: If the above logic finds nothing, try to get at least one price.
-        if (prices.usd === null && card.prices?.usd) {
-            prices.usd = parseFloat(card.prices.usd);
-        }
-        if (prices.usd_foil === null && card.prices?.usd_foil) {
-            prices.usd_foil = parseFloat(card.prices.usd_foil);
-        }
-        // --- END OF PRICE LOGIC ---
-
-        console.log('[API] Processed prices for', card.Name || card.name, ':', prices);
-        
-        const cleaned = {
-            api_id: card.id,
-            name: card.Name || card.name || 'Unknown Card',
-            set: card.expansion?.id || 'unknown',
-            set_name: card.expansion?.name || 'Unknown Set',
+        // --- Shared fields ---
+        let cleaned = {
+            api_id: card.id || card.api_id, // Use 'id' from backend as primary
+            name: card.name || card.Name || 'Unknown Card',
+            set: card.expansion?.id || card.set || 'unknown', // Handle both structures
+            set_name: card.expansion?.name || card.set_name || 'Unknown Set', // Handle both structures
             rarity: card.rarity || 'Common',
-            image_uris: {
+            image_uris: card.image_uris || { // Prefer image_uris if present
                 small: card.images?.[0]?.small || null,
                 normal: card.images?.[0]?.medium || null,
                 large: card.images?.[0]?.large || null,
             },
-            prices: prices,
-            collector_number: card.number || '',
-            game: game
+            collector_number: card.number || card.collector_number || '', // Handle both
+            game: game,
+            prices: { usd: null, usd_foil: null, eur: null, eur_foil: null } // Initialize prices
         };
 
-        // ... (the rest of the function is the same)
-        switch (game) {
-            case 'mtg':
-                cleaned.mana_cost = card.mana_cost || '';
-                cleaned.cmc = card.cmc || 0;
-                cleaned.type_line = card.type_line || '';
-                cleaned.oracle_text = card.oracle_text || '';
-                cleaned.color_identity = card.color_identity || [];
-                break;
-            case 'pokemon':
-                cleaned.types = card.types || [];
-                cleaned.hp = card.hp || null;
-                cleaned.supertype = card.supertype || '';
-                cleaned.subtypes = card.subtypes || [];
-                break;
-            case 'lorcana':
-                cleaned.cost = card.Cost || 0;
-                cleaned.type = card.Type || '';
-                cleaned.color = card.Color || '';
-                cleaned.inkable = card.Inkable || false;
-                cleaned.strength = card.Strength || null;
-                cleaned.willpower = card.Willpower || null;
-                cleaned.lore = card.Lore || null;
-                break;
-            case 'gundam':
-                cleaned.code = card.code || '';
-                cleaned.cost = card.cost || 0;
-                cleaned.color = card.color || '';
-                cleaned.card_type = card.card_type || '';
-                break;
-            case 'optcg':
-                cleaned.cost = card.cost || card.card_cost || 0;
-                cleaned.color = card.color || card.card_color || '';
-                cleaned.type = card.type || card.card_type || '';
-                cleaned.power = card.power || card.card_power || null;
-                cleaned.life = card.life || null;
-                cleaned.attribute = card.attribute || '';
-                cleaned.counter = card.counter || card.counter_amount || 0;
-                cleaned.sub_types = card.sub_types || '';
-                break;
+        // --- Price Logic ---
+        if (game === 'optcg') {
+            // Use prices directly from the formatted OPTCG data
+            cleaned.prices = card.prices || { usd: null, usd_foil: null, eur: null, eur_foil: null };
+            // Copy OPTCG specific details
+            cleaned.optcg_details = card.optcg_details || {};
+
+        } else { // ScryDex or other games
+            // ScryDex variant price logic
+             if (card.variants && Array.isArray(card.variants)) {
+                 card.variants.forEach(variant => {
+                     const priceData = variant.prices && variant.prices[0]; // Assuming first price is market
+                     if (priceData?.market) {
+                         const price = parseFloat(priceData.market);
+                         if (variant.name.toLowerCase().includes('foil')) {
+                             cleaned.prices.usd_foil = price;
+                         } else { // Assume non-foil otherwise
+                             cleaned.prices.usd = price;
+                         }
+                     }
+                 });
+             }
+             // Fallback using root prices if variants didn't work
+             if (cleaned.prices.usd === null && card.prices?.usd) cleaned.prices.usd = parseFloat(card.prices.usd);
+             if (cleaned.prices.usd_foil === null && card.prices?.usd_foil) cleaned.prices.usd_foil = parseFloat(card.prices.usd_foil);
         }
+
+        // Ensure image_uris has fallbacks if needed
+        if (!cleaned.image_uris.small && cleaned.images?.[0]?.small) {
+             cleaned.image_uris = {
+                 small: cleaned.images[0].small,
+                 normal: cleaned.images[0].medium,
+                 large: cleaned.images[0].large
+             };
+        }
+
+
+        // --- Game-Specific Fields (from ScryDex raw data if not OPTCG) ---
+        if (game !== 'optcg') {
+            switch (game) {
+                case 'mtg':
+                    cleaned.mana_cost = card.mana_cost || '';
+                    cleaned.cmc = card.cmc || 0;
+                    cleaned.type_line = card.type_line || '';
+                    cleaned.oracle_text = card.oracle_text || '';
+                    cleaned.color_identity = card.color_identity || [];
+                    break;
+                case 'pokemon':
+                    cleaned.types = card.types || [];
+                    cleaned.hp = card.hp || null;
+                    cleaned.supertype = card.supertype || '';
+                    cleaned.subtypes = card.subtypes || [];
+                    break;
+                case 'lorcana':
+                    cleaned.cost = card.Cost || 0;
+                    cleaned.type = card.Type || '';
+                    cleaned.color = card.Color || '';
+                    cleaned.inkable = card.Inkable || false;
+                    cleaned.strength = card.Strength || null;
+                    cleaned.willpower = card.Willpower || null;
+                    cleaned.lore = card.Lore || null;
+                    break;
+                case 'gundam':
+                    cleaned.code = card.code || '';
+                    cleaned.cost = card.cost || 0;
+                    cleaned.color = card.color || '';
+                    cleaned.card_type = card.card_type || '';
+                    break;
+                // Add other ScryDex games if needed
+            }
+        }
+
         return cleaned;
 
     } catch (error) {
-        console.error(`[API] Error cleaning ScryDex data for ${game}:`, error, card);
-        return {
+        console.error(`[API] Error cleaning data for ${game}:`, error, card);
+        return { // Return a consistent error structure
             api_id: `${game}_error_${Date.now()}`,
-            name: card.name || 'Error Loading Card',
+            name: card?.name || 'Error Loading Card',
             set_name: 'Unknown Set',
             rarity: 'Common',
             image_uris: null,
@@ -301,7 +292,6 @@ function cleanScryDexData(card, game) {
         };
     }
 }
-
 // --- FIRESTORE DATABASE OPERATIONS ---
 const getCollectionRef = (userId, collectionName = 'collection') => {
     if (!userId || typeof userId !== 'string') {
