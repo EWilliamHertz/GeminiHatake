@@ -105,30 +105,28 @@ async function accessSecret(secretName) {
     return version.payload.data.toString();
 }
 
+// In functions/index.js
+
 /**
  * Performs a card search using the ScryDex API.
  */
-exports.searchScryDex = functions.https.onCall(async (data, context) => {
+exports.searchScryDex = functions.https.onCall(async (data, context ) => {
     console.log("--- ScryDex search function invoked with pagination ---");
 
-    // Destructure all expected parameters, providing defaults for pagination.
     const { query, game, page = 1, limit = 100 } = data;
 
     if (!query || !game) {
         console.error("Invalid arguments received:", data);
-        // Returning a structured error for the client to handle.
         return { success: false, error: 'The function must be called with "query" and "game" arguments.' };
     }
 
-    // Make the cache key unique for each specific page of results.
     const cacheKey = `${game.toLowerCase()}_${query.toLowerCase().trim()}_p${page}_l${limit}`;
 
     if (scrydexCache.has(cacheKey)) {
         const cachedItem = scrydexCache.get(cacheKey);
         if (Date.now() - cachedItem.timestamp < SCRYDEX_CACHE_DURATION_MS) {
             console.log(`Serving '${query}' for game '${game}' (Page ${page}) from cache.`);
-            // Return the cached data in the expected success format.
-            return { success: true, data: cachedItem.data };
+            return { success: true, data: cachedItem.data, has_more: cachedItem.has_more }; // Also return has_more from cache
         }
     }
 
@@ -152,8 +150,10 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
         return { success: false, error: `The game '${game}' is not supported.` };
     }
 
-    // Construct the full URL with all necessary parameters for pagination.
-    const url = `https://api.scrydex.com/${apiPath}/cards?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}&include=prices`;
+    // --- THIS IS THE FIX ---
+    // The query from the client is now properly encoded before being used in the URL.
+    const url = `https://api.scrydex.com/${apiPath}/cards?q=${encodeURIComponent(query )}&page=${page}&limit=${limit}&include=prices`;
+    // --- END OF FIX ---
 
     const options = {
         method: 'GET',
@@ -170,23 +170,23 @@ exports.searchScryDex = functions.https.onCall(async (data, context) => {
 
         if (!response.ok) {
             let errorBody = 'Could not read error body from ScryDex.';
-            try {
-                errorBody = await response.text();
-            } catch (e) { /* ignore */ }
+            try { errorBody = await response.text(); } catch (e) { /* ignore */ }
             console.error(`ScryDex API Error: Status ${response.status}. Body: ${errorBody}`);
             return { success: false, error: `Failed to fetch from ScryDex API. Status: ${response.status}` };
         }
 
         const responseData = await response.json();
         const cardData = responseData.data || [];
+        const hasMore = responseData.has_more || false; // Ensure has_more is always a boolean
 
         scrydexCache.set(cacheKey, {
             timestamp: Date.now(),
-            data: cardData
+            data: cardData,
+            has_more: hasMore // Store has_more in the cache
         });
 
         console.log(`Successfully found ${cardData.length} cards for '${query}' on page ${page}.`);
-return { success: true, data: cardData, has_more: responseData.has_more };        
+        return { success: true, data: cardData, has_more: hasMore };        
 
     } catch (error) {
         console.error("Cloud Function fetch/processing error:", error);
@@ -197,10 +197,12 @@ return { success: true, data: cardData, has_more: responseData.has_more };
 
 
 
+
 /**
  * Fetches a single card by its ID from the ScryDex API.
  */
 exports.getScryDexCard = functions.https.onCall(async (data, context) => {
+      // Cache Buster v1 - This comment forces a clean restart of the function environment.
     console.log("--- ScryDex getCard function invoked ---");
     const { cardId, game } = data;
     if (!cardId || !game) {

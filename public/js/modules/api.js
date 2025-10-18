@@ -44,13 +44,37 @@ const scrydexSearchProxy = firebase.functions().httpsCallable('searchScryDex');
 
 // In api.js, REPLACE the entire searchCards function with this ORIGINAL, working version:
 
-export async function searchCards(query, game = 'mtg', page = 1, limit = 100) {
+// In api.js, REPLACE the entire searchCards function with this corrected version:
+
+// In api.js, REPLACE the entire searchCards function with this:
+
+export async function searchCards(rawQuery, game = 'mtg', page = 1, limit = 100) {
+
+    // --- THIS IS THE NEW, CORRECTED FIX ---
+    // 1. Trim whitespace from both ends (e.g., " Zodiark ").
+    // 2. Remove any trailing non-alphanumeric characters (like commas, periods, etc.).
+    //    The regex /[\W_]+$/ matches one or more non-word characters at the end of the string.
+    let finalQuery = rawQuery.trim().replace(/[\W_]+$/, '');
+    // For "Zodiark,", this line results in finalQuery = "Zodiark"
+    // For "Zodiark, Umbral God", this line does nothing, which is correct.
+    // --- END OF FIX ---
+
+    // This block for exact matching is still useful for multi-word names.
+    const hasSpecialChars = /[,'":&]/.test(finalQuery);
+    const hasAdvancedSyntax = /[:=]/.test(finalQuery);
+    const alreadyWrapped = finalQuery.startsWith('!"') || finalQuery.startsWith('!');
+
+    if ((finalQuery.includes(' ') || hasSpecialChars) && !hasAdvancedSyntax && !alreadyWrapped) {
+        const escapedName = finalQuery.replace(/"/g, '\\"');
+        finalQuery = `!"${escapedName}"`;
+        console.log(`[API] Wrapped query for exact match: ${finalQuery}`);
+    }
+
     try {
-        console.log(`[API] Proxying search for: "${query}", game: ${game}, page: ${page}`);
-        
-        // This is the original logic that sends the query and game separately.
+        console.log(`[API] Proxying search for: "${finalQuery}", game: ${game}, page: ${page}`);
+
         const result = await scrydexSearchProxy({
-            query: query,
+            query: finalQuery,
             game: game,
             page: page,
             limit: limit
@@ -58,17 +82,20 @@ export async function searchCards(query, game = 'mtg', page = 1, limit = 100) {
 
         if (result.data && result.data.success) {
             const rawData = result.data.data || [];
+            console.log(`[API] Received ${rawData.length} raw results. Has more: ${result.data.has_more}`);
+            const has_more = result.data.has_more === true;
             return {
                 cards: rawData.map(card => cleanScryDexData(card, game)),
-                has_more: result.data.has_more 
+                has_more: has_more
             };
         } else {
-            throw new Error(result.data.error || 'The API proxy returned an unspecified error.');
+            console.error(`[API] Proxy returned error for query "${finalQuery}":`, result.data?.error);
+            return { cards: [], has_more: false };
         }
 
     } catch (error) {
-        console.error(`[API] Error calling the 'scrydexSearch' proxy function:`, error);
-        throw error;
+        console.error(`[API] Error calling the 'scrydexSearch' proxy function for query "${finalQuery}":`, error);
+        return { cards: [], has_more: false };
     }
 }
 
@@ -77,6 +104,7 @@ export async function searchCards(query, game = 'mtg', page = 1, limit = 100) {
  * A debounced version of the searchCards function to limit API calls while typing.
  */
 export const debouncedSearchCards = debounce(searchCards, 300);
+
 
 /**
  * NEW: Fetches price history by calling the new cloud function.

@@ -1042,7 +1042,7 @@ async function fetchAllCards(query, game) {
     while (hasMore) {
         try {
             // API.searchCards now returns an object: { cards: [], has_more: boolean }
-            const response = await API.searchCards(query, game, currentPage, limit);
+const response = await API.searchCards(query, game, currentPage, limit);
             const newCards = response.cards;
             
             console.log(`[fetchAllCards] Page ${currentPage}: Found ${newCards.length} cards. API says has_more: ${response.has_more}`);
