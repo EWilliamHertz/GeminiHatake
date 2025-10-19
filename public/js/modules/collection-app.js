@@ -446,18 +446,7 @@ populateFilters: (cards) => {
             <div class="flex flex-wrap gap-2">${colorButtons}</div>
         `;
     },
-    populateTypeFilters: (types) => {
-        const typeContainer = document.getElementById('game-specific-filters');
-        if (!typeContainer) return;
-        const typeSelect = `
-            <h4 class="font-semibold mb-2">Type (Pokémon)</h4>
-            <select id="type-filter-select" class="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600">
-                <option value="">All Types</option>
-                ${types.map(type => `<option value="${type}">${type}</option>`).join('')}
-            </select>
-        `;
-        typeContainer.innerHTML = typeSelect;
-    }
+
 };
 
 // --- ANALYTICS MODULE ---
@@ -1652,13 +1641,11 @@ function handleNameFilterInput(e) {
 }
 
 function clearAllFilters() {
-    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '', isFoil: null });
+    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], isFoil: null });
     document.getElementById('filter-name').value = '';
     document.querySelectorAll('input[data-filter-type]').forEach(input => input.checked = false);
     document.querySelectorAll('input[data-game]').forEach(input => input.checked = false);
     document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-blue-500'));
-    const typeFilterSelect = document.getElementById('type-filter-select');
-    if(typeFilterSelect) typeFilterSelect.value = '';
     
     // Reset foil filter to "All Cards"
     const foilAllRadio = document.querySelector('input[name="foil-filter"][value="all"]');
@@ -2144,9 +2131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                      // --- PASTE THE LOGIC HERE ---
             console.log('[Collection] Populating filters for the first time.');
             const state = Collection.getState();
-            const { types } = Collection.getAvailableFilterOptions(state.filters.games);
             UI.populateFilters(state.fullCollection); // This populates Set and Rarity
-            UI.populateTypeFilters(types); // This populates Pokémon types
             // --- END OF PASTED LOGIC ---
                     applyAndRender({});
                 } catch (error) {

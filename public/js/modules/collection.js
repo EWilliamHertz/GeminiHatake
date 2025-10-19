@@ -16,7 +16,7 @@ let state = {
     filteredCollection: [],
     activeTab: 'collection',
     activeView: 'grid',
-    filters: { name: '', set: [], rarity: [], colors: [], games: [], type: '', isFoil: null },
+    filters: { name: '', set: [], rarity: [], colors: [], games: [], isFoil: null },
     bulkEdit: { isActive: false, selected: new Set() },
     currentEditingCard: null,
     pendingCards: [],
@@ -407,11 +407,7 @@ export function applyFilters() {
                     gameSpecificMatch = filters.colors.every(c => colorIdentity.includes(c));
                 }
             }
-            if (filters.games.includes('pokemon') && cardGame === 'pokemon') {
-                if (filters.type) {
-                    gameSpecificMatch = card.types && card.types.includes(filters.type);
-                }
-            }
+
         }
         if (index < 5) console.log(`  Game-Specific Match: ${gameSpecificMatch}`);
 
@@ -479,12 +475,7 @@ export function getAvailableFilterOptions(games) {
         rarities[gameKey] = [...rarities[gameKey]].sort();
     }
 
-    let types = [];
-    if (games.includes('pokemon')) {
-        types = [...new Set(filteredList.flatMap(c => c.types || []))].sort();
-    }
-    
-    return { sets, rarities, types };
+    return { sets, rarities };
 }
 
 
