@@ -1894,36 +1894,62 @@ async function openCsvReviewModal(cards, game) {
         const statusCell = row.querySelector('.status-cell');
 
         try {
-            // --- THIS IS THE NEW, SIMPLIFIED FIX ---
             let cardName = reviewData[i].raw.name;
+            let cardData = null;
 
             // If the card is a double-faced card (contains "//"),
             // search for only the front face name.
             if (cardName.includes('//')) {
                 cardName = cardName.split('//')[0].trim();
             }
+
+            // ScryDex has issues with commas - remove them before searching
+            // This is specific to CSV import; manual searches use api.js logic
+            cardName = cardName.trim().replace(/,/g, '');
             
-            // We now use the simplified name for the search.
-            // No more special quotes or syntax.
+            // Search using ScryDex
             const response = await API.searchCards(cardName, game);
-            // --- END OF FIX ---
 
             if (response && response.cards && response.cards.length > 0) {
                 let bestMatch = response.cards[0];
-                const csvSet = reviewData[i].raw.set_name;
+                const csvSet = reviewData[i].raw.set;
+                const csvSetName = reviewData[i].raw.set_name;
+                const csvCollectorNumber = reviewData[i].raw.collector_number;
 
-                if (csvSet && csvSet !== 'Any') {
-                    const setMatch = response.cards.find(c => 
-                        c.set.toLowerCase() === csvSet.toLowerCase() || 
-                        c.set_name.toLowerCase() === csvSet.toLowerCase()
+                // Try to find exact match using set code and collector number
+                if (csvSet && csvCollectorNumber) {
+                    const exactMatch = response.cards.find(c => 
+                        c.set && c.set.toLowerCase() === csvSet.toLowerCase() &&
+                        c.collector_number && c.collector_number === csvCollectorNumber
                     );
-                    if (setMatch) {
-                        bestMatch = setMatch;
+                    if (exactMatch) {
+                        bestMatch = exactMatch;
+                        console.log(`[CSV Import] Found exact match by set+number for ${cardName}`);
                     }
                 }
+                
+                // If no exact match, try set name or set code only
+                if (!bestMatch || bestMatch === response.cards[0]) {
+                    if (csvSet || csvSetName) {
+                        const setMatch = response.cards.find(c => 
+                            (csvSet && c.set && c.set.toLowerCase() === csvSet.toLowerCase()) ||
+                            (csvSetName && c.set_name && c.set_name.toLowerCase() === csvSetName.toLowerCase())
+                        );
+                        if (setMatch) {
+                            bestMatch = setMatch;
+                            console.log(`[CSV Import] Found set match for ${cardName}`);
+                        }
+                    }
+                }
+                
+                cardData = bestMatch;
+            } else {
+                throw new Error(`Card not found for search term: "${cardName}"`);
+            }
 
+            if (cardData) {
                 reviewData[i].enriched = {
-                    ...bestMatch,
+                    ...cardData,
                     quantity: reviewData[i].raw.quantity,
                     condition: reviewData[i].raw.condition,
                     language: reviewData[i].raw.language,
@@ -1933,7 +1959,7 @@ async function openCsvReviewModal(cards, game) {
                 reviewData[i].status = 'found';
                 statusCell.innerHTML = '<i class="fas fa-check-circle text-green-500"></i><span class="ml-2 text-green-600">Found</span>';
             } else {
-                throw new Error(`Card not found for search term: "${cardName}"`);
+                throw new Error(`Card not found`);
             }
         } catch (error) {
             reviewData[i].status = 'error';
