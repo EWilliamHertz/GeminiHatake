@@ -1067,32 +1067,56 @@ async function handleDeleteCard() {
 // In public/js/modules/collection-app.js
 
 // Replace the existing fetchAllCards with this one.
-async function fetchAllCards(query, game) {
+async function fetchAllCards(query, game, progressCallback = null) {
     let allCards = [];
     let currentPage = 1;
     const limit = 100;
     let hasMore = true; // Start with the assumption that there's at least one page.
+    const maxPages = 50; // Safety limit to prevent infinite loops
 
     console.log(`[fetchAllCards] Starting paginated fetch for "${query}"`);
 
-    while (hasMore) {
+    while (hasMore && currentPage <= maxPages) {
         try {
             // API.searchCards now returns an object: { cards: [], has_more: boolean }
-const response = await API.searchCards(query, game, currentPage, limit);
+            const response = await API.searchCards(query, game, currentPage, limit);
             const newCards = response.cards;
             
             console.log(`[fetchAllCards] Page ${currentPage}: Found ${newCards.length} cards. API says has_more: ${response.has_more}`);
 
             if (newCards && newCards.length > 0) {
                 allCards = allCards.concat(newCards);
+                
+                // Call the progress callback to update the UI with current count
+                if (progressCallback && typeof progressCallback === 'function') {
+                    progressCallback(allCards.length);
+                }
             }
 
-            // THIS IS THE CRUCIAL FIX:
-            // We now rely on the API's has_more flag instead of guessing.
-            if (response.has_more) {
+            // IMPROVED PAGINATION LOGIC:
+            // Continue if EITHER:
+            // 1. The API explicitly says has_more is true, OR
+            // 2. We received exactly 'limit' cards (suggesting there might be more)
+            // Stop if:
+            // 1. We received fewer than 'limit' cards (we've reached the end), OR
+            // 2. We received 0 cards
+            if (newCards.length === 0) {
+                console.log(`[fetchAllCards] Stopping: No cards returned on page ${currentPage}`);
+                hasMore = false;
+            } else if (newCards.length < limit) {
+                console.log(`[fetchAllCards] Stopping: Received ${newCards.length} cards (less than limit of ${limit})`);
+                hasMore = false;
+            } else if (response.has_more === true) {
+                console.log(`[fetchAllCards] Continuing: API says has_more is true`);
+                currentPage++;
+            } else if (newCards.length === limit) {
+                // We got exactly 'limit' cards but API says has_more is false
+                // Try one more page to be sure
+                console.log(`[fetchAllCards] Continuing: Got full page (${limit} cards), checking next page despite has_more=false`);
                 currentPage++;
             } else {
-                hasMore = false; // The API says there are no more pages, so we stop.
+                console.log(`[fetchAllCards] Stopping: Default case`);
+                hasMore = false;
             }
 
         } catch (error) {
@@ -1100,6 +1124,10 @@ const response = await API.searchCards(query, game, currentPage, limit);
             hasMore = false; // Stop the loop on any error.
             throw error;
         }
+    }
+
+    if (currentPage > maxPages) {
+        console.warn(`[fetchAllCards] Reached maximum page limit (${maxPages}). There may be more results.`);
     }
 
     console.log(`[fetchAllCards] Successfully fetched a total of ${allCards.length} cards for "${query}".`);
@@ -1215,7 +1243,10 @@ function handleSearchInput() {
     searchTimeout = setTimeout(async () => {
         try {
             // 1. Fetch ALL cards matching the name from your ScryDex function
-            allFoundCards = await fetchAllCards(query, game);
+            // Pass a callback to update the loading message with live counter
+            allFoundCards = await fetchAllCards(query, game, (currentCount) => {
+                resultsContainer.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading cards... (${currentCount} found so far)</p>`;
+            });
 
             if (allFoundCards.length === 0) {
                  resultsContainer.innerHTML = '<p class="text-center text-gray-500">No cards found.</p>';
