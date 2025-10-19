@@ -221,6 +221,28 @@
 </div>
         <div id="game-specific-filters">
         </div>
+        
+        <!-- Foil Filter -->
+        <div class="mb-3">
+            <button class="w-full text-left flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" onclick="toggleCheckboxes('foil-checkboxes')">
+                <span><i class="fas fa-star text-yellow-500 mr-2"></i>Card Finish</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div id="foil-checkboxes" class="hidden mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                    <input type="radio" name="foil-filter" value="all" checked class="form-radio h-4 w-4 text-blue-600">
+                    <span class="text-sm">All Cards</span>
+                </label>
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                    <input type="radio" name="foil-filter" value="foil" class="form-radio h-4 w-4 text-blue-600">
+                    <span class="text-sm">Foil Only</span>
+                </label>
+                <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                    <input type="radio" name="foil-filter" value="non-foil" class="form-radio h-4 w-4 text-blue-600">
+                    <span class="text-sm">Non-Foil Only</span>
+                </label>
+            </div>
+        </div>
         <button class="w-full text-left flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600" id="clear-filters-btn">
          <i class="fas fa-times w-6">
          </i>

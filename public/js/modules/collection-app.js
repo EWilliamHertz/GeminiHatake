@@ -1652,13 +1652,18 @@ function handleNameFilterInput(e) {
 }
 
 function clearAllFilters() {
-    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '' });
+    Collection.setFilters({ name: '', set: [], rarity: [], colors: [], games: [], type: '', isFoil: null });
     document.getElementById('filter-name').value = '';
     document.querySelectorAll('input[data-filter-type]').forEach(input => input.checked = false);
     document.querySelectorAll('input[data-game]').forEach(input => input.checked = false);
     document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('ring-4', 'ring-blue-500'));
     const typeFilterSelect = document.getElementById('type-filter-select');
     if(typeFilterSelect) typeFilterSelect.value = '';
+    
+    // Reset foil filter to "All Cards"
+    const foilAllRadio = document.querySelector('input[name="foil-filter"][value="all"]');
+    if (foilAllRadio) foilAllRadio.checked = true;
+    
     applyAndRender({});
 }
 
@@ -2232,6 +2237,21 @@ document.getElementById('search-results-container')?.addEventListener('mouseover
         document.getElementById('filter-name')?.addEventListener('input', handleNameFilterInput);
         document.getElementById('clear-filters-btn')?.addEventListener('click', clearAllFilters);
         document.getElementById('game-filter-container')?.addEventListener('change', handleGameFilterChange);
+        
+        // Foil filter event listener
+        const foilRadios = document.querySelectorAll('input[name="foil-filter"]');
+        foilRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                let foilValue = null;
+                if (e.target.value === 'foil') {
+                    foilValue = true;
+                } else if (e.target.value === 'non-foil') {
+                    foilValue = false;
+                }
+                Collection.setFilters({ isFoil: foilValue });
+                applyAndRender({});
+            });
+        });
         // Set filter dropdown functionality
         document.getElementById('set-filter-dropdown-btn')?.addEventListener('click', (e) => {
             e.stopPropagation();

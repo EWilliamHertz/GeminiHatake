@@ -16,7 +16,7 @@ let state = {
     filteredCollection: [],
     activeTab: 'collection',
     activeView: 'grid',
-    filters: { name: '', set: [], rarity: [], colors: [], games: [], type: '' },
+    filters: { name: '', set: [], rarity: [], colors: [], games: [], type: '', isFoil: null },
     bulkEdit: { isActive: false, selected: new Set() },
     currentEditingCard: null,
     pendingCards: [],
@@ -415,7 +415,14 @@ export function applyFilters() {
         }
         if (index < 5) console.log(`  Game-Specific Match: ${gameSpecificMatch}`);
 
-        const shouldKeep = nameMatch && gameMatch && setMatch && rarityMatch && gameSpecificMatch;
+        // 5. Foil Filter
+        let foilMatch = true;
+        if (filters.isFoil !== null) {
+            foilMatch = card.is_foil === filters.isFoil;
+        }
+        if (index < 5) console.log(`  Foil Match: ${foilMatch} (Card is_foil: ${card.is_foil}, Filter: ${filters.isFoil})`);
+
+        const shouldKeep = nameMatch && gameMatch && setMatch && rarityMatch && gameSpecificMatch && foilMatch;
         if (index < 5) console.log(`  ==> Should Keep Card? ${shouldKeep}`);
         
         return shouldKeep;
