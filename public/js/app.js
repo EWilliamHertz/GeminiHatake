@@ -63,6 +63,9 @@ const postContent = isPostObject ? data.content : data;
     
 if (!postContent) return '';
 const sanitized = sanitizeHTML(postContent);
+// --- ADD THIS LINE ---
+    const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+    // --- END OF ADDED LINE ---
 
 return sanitized
 .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
@@ -172,18 +175,67 @@ if (post.poll) {
         <div class="poll-container">${pollOptionsHTML}</div>
     `;
 
-} else {
-    const formattedContent = formatContent(post); // Pass the full post object instead of just content
-    const mediaHTML = post.mediaUrl ? (post.mediaType.startsWith('image/') ? `<img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="max-h-96 w-full object-cover rounded-lg my-2">` : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`) : '';
+} else { // Regular post with potential gallery
+    const formattedContent = formatContent(post);
+    let mediaHTML = '';
+
+    // Filter out only image URLs and types
+    const images = (post.mediaUrls || [])
+        .map((url, index) => ({ url, type: (post.mediaTypes || [])[index] }))
+        .filter(item => item.type && item.type.startsWith('image/'));
+
+    const hasMultipleImages = images.length > 1;
+    const hasSingleMedia = post.mediaUrls && post.mediaUrls.length === 1;
+
+    if (hasMultipleImages) {
+        const imageThumbnails = images.map((image, index) => {
+            // Make the first thumbnail active
+            return `<img src="${sanitizeHTML(image.url)}" alt="Thumbnail ${index + 1}" class="post-gallery-thumbnail ${index === 0 ? 'active' : ''}" data-index="${index}">`;
+        }).join('');
+
+        mediaHTML = `
+            <div class="post-image-gallery my-2">
+                {/* Optional container for better styling/centering */}
+                <div class="post-gallery-main-image-container">
+                    <img src="${sanitizeHTML(images[0].url)}" alt="Post media" class="post-gallery-main-image">
+                </div>
+                <div class="post-gallery-thumbnails mt-2"> {/* Added margin-top */}
+                    ${imageThumbnails}
+                </div>
+            </div>
+        `;
+        // Add non-image media below the gallery if they exist
+         (post.mediaUrls || []).forEach((url, index) => {
+             const type = (post.mediaTypes || [])[index];
+             if (type && !type.startsWith('image/')) { // Find non-images
+                 mediaHTML += `<video src="${sanitizeHTML(url)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`;
+             }
+         });
+
+    } else if (hasSingleMedia) {
+        // Handle single media item (could be image or video)
+        const url = post.mediaUrls[0];
+        const type = post.mediaTypes[0];
+        mediaHTML = type.startsWith('image/')
+            // Add post-clickable-area ONLY to single images
+            ? `<img src="${sanitizeHTML(url)}" alt="Post media" class="max-h-96 w-full object-cover rounded-lg my-2 post-clickable-area cursor-pointer">`
+            : `<video src="${sanitizeHTML(url)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`;
+    } else if (post.mediaUrl) { // Fallback for old single-media posts
+        mediaHTML = post.mediaType.startsWith('image/')
+             // Add post-clickable-area ONLY to single images
+            ? `<img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="max-h-96 w-full object-cover rounded-lg my-2 post-clickable-area cursor-pointer">`
+            : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-h-96 w-full object-cover rounded-lg my-2"></video>`;
+    }
+
+    // Place mediaHTML *after* the paragraph. Only the paragraph triggers the modal now for text posts.
+    // Single images have their own 'post-clickable-area'. Galleries handle clicks separately.
     postBodyHTML = `
-        <div class="post-body-content post-clickable-area cursor-pointer">
-            <p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200">${formattedContent}</p>
+        <div class="post-body-content">
+            <p class="post-content-display mb-4 whitespace-pre-wrap text-gray-800 dark:text-gray-200 post-clickable-area cursor-pointer">${formattedContent}</p>
             ${mediaHTML}
         </div>
     `;
 }
-
-
 const safeAuthorName = sanitizeHTML(post.author);
 const safeAuthorPhotoURL = sanitizeHTML(post.authorPhotoURL) || 'https://i.imgur.com/B06rBhI.png';
 const isLiked = user && Array.isArray(post.likes) && post.likes.includes(user.uid);
@@ -698,19 +750,79 @@ const openPostModal = async (postId, groupId) => {
         let contentHTML = post.poll ? `<p class="font-semibold">${sanitizeHTML(post.poll.question)}</p>` : formatContent(post);
         modal.querySelector('#modal-post-content').innerHTML = contentHTML;
 
+     // --- Gallery Display Logic for Modal ---
         const mediaContainer = modal.querySelector('#modal-post-media-container');
-        const gridContainer = document.getElementById('modal-grid-container');
-        if (post.mediaUrl) {
+        const gridContainer = document.getElementById('modal-grid-container'); // Used to adjust layout
+        mediaContainer.innerHTML = ''; // Clear previous media
+
+        // Filter out only image URLs and types
+        const images = (post.mediaUrls || [])
+            .map((url, index) => ({ url, type: (post.mediaTypes || [])[index] }))
+            .filter(item => item.type && item.type.startsWith('image/'));
+
+        const hasMultipleImages = images.length > 1;
+        const hasSingleMedia = post.mediaUrls && post.mediaUrls.length === 1;
+
+        if (hasMultipleImages) {
+            const imageThumbnails = images.map((image, index) => {
+                // Make the first thumbnail active
+                return `<img src="${sanitizeHTML(image.url)}" alt="Thumbnail ${index + 1}" class="post-gallery-thumbnail ${index === 0 ? 'active' : ''}" data-index="${index}">`;
+            }).join('');
+
+            // Structure for the gallery within the modal's media pane
+            mediaContainer.innerHTML = `
+                <div class="post-image-gallery w-full h-full flex flex-col p-2">
+                    {/* Container to help center and style the main image */}
+                    <div class="post-gallery-main-image-container flex-grow flex items-center justify-center min-h-0 mb-2">
+                         <img src="${sanitizeHTML(images[0].url)}" alt="Post media" class="post-gallery-main-image"> {/* CSS handles sizing */}
+                    </div>
+                    {/* Thumbnails */}
+                    <div class="post-gallery-thumbnails flex-shrink-0">
+                        ${imageThumbnails}
+                    </div>
+                </div>
+            `;
+             // Add non-image media below the gallery if needed
+             (post.mediaUrls || []).forEach((url, index) => {
+                 const type = (post.mediaTypes || [])[index];
+                 if (type && !type.startsWith('image/')) {
+                      const videoEl = document.createElement('video');
+                      videoEl.src = sanitizeHTML(url);
+                      videoEl.controls = true;
+                      videoEl.className = "max-h-48 w-full object-cover rounded-lg mt-2"; // Smaller video in modal
+                      // Append video to the content side instead? For now, adding below gallery.
+                      const galleryDiv = mediaContainer.querySelector('.post-image-gallery');
+                      if(galleryDiv) galleryDiv.appendChild(videoEl);
+                 }
+             });
+
+            mediaContainer.classList.remove('hidden');
+            gridContainer.classList.add('md:grid-cols-2'); // Keep the two-column layout
+
+        } else if (hasSingleMedia) {
+            // Handle single media item (image or video)
+             const url = post.mediaUrls[0];
+             const type = post.mediaTypes[0];
+            // Wrap single image in container for consistent styling/containment
+            mediaContainer.innerHTML = type.startsWith('image/')
+                ? `<div class="post-gallery-main-image-container flex-grow flex items-center justify-center w-full h-full"><img src="${sanitizeHTML(url)}" alt="Post media" class="post-gallery-main-image"></div>`
+                : `<video src="${sanitizeHTML(url)}" controls class="max-w-full max-h-full object-contain"></video>`; // Video fills directly
+            mediaContainer.classList.remove('hidden');
+            gridContainer.classList.add('md:grid-cols-2');
+
+        } else if (post.mediaUrl) { // Fallback for old single-media posts
+             // Wrap single image in container
             mediaContainer.innerHTML = post.mediaType.startsWith('image/')
-                ? `<img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="max-w-full max-h-full object-contain">`
+                 ? `<div class="post-gallery-main-image-container flex-grow flex items-center justify-center w-full h-full"><img src="${sanitizeHTML(post.mediaUrl)}" alt="Post media" class="post-gallery-main-image"></div>`
                 : `<video src="${sanitizeHTML(post.mediaUrl)}" controls class="max-w-full max-h-full object-contain"></video>`;
             mediaContainer.classList.remove('hidden');
             gridContainer.classList.add('md:grid-cols-2');
         } else {
+            // No media
             mediaContainer.classList.add('hidden');
-            gridContainer.classList.remove('md:grid-cols-2');
+            gridContainer.classList.remove('md:grid-cols-2'); // Content takes full width
         }
-
+        // --- End Gallery Display Logic ---
         modal.querySelector('#modal-post-actions').innerHTML = `
             <button class="like-btn flex items-center hover:text-red-500 ${isLiked ? 'text-red-500' : ''}">
                 <i class="${isLiked ? 'fas' : 'far'} fa-heart mr-1"></i>
@@ -814,8 +926,18 @@ const pollOptionsContainer = document.getElementById('pollOptionsContainer');
 const attachPollMediaBtn = document.getElementById('attachPollMediaBtn');
 const pollMediaUpload = document.getElementById('pollMediaUpload');
 const pollMediaFileName = document.getElementById('pollMediaFileName');
+const createPostModal = document.getElementById('createPostModal');
+const closeCreatePostModalBtn = document.getElementById('closeCreatePostModal');
+const createPostTrigger = document.getElementById('create-post-trigger');
+const modalPostContentInput = document.getElementById('modalPostContent');
+const modalSuggestionsContainer = document.getElementById('modalAutocompleteSuggestions');
+const modalSubmitPostBtn = document.getElementById('modalSubmitPostBtn');
+const modalPostStatusMessage = document.getElementById('modalPostStatusMessage');
+const modalPostMediaUpload = document.getElementById('modalPostMediaUpload');
+const modalUploadMediaBtn = document.getElementById('modalUploadMediaBtn');
+const modalCreatePollBtn = document.getElementById('modalCreatePollBtn'); // For poll modal trigger inside create modal
 
-let selectedFile = null;
+let selectedFiles = [];
 let selectedPollMediaFile = null;
 let selectedCardForPost = null; // Store the complete card object when user selects from autocomplete
 
@@ -828,14 +950,33 @@ activeFeedType = button.dataset.feedType;
 renderPosts(activeFeedType);
 }
 });
+// --- Create Post Modal Listeners ---
+    createPostTrigger?.addEventListener('click', () => {
+        openModal(createPostModal);
+        modalPostContentInput?.focus(); // Focus the textarea when modal opens
+    });
 
+    closeCreatePostModalBtn?.addEventListener('click', () => {
+        closeModal(createPostModal);
+        // Optionally clear the modal content on close
+        // modalPostContentInput.value = '';
+        // modalPostMediaUpload.value = '';
+        // selectedFiles = [];
+        // modalPostStatusMessage.textContent = '';
+    });
+    // Optional: Close modal if clicking outside of it
+    createPostModal?.addEventListener('click', (e) => {
+        if (e.target === createPostModal) {
+            closeModal(createPostModal);
+        }
+    });
 postContentInput?.addEventListener('input', () => handleAutocomplete(postContentInput, suggestionsContainer));
 postContentInput?.addEventListener('blur', () => setTimeout(() => suggestionsContainer.classList.add('hidden'), 200));
 
 if (user) {
 submitPostBtn?.addEventListener('click', async () => {
 const content = postContentInput.value;
-if (!content.trim() && !selectedFile) {
+if (!content.trim() && selectedFiles.length === 0) {
 showToast('Please write something or select a file.', 'info');
 return;
 }
@@ -845,21 +986,24 @@ try {
 const userDoc = await db.collection('users').doc(user.uid).get();
 if (!userDoc.exists) throw new Error("User profile not found.");
 const userData = userDoc.data();
-let mediaUrl = null, mediaType = null;
-if (selectedFile) {
-const filePath = `posts/${user.uid}/${Date.now()}_${selectedFile.name}`;
-const fileRef = storage.ref(filePath);
-const uploadTask = await fileRef.put(selectedFile);
-mediaUrl = await uploadTask.ref.getDownloadURL();
-mediaType = selectedFile.type;
+let mediaUrls = [], mediaTypes = [];
+if (selectedFiles.length > 0) {
+    for (const file of selectedFiles) {
+        const filePath = `posts/${user.uid}/${Date.now()}_${file.name}`;
+        const fileRef = storage.ref(filePath);
+        const uploadTask = await fileRef.put(file);
+        const url = await uploadTask.ref.getDownloadURL();
+        mediaUrls.push(url);
+        mediaTypes.push(file.type);
+    }
 }
 
 const hashtags = (content.match(/#(\w+)/g) || []).map(tag => tag.substring(1));
 const mentions = (content.match(/@(\w+)/g) || []).map(mention => mention.substring(1));
 const postData = {
-author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
-content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-likes: [], comments: [], mediaUrl: mediaUrl, mediaType: mediaType, hashtags
+    author: userData.displayName || 'Anonymous', authorId: user.uid, authorPhotoURL: userData.photoURL || 'https://i.imgur.com/B06rBhI.png',
+    content: content, timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    likes: [], comments: [], mediaUrls: mediaUrls, mediaTypes: mediaTypes, hashtags
 };
 
 // Add card data using the new card system
@@ -904,7 +1048,7 @@ timestamp: new Date()
 
 postContentInput.value = '';
 postMediaUpload.value = '';
-selectedFile = null;
+selectedFiles = []; // Changed from selectedFile
 selectedCardForPost = null; // Reset card selection for next post
 postStatusMessage.textContent = '';
 showToast('Posted successfully!', 'success');
@@ -921,10 +1065,12 @@ submitPostBtn.disabled = false;
 });
 uploadMediaBtn?.addEventListener('click', () => postMediaUpload.click());
 postMediaUpload?.addEventListener('change', e => {
-selectedFile = e.target.files[0];
-if (selectedFile) {
-postStatusMessage.textContent = `Selected: ${selectedFile.name}`;
-}
+    selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+        postStatusMessage.textContent = `Selected: ${selectedFiles.length} file(s)`;
+    } else {
+        postStatusMessage.textContent = '';
+    }
 });
 
 createPollBtn?.addEventListener('click', () => openModal(pollModal));
@@ -992,7 +1138,22 @@ const groupId = postElement.dataset.groupId;
 const postRef = groupId
 ? db.collection('groups').doc(groupId).collection('posts').doc(postId)
 : db.collection('posts').doc(postId);
+ if (e.target.classList.contains('post-gallery-thumbnail')) {
+        const thumbnail = e.target;
+        const gallery = thumbnail.closest('.post-image-gallery');
+        if (!gallery) return;
 
+        const mainImage = gallery.querySelector('.post-gallery-main-image');
+        if (mainImage) {
+             mainImage.src = thumbnail.src;
+
+             gallery.querySelectorAll('.post-gallery-thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+             });
+             thumbnail.classList.add('active');
+        }
+        return; // Prevent modal opening
+    }
 if (e.target.closest('.post-clickable-area') && !e.target.closest('a, button, input, .poll-option, video')) {
     openPostModal(postId, groupId);
     return;
@@ -1188,6 +1349,24 @@ handleCommentSubmit(e.target, postElement.dataset.id, postElement.dataset.groupI
 
 const postDetailModal = document.getElementById('postDetailModal');
 postDetailModal?.addEventListener('click', (e) => {
+     // --- Handle Thumbnail Clicks in Modal ---
+    if (e.target.classList.contains('post-gallery-thumbnail')) {
+        const thumbnail = e.target;
+        const gallery = thumbnail.closest('.post-image-gallery');
+        if (!gallery) return;
+
+        const mainImage = gallery.querySelector('.post-gallery-main-image');
+        if (mainImage) {
+            mainImage.src = thumbnail.src;
+
+            gallery.querySelectorAll('.post-gallery-thumbnail').forEach(thumb => {
+                thumb.classList.remove('active');
+            });
+            thumbnail.classList.add('active');
+        }
+        return; // Prevent other modal actions
+    }
+    // --- End Modal Thumbnail Handling ---
     if (e.target.closest('.reply-btn')) {
         const replyBtn = e.target.closest('.reply-btn');
         const parentCommentEl = replyBtn.closest('.flex-1');
