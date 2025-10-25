@@ -185,7 +185,25 @@ if (post.poll) {
 
     // Filter out only image URLs and types
     const images = (post.mediaUrls || [])
-        .map((url, index) => ({ url, type: (post.mediaTypes || [])[index] }))
+        .map((url, index) => {
+            let type = (post.mediaTypes || [])[index];
+            // Fallback: infer type from URL extension if type is missing or empty
+            if (!type || type === '') {
+                const urlLower = url.toLowerCase();
+                if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
+                    type = 'image/jpeg';
+                } else if (urlLower.includes('.png')) {
+                    type = 'image/png';
+                } else if (urlLower.includes('.gif')) {
+                    type = 'image/gif';
+                } else if (urlLower.includes('.webp')) {
+                    type = 'image/webp';
+                } else if (urlLower.includes('.mp4') || urlLower.includes('.webm')) {
+                    type = 'video/mp4';
+                }
+            }
+            return { url, type };
+        })
         .filter(item => item.type && item.type.startsWith('image/'));
 
     const hasMultipleImages = images.length > 1;
@@ -761,7 +779,25 @@ const openPostModal = async (postId, groupId) => {
 
         // Filter out only image URLs and types
         const images = (post.mediaUrls || [])
-            .map((url, index) => ({ url, type: (post.mediaTypes || [])[index] }))
+            .map((url, index) => {
+                let type = (post.mediaTypes || [])[index];
+                // Fallback: infer type from URL extension if type is missing or empty
+                if (!type || type === '') {
+                    const urlLower = url.toLowerCase();
+                    if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
+                        type = 'image/jpeg';
+                    } else if (urlLower.includes('.png')) {
+                        type = 'image/png';
+                    } else if (urlLower.includes('.gif')) {
+                        type = 'image/gif';
+                    } else if (urlLower.includes('.webp')) {
+                        type = 'image/webp';
+                    } else if (urlLower.includes('.mp4') || urlLower.includes('.webm')) {
+                        type = 'video/mp4';
+                    }
+                }
+                return { url, type };
+            })
             .filter(item => item.type && item.type.startsWith('image/'));
 
         const hasMultipleImages = images.length > 1;
@@ -1070,11 +1106,35 @@ modalSubmitPostBtn.disabled = false;
 });
 modalUploadMediaBtn?.addEventListener('click', () => modalPostMediaUpload.click());
 modalPostMediaUpload?.addEventListener('change', e => {
-    selectedFiles = Array.from(e.target.files);
+    const allFiles = Array.from(e.target.files);
+    // Filter out .url files and files without proper MIME types
+    selectedFiles = allFiles.filter(file => {
+        // Reject .url files (internet shortcuts)
+        if (file.name.toLowerCase().endsWith('.url')) {
+            console.warn(`Rejected .url file: ${file.name}`);
+            return false;
+        }
+        // Reject files without a MIME type
+        if (!file.type || file.type === '') {
+            console.warn(`Rejected file without MIME type: ${file.name}`);
+            return false;
+        }
+        return true;
+    });
+    
+    const rejectedCount = allFiles.length - selectedFiles.length;
     if (selectedFiles.length > 0) {
-        modalPostStatusMessage.textContent = `Selected: ${selectedFiles.length} file(s)`;
+        let message = `Selected: ${selectedFiles.length} file(s)`;
+        if (rejectedCount > 0) {
+            message += ` (${rejectedCount} invalid file(s) rejected)`;
+        }
+        modalPostStatusMessage.textContent = message;
     } else {
-        modalPostStatusMessage.textContent = '';
+        if (rejectedCount > 0) {
+            modalPostStatusMessage.textContent = 'All selected files were invalid (possibly .url shortcuts or files without proper type)';
+        } else {
+            modalPostStatusMessage.textContent = '';
+        }
     }
 });
 
