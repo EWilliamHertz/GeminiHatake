@@ -199,11 +199,11 @@ if (post.poll) {
 
         mediaHTML = `
             <div class="post-image-gallery my-2">
-                {/* Optional container for better styling/centering */}
+                <!-- Optional container for better styling/centering -->
                 <div class="post-gallery-main-image-container">
                     <img src="${sanitizeHTML(images[0].url)}" alt="Post media" class="post-gallery-main-image">
                 </div>
-                <div class="post-gallery-thumbnails mt-2"> {/* Added margin-top */}
+                <div class="post-gallery-thumbnails mt-2"> <!-- Added margin-top -->
                     ${imageThumbnails}
                 </div>
             </div>
@@ -776,11 +776,11 @@ const openPostModal = async (postId, groupId) => {
             // Structure for the gallery within the modal's media pane
             mediaContainer.innerHTML = `
                 <div class="post-image-gallery w-full h-full flex flex-col p-2">
-                    {/* Container to help center and style the main image */}
+                    <!-- Container to help center and style the main image -->
                     <div class="post-gallery-main-image-container flex-grow flex items-center justify-center min-h-0 mb-2">
-                         <img src="${sanitizeHTML(images[0].url)}" alt="Post media" class="post-gallery-main-image"> {/* CSS handles sizing */}
+                         <img src="${sanitizeHTML(images[0].url)}" alt="Post media" class="post-gallery-main-image"> <!-- CSS handles sizing -->
                     </div>
-                    {/* Thumbnails */}
+                    <!-- Thumbnails -->
                     <div class="post-gallery-thumbnails flex-shrink-0">
                         ${imageThumbnails}
                     </div>
