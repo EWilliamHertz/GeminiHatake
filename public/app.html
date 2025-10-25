@@ -154,25 +154,17 @@
      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-6">
        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center space-x-3 cursor-pointer" id="create-post-trigger">
-    {/* You might want a user avatar here later */}
-    <div class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-        What's on your mind?
-    </div>
-    <button class="text-gray-500 hover:text-blue-500" title="Attach Media">
-        <i class="fas fa-image text-xl"></i>
-    </button>
-     <button class="text-gray-500 hover:text-blue-500" title="Create Poll">
-         <i class="fas fa-poll text-xl"></i>
-     </button>
-</div>
-<input accept="image/*,video/*" class="hidden" id="postMediaUpload" type="file" multiple/> {/* Keep original hidden input for potential direct poll media later */}
-         <button class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700" id="submitPostBtn">
-          Post
-         </button>
+        <div class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+         What's on your mind?
         </div>
-        <p class="text-sm mt-2" id="postStatusMessage">
-        </p>
+        <button class="text-gray-500 hover:text-blue-500" title="Attach Media">
+         <i class="fas fa-image text-xl"></i>
+        </button>
+        <button class="text-gray-500 hover:text-blue-500" title="Create Poll">
+         <i class="fas fa-poll text-xl"></i>
+        </button>
        </div>
+       <input accept="image/*,video/*" class="hidden" id="postMediaUpload" type="file" multiple/>
        <div class="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-full" id="feed-tabs">
         <button class="feed-tab-button flex-1 p-2 rounded-full text-sm font-semibold active" data-feed-type="for-you">
          For You

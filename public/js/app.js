@@ -68,6 +68,10 @@ const sanitized = sanitizeHTML(postContent);
     // --- END OF ADDED LINE ---
 
 return sanitized
+.replace(urlRegex, (url) => {
+    const href = url.startsWith('www.') ? `http://${url}` : url;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${url}</a>`;
+})
 .replace(/@(\w+)/g, `<a href="profile.html?user=$1" class="font-semibold text-blue-500 hover:underline">@$1</a>`)
 .replace(/#(\w+)/g, `<a href="search.html?query=%23$1" class="font-semibold text-indigo-500 hover:underline">#$1</a>`)
 .replace(/\[deck:([^:]+):([^\]]+)\]/g, `<a href="deck.html?deckId=$1" class="font-bold text-indigo-600 dark:text-indigo-400 hover:underline">[Deck: $2]</a>`)
@@ -970,18 +974,18 @@ renderPosts(activeFeedType);
             closeModal(createPostModal);
         }
     });
-postContentInput?.addEventListener('input', () => handleAutocomplete(postContentInput, suggestionsContainer));
-postContentInput?.addEventListener('blur', () => setTimeout(() => suggestionsContainer.classList.add('hidden'), 200));
+modalPostContentInput?.addEventListener('input', () => handleAutocomplete(modalPostContentInput, modalSuggestionsContainer));
+modalPostContentInput?.addEventListener('blur', () => setTimeout(() => modalSuggestionsContainer.classList.add('hidden'), 200));
 
 if (user) {
-submitPostBtn?.addEventListener('click', async () => {
-const content = postContentInput.value;
+modalSubmitPostBtn?.addEventListener('click', async () => {
+const content = modalPostContentInput.value;
 if (!content.trim() && selectedFiles.length === 0) {
 showToast('Please write something or select a file.', 'info');
 return;
 }
-submitPostBtn.disabled = true;
-postStatusMessage.textContent = 'Posting...';
+modalSubmitPostBtn.disabled = true;
+modalPostStatusMessage.textContent = 'Posting...';
 try {
 const userDoc = await db.collection('users').doc(user.uid).get();
 if (!userDoc.exists) throw new Error("User profile not found.");
@@ -1046,11 +1050,12 @@ timestamp: new Date()
 }
 }
 
-postContentInput.value = '';
-postMediaUpload.value = '';
+modalPostContentInput.value = '';
+modalPostMediaUpload.value = '';
 selectedFiles = []; // Changed from selectedFile
 selectedCardForPost = null; // Reset card selection for next post
-postStatusMessage.textContent = '';
+modalPostStatusMessage.textContent = '';
+closeModal(createPostModal);
 showToast('Posted successfully!', 'success');
 if (activeFeedType === 'for-you') {
 renderPosts(activeFeedType);
@@ -1058,22 +1063,22 @@ renderPosts(activeFeedType);
 } catch (error) {
 console.error("Error creating post:", error);
 showToast(`Error: ${error.message}`, 'error');
-postStatusMessage.textContent = `Error: ${error.message}`;
+modalPostStatusMessage.textContent = `Error: ${error.message}`;
 } finally {
-submitPostBtn.disabled = false;
+modalSubmitPostBtn.disabled = false;
 }
 });
-uploadMediaBtn?.addEventListener('click', () => postMediaUpload.click());
-postMediaUpload?.addEventListener('change', e => {
+modalUploadMediaBtn?.addEventListener('click', () => modalPostMediaUpload.click());
+modalPostMediaUpload?.addEventListener('change', e => {
     selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length > 0) {
-        postStatusMessage.textContent = `Selected: ${selectedFiles.length} file(s)`;
+        modalPostStatusMessage.textContent = `Selected: ${selectedFiles.length} file(s)`;
     } else {
-        postStatusMessage.textContent = '';
+        modalPostStatusMessage.textContent = '';
     }
 });
 
-createPollBtn?.addEventListener('click', () => openModal(pollModal));
+modalCreatePollBtn?.addEventListener('click', () => openModal(pollModal));
 closePollModalBtn?.addEventListener('click', () => closeModal(pollModal));
 addPollOptionBtn?.addEventListener('click', () => {
 const optionCount = pollOptionsContainer.children.length;
