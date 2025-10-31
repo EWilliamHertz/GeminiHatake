@@ -1,0 +1,616 @@
+{
+  "badges": [
+    {
+      "id": "first_draw",
+      "name": "First Draw",
+      "description": "Created your account and joined HatakeSocial",
+      "category": "getting_started",
+      "icon": "fas fa-user-plus",
+      "rarity": "common",
+      "points": 10,
+      "criteria": {
+        "type": "account_created",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "collector_in_training",
+      "name": "Collector in Training",
+      "description": "Added your first card to your collection",
+      "category": "getting_started",
+      "icon": "fas fa-star",
+      "rarity": "common",
+      "points": 10,
+      "criteria": {
+        "type": "cards_added",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "first_trade",
+      "name": "First Trade",
+      "description": "Completed your first trade with another user",
+      "category": "getting_started",
+      "icon": "fas fa-handshake",
+      "rarity": "common",
+      "points": 15,
+      "criteria": {
+        "type": "trades_completed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "welcome_to_arena",
+      "name": "Welcome to the Arena",
+      "description": "Made your first post or comment",
+      "category": "getting_started",
+      "icon": "fas fa-comment",
+      "rarity": "common",
+      "points": 10,
+      "criteria": {
+        "type": "posts_or_comments",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "icebreaker",
+      "name": "Icebreaker",
+      "description": "Complete your first trade",
+      "category": "trading",
+      "icon": "fas fa-exchange-alt",
+      "rarity": "common",
+      "points": 15,
+      "criteria": {
+        "type": "trades_completed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "trader",
+      "name": "Trader",
+      "description": "Completed 5 successful trades",
+      "category": "trading",
+      "icon": "fas fa-handshake",
+      "rarity": "uncommon",
+      "points": 25,
+      "criteria": {
+        "type": "trades_completed",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "merchant",
+      "name": "Merchant",
+      "description": "Complete 25 successful trades or sold your first card on the marketplace",
+      "category": "trading",
+      "icon": "fas fa-store",
+      "rarity": "rare",
+      "points": 50,
+      "criteria": {
+        "type": "trades_or_sales",
+        "threshold": 25
+      }
+    },
+    {
+      "id": "trusted_trader",
+      "name": "Trusted Trader",
+      "description": "Receive 10+ positive trade reviews",
+      "category": "trading",
+      "icon": "fas fa-award",
+      "rarity": "rare",
+      "points": 75,
+      "criteria": {
+        "type": "positive_reviews",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "power_seller",
+      "name": "Power Seller",
+      "description": "Sold 25 cards on the marketplace",
+      "category": "marketplace",
+      "icon": "fas fa-fire",
+      "rarity": "rare",
+      "points": 60,
+      "criteria": {
+        "type": "cards_sold",
+        "threshold": 25
+      }
+    },
+    {
+      "id": "trusted_dealer",
+      "name": "Trusted Dealer",
+      "description": "Received 10+ positive trade ratings",
+      "category": "marketplace",
+      "icon": "fas fa-certificate",
+      "rarity": "rare",
+      "points": 75,
+      "criteria": {
+        "type": "positive_ratings",
+        "threshold": 10
+      }
+    },
+    {
+      "id": "market_master",
+      "name": "Market Master",
+      "description": "Completed 100+ transactions",
+      "category": "marketplace",
+      "icon": "fas fa-crown",
+      "rarity": "epic",
+      "points": 150,
+      "criteria": {
+        "type": "total_transactions",
+        "threshold": 100
+      }
+    },
+    {
+      "id": "first_purchase",
+      "name": "First Purchase",
+      "description": "Buy your first card from the marketplace",
+      "category": "marketplace",
+      "icon": "fas fa-shopping-cart",
+      "rarity": "common",
+      "points": 10,
+      "criteria": {
+        "type": "marketplace_purchases",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "seller",
+      "name": "Seller",
+      "description": "List your first card for sale",
+      "category": "marketplace",
+      "icon": "fas fa-tag",
+      "rarity": "common",
+      "points": 10,
+      "criteria": {
+        "type": "cards_listed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "common_collector",
+      "name": "Common Collector",
+      "description": "Own 50 cards in your collection",
+      "category": "collecting",
+      "icon": "fas fa-layer-group",
+      "rarity": "common",
+      "points": 20,
+      "criteria": {
+        "type": "total_cards",
+        "threshold": 50
+      }
+    },
+    {
+      "id": "collector_bronze",
+      "name": "Collector (Bronze)",
+      "description": "Add 100 cards to your collection",
+      "category": "collecting",
+      "icon": "fas fa-medal",
+      "rarity": "uncommon",
+      "points": 30,
+      "criteria": {
+        "type": "total_cards",
+        "threshold": 100
+      }
+    },
+    {
+      "id": "vault_keeper",
+      "name": "Vault Keeper",
+      "description": "Own 500 total cards",
+      "category": "collecting",
+      "icon": "fas fa-vault",
+      "rarity": "rare",
+      "points": 75,
+      "criteria": {
+        "type": "total_cards",
+        "threshold": 500
+      }
+    },
+    {
+      "id": "collector_silver",
+      "name": "Collector (Silver)",
+      "description": "Add 1,000 cards to your collection",
+      "category": "collecting",
+      "icon": "fas fa-medal",
+      "rarity": "epic",
+      "points": 100,
+      "criteria": {
+        "type": "total_cards",
+        "threshold": 1000
+      }
+    },
+    {
+      "id": "collector_gold",
+      "name": "Collector (Gold)",
+      "description": "Add 10,000 cards to your collection",
+      "category": "collecting",
+      "icon": "fas fa-trophy",
+      "rarity": "legendary",
+      "points": 500,
+      "criteria": {
+        "type": "total_cards",
+        "threshold": 10000
+      }
+    },
+    {
+      "id": "rare_hunter",
+      "name": "Rare Hunter",
+      "description": "Own 5 rare or higher-tier cards",
+      "category": "collecting",
+      "icon": "fas fa-gem",
+      "rarity": "uncommon",
+      "points": 40,
+      "criteria": {
+        "type": "rare_cards",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "mythic_collector",
+      "name": "Mythic Collector",
+      "description": "Own at least one ultra-rare card",
+      "category": "collecting",
+      "icon": "fas fa-dragon",
+      "rarity": "epic",
+      "points": 100,
+      "criteria": {
+        "type": "ultra_rare_cards",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "set_completionist",
+      "name": "Set Completionist",
+      "description": "Completed a full card set",
+      "category": "collecting",
+      "icon": "fas fa-check-circle",
+      "rarity": "epic",
+      "points": 150,
+      "criteria": {
+        "type": "complete_sets",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "deck_builder",
+      "name": "Deck Builder",
+      "description": "Create your first deck",
+      "category": "deck_building",
+      "icon": "fas fa-book-open",
+      "rarity": "common",
+      "points": 15,
+      "criteria": {
+        "type": "decks_created",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "strategist",
+      "name": "Strategist",
+      "description": "Shared your first deck list or strategy",
+      "category": "deck_building",
+      "icon": "fas fa-chess",
+      "rarity": "uncommon",
+      "points": 25,
+      "criteria": {
+        "type": "public_decks",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "master_brewer",
+      "name": "Master Brewer",
+      "description": "Create 20 decks",
+      "category": "deck_building",
+      "icon": "fas fa-flask",
+      "rarity": "rare",
+      "points": 75,
+      "criteria": {
+        "type": "decks_created",
+        "threshold": 20
+      }
+    },
+    {
+      "id": "friendly_duelist",
+      "name": "Friendly Duelist",
+      "description": "Added 5 friends",
+      "category": "community",
+      "icon": "fas fa-user-friends",
+      "rarity": "common",
+      "points": 20,
+      "criteria": {
+        "type": "friends_count",
+        "threshold": 5
+      }
+    },
+    {
+      "id": "arena_chatter",
+      "name": "Arena Chatter",
+      "description": "Posted 20 comments",
+      "category": "community",
+      "icon": "fas fa-comments",
+      "rarity": "uncommon",
+      "points": 30,
+      "criteria": {
+        "type": "comments_posted",
+        "threshold": 20
+      }
+    },
+    {
+      "id": "fan_favorite",
+      "name": "Fan Favorite",
+      "description": "Received 50 likes on your posts",
+      "category": "community",
+      "icon": "fas fa-heart",
+      "rarity": "rare",
+      "points": 50,
+      "criteria": {
+        "type": "likes_received",
+        "threshold": 50
+      }
+    },
+    {
+      "id": "guild_leader",
+      "name": "Guild Leader",
+      "description": "Created or led a community group",
+      "category": "community",
+      "icon": "fas fa-flag",
+      "rarity": "rare",
+      "points": 60,
+      "criteria": {
+        "type": "groups_created",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "profile_complete",
+      "name": "Profile Complete",
+      "description": "Add a custom profile picture and a bio",
+      "category": "community",
+      "icon": "fas fa-id-card",
+      "rarity": "common",
+      "points": 15,
+      "criteria": {
+        "type": "profile_completed",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "contributor",
+      "name": "Contributor",
+      "description": "Write and publish an article",
+      "category": "community",
+      "icon": "fas fa-pen",
+      "rarity": "uncommon",
+      "points": 40,
+      "criteria": {
+        "type": "articles_published",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "event_goer",
+      "name": "Event-Goer",
+      "description": "Register for or participate in an event",
+      "category": "events",
+      "icon": "fas fa-calendar-check",
+      "rarity": "common",
+      "points": 20,
+      "criteria": {
+        "type": "events_participated",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "first_match",
+      "name": "First Match",
+      "description": "Played your first game",
+      "category": "events",
+      "icon": "fas fa-gamepad",
+      "rarity": "common",
+      "points": 15,
+      "criteria": {
+        "type": "games_played",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "tournament_rookie",
+      "name": "Tournament Rookie",
+      "description": "Entered your first tournament",
+      "category": "events",
+      "icon": "fas fa-trophy",
+      "rarity": "uncommon",
+      "points": 30,
+      "criteria": {
+        "type": "tournaments_entered",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "champions_crest",
+      "name": "Champion's Crest",
+      "description": "Won a tournament",
+      "category": "events",
+      "icon": "fas fa-crown",
+      "rarity": "epic",
+      "points": 200,
+      "criteria": {
+        "type": "tournaments_won",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "event_explorer",
+      "name": "Event Explorer",
+      "description": "Participated in 3 special events",
+      "category": "events",
+      "icon": "fas fa-map-marked-alt",
+      "rarity": "uncommon",
+      "points": 45,
+      "criteria": {
+        "type": "events_participated",
+        "threshold": 3
+      }
+    },
+    {
+      "id": "battle_veteran",
+      "name": "Battle Veteran",
+      "description": "Played 100 matches",
+      "category": "events",
+      "icon": "fas fa-shield-alt",
+      "rarity": "rare",
+      "points": 100,
+      "criteria": {
+        "type": "games_played",
+        "threshold": 100
+      }
+    },
+    {
+      "id": "pioneer",
+      "name": "Pioneer",
+      "description": "Joined the site within the first 6 months of launch",
+      "category": "special",
+      "icon": "fas fa-flag-checkered",
+      "rarity": "legendary",
+      "points": 250,
+      "criteria": {
+        "type": "early_adopter",
+        "threshold": 1,
+        "cutoff_date": "2025-04-30"
+      }
+    },
+    {
+      "id": "early_adopter",
+      "name": "Early Adopter",
+      "description": "Joined during the beta",
+      "category": "special",
+      "icon": "fas fa-rocket",
+      "rarity": "legendary",
+      "points": 300,
+      "criteria": {
+        "type": "beta_user",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "limited_edition",
+      "name": "Limited Edition",
+      "description": "Earned during a time-limited event",
+      "category": "special",
+      "icon": "fas fa-hourglass-half",
+      "rarity": "epic",
+      "points": 150,
+      "criteria": {
+        "type": "special_event",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "holiday_spirit",
+      "name": "Holiday Spirit",
+      "description": "Participated in a seasonal promotion",
+      "category": "special",
+      "icon": "fas fa-gift",
+      "rarity": "rare",
+      "points": 50,
+      "criteria": {
+        "type": "seasonal_event",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "easter_egg_hunter",
+      "name": "Easter Egg Hunter",
+      "description": "Found a hidden feature or collectible",
+      "category": "special",
+      "icon": "fas fa-egg",
+      "rarity": "epic",
+      "points": 100,
+      "criteria": {
+        "type": "easter_egg",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "legendary_status",
+      "name": "Legendary Status",
+      "description": "Earned all other badges",
+      "category": "special",
+      "icon": "fas fa-star",
+      "rarity": "legendary",
+      "points": 1000,
+      "criteria": {
+        "type": "all_badges",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "shopper",
+      "name": "Shopper",
+      "description": "Made your first purchase",
+      "category": "loyalty",
+      "icon": "fas fa-shopping-bag",
+      "rarity": "common",
+      "points": 10,
+      "criteria": {
+        "type": "purchases_made",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "collectors_club_member",
+      "name": "Collector's Club Member",
+      "description": "Spent $100+",
+      "category": "loyalty",
+      "icon": "fas fa-coins",
+      "rarity": "rare",
+      "points": 75,
+      "criteria": {
+        "type": "total_spent",
+        "threshold": 100
+      }
+    },
+    {
+      "id": "big_spender",
+      "name": "Big Spender",
+      "description": "Spent $500+",
+      "category": "loyalty",
+      "icon": "fas fa-money-bill-wave",
+      "rarity": "epic",
+      "points": 200,
+      "criteria": {
+        "type": "total_spent",
+        "threshold": 500
+      }
+    },
+    {
+      "id": "supporter",
+      "name": "Supporter",
+      "description": "Purchased from an indie seller",
+      "category": "loyalty",
+      "icon": "fas fa-hands-helping",
+      "rarity": "uncommon",
+      "points": 30,
+      "criteria": {
+        "type": "indie_purchases",
+        "threshold": 1
+      }
+    },
+    {
+      "id": "vip_member",
+      "name": "VIP Member",
+      "description": "Subscribed to a premium plan",
+      "category": "loyalty",
+      "icon": "fas fa-vip",
+      "rarity": "rare",
+      "points": 100,
+      "criteria": {
+        "type": "premium_subscription",
+        "threshold": 1
+      }
+    }
+  ]
+}
