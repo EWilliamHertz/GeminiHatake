@@ -2194,3 +2194,27 @@ exports.onFriendRequestAccept = functions.firestore
       }
       return null;
     });
+
+// =================================================================================================
+// BADGE SYSTEM FUNCTIONS
+// =================================================================================================
+
+const badgeFunctions = require('./badgeFunctions');
+
+// Export all badge functions
+exports.initializeBadges = badgeFunctions.initializeBadges;
+exports.awardBadgeManually = badgeFunctions.awardBadgeManually;
+exports.getBadgeProgress = badgeFunctions.getBadgeProgress;
+exports.checkBadgesOnUserCreate = badgeFunctions.checkBadgesOnUserCreate;
+exports.checkBadgesOnCollectionUpdate = badgeFunctions.checkBadgesOnCollectionUpdate;
+exports.checkBadgesOnTradeComplete = badgeFunctions.checkBadgesOnTradeComplete;
+exports.checkBadgesOnPostCreate = badgeFunctions.checkBadgesOnPostCreate;
+exports.checkBadgesOnDeckCreate = badgeFunctions.checkBadgesOnDeckCreate;
+exports.checkBadgesOnPublicDeckCreate = badgeFunctions.checkBadgesOnPublicDeckCreate;
+exports.checkBadgesOnFollow = badgeFunctions.checkBadgesOnFollow;
+exports.checkBadgesOnArticlePublish = badgeFunctions.checkBadgesOnArticlePublish;
+exports.checkBadgesOnGroupCreate = badgeFunctions.checkBadgesOnGroupCreate;
+exports.checkBadgesOnProfileUpdate = badgeFunctions.checkBadgesOnProfileUpdate;
+exports.checkBadgesOnMarketplaceListing = badgeFunctions.checkBadgesOnMarketplaceListing;
+exports.dailyBadgeCheck = badgeFunctions.dailyBadgeCheck;
+exports.retroactivelyAwardBadges = badgeFunctions.retroactivelyAwardBadges;
