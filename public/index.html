@@ -23,19 +23,20 @@
     <meta content="https://www.hatake.eu" property="og:url"/>
     <meta content="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b" property="og:image"/>
     
-    <!-- External CSS and JS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="css/style.css" rel="stylesheet"/>
     <link href="css/enhanced-pricing.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css"/>
     
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
     
     <style>
         :root {
@@ -198,6 +199,13 @@
             -webkit-text-fill-color: transparent;
         }
         
+        /* Styles for product grid (assuming they are in style.css, but added for safety) */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -209,15 +217,18 @@
             .nav-menu {
                 gap: 1rem;
             }
+
+            .product-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 1rem;
+            }
         }
     </style>
 </head>
 
 <body class="antialiased bg-white dark:bg-gray-900">
-    <!-- Header -->
     <header class="header-container border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div class="header-content">
-            <!-- Search Bar -->
             <div class="flex items-center flex-1 max-w-md">
                 <div class="relative w-full">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
@@ -228,22 +239,17 @@
                 </div>
             </div>
 
-            <!-- Navigation Menu -->
             <nav class="nav-menu hidden md:flex">
                 <a href="/about.html">About Us</a>
                 <a href="/articles.html?type=blog">Hatake Blog</a>
             </nav>
 
-            <!-- User Actions Container (populated by auth.js) -->
             <div class="flex items-center space-x-3" id="user-actions">
-                <!-- This container is dynamically filled by auth.js -->
-            </div>
+                </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="main-container bg-white dark:bg-gray-900">
-        <!-- Hero Section -->
         <section class="pt-32 pb-20 bg-white dark:bg-gray-900">
             <div class="content-wrapper text-center">
                 <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-4">
@@ -270,9 +276,31 @@
             </div>
         </section>
 
-        <!-- Features Section -->
-        <section class="py-24 space-y-20 bg-gray-50 dark:bg-gray-800">
-            <!-- Social Feed Feature -->
+        <section class="py-24 bg-gray-50 dark:bg-gray-800" id="shop">
+            <div class="content-wrapper">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white text-center mb-12">
+                    Our Products
+                </h2>
+                <div class="product-grid" id="product-grid">
+                    <div class="text-center p-10 col-span-full">
+                        <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+                        <p class="mt-2 text-gray-600 dark:text-gray-400">Loading Products...</p>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-12">
+                    <p class="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                        Please log in to manage your cart and place orders.
+                    </p>
+                    <a href="shop.html" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg px-8 py-4 rounded-lg transition-transform transform hover:scale-105 inline-block">
+                        View Full Shop
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="py-24 space-y-20 bg-white dark:bg-gray-900">
             <div class="content-wrapper">
                 <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-feed">
                     <div class="md:pr-8">
@@ -294,7 +322,6 @@
                 </div>
             </div>
 
-            <!-- Deck Builder Feature -->
             <div class="content-wrapper">
                 <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-deckbuilder">
                     <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
@@ -316,7 +343,6 @@
                 </div>
             </div>
 
-            <!-- Collection Feature -->
             <div class="content-wrapper">
                 <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-collection">
                     <div class="md:pr-8">
@@ -338,7 +364,6 @@
                 </div>
             </div>
 
-            <!-- Marketplace Feature -->
             <div class="content-wrapper">
                 <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-marketplace">
                     <div class="rounded-lg overflow-hidden shadow-2xl md:order-last">
@@ -360,7 +385,6 @@
                 </div>
             </div>
 
-            <!-- Events Feature -->
             <div class="content-wrapper">
                 <div class="grid md:grid-cols-2 gap-12 items-center" id="feature-events">
                     <div class="md:pr-8">
@@ -383,8 +407,7 @@
             </div>
         </section>
 
-        <!-- Merchandise Gallery Section -->
-        <section class="py-20 bg-white dark:bg-gray-900">
+        <section class="py-20 bg-gray-50 dark:bg-gray-800">
             <div class="content-wrapper text-center">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                     Explore Our Merchandise
@@ -399,8 +422,7 @@
             </div>
         </section>
 
-        <!-- Community CTA Section -->
-        <section class="py-20 bg-gray-50 dark:bg-gray-800" id="community">
+        <section class="py-20 bg-white dark:bg-gray-900" id="community">
             <div class="content-wrapper text-center">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                     Ready to Join the Global TCG Community?
@@ -416,7 +438,6 @@
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div class="content-wrapper py-8 text-center text-gray-600 dark:text-gray-400">
             <p>© 2025 HatakeSocial. All rights reserved.</p>
@@ -429,7 +450,6 @@
         </div>
     </footer>
 
-    <!-- Gallery Modal -->
     <div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50" id="gallery-modal">
         <div class="relative max-w-6xl max-h-full p-4" id="gallery-backdrop">
             <button class="absolute top-4 right-4 text-white text-3xl font-bold z-20 bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center hover:bg-opacity-75" 
@@ -441,7 +461,6 @@
         </div>
     </div>
 
-    <!-- Login Modal -->
     <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="loginModal">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between items-center">
@@ -466,7 +485,6 @@
         </div>
     </div>
 
-    <!-- Register Modal -->
     <div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="registerModal">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
             <div class="flex justify-between items-center">
@@ -497,11 +515,60 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <div class="modal-overlay product-detail-modal hidden" id="product-detail-modal">
+       <div class="modal-content">
+        <button class="close-button" id="close-product-modal">
+         ×
+        </button>
+        <div class="modal-body" id="modal-body">
+         </div>
+       </div>
+    </div>
+    
+    <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="cartModal">
+       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col" style="height: 90vh; max-height: 800px;">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+         <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+          Your Cart
+         </h2>
+         <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="closeCartModal">
+          ×
+         </button>
+        </div>
+        <div class="p-6 flex-grow overflow-y-auto" id="cart-items-container">
+         <p class="text-center text-gray-500 dark:text-gray-400">
+          Your cart is empty.
+         </p>
+        </div>
+        <div class="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+         <div class="flex justify-between items-center font-bold text-lg">
+          <span>
+           Subtotal
+          </span>
+          <span id="cart-subtotal">
+           $0.00
+          </span>
+         </div>
+         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Shipping &amp; taxes calculated at checkout.
+         </p>
+         <button class="w-full mt-4 bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400" disabled="" id="checkout-btn">
+          Proceed to Checkout
+         </button>
+        </div>
+       </div>
+    </div>
+
     <script src="js/auth.js"></script>
+    
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js" type="text/javascript"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/shop.js"></script>
+    
     <script src="js/search-enhanced.js"></script>
     
-    <!-- Gallery Script -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const galleryModal = document.getElementById('gallery-modal');
@@ -535,6 +602,11 @@
 
             async function fetchProductImages() {
                 if (imageUrls.length > 0) return;
+                // Ensure firebase is initialized before trying to use it
+                if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
+                    console.warn("Firebase not ready for gallery script yet.");
+                    return;
+                }
                 try {
                     const productsSnapshot = await firebase.firestore().collection('products').get();
                     let allUrls = [];
@@ -610,10 +682,16 @@
                 e.stopPropagation();
                 showImage(currentIndex + 1);
             });
+
+            // Make sure to fetch images if auth is already ready
+            if (window.authReady) {
+                 fetchProductImages();
+            } else {
+                document.addEventListener('authReady', fetchProductImages, { once: true });
+            }
         });
     </script>
 
-    <!-- Tour Script -->
     <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css" rel="stylesheet"/>
     <script src="/js/tour.js" type="module"></script>
