@@ -1,252 +1,245 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card View - HatakeSocial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <link href="css/style.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="manifest" href="/manifest.json">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Card View - HatakeSocial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"/>
+<link href="css/style.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="/manifest.json" rel="manifest"/>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans">
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-                <a href="app.html" class="flex flex-col items-center space-y-1">
-                    <img src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b" 
-                         alt="HatakeSocial Logo" class="h-16" 
-                         onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';">
-                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-                </a>
-            </div>
-            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <a href="app.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-home w-6 text-center"></i>
-                    <span class="ml-3">Feed</span>
-                </a>
-                <a href="messages.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-comments w-6 text-center"></i>
-                    <span class="ml-3">Messages</span>
-                </a>
-                <a href="community.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-users w-6 text-center"></i>
-                    <span class="ml-3">Community</span>
-                </a>
-                <a href="tcg-articles.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-newspaper w-6 text-center"></i>
-                    <span class="ml-3">TCG Articles</span>
-                </a>
-                <a href="hatake-blog.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-blog w-6 text-center"></i>
-                    <span class="ml-3">Hatake Blog</span>
-                </a>
-                <a href="events.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-calendar w-6 text-center"></i>
-                    <span class="ml-3">Events</span>
-                </a>
-                <a href="my_collection.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-layer-group w-6 text-center"></i>
-                    <span class="ml-3">My Collection</span>
-                </a>
-                <a href="deck.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-th-large w-6 text-center"></i>
-                    <span class="ml-3">Deck Builder</span>
-                </a>
-                <a href="shop.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-shopping-cart w-6 text-center"></i>
-                    <span class="ml-3">Shop</span>
-                </a>
-                <a href="marketplace.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-store w-6 text-center"></i>
-                    <span class="ml-3">Marketplace</span>
-                </a>
-                <a href="trades.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-exchange-alt w-6 text-center"></i>
-                    <span class="ml-3">Trades</span>
-                </a>
-                <a href="profile.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-user w-6 text-center"></i>
-                    <span class="ml-3">Profile</span>
-                </a>
-                <a href="settings.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-cog w-6 text-center"></i>
-                    <span class="ml-3">Settings</span>
-                </a>
-                <a href="about.html" class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-                    <i class="fas fa-info-circle w-6 text-center"></i>
-                    <span class="ml-3">About Us</span>
-                </a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Header -->
-            <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <button class="lg:hidden text-gray-500 dark:text-gray-400" id="sidebar-toggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="relative flex-1 max-w-md">
-                        <input type="text" placeholder="Search for cards, users, or articles..." 
-                               class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <button class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                        <i class="fas fa-bell"></i>
-                    </button>
-<div id="user-actions" class="auth-buttons flex space-x-2">                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors" onclick="showLoginModal()">Log In</button>
-                        <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors" onclick="showRegisterModal()">Register</button>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Card Details Content -->
-            <main class="flex-1 overflow-y-auto p-6">
-                <div id="loading" class="flex items-center justify-center h-64">
-                    <div class="text-center">
-                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                        <p class="text-gray-600 dark:text-gray-400">Loading card details...</p>
-                    </div>
-                </div>
-
-                <div id="card-content" class="hidden">
-                    <div class="max-w-6xl mx-auto">
-                        <!-- Back Button -->
-                        <button onclick="history.back()" class="mb-6 flex items-center text-blue-500 hover:text-blue-600 transition-colors">
-                            <i class="fas fa-arrow-left mr-2"></i>
+<div class="flex h-screen">
+<!-- Sidebar -->
+<div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+<div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+<a class="flex flex-col items-center space-y-1" href="app.html">
+<img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+<span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+</a>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+<i class="fas fa-home w-6 text-center"></i>
+<span class="ml-3">Feed</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+<i class="fas fa-comments w-6 text-center"></i>
+<span class="ml-3">Messages</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+<i class="fas fa-users w-6 text-center"></i>
+<span class="ml-3">Community</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="tcg-articles.html">
+<i class="fas fa-newspaper w-6 text-center"></i>
+<span class="ml-3">TCG Articles</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="hatake-blog.html">
+<i class="fas fa-blog w-6 text-center"></i>
+<span class="ml-3">Hatake Blog</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+<i class="fas fa-calendar w-6 text-center"></i>
+<span class="ml-3">Events</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+<i class="fas fa-layer-group w-6 text-center"></i>
+<span class="ml-3">My Collection</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+<i class="fas fa-th-large w-6 text-center"></i>
+<span class="ml-3">Deck Builder</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+<i class="fas fa-shopping-cart w-6 text-center"></i>
+<span class="ml-3">Shop</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+<i class="fas fa-store w-6 text-center"></i>
+<span class="ml-3">Marketplace</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="trades.html">
+<i class="fas fa-exchange-alt w-6 text-center"></i>
+<span class="ml-3">Trades</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+<i class="fas fa-user w-6 text-center"></i>
+<span class="ml-3">Profile</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+<i class="fas fa-cog w-6 text-center"></i>
+<span class="ml-3">Settings</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+<i class="fas fa-info-circle w-6 text-center"></i>
+<span class="ml-3">About Us</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="contact.html">
+<i class="fas fa-ticket-alt w-6 text-center">
+</i>
+<span class="ml-3">
+     Support &amp; Contact
+    </span>
+</a>
+</nav>
+</aside>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+<div class="flex items-center space-x-4">
+<button class="lg:hidden text-gray-500 dark:text-gray-400" id="sidebar-toggle">
+<i class="fas fa-bars"></i>
+</button>
+<div class="relative flex-1 max-w-md">
+<input class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Search for cards, users, or articles..." type="text"/>
+<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+<i class="fas fa-bell"></i>
+</button>
+<div class="auth-buttons flex space-x-2" id="user-actions"> <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors" onclick="showLoginModal()">Log In</button>
+<button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors" onclick="showRegisterModal()">Register</button>
+</div>
+</div>
+</header>
+<!-- Card Details Content -->
+<main class="flex-1 overflow-y-auto p-6">
+<div class="flex items-center justify-center h-64" id="loading">
+<div class="text-center">
+<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+<p class="text-gray-600 dark:text-gray-400">Loading card details...</p>
+</div>
+</div>
+<div class="hidden" id="card-content">
+<div class="max-w-6xl mx-auto">
+<!-- Back Button -->
+<button class="mb-6 flex items-center text-blue-500 hover:text-blue-600 transition-colors" onclick="history.back()">
+<i class="fas fa-arrow-left mr-2"></i>
                             Back to Search
                         </button>
-
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <!-- Card Image and Basic Info -->
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                                <div class="text-center mb-6">
-                                    <img id="card-image" src="" alt="Card Image" class="mx-auto max-w-full h-auto rounded-lg shadow-md">
-                                </div>
-                                <div class="space-y-4">
-                                    <h1 id="card-name" class="text-3xl font-bold text-center"></h1>
-                                    <div class="flex justify-center space-x-4">
-                                        <span id="card-set" class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"></span>
-                                        <span id="card-rarity" class="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm"></span>
-                                    </div>
-                                    <div class="text-center">
-                                        <span id="card-number" class="text-gray-600 dark:text-gray-400 text-sm"></span>
-                                    </div>
-                                    <div class="text-center">
-                                        <span id="card-price" class="text-2xl font-bold text-green-600 dark:text-green-400"></span>
-                                    </div>
-                                    <div class="flex justify-center space-x-4">
-                                        <button id="add-to-collection-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
-                                            <i class="fas fa-plus mr-2"></i>Add to Collection
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Card Image and Basic Info -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+<div class="text-center mb-6">
+<img alt="Card Image" class="mx-auto max-w-full h-auto rounded-lg shadow-md" id="card-image" src=""/>
+</div>
+<div class="space-y-4">
+<h1 class="text-3xl font-bold text-center" id="card-name"></h1>
+<div class="flex justify-center space-x-4">
+<span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm" id="card-set"></span>
+<span class="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full text-sm" id="card-rarity"></span>
+</div>
+<div class="text-center">
+<span class="text-gray-600 dark:text-gray-400 text-sm" id="card-number"></span>
+</div>
+<div class="text-center">
+<span class="text-2xl font-bold text-green-600 dark:text-green-400" id="card-price"></span>
+</div>
+<div class="flex justify-center space-x-4">
+<button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors" id="add-to-collection-btn">
+<i class="fas fa-plus mr-2"></i>Add to Collection
                                         </button>
-                                        <button id="add-to-wishlist-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors text-sm">
-        <i class="fas fa-star mr-2"></i>Wishlist
+<button class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-colors text-sm" id="add-to-wishlist-btn">
+<i class="fas fa-star mr-2"></i>Wishlist
     </button>
-                                        <button class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors">
-                                            <i class="fas fa-shopping-cart mr-2"></i>Buy Now
+<button class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors">
+<i class="fas fa-shopping-cart mr-2"></i>Buy Now
                                         </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card Details and Stats -->
-                            <div class="space-y-6">
-                                <!-- Price History -->
-                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                                    <div class="flex justify-between items-center mb-4">
-                                        <h2 class="text-xl font-bold">Price History</h2>
-                                        <div class="flex space-x-2">
-                                            <button id="period-30" class="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">30D</button>
-                                            <button id="period-90" class="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">90D</button>
-                                            <button id="period-365" class="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">1Y</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Price Change Indicators -->
-                                    <div id="price-indicators" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                        <div class="text-center">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">Current Price</p>
-                                            <p id="current-price" class="text-lg font-bold text-green-600 dark:text-green-400">--</p>
-                                        </div>
-                                        <div class="text-center">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">24h Change</p>
-                                            <p id="price-change-24h" class="text-lg font-bold">--</p>
-                                        </div>
-                                        <div class="text-center">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">7d Change</p>
-                                            <p id="price-change-7d" class="text-lg font-bold">--</p>
-                                        </div>
-                                        <div class="text-center">
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">30d Change</p>
-                                            <p id="price-change-30d" class="text-lg font-bold">--</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="h-64">
-                                        <canvas id="price-chart"></canvas>
-                                    </div>
-                                </div>
-
-                                <!-- Card Stats -->
-                                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                                    <h2 class="text-xl font-bold mb-4">Card Information</h2>
-                                    <div id="card-stats" class="space-y-3">
-                                        <!-- Stats will be populated by JavaScript -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Rulings Section -->
-                        <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <h2 class="text-xl font-bold mb-4">Rulings & Text</h2>
-                            <div id="card-rulings" class="space-y-4">
-                                <!-- Rulings will be populated by JavaScript -->
-                            </div>
-                        </div>
-
-                        <!-- Similar Cards -->
-                        <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                            <h2 class="text-xl font-bold mb-4">Similar Cards</h2>
-                            <div id="similar-cards" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                <!-- Similar cards will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="error-content" class="hidden text-center py-12">
-                    <div class="text-red-500 mb-4">
-                        <i class="fas fa-exclamation-triangle text-4xl"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold mb-2">Card Not Found</h2>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">Sorry, we couldn't find the card you're looking for.</p>
-                    <button onclick="history.back()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
+</div>
+</div>
+</div>
+<!-- Card Details and Stats -->
+<div class="space-y-6">
+<!-- Price History -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-bold">Price History</h2>
+<div class="flex space-x-2">
+<button class="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors" id="period-30">30D</button>
+<button class="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors" id="period-90">90D</button>
+<button class="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors" id="period-365">1Y</button>
+</div>
+</div>
+<!-- Price Change Indicators -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4" id="price-indicators">
+<div class="text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">Current Price</p>
+<p class="text-lg font-bold text-green-600 dark:text-green-400" id="current-price">--</p>
+</div>
+<div class="text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">24h Change</p>
+<p class="text-lg font-bold" id="price-change-24h">--</p>
+</div>
+<div class="text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">7d Change</p>
+<p class="text-lg font-bold" id="price-change-7d">--</p>
+</div>
+<div class="text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">30d Change</p>
+<p class="text-lg font-bold" id="price-change-30d">--</p>
+</div>
+</div>
+<div class="h-64">
+<canvas id="price-chart"></canvas>
+</div>
+</div>
+<!-- Card Stats -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+<h2 class="text-xl font-bold mb-4">Card Information</h2>
+<div class="space-y-3" id="card-stats">
+<!-- Stats will be populated by JavaScript -->
+</div>
+</div>
+</div>
+</div>
+<!-- Rulings Section -->
+<div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+<h2 class="text-xl font-bold mb-4">Rulings &amp; Text</h2>
+<div class="space-y-4" id="card-rulings">
+<!-- Rulings will be populated by JavaScript -->
+</div>
+</div>
+<!-- Similar Cards -->
+<div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+<h2 class="text-xl font-bold mb-4">Similar Cards</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4" id="similar-cards">
+<!-- Similar cards will be populated by JavaScript -->
+</div>
+</div>
+</div>
+</div>
+<div class="hidden text-center py-12" id="error-content">
+<div class="text-red-500 mb-4">
+<i class="fas fa-exclamation-triangle text-4xl"></i>
+</div>
+<h2 class="text-2xl font-bold mb-2">Card Not Found</h2>
+<p class="text-gray-600 dark:text-gray-400 mb-4">Sorry, we couldn't find the card you're looking for.</p>
+<button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors" onclick="history.back()">
                         Go Back
                     </button>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Firebase and Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script src="js/auth.js"></script>
-  <script src="js/mobile-navigation-fixed.js">
-  </script>
-    <script src="js/manus-helper.js"></script>
-    <script src="js/card-view.js"></script>
-    <script src="js/price-alerts.js"></script>
-    <script src="js/price-cache.js"></script>
+</div>
+</main>
+</div>
+</div>
+<!-- Firebase and Scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/mobile-navigation-fixed.js">
+</script>
+<script src="js/manus-helper.js"></script>
+<script src="js/card-view.js"></script>
+<script src="js/price-alerts.js"></script>
+<script src="js/price-cache.js"></script>
 </body>
 </html>

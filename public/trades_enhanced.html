@@ -1,13 +1,14 @@
 <!DOCTYPE html>
+
 <html class="dark" lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Enhanced Trades - HatakeSocial</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-    <link href="css/style.css" rel="stylesheet"/>
-    <script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Enhanced Trades - HatakeSocial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="css/style.css" rel="stylesheet"/>
+<script>
         tailwind.config = { 
             darkMode: 'class',
             theme: {
@@ -20,495 +21,453 @@
             }
         };
     </script>
-    <link href="/manifest.json" rel="manifest"/>
+<link href="/manifest.json" rel="manifest"/>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-200 font-sans overflow-hidden">
-    <div class="flex h-screen">
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
-        
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
-            <div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
-                <a class="flex flex-col items-center space-y-1" href="app.html">
-                    <img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
-                    <span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
-                </a>
-            </div>
-            
-            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
-                    <i class="fas fa-home w-6 text-center"></i>
-                    <span class="ml-3">Feed</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
-                    <i class="fas fa-comments w-6 text-center"></i>
-                    <span class="ml-3">Messages</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
-                    <i class="fas fa-users w-6 text-center"></i>
-                    <span class="ml-3">Community</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
-                    <i class="fas fa-newspaper w-6 text-center"></i>
-                    <span class="ml-3">TCG Articles</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
-                    <i class="fas fa-blog w-6 text-center"></i>
-                    <span class="ml-3">Hatake Blog</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
-                    <i class="fas fa-calendar-alt w-6 text-center"></i>
-                    <span class="ml-3">Events</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
-                    <i class="fas fa-layer-group w-6 text-center"></i>
-                    <span class="ml-3">My Collection</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
-                    <i class="fas fa-book-open w-6 text-center"></i>
-                    <span class="ml-3">Deck Builder</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
-                    <i class="fas fa-shopping-cart w-6 text-center"></i>
-                    <span class="ml-3">Shop</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
-                    <i class="fas fa-store w-6 text-center"></i>
-                    <span class="ml-3">Marketplace</span>
-                </a>
-                <a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="trades.html">
-                    <i class="fas fa-exchange-alt w-6 text-center"></i>
-                    <span class="ml-3">Trades</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
-                    <i class="fas fa-user w-6 text-center"></i>
-                    <span class="ml-3">Profile</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
-                    <i class="fas fa-cog w-6 text-center"></i>
-                    <span class="ml-3">Settings</span>
-                </a>
-                <a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
-                    <i class="fas fa-info-circle w-6 text-center"></i>
-                    <span class="ml-3">About Us</span>
-                </a>
-            </nav>
-            
-            <div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
-                <div id="auth-container-sidebar"></div>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Header -->
-            <header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <div class="flex items-center">
-                    <button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation relative" id="sidebar-toggle" style="min-width: 44px; min-height: 44px; z-index: 1000; position: relative;">
-       <i class="fas fa-bars text-xl">
-       </i>
-      </button>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-5" id="user-actions">
-                    <!-- This container is dynamically filled by auth.js -->
-                </div>
-            </header>
-
-            <!-- Trades Main Content -->
-            <main class="flex-1 overflow-y-auto p-6">
-                <!-- Header Section -->
-                <div class="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-2">
-                            <i class="fas fa-exchange-alt mr-3 text-blue-600"></i>Enhanced Trades
+<div class="flex h-screen">
+<div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+<!-- Sidebar -->
+<aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out" id="sidebar">
+<div class="h-28 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+<a class="flex flex-col items-center space-y-1" href="app.html">
+<img alt="HatakeSocial Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/150x40?text=HatakeSocial';" src="https://firebasestorage.googleapis.com/v0/b/hatakesocial-88b5e.firebasestorage.app/o/IMG_7951.png?alt=media&amp;token=e7c2dc48-2836-4feb-9fc7-324aecacba6b"/>
+<span class="font-bold text-lg text-blue-600 dark:text-blue-400">HatakeSocial</span>
+</a>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="app.html">
+<i class="fas fa-home w-6 text-center"></i>
+<span class="ml-3">Feed</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="messages.html">
+<i class="fas fa-comments w-6 text-center"></i>
+<span class="ml-3">Messages</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="community.html">
+<i class="fas fa-users w-6 text-center"></i>
+<span class="ml-3">Community</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=tcg">
+<i class="fas fa-newspaper w-6 text-center"></i>
+<span class="ml-3">TCG Articles</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="articles.html?type=blog">
+<i class="fas fa-blog w-6 text-center"></i>
+<span class="ml-3">Hatake Blog</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="events.html">
+<i class="fas fa-calendar-alt w-6 text-center"></i>
+<span class="ml-3">Events</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="my_collection.html">
+<i class="fas fa-layer-group w-6 text-center"></i>
+<span class="ml-3">My Collection</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="deck.html">
+<i class="fas fa-book-open w-6 text-center"></i>
+<span class="ml-3">Deck Builder</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="shop.html">
+<i class="fas fa-shopping-cart w-6 text-center"></i>
+<span class="ml-3">Shop</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="marketplace.html">
+<i class="fas fa-store w-6 text-center"></i>
+<span class="ml-3">Marketplace</span>
+</a>
+<a class="flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-md" href="trades.html">
+<i class="fas fa-exchange-alt w-6 text-center"></i>
+<span class="ml-3">Trades</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="profile.html">
+<i class="fas fa-user w-6 text-center"></i>
+<span class="ml-3">Profile</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="settings.html">
+<i class="fas fa-cog w-6 text-center"></i>
+<span class="ml-3">Settings</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="about.html">
+<i class="fas fa-info-circle w-6 text-center"></i>
+<span class="ml-3">About Us</span>
+</a>
+<a class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" href="contact.html">
+<i class="fas fa-ticket-alt w-6 text-center">
+</i>
+<span class="ml-3">
+     Support &amp; Contact
+    </span>
+</a>
+</nav>
+<div class="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+<div id="auth-container-sidebar"></div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="h-28 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+<div class="flex items-center">
+<button class="lg:hidden mr-4 text-gray-600 dark:text-gray-300 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation relative" id="sidebar-toggle" style="min-width: 44px; min-height: 44px; z-index: 1000; position: relative;">
+<i class="fas fa-bars text-xl">
+</i>
+</button>
+<div class="relative">
+<i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+<input class="w-full md:w-96 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="main-search-bar" placeholder="Search for cards, users, or articles..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-5" id="user-actions">
+<!-- This container is dynamically filled by auth.js -->
+</div>
+</header>
+<!-- Trades Main Content -->
+<main class="flex-1 overflow-y-auto p-6">
+<!-- Header Section -->
+<div class="flex justify-between items-center mb-8">
+<div>
+<h1 class="text-4xl font-extrabold text-gray-800 dark:text-white mb-2">
+<i class="fas fa-exchange-alt mr-3 text-blue-600"></i>Enhanced Trades
                         </h1>
-                        <p class="text-gray-600 dark:text-gray-400">Secure multi-game trading with auto-balance and escrow protection</p>
-                    </div>
-                    <button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105" id="propose-new-trade-btn">
-                        <i class="fas fa-plus mr-2"></i>Create New Trade
+<p class="text-gray-600 dark:text-gray-400">Secure multi-game trading with auto-balance and escrow protection</p>
+</div>
+<button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105" id="propose-new-trade-btn">
+<i class="fas fa-plus mr-2"></i>Create New Trade
                     </button>
-                </div>
-
-                <!-- Escrow Information Banner -->
-                <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-8">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-shield-alt text-3xl text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                        <div class="ml-4">
-                            <h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
+</div>
+<!-- Escrow Information Banner -->
+<div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-8">
+<div class="flex items-start">
+<div class="flex-shrink-0">
+<i class="fas fa-shield-alt text-3xl text-blue-600 dark:text-blue-400"></i>
+</div>
+<div class="ml-4">
+<h3 class="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
                                 Secure Trading with Escrow.com Protection
                             </h3>
-                            <p class="text-blue-800 dark:text-blue-200 mb-3">
+<p class="text-blue-800 dark:text-blue-200 mb-3">
                                 All trades involving cash are protected by our partnership with 
-                                <a href="https://escrow.com" target="_blank" class="font-semibold hover:underline">Escrow.com</a>. 
+                                <a class="font-semibold hover:underline" href="https://escrow.com" target="_blank">Escrow.com</a>. 
                                 Funds are held securely until both parties confirm shipment and receipt.
                             </p>
-                            <div class="flex flex-wrap gap-4 text-sm">
-                                <div class="flex items-center">
-                                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                                    <span>Multi-game support</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i class="fas fa-balance-scale text-green-600 mr-2"></i>
-                                    <span>Auto-balance feature</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i class="fas fa-lock text-green-600 mr-2"></i>
-                                    <span>Escrow protection</span>
-                                </div>
-                                <div class="flex items-center">
-                                    <i class="fas fa-shipping-fast text-green-600 mr-2"></i>
-                                    <span>Shipment tracking</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trade Statistics -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
-                                <i class="fas fa-inbox text-blue-600 dark:text-blue-400"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Incoming</p>
-                                <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="incoming-count">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-green-100 dark:bg-green-900">
-                                <i class="fas fa-paper-plane text-green-600 dark:text-green-400"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Outgoing</p>
-                                <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="outgoing-count">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
-                                <i class="fas fa-check-circle text-purple-600 dark:text-purple-400"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Completed</p>
-                                <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="completed-count">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
-                                <i class="fas fa-dollar-sign text-yellow-600 dark:text-yellow-400"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Value</p>
-                                <p class="text-2xl font-semibold text-gray-900 dark:text-white" id="total-value">$0</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trade Tabs -->
-                <div class="mb-6">
-                    <div class="border-b border-gray-200 dark:border-gray-700">
-                        <nav class="flex -mb-px space-x-8">
-                            <button class="trade-tab-button active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 dark:text-blue-400" data-tab="incoming">
-                                <i class="fas fa-inbox mr-2"></i>Incoming Offers
+<div class="flex flex-wrap gap-4 text-sm">
+<div class="flex items-center">
+<i class="fas fa-check-circle text-green-600 mr-2"></i>
+<span>Multi-game support</span>
+</div>
+<div class="flex items-center">
+<i class="fas fa-balance-scale text-green-600 mr-2"></i>
+<span>Auto-balance feature</span>
+</div>
+<div class="flex items-center">
+<i class="fas fa-lock text-green-600 mr-2"></i>
+<span>Escrow protection</span>
+</div>
+<div class="flex items-center">
+<i class="fas fa-shipping-fast text-green-600 mr-2"></i>
+<span>Shipment tracking</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Trade Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<div class="flex items-center">
+<div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+<i class="fas fa-inbox text-blue-600 dark:text-blue-400"></i>
+</div>
+<div class="ml-4">
+<p class="text-sm font-medium text-gray-600 dark:text-gray-400">Incoming</p>
+<p class="text-2xl font-semibold text-gray-900 dark:text-white" id="incoming-count">0</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<div class="flex items-center">
+<div class="p-3 rounded-full bg-green-100 dark:bg-green-900">
+<i class="fas fa-paper-plane text-green-600 dark:text-green-400"></i>
+</div>
+<div class="ml-4">
+<p class="text-sm font-medium text-gray-600 dark:text-gray-400">Outgoing</p>
+<p class="text-2xl font-semibold text-gray-900 dark:text-white" id="outgoing-count">0</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<div class="flex items-center">
+<div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
+<i class="fas fa-check-circle text-purple-600 dark:text-purple-400"></i>
+</div>
+<div class="ml-4">
+<p class="text-sm font-medium text-gray-600 dark:text-gray-400">Completed</p>
+<p class="text-2xl font-semibold text-gray-900 dark:text-white" id="completed-count">0</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<div class="flex items-center">
+<div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
+<i class="fas fa-dollar-sign text-yellow-600 dark:text-yellow-400"></i>
+</div>
+<div class="ml-4">
+<p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Value</p>
+<p class="text-2xl font-semibold text-gray-900 dark:text-white" id="total-value">$0</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Trade Tabs -->
+<div class="mb-6">
+<div class="border-b border-gray-200 dark:border-gray-700">
+<nav class="flex -mb-px space-x-8">
+<button class="trade-tab-button active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 dark:text-blue-400" data-tab="incoming">
+<i class="fas fa-inbox mr-2"></i>Incoming Offers
                             </button>
-                            <button class="trade-tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="outgoing">
-                                <i class="fas fa-paper-plane mr-2"></i>Outgoing Offers
+<button class="trade-tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="outgoing">
+<i class="fas fa-paper-plane mr-2"></i>Outgoing Offers
                             </button>
-                            <button class="trade-tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="history">
-                                <i class="fas fa-history mr-2"></i>Trade History
+<button class="trade-tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="history">
+<i class="fas fa-history mr-2"></i>Trade History
                             </button>
-                            <button class="trade-tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="analysis">
-                                <i class="fas fa-chart-line mr-2"></i>Trade Analysis
+<button class="trade-tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="analysis">
+<i class="fas fa-chart-line mr-2"></i>Trade Analysis
                             </button>
-                        </nav>
-                    </div>
-                </div>
-
-                <!-- Trade Content -->
-                <div>
-                    <div class="trade-tab-content space-y-6" id="tab-content-incoming">
-                        <!-- Incoming trades will be loaded here -->
-                    </div>
-                    <div class="trade-tab-content hidden space-y-6" id="tab-content-outgoing">
-                        <!-- Outgoing trades will be loaded here -->
-                    </div>
-                    <div class="trade-tab-content hidden space-y-6" id="tab-content-history">
-                        <!-- Trade history will be loaded here -->
-                    </div>
-                    <div class="trade-tab-content hidden space-y-6" id="tab-content-analysis">
-                        <!-- Trade analysis will be loaded here -->
-                    </div>
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- Enhanced Trade Modal -->
-    <div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="propose-trade-modal">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-7xl mx-4 max-h-[95vh] overflow-y-auto">
-            <div class="flex justify-between items-center p-6 border-b dark:border-gray-700">
-                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-                    <i class="fas fa-handshake mr-2 text-blue-600"></i>Create New Trade
+</nav>
+</div>
+</div>
+<!-- Trade Content -->
+<div>
+<div class="trade-tab-content space-y-6" id="tab-content-incoming">
+<!-- Incoming trades will be loaded here -->
+</div>
+<div class="trade-tab-content hidden space-y-6" id="tab-content-outgoing">
+<!-- Outgoing trades will be loaded here -->
+</div>
+<div class="trade-tab-content hidden space-y-6" id="tab-content-history">
+<!-- Trade history will be loaded here -->
+</div>
+<div class="trade-tab-content hidden space-y-6" id="tab-content-analysis">
+<!-- Trade analysis will be loaded here -->
+</div>
+</div>
+</main>
+</div>
+</div>
+<!-- Enhanced Trade Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[1001]" id="propose-trade-modal">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-7xl mx-4 max-h-[95vh] overflow-y-auto">
+<div class="flex justify-between items-center p-6 border-b dark:border-gray-700">
+<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+<i class="fas fa-handshake mr-2 text-blue-600"></i>Create New Trade
                 </h2>
-                <button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-trade-modal">×</button>
-            </div>
-            
-            <div class="p-6">
-                <!-- Trade Partner Selection -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-user mr-2"></i>Select Trade Partner
+<button class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold" id="close-trade-modal">×</button>
+</div>
+<div class="p-6">
+<!-- Trade Partner Selection -->
+<div class="mb-6">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+<i class="fas fa-user mr-2"></i>Select Trade Partner
                     </label>
-                    <div class="relative">
-                        <input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                               id="trade-partner-search" 
-                               placeholder="Search for a user by their handle..." 
-                               type="text"/>
-                        <div class="absolute top-full left-0 right-0 bg-white dark:bg-gray-700 shadow-lg rounded-lg mt-1 max-h-40 overflow-y-auto z-20 hidden" id="trade-partner-results">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Game Selection -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-gamepad mr-2"></i>Select Game
+<div class="relative">
+<input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="trade-partner-search" placeholder="Search for a user by their handle..." type="text"/>
+<div class="absolute top-full left-0 right-0 bg-white dark:bg-gray-700 shadow-lg rounded-lg mt-1 max-h-40 overflow-y-auto z-20 hidden" id="trade-partner-results">
+</div>
+</div>
+</div>
+<!-- Game Selection -->
+<div class="mb-6">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+<i class="fas fa-gamepad mr-2"></i>Select Game
                     </label>
-                    <div class="flex flex-wrap gap-2">
-                        <button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active" data-game="all">
-                            <i class="fas fa-globe mr-2"></i>All Games
+<div class="flex flex-wrap gap-2">
+<button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active" data-game="all">
+<i class="fas fa-globe mr-2"></i>All Games
                         </button>
-                        <button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="mtg">
-                            <i class="fas fa-magic mr-2"></i>Magic: The Gathering
+<button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="mtg">
+<i class="fas fa-magic mr-2"></i>Magic: The Gathering
                         </button>
-                        <button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="pokemon">
-                            <i class="fas fa-paw mr-2"></i>Pokémon
+<button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="pokemon">
+<i class="fas fa-paw mr-2"></i>Pokémon
                         </button>
-                        <button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="lorcana">
-                            <i class="fas fa-crown mr-2"></i>Lorcana
+<button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="lorcana">
+<i class="fas fa-crown mr-2"></i>Lorcana
                         </button>
-                        <button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="gundam">
-                            <i class="fas fa-robot mr-2"></i>Gundam
+<button class="game-filter-btn px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-game="gundam">
+<i class="fas fa-robot mr-2"></i>Gundam
                         </button>
-                    </div>
-                </div>
-
-                <!-- Trade Sections -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Your Offer Section -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-700">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-blue-900 dark:text-blue-100">
-                                <i class="fas fa-gift mr-2"></i>Your Offer
+</div>
+</div>
+<!-- Trade Sections -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Your Offer Section -->
+<div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-700">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold text-blue-900 dark:text-blue-100">
+<i class="fas fa-gift mr-2"></i>Your Offer
                             </h3>
-                            <div class="flex items-center gap-3">
-                                <button class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-sm hover:bg-purple-700 transition-colors" data-side="proposer">
-                                    <i class="fas fa-balance-scale mr-1"></i>Auto-Balance
+<div class="flex items-center gap-3">
+<button class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-sm hover:bg-purple-700 transition-colors" data-side="proposer">
+<i class="fas fa-balance-scale mr-1"></i>Auto-Balance
                                 </button>
-                                <div class="text-lg font-bold text-green-600 dark:text-green-400">
-                                    <span id="proposer-value">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Collection Browser -->
-                        <div class="mb-4">
-                            <div class="flex items-center gap-2 mb-3">
-                                <input class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                       id="my-collection-search" 
-                                       placeholder="Search your collection..." 
-                                       type="text"/>
-                                <div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
-                                    <button class="view-toggle-btn px-3 py-1 text-sm rounded-md bg-white dark:bg-gray-600 shadow-sm" data-side="proposer" data-view="grid">
-                                        <i class="fas fa-th"></i>
-                                    </button>
-                                    <button class="view-toggle-btn px-3 py-1 text-sm rounded-md" data-side="proposer" data-view="list">
-                                        <i class="fas fa-list"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
-                                <div id="my-collection-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                                    <!-- Collection cards will be loaded here -->
-                                </div>
-                                <div id="my-collection-list" class="space-y-2 hidden">
-                                    <!-- Collection list will be loaded here -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Selected Cards -->
-                        <div class="mb-4">
-                            <h4 class="font-semibold mb-2 text-gray-900 dark:text-gray-100">Selected Cards:</h4>
-                            <div class="min-h-[100px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
-                                <div id="proposer-selected-cards" class="flex flex-wrap gap-2">
-                                    <p class="text-sm text-gray-500 italic">No cards selected.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Cash Addition -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <i class="fas fa-dollar-sign mr-2"></i>Cash You Add (USD)
+<div class="text-lg font-bold text-green-600 dark:text-green-400">
+<span id="proposer-value">$0.00</span>
+</div>
+</div>
+</div>
+<!-- Collection Browser -->
+<div class="mb-4">
+<div class="flex items-center gap-2 mb-3">
+<input class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="my-collection-search" placeholder="Search your collection..." type="text"/>
+<div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
+<button class="view-toggle-btn px-3 py-1 text-sm rounded-md bg-white dark:bg-gray-600 shadow-sm" data-side="proposer" data-view="grid">
+<i class="fas fa-th"></i>
+</button>
+<button class="view-toggle-btn px-3 py-1 text-sm rounded-md" data-side="proposer" data-view="list">
+<i class="fas fa-list"></i>
+</button>
+</div>
+</div>
+<div class="h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
+<div class="grid grid-cols-4 sm:grid-cols-6 gap-2" id="my-collection-grid">
+<!-- Collection cards will be loaded here -->
+</div>
+<div class="space-y-2 hidden" id="my-collection-list">
+<!-- Collection list will be loaded here -->
+</div>
+</div>
+</div>
+<!-- Selected Cards -->
+<div class="mb-4">
+<h4 class="font-semibold mb-2 text-gray-900 dark:text-gray-100">Selected Cards:</h4>
+<div class="min-h-[100px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
+<div class="flex flex-wrap gap-2" id="proposer-selected-cards">
+<p class="text-sm text-gray-500 italic">No cards selected.</p>
+</div>
+</div>
+</div>
+<!-- Cash Addition -->
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+<i class="fas fa-dollar-sign mr-2"></i>Cash You Add (USD)
                             </label>
-                            <input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                   id="proposer-money" 
-                                   placeholder="0.00" 
-                                   step="0.01" 
-                                   type="number"/>
-                        </div>
-                    </div>
-
-                    <!-- Their Offer Section -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-lg border border-green-200 dark:border-green-700 opacity-50 pointer-events-none" id="receiver-trade-section">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-bold text-green-900 dark:text-green-100">
-                                <i class="fas fa-handshake mr-2"></i>Their Offer
+<input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="proposer-money" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<!-- Their Offer Section -->
+<div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 rounded-lg border border-green-200 dark:border-green-700 opacity-50 pointer-events-none" id="receiver-trade-section">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-xl font-bold text-green-900 dark:text-green-100">
+<i class="fas fa-handshake mr-2"></i>Their Offer
                             </h3>
-                            <div class="flex items-center gap-3">
-                                <button class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-sm hover:bg-purple-700 transition-colors" data-side="receiver">
-                                    <i class="fas fa-balance-scale mr-1"></i>Auto-Balance
+<div class="flex items-center gap-3">
+<button class="auto-balance-btn px-3 py-1 bg-purple-600 text-white font-semibold rounded-full text-sm hover:bg-purple-700 transition-colors" data-side="receiver">
+<i class="fas fa-balance-scale mr-1"></i>Auto-Balance
                                 </button>
-                                <div class="text-lg font-bold text-green-600 dark:text-green-400">
-                                    <span id="receiver-value">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Collection Browser -->
-                        <div class="mb-4">
-                            <div class="flex items-center gap-2 mb-3">
-                                <input class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                       id="their-collection-search" 
-                                       placeholder="Search their collection..." 
-                                       type="text"/>
-                                <div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
-                                    <button class="view-toggle-btn px-3 py-1 text-sm rounded-md bg-white dark:bg-gray-600 shadow-sm" data-side="receiver" data-view="grid">
-                                        <i class="fas fa-th"></i>
-                                    </button>
-                                    <button class="view-toggle-btn px-3 py-1 text-sm rounded-md" data-side="receiver" data-view="list">
-                                        <i class="fas fa-list"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
-                                <div id="their-collection-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                                    <p class="col-span-full text-sm text-gray-500 italic text-center py-8">Select a trade partner first.</p>
-                                </div>
-                                <div id="their-collection-list" class="space-y-2 hidden">
-                                    <!-- Collection list will be loaded here -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Selected Cards -->
-                        <div class="mb-4">
-                            <h4 class="font-semibold mb-2 text-gray-900 dark:text-gray-100">Selected Cards:</h4>
-                            <div class="min-h-[100px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
-                                <div id="receiver-selected-cards" class="flex flex-wrap gap-2">
-                                    <p class="text-sm text-gray-500 italic">Select a trade partner first.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Cash Addition -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <i class="fas fa-dollar-sign mr-2"></i>Cash They Add (USD)
+<div class="text-lg font-bold text-green-600 dark:text-green-400">
+<span id="receiver-value">$0.00</span>
+</div>
+</div>
+</div>
+<!-- Collection Browser -->
+<div class="mb-4">
+<div class="flex items-center gap-2 mb-3">
+<input class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" id="their-collection-search" placeholder="Search their collection..." type="text"/>
+<div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
+<button class="view-toggle-btn px-3 py-1 text-sm rounded-md bg-white dark:bg-gray-600 shadow-sm" data-side="receiver" data-view="grid">
+<i class="fas fa-th"></i>
+</button>
+<button class="view-toggle-btn px-3 py-1 text-sm rounded-md" data-side="receiver" data-view="list">
+<i class="fas fa-list"></i>
+</button>
+</div>
+</div>
+<div class="h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
+<div class="grid grid-cols-4 sm:grid-cols-6 gap-2" id="their-collection-grid">
+<p class="col-span-full text-sm text-gray-500 italic text-center py-8">Select a trade partner first.</p>
+</div>
+<div class="space-y-2 hidden" id="their-collection-list">
+<!-- Collection list will be loaded here -->
+</div>
+</div>
+</div>
+<!-- Selected Cards -->
+<div class="mb-4">
+<h4 class="font-semibold mb-2 text-gray-900 dark:text-gray-100">Selected Cards:</h4>
+<div class="min-h-[100px] p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
+<div class="flex flex-wrap gap-2" id="receiver-selected-cards">
+<p class="text-sm text-gray-500 italic">Select a trade partner first.</p>
+</div>
+</div>
+</div>
+<!-- Cash Addition -->
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+<i class="fas fa-dollar-sign mr-2"></i>Cash They Add (USD)
                             </label>
-                            <input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                   id="receiver-money" 
-                                   placeholder="0.00" 
-                                   step="0.01" 
-                                   type="number"/>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trade Balance Summary -->
-                <div class="mt-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            <i class="fas fa-calculator mr-2"></i>Trade Summary
+<input class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500" id="receiver-money" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+</div>
+<!-- Trade Balance Summary -->
+<div class="mt-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+<i class="fas fa-calculator mr-2"></i>Trade Summary
                         </h3>
-                        <div class="text-sm text-gray-600 dark:text-gray-400" id="trade-balance-indicator">
+<div class="text-sm text-gray-600 dark:text-gray-400" id="trade-balance-indicator">
                             Balanced Trade
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                        <div class="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                            <p class="text-sm text-blue-600 dark:text-blue-400">Your Total</p>
-                            <p class="text-xl font-bold text-blue-800 dark:text-blue-200" id="proposer-total">$0.00</p>
-                        </div>
-                        <div class="p-3 bg-gray-100 dark:bg-gray-600 rounded-lg">
-                            <p class="text-sm text-gray-600 dark:text-gray-400">Difference</p>
-                            <p class="text-xl font-bold text-gray-800 dark:text-gray-200" id="trade-difference">$0.00</p>
-                        </div>
-                        <div class="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                            <p class="text-sm text-green-600 dark:text-green-400">Their Total</p>
-                            <p class="text-xl font-bold text-green-800 dark:text-green-200" id="receiver-total">$0.00</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trade Notes -->
-                <div class="mt-6">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-sticky-note mr-2"></i>Trade Notes (Optional)
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+<div class="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+<p class="text-sm text-blue-600 dark:text-blue-400">Your Total</p>
+<p class="text-xl font-bold text-blue-800 dark:text-blue-200" id="proposer-total">$0.00</p>
+</div>
+<div class="p-3 bg-gray-100 dark:bg-gray-600 rounded-lg">
+<p class="text-sm text-gray-600 dark:text-gray-400">Difference</p>
+<p class="text-xl font-bold text-gray-800 dark:text-gray-200" id="trade-difference">$0.00</p>
+</div>
+<div class="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
+<p class="text-sm text-green-600 dark:text-green-400">Their Total</p>
+<p class="text-xl font-bold text-green-800 dark:text-green-200" id="receiver-total">$0.00</p>
+</div>
+</div>
+</div>
+<!-- Trade Notes -->
+<div class="mt-6">
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+<i class="fas fa-sticky-note mr-2"></i>Trade Notes (Optional)
                     </label>
-                    <textarea class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                              id="trade-notes" 
-                              rows="3" 
-                              placeholder="Add any additional notes about this trade..."></textarea>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="mt-8 flex justify-end gap-4">
-                    <button class="px-6 py-3 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors" id="cancel-trade-btn">
+<textarea class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="trade-notes" placeholder="Add any additional notes about this trade..." rows="3"></textarea>
+</div>
+<!-- Action Buttons -->
+<div class="mt-8 flex justify-end gap-4">
+<button class="px-6 py-3 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors" id="cancel-trade-btn">
                         Cancel
                     </button>
-                    <button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" id="send-trade-offer-btn" disabled>
-                        <i class="fas fa-paper-plane mr-2"></i>Send Trade Offer
+<button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled="" id="send-trade-offer-btn">
+<i class="fas fa-paper-plane mr-2"></i>Send Trade Offer
                     </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Container -->
-    <div class="fixed bottom-5 right-5 z-50" id="toast-container"></div>
-
-    <!-- Hidden inputs for trade data -->
-    <input id="counter-offer-original-id" type="hidden"/>
-
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
-    
-    <!-- App Scripts -->
-    <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
-  <script src="js/mobile-navigation-fixed.js">
-  </script>
-    <script src="js/trades_enhanced.js"></script>
+</div>
+</div>
+</div>
+</div>
+<!-- Toast Container -->
+<div class="fixed bottom-5 right-5 z-50" id="toast-container"></div>
+<!-- Hidden inputs for trade data -->
+<input id="counter-offer-original-id" type="hidden"/>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
+<!-- App Scripts -->
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/mobile-navigation-fixed.js">
+</script>
+<script src="js/trades_enhanced.js"></script>
 </body>
 </html>

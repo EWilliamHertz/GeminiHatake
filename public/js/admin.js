@@ -27,6 +27,7 @@ document.addEventListener('authReady', (e) => {
     let currentUsers = [];
     let currentArticles = [];
     let confirmationCallback = null;
+    let currentTickets = [];
 
     // --- DOM Element References ---
     const getElements = () => ({
@@ -80,6 +81,7 @@ document.addEventListener('authReady', (e) => {
         adminContent.innerHTML = `
             <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
                 <nav id="admin-tabs" class="flex flex-wrap -mb-px space-x-6" aria-label="Tabs">
+                <button data-tab="tickets" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-ticket-alt mr-2"></i>Support Tickets</button>
                     <button data-tab="dashboard" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600"><i class="fas fa-chart-line mr-2"></i>Dashboard</button>
                     <button data-tab="users" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-users mr-2"></i>Users</button>
                     <button data-tab="content" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-file-alt mr-2"></i>Content</button>
@@ -88,6 +90,7 @@ document.addEventListener('authReady', (e) => {
                 </nav>
             </div>
             <div>
+            <div id="tab-content-tickets" class="admin-tab-content hidden"></div>
                 <div id="tab-content-dashboard" class="admin-tab-content"></div>
                 <div id="tab-content-users" class="admin-tab-content hidden"></div>
                 <div id="tab-content-content" class="admin-tab-content hidden"></div>
@@ -99,6 +102,7 @@ document.addEventListener('authReady', (e) => {
         renderContentTab();
         renderPlatformTab();
         renderProductsTab();
+        renderTicketsTab();
     };
 
     // --- Tab Rendering Functions ---
@@ -107,6 +111,27 @@ document.addEventListener('authReady', (e) => {
         container.innerHTML = `<h2 class="text-2xl font-bold mb-4">Dashboard</h2><p>Welcome to the admin dashboard.</p><div id="analytics-container" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4"></div>`;
         loadAnalytics();
     };
+    // Add this new function in admin.js
+const renderTicketsTab = () => {
+    document.getElementById('tab-content-tickets').innerHTML = `
+        <h2 class="text-2xl font-bold mb-4">Support Tickets</h2>
+        <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Submitted</th>
+                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">From</th>
+                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Subject</th>
+                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Message</th>
+                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tickets-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr><td colspan="5" class="text-center p-4">Loading tickets...</td></tr>
+                </tbody>
+            </table>
+        </div>`;
+};
 
     const renderUsersTab = () => {
         document.getElementById('tab-content-users').innerHTML = `
@@ -239,6 +264,44 @@ document.addEventListener('authReady', (e) => {
                  <td class="p-4">${article.createdAt ? new Date(article.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                  <td class="p-4"><button class="delete-article-btn text-red-500 hover:text-red-400" data-id="${article.id}" title="Delete Article"><i class="fas fa-trash"></i></button></td>
              </tr>`).join('');
+    };
+    const loadTickets = async () => {
+        const tableBody = document.getElementById('tickets-table-body');
+        if (!tableBody) return; // Tab not active
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Loading tickets...</td></tr>';
+        try {
+            const snapshot = await db.collection('contacts').orderBy('submittedAt', 'desc').get();
+            currentTickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTickets();
+        } catch (error) {
+            console.error("Error loading tickets:", error);
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">Could not load tickets.</td></tr>';
+        }
+    };
+    
+    const renderTickets = () => {
+        const tableBody = document.getElementById('tickets-table-body');
+        if (currentTickets.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">No tickets found.</td></tr>';
+            return;
+        }
+        tableBody.innerHTML = currentTickets.map(ticket => {
+            const submittedDate = ticket.submittedAt ? new Date(ticket.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
+            const status = ticket.status || 'new'; // Get status, default to 'new'
+            
+            return `
+                <tr class="dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td classD="p-4">${submittedDate}</td>
+                    <td class="p-4 font-medium">${ticket.name} (${ticket.email})</td>
+                    <td class="p-4">${ticket.subject}</td>
+                    <td class="p-4 text-sm">${ticket.message}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 text-xs font-semibold text-white rounded-full ${status === 'new' ? 'bg-blue-500' : 'bg-gray-500'}">
+                            ${status}
+                        </span>
+                        </td>
+                </tr>`;
+        }).join('');
     };
 
     const loadProducts = async () => {
@@ -380,6 +443,7 @@ document.addEventListener('authReady', (e) => {
             if (tabName === 'products') loadProducts();
             if (tabName === 'content') loadArticles();
             if (tabName === 'dashboard') loadAnalytics();
+            if (tabName === 'tickets') loadTickets();
         });
 
         // Global content click listener using event delegation
