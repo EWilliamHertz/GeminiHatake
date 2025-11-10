@@ -1,7 +1,7 @@
 /**
  * Badge System Cloud Functions
  * 
- * These functions should be added to the main index.js file
+ * Exported to index.js via require('./badgeFunctions')
  */
 
 const functions = require("firebase-functions");
