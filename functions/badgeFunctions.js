@@ -8,6 +8,17 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const badgeService = require("./badgeService");
 
+// CORS configuration for callable functions
+const cors = require('cors')({
+    origin: [
+        'https://hatake.eu',
+        'https://hatakesocial-88b5e.web.app',
+        'https://hatakesocial-88b5e.firebaseapp.com',
+        'http://localhost:5000',
+        'http://localhost:8000'
+    ]
+});
+
 // =================================================================================================
 // BADGE SYSTEM FUNCTIONS
 // =================================================================================================
@@ -16,21 +27,31 @@ const badgeService = require("./badgeService");
  * Initialize badge definitions from JSON file
  * This is a one-time callable function to set up the badge system
  */
-exports.initializeBadges = functions.https.onCall(async (data, context) => {
-    // Verify admin privileges
-    if (!context.auth || !context.auth.token.admin) {
-        throw new functions.https.HttpsError('permission-denied', 'Only admins can initialize badges');
-    }
-    
-    try {
-        const badgeDefinitions = require('./badge_definitions.json');
-        await badgeService.initializeBadgeDefinitions(badgeDefinitions);
-        return { success: true, message: `Initialized ${badgeDefinitions.badges.length} badges` };
-    } catch (error) {
-        console.error('Error initializing badges:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to initialize badges');
-    }
-});
+exports.initializeBadges = functions
+    .runWith({ timeoutSeconds: 540, memory: '1GB' })
+    .https.onRequest((req, res) => {
+        cors(req, res, async () => {
+            try {
+                const badgeDefinitions = require('./badge_definitions.json');
+                await badgeService.initializeBadgeDefinitions(badgeDefinitions);
+                console.log(`Successfully initialized ${badgeDefinitions.badges.length} badges`);
+                res.status(200).send({ 
+                    data: { 
+                        success: true, 
+                        message: `Initialized ${badgeDefinitions.badges.length} badges` 
+                    } 
+                });
+            } catch (error) {
+                console.error('Error initializing badges:', error);
+                res.status(500).send({ 
+                    data: { 
+                        success: false, 
+                        error: 'Failed to initialize badges' 
+                    } 
+                });
+            }
+        });
+    });
 
 /**
  * Manually award a badge to a user (admin only)
@@ -374,38 +395,58 @@ exports.dailyBadgeCheck = functions.pubsub
 /**
  * Retroactively award badges to existing users
  * This is a one-time callable function to award badges to users who joined before the badge system
+ * Extended timeout to handle large user bases
  */
-exports.retroactivelyAwardBadges = functions.https.onCall(async (data, context) => {
-    // Verify admin privileges
-    if (!context.auth || !context.auth.token.admin) {
-        throw new functions.https.HttpsError('permission-denied', 'Only admins can run retroactive badge awards');
-    }
-    
-    try {
-        const usersSnapshot = await admin.firestore().collection('users').get();
-        let totalBadgesAwarded = 0;
-        let usersProcessed = 0;
-        
-        for (const userDoc of usersSnapshot.docs) {
+exports.retroactivelyAwardBadges = functions
+    .runWith({ timeoutSeconds: 540, memory: '2GB' })
+    .https.onRequest((req, res) => {
+        cors(req, res, async () => {
             try {
-                const badgesAwarded = await badgeService.checkAndAwardBadges(userDoc.id, 'retroactive');
-                totalBadgesAwarded += badgesAwarded.length;
-                usersProcessed++;
+                console.log('Starting retroactive badge awards process...');
+                const usersSnapshot = await admin.firestore().collection('users').get();
+                let totalBadgesAwarded = 0;
+                let usersProcessed = 0;
                 
-                if (badgesAwarded.length > 0) {
-                    console.log(`Retroactive: User ${userDoc.id} earned ${badgesAwarded.length} badges`);
+                // Send immediate response to prevent timeout on client side
+                res.status(200).send({ 
+                    data: { 
+                        success: true, 
+                        message: `Processing ${usersSnapshot.size} users. This may take several minutes. Check logs for progress.` 
+                    } 
+                });
+                
+                // Process users in background
+                for (const userDoc of usersSnapshot.docs) {
+                    try {
+                        const badgesAwarded = await badgeService.checkAndAwardBadges(userDoc.id, 'retroactive');
+                        totalBadgesAwarded += badgesAwarded.length;
+                        usersProcessed++;
+                        
+                        if (badgesAwarded.length > 0) {
+                            console.log(`Retroactive: User ${userDoc.id} earned ${badgesAwarded.length} badges`);
+                        }
+                        
+                        // Log progress every 10 users
+                        if (usersProcessed % 10 === 0) {
+                            console.log(`Progress: ${usersProcessed}/${usersSnapshot.size} users processed, ${totalBadgesAwarded} badges awarded`);
+                        }
+                    } catch (error) {
+                        console.error(`Error checking badges for user ${userDoc.id}:`, error);
+                    }
                 }
+                
+                console.log(`Retroactive badge awards complete: Processed ${usersProcessed} users, awarded ${totalBadgesAwarded} total badges`);
             } catch (error) {
-                console.error(`Error checking badges for user ${userDoc.id}:`, error);
+                console.error('Error in retroactive badge awards:', error);
+                // Only send error response if we haven't sent a response yet
+                if (!res.headersSent) {
+                    res.status(500).send({ 
+                        data: { 
+                            success: false, 
+                            error: 'Failed to award retroactive badges' 
+                        } 
+                    });
+                }
             }
-        }
-        
-        return {
-            success: true,
-            message: `Processed ${usersProcessed} users, awarded ${totalBadgesAwarded} total badges`
-        };
-    } catch (error) {
-        console.error('Error in retroactive badge awards:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to award retroactive badges');
-    }
-});
+        });
+    });
