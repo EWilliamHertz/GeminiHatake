@@ -254,33 +254,63 @@ document.addEventListener('authReady', (e) => {
         }
     };
 
-    const loadAndDisplayBadges = async (userId) => {
-        const badgesListContainer = document.getElementById('badges-list');
-        badgesListContainer.innerHTML = '';
-        try {
-            const snapshot = await db.collection('users').doc(userId).collection('badges').get();
+    const loadAndDisplayBadges = async (userId) => {
+        const badgesListContainer = document.getElementById('badges-list');
+        badgesListContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading achievements...</p>';
+        try {
+            // Get user's earned badges
+            const userBadgesSnapshot = await db.collection('users').doc(userId).collection('badges').get();
 
-            if (snapshot.empty) {
-                badgesListContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No achievements yet.</p>';
-                return;
-            }
+            if (userBadgesSnapshot.empty) {
+                badgesListContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No achievements yet.</p>';
+                return;
+            }
 
-            snapshot.forEach(doc => {
-                const badge = doc.data();
-                const badgeEl = document.createElement('div');
-                badgeEl.className = 'badge-item';
-                badgeEl.title = badge.description;
-                badgeEl.innerHTML = `
-                    <i class="fas ${badge.icon} ${badge.color} badge-icon"></i>
-                    <span class="badge-name">${badge.name}</span>
-                `;
-                badgesListContainer.appendChild(badgeEl);
-            });
-        } catch (error) {
-            console.error("Error loading badges:", error);
-            badgesListContainer.innerHTML = '<p class="text-sm text-red-500">Could not load achievements.</p>';
-        }
-    };
+            // Get badge definitions from Firestore
+            const badgeDefinitionsSnapshot = await db.collection('badgeDefinitions').get();
+            const badgeDefinitionsMap = {};
+            badgeDefinitionsSnapshot.forEach(doc => {
+                badgeDefinitionsMap[doc.id] = doc.data();
+            });
+
+            badgesListContainer.innerHTML = '';
+
+            // Display each earned badge with its definition
+            userBadgesSnapshot.forEach(doc => {
+                const earnedBadge = doc.data();
+                const badgeId = earnedBadge.badgeId || doc.id;
+                const badgeDefinition = badgeDefinitionsMap[badgeId];
+
+                if (!badgeDefinition) {
+                    console.warn(`Badge definition not found for: ${badgeId}`);
+                    return;
+                }
+
+                const badgeEl = document.createElement('div');
+                badgeEl.className = 'badge-item';
+                badgeEl.title = badgeDefinition.description || 'No description';
+                
+                // Map rarity to color
+                const rarityColors = {
+                    'common': 'text-gray-500',
+                    'uncommon': 'text-green-500',
+                    'rare': 'text-blue-500',
+                    'epic': 'text-purple-500',
+                    'legendary': 'text-yellow-500'
+                };
+                const color = rarityColors[badgeDefinition.rarity] || 'text-gray-500';
+                
+                badgeEl.innerHTML = `
+                    <i class="fas ${badgeDefinition.icon || 'fa-award'} ${color} badge-icon"></i>
+                    <span class="badge-name">${badgeDefinition.name || 'Unknown Badge'}</span>
+                `;
+                badgesListContainer.appendChild(badgeEl);
+            });
+        } catch (error) {
+            console.error("Error loading badges:", error);
+            badgesListContainer.innerHTML = '<p class="text-sm text-red-500">Could not load achievements.</p>';
+        }
+    };
     
     const loadProfileDecks = async (userId, isOwnProfile) => {
         const container = document.getElementById('tab-content-decks');
