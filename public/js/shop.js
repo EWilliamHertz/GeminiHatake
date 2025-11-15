@@ -6,7 +6,27 @@
  * and initiating the checkout process. It relies on the global `js/cart.js`
  * for all cart manipulation logic.
  */
+/**
+ * Helper function to ensure a user is logged in before cart operations.
+ * If no user is logged in, it will silently sign them in as an anonymous guest.
+ */
+const ensureUserForCart = async () => {
+    const auth = firebase.auth();
+    if (auth.currentUser) {
+        return true; // User already exists (full or anonymous)
+    }
 
+    // No user, so sign in anonymously
+    try {
+        await auth.signInAnonymously();
+        console.log("Signed in anonymously for guest cart.");
+        return true;
+    } catch (error) {
+        console.error("Error signing in anonymously:", error);
+        showToast("Could not initialize guest cart. Please try again.", "error");
+        return false;
+    }
+};
 let Currency = null;
 
 const initializeShop = async () => {
@@ -134,12 +154,15 @@ const initializeShop = async () => {
             });
         });
 
-        modalBody.querySelector('.add-to-cart-btn-modal').addEventListener('click', (e) => {
-            const id = e.target.closest('button').dataset.id;
-            const productToAdd = products.find(p => p.id === id);
-            if (productToAdd) {
-                // Use the global addToCart function from js/cart.js
-                window.addToCart(id, {
+        modalBody.querySelector('.add-to-cart-btn-modal').addEventListener('click', async (e) => { // <-- Add async
+    const id = e.target.closest('button').dataset.id;
+    const productToAdd = products.find(p => p.id === id);
+    if (productToAdd) {
+        const userReady = await ensureUserForCart(); // <-- Add this line
+        if (!userReady) return; // Stop if anonymous sign-in failed
+
+        // Use the global addToCart function from js/cart.js
+        window.addToCart(id, {
                     name: productToAdd.name,
                     price: productToAdd.price,
                     imageUrl: (productToAdd.galleryImageUrls && productToAdd.galleryImageUrls.length > 0) ? productToAdd.galleryImageUrls[0] : null,
@@ -154,15 +177,18 @@ const initializeShop = async () => {
 
     // --- EVENT LISTENERS ---
     if (productGrid) {
-        productGrid.addEventListener('click', (e) => {
-            const button = e.target.closest('.add-to-cart-btn');
-            if (button) {
-                e.stopPropagation(); // Prevent modal from opening when clicking the button
-                const productId = button.dataset.id;
-                const product = products.find(p => p.id === productId);
-                if (product) {
-                    // Use the global addToCart function from js/cart.js
-                    window.addToCart(productId, {
+      productGrid.addEventListener('click', async (e) => { // <-- Add async
+    const button = e.target.closest('.add-to-cart-btn');
+    if (button) {
+        e.stopPropagation(); // Prevent modal from opening when clicking the button
+        const productId = button.dataset.id;
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            const userReady = await ensureUserForCart(); // <-- Add this line
+            if (!userReady) return; // Stop if anonymous sign-in failed
+
+            // Use the global addToCart function from js/cart.js
+            window.addToCart(productId, {
                         name: product.name,
                         price: product.price,
                         imageUrl: (product.galleryImageUrls && product.galleryImageUrls.length > 0) ? product.galleryImageUrls[0] : null,

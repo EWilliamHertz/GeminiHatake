@@ -15,7 +15,8 @@
  */
 
 document.addEventListener('authReady', (e) => {
-    const user = e.detail.user;
+    // Add a check to make sure e.detail is not null before getting the user
+    const user = e.detail ? e.detail.user : null;
     const db = firebase.firestore();
     const functions = firebase.functions();
 

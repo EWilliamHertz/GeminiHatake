@@ -437,8 +437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userActions = document.getElementById('user-actions');
         const authContainerSidebar = document.getElementById('auth-container-sidebar');
 
-        if (user && userData) {
-            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
+if (user) { // <-- Check for ANY user (full or anonymous)            const isIndexPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
             if (isIndexPage) {
                 window.location.href = 'app.html';
                 return;
@@ -462,55 +461,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                 mainSidebarNav.appendChild(adminLink);
             }
 
-            if (userActions) {
-                userActions.innerHTML = `
-                    <button id="cart-btn" class="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span id="cart-item-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
-                    </button>
-                    <div class="relative">
-                        <button id="notification-bell-btn" class="text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 text-xl p-2">
-                            <i class="fas fa-bell"></i>
-                            <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
-                        </button>
-                        <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-xl z-20 hidden">
-                            <div class="p-3 font-bold border-b dark:border-gray-700">Notifications</div>
-                            <div id="notification-list" class="max-h-96 overflow-y-auto"><p class="p-4 text-sm text-gray-500">No new notifications.</p></div>
-                            <a href="notifications.html" class="block text-center p-2 text-sm text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700">View all</a>
-                        </div>
-                    </div>
-                    <div class="relative">
-                        <button id="profile-avatar-btn"><img src="${photoURL}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover"></button>
-                        <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 hidden">
-                            <a href="profile.html?uid=${user.uid}" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My Profile</a>
-                            <a href="settings.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                            ${isAdmin ? `<a href="admin.html" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</a>` : ''}
-                            <hr class="border-gray-200 dark:border-gray-600">
-                            <button id="logout-btn-dropdown" class="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
-                        </div>
-                    </div>`;
-                
-                DarkMode.init(); // Initialize dark mode button
-                setupCurrencySelector(); // Initialize currency selector
+// All logic below this point (notifications, sidebar profile)
+            // ONLY applies to fully registered users.
+            if (isFullUser) {
+                if (unsubscribeNotifications) unsubscribeNotifications();
+                unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                    const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
+                    const countEl = document.getElementById('notification-count');
+                    const listEl = document.getElementById('notification-list');
+                    if (countEl) { countEl.textContent = unreadCount; countEl.classList.toggle('hidden', unreadCount === 0); }
+                    if (listEl) {
+                        if (snapshot.empty) { listEl.innerHTML = '<p class="p-4 text-sm text-gray-500">No new notifications.</p>'; }
+                        else {
+                            listEl.innerHTML = '';
+                            snapshot.docs.slice(0, 5).forEach(doc => {
+                                const notif = doc.data();
+                                const el = document.createElement('a');
+                                el.href = notif.link || '#';
+                                el.className = `flex items-start p-3 hover:bg-gray-100 dark:hover:bg-gray-700 ${!notif.isRead ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`;
+                                el.innerHTML = `<div><p class="text-sm text-gray-700 dark:text-gray-300">${sanitizeHTML(notif.message)}</p><p class="text-xs text-gray-500">${new Date(notif.timestamp?.toDate()).toLocaleString()}</p></div>`;
+                                el.addEventListener('click', () => db.collection('users').doc(user.uid).collection('notifications').doc(doc.id).update({ isRead: true }));
+                                listEl.appendChild(el);
+                            });
+                        }
+                    }
+                });
 
-                document.getElementById('notification-bell-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('profile-dropdown').classList.add('hidden'); document.getElementById('notification-dropdown').classList.toggle('hidden'); });
-                document.getElementById('profile-avatar-btn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('notification-dropdown').classList.add('hidden'); document.getElementById('profile-dropdown').classList.toggle('hidden'); });
-                document.getElementById('logout-btn-dropdown').addEventListener('click', () => auth.signOut());
-                
-                // Add cart button event listener
-                const cartBtn = document.getElementById('cart-btn');
-                const cartModal = document.getElementById('cartModal');
-                if (cartBtn && cartModal) {
-                    cartBtn.addEventListener('click', () => {
-                        cartModal.classList.remove('hidden');
-                        cartModal.classList.add('flex');
-                    });
+                if (authContainerSidebar) {
+                    authContainerSidebar.innerHTML = `<div class="flex items-center"><img src="${photoURL}" class="w-10 h-10 rounded-full object-cover"><div class="ml-3"><p class="font-semibold text-gray-800 dark:text-white">${userData.displayName}</p><button id="logout-btn-sidebar" class="text-sm text-gray-500 hover:underline">Logout</button></div></div>`;
+                    document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
                 }
-                
-                // Dispatch authReady event for cart.js to initialize
-                document.dispatchEvent(new CustomEvent('authReady'));
+                listenForAcceptedRequests(user);
+            } 
+            // Add this else if block to handle the sidebar for anonymous guests
+            else if (isAnonymous) {
+                // Show Login/Register in sidebar for anonymous users
+                if (authContainerSidebar) {
+                    authContainerSidebar.innerHTML = `<div class="space-y-2"><button id="sidebar-login-btn" class="w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button><button id="sidebar-register-btn" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button></div>`;
+                    document.getElementById('sidebar-login-btn').addEventListener('click', () => openModal(loginModal));
+                    document.getElementById('sidebar-register-btn').addEventListener('click', () => openModal(registerModal));
+                }
             }
-
             if (unsubscribeNotifications) unsubscribeNotifications();
             unsubscribeNotifications = db.collection('users').doc(user.uid).collection('notifications').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
                 const unreadCount = snapshot.docs.filter(doc => !doc.data().isRead).length;
@@ -539,12 +530,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('logout-btn-sidebar').addEventListener('click', () => auth.signOut());
             }
             listenForAcceptedRequests(user);
-        } else {
-            if (friendRequestHandshakeListener) friendRequestHandshakeListener();
-            if (unsubscribeNotifications) unsubscribeNotifications();
-            handleAdminAccess(false);
+       } else { // This block now ONLY runs if user is null
+        if (friendRequestHandshakeListener) friendRequestHandshakeListener();
+        if (unsubscribeNotifications) unsubscribeNotifications();
+        handleAdminAccess(false);
 
-            const loginButtonsHTML = `
+        const loginButtonsHTML = `
                 <button id="header-login-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700">Log In</button>
                 <button id="header-register-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-full hover:bg-gray-300 dark:hover:bg-gray-600">Register</button>`;
             if (userActions) {
