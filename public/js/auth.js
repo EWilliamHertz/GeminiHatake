@@ -384,8 +384,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // --- MERGED TOUR TRIGGER ---
             const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
-            if (isNewUser || sessionStorage.getItem('tour_step')) {
-                if (!userData || !userData.hasCompletedTour) {
+if (!user.isAnonymous && (isNewUser || sessionStorage.getItem('tour_step'))) {                
+    if (!userData || !userData.hasCompletedTour) {
                     setTimeout(() => {
                         if (window.initAndStartTour) {
                             window.initAndStartTour(user);
@@ -406,8 +406,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             existingAdminSidebarLink.remove();
         }
 
-        if (user && !user.emailVerified) {
-            document.body.innerHTML = `
+if (user && !user.emailVerified && !user.isAnonymous) {
+        document.body.innerHTML = `
             <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
                 <div class="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center max-w-lg mx-4">
                     <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Please Verify Your Email</h1>
