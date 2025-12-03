@@ -61,7 +61,7 @@ class ProfileEditor {
                                         <option value="Pokémon">Pokémon</option>
                                         <option value="Yu-Gi-Oh!">Yu-Gi-Oh!</option>
                                         <option value="Lorcana">Lorcana</option>
-                                        <option value="One Piece">One Piece</option>
+                                        <option value="Riftbound">Riftbound</option>
                                         <option value="Flesh and Blood">Flesh and Blood</option>
                                         <option value="Other">Other</option>
                                     </select>

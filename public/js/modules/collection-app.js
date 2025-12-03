@@ -155,7 +155,6 @@ const UI = {
             <div>
                 <p class="font-bold truncate text-gray-900 dark:text-gray-100">${card.name}</p>
                 <p class="truncate text-gray-600 dark:text-gray-400">${card.set_name}</p>
-                ${optcgInfo}
             </div>
             <p class="font-mono text-right font-semibold text-gray-800 dark:text-gray-200 mt-1">${priceDisplay}${foilPriceIndicator}</p>
         </div>
@@ -207,7 +206,7 @@ const UI = {
                                     <img src="${getCardImageUrl(card)}" class="h-10 w-auto rounded mr-3" alt="${card.name}">
                                     <div class="min-w-0"> {/* Helps with truncation */}
                                         <p class="font-medium truncate">${card.name}</p>
-                                        ${optcgInfo} {/* <-- *** USE THE CORRECT VARIABLE HERE *** */}
+                                        <p class="text-sm text-gray-500">${card.set_name}</p>
                                     </div>
                                 </div>
                             </td>
@@ -1137,7 +1136,6 @@ function renderSearchResults(cards) {
                 <div class="flex-grow">
                     <p class="font-semibold">${card.name} (${card.collector_number || 'N/A'})</p>
                     <p class="text-sm text-gray-500">${card.set_name}</p>
-                    ${optcgInfo}
                 </div>
                 <p class="text-sm font-mono text-gray-700 dark:text-gray-300 ml-4">${Currency.convertAndFormat(card.prices)}</p>
             </div>`;
