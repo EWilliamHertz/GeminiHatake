@@ -1,12 +1,12 @@
 /**
- * Card Search Module for Multi-Game Support - WITH OPTCG
+ * Card Search Module for Multi-Game Support - WITH RIFTBOUND
  * Integrates with scrydex for Lorcana, Pokemon, Gundam, and Magic: The Gathering
- * Integrates with OPTCGAPI for One Piece TCG
- * Search order: lorcana -> pokemon -> gundam -> optcg -> mtg
+ * Integrates with JustTCG for Riftbound
+ * Search order: lorcana -> pokemon -> gundam -> riftbound -> mtg
  */
 
 /**
- * Search cards across multiple games using scrydex and OPTCGAPI
+ * Search cards across multiple games using scrydex and JustTCG
  * @param {string} query - The card name to search for
  * @param {number} limit - Maximum number of results per game
  * @returns {Promise<Array>} Array of card objects with game information
@@ -16,30 +16,33 @@ export async function searchCardsMultiGame(query, limit = 5) {
         return [];
     }
 
-    // Updated games list to include OPTCG
-    const games = ['lorcana', 'pokemon', 'gundam', 'optcg', 'mtg'];
+    // Updated games list to include Riftbound instead of OPTCG
+    const games = ['lorcana', 'pokemon', 'gundam', 'riftbound', 'mtg'];
     const allResults = [];
 
     for (const game of games) {
         try {
             console.log(`[CardSearch] Searching ${game} for: "${query}"`);
             
-            if (game === 'optcg') {
-                // Use the new searchOPTCG function for One Piece cards
-                const searchOPTCGFunction = firebase.functions().httpsCallable('searchOPTCG');
-                const result = await searchOPTCGFunction({ query: query });
+            if (game === 'riftbound') {
+                // Use the new searchRiftbound function for Riftbound cards
+                const searchRiftboundFunction = firebase.functions().httpsCallable('searchRiftbound');
+                const result = await searchRiftboundFunction({ query: query, limit: limit });
                 
                 let searchResults = [];
                 if (result && result.data && result.data.success) {
                     searchResults = result.data.data || [];
+                } else if (result && result.data && Array.isArray(result.data.data)) {
+                     // Handle case where success flag might be nested or direct data
+                    searchResults = result.data.data;
                 }
                 
                 if (searchResults.length > 0) {
-                    // Add game information to each card and limit results
-                    const gameResults = searchResults.slice(0, limit).map(card => ({
+                    // Add game information to each card
+                    const gameResults = searchResults.map(card => ({
                         ...card,
-                        game: 'optcg',
-                        searchSource: 'optcgapi'
+                        game: 'riftbound',
+                        searchSource: 'justtcg'
                     }));
                     
                     allResults.push(...gameResults);
@@ -89,8 +92,8 @@ export async function searchCardsMultiGame(query, limit = 5) {
         if (aName === queryLower && bName !== queryLower) return -1;
         if (bName === queryLower && aName !== queryLower) return 1;
         
-        // Then by game priority (lorcana, pokemon, gundam, optcg, mtg)
-        const gameOrder = { lorcana: 0, pokemon: 1, gundam: 2, optcg: 3, mtg: 4 };
+        // Then by game priority (lorcana, pokemon, gundam, riftbound, mtg)
+        const gameOrder = { lorcana: 0, pokemon: 1, gundam: 2, riftbound: 3, mtg: 4 };
         const aGamePriority = gameOrder[a.game] || 999;
         const bGamePriority = gameOrder[b.game] || 999;
         
@@ -178,7 +181,7 @@ function getGameBadge(game) {
         'lorcana': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100">Lorcana</span>',
         'pokemon': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">Pokémon</span>',
         'gundam': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">Gundam</span>',
-        'optcg': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100">One Piece</span>',
+        'riftbound': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-teal-100 text-teal-800 dark:bg-teal-800 dark:text-teal-100">Riftbound</span>',
         'mtg': '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">Magic</span>'
     };
     
@@ -195,7 +198,7 @@ export function getGameDisplayName(game) {
         'lorcana': 'Lorcana',
         'pokemon': 'Pokémon',
         'gundam': 'Gundam',
-        'optcg': 'One Piece',
+        'riftbound': 'Riftbound',
         'mtg': 'Magic: The Gathering'
     };
     
@@ -213,21 +216,23 @@ export async function searchSpecificGame(query, game, limit = 10) {
     try {
         console.log(`[CardSearch] Searching specific game ${game} for: "${query}"`);
         
-        if (game === 'optcg') {
-            // Use searchOPTCG for One Piece
-            const searchOPTCGFunction = firebase.functions().httpsCallable('searchOPTCG');
-            const result = await searchOPTCGFunction({ query: query });
+        if (game === 'riftbound') {
+            // Use searchRiftbound for Riftbound
+            const searchRiftboundFunction = firebase.functions().httpsCallable('searchRiftbound');
+            const result = await searchRiftboundFunction({ query: query, limit: limit });
             
             let searchResults = [];
             if (result && result.data && result.data.success) {
                 searchResults = result.data.data || [];
+            } else if (result && result.data && Array.isArray(result.data.data)) {
+                searchResults = result.data.data;
             }
             
             // Add game information and limit results
             return searchResults.slice(0, limit).map(card => ({
                 ...card,
-                game: 'optcg',
-                searchSource: 'optcgapi'
+                game: 'riftbound',
+                searchSource: 'justtcg'
             }));
         } else {
             // Use searchScryDex for other games
@@ -258,4 +263,3 @@ export async function searchSpecificGame(query, game, limit = 10) {
         return [];
     }
 }
-

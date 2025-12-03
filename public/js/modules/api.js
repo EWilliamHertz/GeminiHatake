@@ -48,18 +48,38 @@ const scrydexSearchProxy = firebase.functions().httpsCallable('searchScryDex');
 
 // In api.js, REPLACE the entire searchCards function with this:
 
+// Add this at the top with other function definitions
+const searchRiftboundFunction = firebase.functions().httpsCallable('searchRiftbound');
+
 export async function searchCards(rawQuery, game = 'mtg', page = 1, limit = 100) {
-    // ScryDex API has issues with commas in search queries
-    // Remove ALL commas to make searches work
     let finalQuery = rawQuery.trim().replace(/,/g, '');
-    
-    // NOTE: ScryDex does NOT support Scryfall's exact match syntax (!"") 
-    // The exact match syntax returns 0 results for all queries
-    // We rely on ScryDex's default search behavior instead
 
     try {
-        console.log(`[API] Proxying search for: "${finalQuery}", game: ${game}, page: ${page}`);
+        console.log(`[API] Searching for: "${finalQuery}", game: ${game}, page: ${page}`);
 
+        // --- NEW LOGIC FOR RIFTBOUND ---
+        if (game === 'riftbound') {
+            const result = await searchRiftboundFunction({
+                query: finalQuery,
+                limit: limit
+            });
+
+            if (result.data && result.data.success) {
+                const rawData = result.data.data || [];
+                // JustTCG/Riftbound data is already formatted by the cloud function, 
+                // but we wrap it to match the expected return structure
+                return {
+                    cards: rawData, 
+                    has_more: false // Basic pagination for now
+                };
+            } else {
+                console.error(`[API] Riftbound search error:`, result.data?.error);
+                return { cards: [], has_more: false };
+            }
+        }
+        // --- END NEW LOGIC ---
+
+        // Existing logic for ScryDex (MTG, Pokemon, Lorcana, Gundam)
         const result = await scrydexSearchProxy({
             query: finalQuery,
             game: game,
@@ -69,7 +89,6 @@ export async function searchCards(rawQuery, game = 'mtg', page = 1, limit = 100)
 
         if (result.data && result.data.success) {
             const rawData = result.data.data || [];
-            console.log(`[API] Received ${rawData.length} raw results. Has more: ${result.data.has_more}`);
             const has_more = result.data.has_more === true;
             return {
                 cards: rawData.map(card => cleanScryDexData(card, game)),
@@ -81,18 +100,10 @@ export async function searchCards(rawQuery, game = 'mtg', page = 1, limit = 100)
         }
 
     } catch (error) {
-        console.error(`[API] Error calling the 'scrydexSearch' proxy function for query "${finalQuery}":`, error);
+        console.error(`[API] Error searching cards:`, error);
         return { cards: [], has_more: false };
     }
 }
-
-
-/**
- * A debounced version of the searchCards function to limit API calls while typing.
- */
-export const debouncedSearchCards = debounce(searchCards, 300);
-
-
 /**
  * NEW: Fetches price history by calling the new cloud function.
  */

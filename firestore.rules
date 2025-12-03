@@ -23,6 +23,14 @@ service cloud.firestore {
       return request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.moderators;
     }
 
+    // --- INTERNAL ANALYTICS (NEW) ---
+    match /site_analytics/{analyticsId} {
+      // Allow anyone (guests included) to log a page view
+      allow create: if true;
+      // Only admins can see the analytics data
+      allow read, list: if isAdmin();
+    }
+
     // --- CONTACT FORM SUBMISSIONS ---
     match /contacts/{contactId} {
       // Allow anyone (including guests) to create a new message
@@ -30,13 +38,13 @@ service cloud.firestore {
       
       // Only allow admins to read, update, or delete submissions
       allow read, update, delete: if isAdmin();
-      allow list: if isAdmin(); // <-- ADDED
+      allow list: if isAdmin();
     }
 
     // --- USER PROFILES & SUBCOLLECTIONS ---
-    match /users/{userId} { // <-- RULES MOVED INSIDE THIS BLOCK
-      allow get: if true; // <-- CHANGED from 'read'
-      allow list: if isAdmin(); // <-- ADDED
+    match /users/{userId} {
+      allow get: if true;
+      allow list: if isAdmin();
       allow update: if (isUser(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isContentCreator'])) || isAdmin();
       allow create: if isUser(userId);
 
@@ -87,7 +95,7 @@ service cloud.firestore {
     // --- PUBLIC & SOCIAL COLLECTIONS ---
     match /posts/{postId} {
       allow read: if true;
-      allow list: if isAdmin(); // This was correct
+      allow list: if isAdmin();
       allow create: if isSignedIn();
       allow update: if (isUser(resource.data.authorId)) ||
                       (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']));
@@ -95,7 +103,7 @@ service cloud.firestore {
     }
     
     match /products/{productId} {
-      allow read: if true; // This is fine, as it allows 'list' for all users (for the shop)
+      allow read: if true;
       allow write: if isAdmin();
     }
     
@@ -117,8 +125,8 @@ service cloud.firestore {
     }
     
     match /articles/{articleId} {
-      allow get: if resource.data.status == 'published' || isAdmin(); // <-- CHANGED from 'read' and updated
-      allow list: if isAdmin(); // <-- ADDED
+      allow get: if resource.data.status == 'published' || isAdmin();
+      allow list: if isAdmin();
       allow create: if isSignedIn() && (isAdmin() || isContentCreator());
       allow update, delete: if isUser(resource.data.authorId) || isAdmin() || isContentCreator();
     }
@@ -190,11 +198,7 @@ service cloud.firestore {
 
     // --- LOOKING FOR GAME (FIX) ---
     match /lfg_status/{statusId} {
-      // Any signed-in user can see who is looking for a game.
       allow read: if isSignedIn();
-      
-      // A user can only create, update, or delete their OWN status.
-      // The document ID (statusId) must match their user ID.
       allow write: if isUser(statusId);
     }
 

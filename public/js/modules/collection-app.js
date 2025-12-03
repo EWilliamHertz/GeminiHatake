@@ -132,15 +132,7 @@ const UI = {
             const priceDisplay = Currency.convertAndFormat(priceToUse, card);
             const foilPriceIndicator = card.is_foil && (card.prices?.usd_foil || card.prices?.eur_foil) ? '<span class="text-xs text-blue-400"> (Foil)</span>' : '';
             
-            // --- ADD OPTCG SPECIFIC DISPLAY ---
-            let optcgInfo = '';
-            if (card.game === 'optcg' && card.optcg_details) {
-                const details = card.optcg_details;
-                optcgInfo = `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                    C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
-                </p>`;
-            }
-            // --- END OPTCG SPECIFIC DISPLAY ---
+        
             
             const cardHtml = `
     <div class="card-container group rounded-lg overflow-hidden shadow-lg flex flex-col bg-white dark:bg-gray-800 transform hover:-translate-y-1 transition-transform duration-200 ${isSelected ? 'ring-4 ring-blue-500' : ''}" data-id="${card.id}">
@@ -205,16 +197,7 @@ const UI = {
                             ? `<span class="block text-green-500 font-semibold text-xs mt-1">FOR SALE: ${Currency.formatPrice(card.sale_price, card.sale_currency)}</span>`
                             : '';
 
-                        // *** DEFINE OPTCG INFO ***
-                        let optcgInfo = '';
-                        if (card.game === 'optcg' && card.optcg_details) {
-                            const details = card.optcg_details;
-                            optcgInfo = `
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                                    C:${details.cost ?? '-'} | P:${details.power ?? '-'} | ${details.color || ''} | ${details.attribute || ''}
-                                </p>`;
-                        }
-                        // *** END OPTCG INFO DEFINITION ***
+                
 
                         return `
                         <tr class="card-container hover:bg-gray-50 dark:hover:bg-gray-800/50 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''}" data-id="${card.id}">
@@ -1146,15 +1129,7 @@ function renderSearchResults(cards) {
             .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
             .replace(/</g, '&lt;').replace(/>/g, '&gt;');
         
-        // --- ADD OPTCG SPECIFIC DISPLAY ---
-        let optcgInfo = '';
-        if (card.game === 'optcg' && card.optcg_details) {
-            const details = card.optcg_details;
-            optcgInfo = `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                C:${details.cost || '-'} | P:${details.power || '-'} | ${details.color || ''} | ${details.attribute || ''}
-            </p>`;
-        }
-        // --- END OPTCG SPECIFIC DISPLAY ---
+      
         
         return `
             <div class="search-result-item flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer" data-card='${escapedCardData}'>

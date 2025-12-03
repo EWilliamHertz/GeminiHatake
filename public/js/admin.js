@@ -7,15 +7,10 @@
  * - Content Moderation (Articles, Comments, Reported Content)
  * - Platform Management (Broadcast Messages)
  * - Product Management (CRUD for Shop)
- * * FIXES APPLIED:
- * - Implemented product editing functionality.
- * - Implemented user impersonation functionality.
- * - Corrected user action calls (ban/suspend) to match backend functions.
- * - Implemented a simple user profile view modal.
+ * - Internal Analytics (Custom implementation)
  */
 
 document.addEventListener('authReady', (e) => {
-    // Add a check to make sure e.detail is not null before getting the user
     const user = e.detail ? e.detail.user : null;
     const db = firebase.firestore();
     const functions = firebase.functions();
@@ -82,8 +77,8 @@ document.addEventListener('authReady', (e) => {
         adminContent.innerHTML = `
             <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
                 <nav id="admin-tabs" class="flex flex-wrap -mb-px space-x-6" aria-label="Tabs">
-                <button data-tab="tickets" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-ticket-alt mr-2"></i>Support Tickets</button>
                     <button data-tab="dashboard" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600"><i class="fas fa-chart-line mr-2"></i>Dashboard</button>
+                    <button data-tab="tickets" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-ticket-alt mr-2"></i>Support Tickets</button>
                     <button data-tab="users" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-users mr-2"></i>Users</button>
                     <button data-tab="content" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-file-alt mr-2"></i>Content</button>
                     <button data-tab="platform" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300"><i class="fas fa-cogs mr-2"></i>Platform</button>
@@ -91,8 +86,8 @@ document.addEventListener('authReady', (e) => {
                 </nav>
             </div>
             <div>
-            <div id="tab-content-tickets" class="admin-tab-content hidden"></div>
                 <div id="tab-content-dashboard" class="admin-tab-content"></div>
+                <div id="tab-content-tickets" class="admin-tab-content hidden"></div>
                 <div id="tab-content-users" class="admin-tab-content hidden"></div>
                 <div id="tab-content-content" class="admin-tab-content hidden"></div>
                 <div id="tab-content-platform" class="admin-tab-content hidden"></div>
@@ -109,30 +104,33 @@ document.addEventListener('authReady', (e) => {
     // --- Tab Rendering Functions ---
     const renderDashboardTab = () => {
         const container = document.getElementById('tab-content-dashboard');
-        container.innerHTML = `<h2 class="text-2xl font-bold mb-4">Dashboard</h2><p>Welcome to the admin dashboard.</p><div id="analytics-container" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4"></div>`;
+        container.innerHTML = `
+            <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+            <div id="analytics-container" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+        `;
         loadAnalytics();
     };
-    // Add this new function in admin.js
-const renderTicketsTab = () => {
-    document.getElementById('tab-content-tickets').innerHTML = `
-        <h2 class="text-2xl font-bold mb-4">Support Tickets</h2>
-        <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Submitted</th>
-                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">From</th>
-                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Subject</th>
-                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Message</th>
-                        <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tickets-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
-                    <tr><td colspan="5" class="text-center p-4">Loading tickets...</td></tr>
-                </tbody>
-            </table>
-        </div>`;
-};
+
+    const renderTicketsTab = () => {
+        document.getElementById('tab-content-tickets').innerHTML = `
+            <h2 class="text-2xl font-bold mb-4">Support Tickets</h2>
+            <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Submitted</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">From</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Subject</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Message</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tickets-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr><td colspan="5" class="text-center p-4">Loading tickets...</td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+    };
 
     const renderUsersTab = () => {
         document.getElementById('tab-content-users').innerHTML = `
@@ -184,23 +182,120 @@ const renderTicketsTab = () => {
     // --- Data Loading and Rendering ---
     const loadAnalytics = async () => {
         const container = document.getElementById('analytics-container');
-        container.innerHTML = '<p>Loading analytics...</p>';
+        container.innerHTML = '<p class="col-span-full text-center">Loading analytics...</p>';
+        
         try {
+            // 1. Get standard counts
             const userSnap = await db.collection('users').get();
             const articleSnap = await db.collection('articles').get();
             const productSnap = await db.collection('products').get();
+
+            // 2. Get Page Views (Last 24 Hours)
+            // Calculate 24 hours ago
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            // Query the new site_analytics collection
+            const viewsSnap = await db.collection('site_analytics')
+                .where('timestamp', '>', yesterday)
+                .get();
+
+            // 3. Calculate most popular page in last 24h
+            const pageCounts = {};
+            viewsSnap.forEach(doc => {
+                const data = doc.data();
+                const page = data.page || '/';
+                pageCounts[page] = (pageCounts[page] || 0) + 1;
+            });
+            
+            let topPage = 'N/A';
+            let maxViews = 0;
+            Object.entries(pageCounts).forEach(([page, count]) => {
+                if (count > maxViews) {
+                    maxViews = count;
+                    topPage = page;
+                }
+            });
+
+            // Render Dashboard with custom data
             container.innerHTML = `
-                <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"><h4 class="font-bold text-lg">${userSnap.size}</h4><p class="text-gray-500">Total Users</p></div>
-                <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"><h4 class="font-bold text-lg">${articleSnap.size}</h4><p class="text-gray-500">Total Articles</p></div>
-                <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"><h4 class="font-bold text-lg">${productSnap.size}</h4><p class="text-gray-500">Total Products</p></div>`;
+                <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Total Users</p>
+                            <h4 class="font-bold text-3xl mt-1">${userSnap.size}</h4>
+                        </div>
+                        <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-green-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Views (24h)</p>
+                            <h4 class="font-bold text-3xl mt-1">${viewsSnap.size}</h4>
+                        </div>
+                        <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                            <i class="fas fa-eye text-xl"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 truncate" title="Top Page: ${topPage}">Top: ${topPage} <span class="font-semibold">(${maxViews})</span></p>
+                </div>
+
+                <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-purple-500">
+                     <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Products</p>
+                            <h4 class="font-bold text-3xl mt-1">${productSnap.size}</h4>
+                        </div>
+                        <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                            <i class="fas fa-shopping-cart text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-yellow-500">
+                     <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase font-bold tracking-wider">Articles</p>
+                            <h4 class="font-bold text-3xl mt-1">${articleSnap.size}</h4>
+                        </div>
+                        <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400">
+                            <i class="fas fa-newspaper text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
         } catch (e) {
             console.error("Error loading analytics:", e);
-            container.innerHTML = `<p class="text-red-500 col-span-3">Could not load analytics. See console for details.</p>`;
+            
+            // Handle specific index error for the analytics query
+            if (e.code === 'failed-precondition') {
+                // Firestore requires an index for timestamp queries
+                container.innerHTML = `
+                    <div class="col-span-full bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-200 p-4 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-bold">Missing Database Index</p>
+                                <p class="text-sm mt-1">To see page views, you need to create a Firestore index for 'site_analytics'.</p>
+                                <p class="text-xs mt-2">Open your browser developer console (F12), look for the Firebase error link, and click it to auto-create the index.</p>
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                container.innerHTML = `<p class="text-red-500 col-span-full">Could not load analytics. ${e.message}</p>`;
+            }
         }
     };
 
     const loadUsers = async () => {
         const tableBody = document.getElementById('users-table-body');
+        if (!tableBody) return; // Guard if tab is hidden/not rendered
         tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Loading users...</td></tr>';
         try {
             const snapshot = await db.collection('users').get();
@@ -245,6 +340,7 @@ const renderTicketsTab = () => {
 
     const loadArticles = async () => {
         const tableBody = document.getElementById('articles-table-body');
+        if (!tableBody) return;
         tableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading articles...</td></tr>';
         try {
             const snapshot = await db.collection('articles').orderBy('createdAt', 'desc').get();
@@ -292,7 +388,7 @@ const renderTicketsTab = () => {
             
             return `
                 <tr class="dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td classD="p-4">${submittedDate}</td>
+                    <td class="p-4">${submittedDate}</td>
                     <td class="p-4 font-medium">${ticket.name} (${ticket.email})</td>
                     <td class="p-4">${ticket.subject}</td>
                     <td class="p-4 text-sm">${ticket.message}</td>
@@ -307,6 +403,7 @@ const renderTicketsTab = () => {
 
     const loadProducts = async () => {
         const tableBody = document.getElementById('products-table-body');
+        if (!tableBody) return;
         tableBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Loading products...</td></tr>';
         try {
             const snapshot = await db.collection('products').get();
@@ -422,7 +519,10 @@ const renderTicketsTab = () => {
         if (!await checkAdminStatus()) return;
 
         renderAdminLayout();
-        loadUsers();
+        // Only load tabs that are visible by default or needed immediately
+        // loadUsers() is called if they switch tabs, but we call it here to pre-fetch if desired, 
+        // or just rely on tab clicks. Let's rely on tab clicks to be efficient, 
+        // except Dashboard which is default.
         
         const elements = getElements();
 
@@ -441,6 +541,7 @@ const renderTicketsTab = () => {
             const tabName = button.dataset.tab;
             document.getElementById(`tab-content-${tabName}`).classList.remove('hidden');
 
+            if (tabName === 'users') loadUsers();
             if (tabName === 'products') loadProducts();
             if (tabName === 'content') loadArticles();
             if (tabName === 'dashboard') loadAnalytics();
