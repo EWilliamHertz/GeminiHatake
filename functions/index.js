@@ -350,7 +350,7 @@ exports.collectCardPriceSnapshot = functions.https.onCall(async (data, context) 
 
 /**
  * Search Riftbound cards using JustTCG API
- * API Key is stored in secrets: JUSTTCG_API_KEY
+ * API Key must be set via: firebase functions:secrets:set JUSTTCG_API_KEY
  */
 exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).https.onCall(async (data, context) => {
     console.log("--- Riftbound search function invoked ---");
@@ -363,17 +363,17 @@ exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).ht
     const apiKey = process.env.JUSTTCG_API_KEY;
     if (!apiKey) {
         console.error("FATAL: JUSTTCG_API_KEY is not set.");
-        return { success: false, error: 'Server configuration error.' };
+        return { success: false, error: 'Server configuration error: API Key missing.' };
     }
 
     try {
-        // JustTCG endpoint for Riftbound - use correct game parameter and X-API-Key header
-        const url = `https://api.justtcg.com/v1/cards?game=riftbound-league-of-legends-trading-card-game&name=${encodeURIComponent(query)}&limit=${limit}`;
+        // JustTCG endpoint for Riftbound
+        const url = `https://api.justtcg.com/v1/cards?game=riftbound&name=${encodeURIComponent(query)}&limit=${limit}`;
         
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'X-API-Key': apiKey,
+                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -391,19 +391,14 @@ exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).ht
             // Find best price (JustTCG returns variants array)
             let normalPrice = null;
             let foilPrice = null;
-            let image = null;
+            let image = card.image || null; // JustTCG usually provides a top-level image
 
-            // Extract price from variants
             if (card.variants && Array.isArray(card.variants)) {
                 card.variants.forEach(v => {
-                    if (v.printing === 'Normal' && v.price && !normalPrice) normalPrice = v.price;
-                    if (v.printing === 'Foil' && v.price && !foilPrice) foilPrice = v.price;
+                    if (v.printing === 'Normal' && v.price) normalPrice = v.price;
+                    if (v.printing === 'Foil' && v.price) foilPrice = v.price;
+                    if (!image && v.image) image = v.image; // Fallback image
                 });
-            }
-
-            // Generate a placeholder image URL using TCGPlayer ID if available
-            if (card.tcgplayerId) {
-                image = `https://tcgplayer.com/product/${card.tcgplayerId}`;
             }
 
             return {
@@ -412,18 +407,18 @@ exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).ht
                 name: card.name,
                 game: 'riftbound',
                 set_name: card.set_name || 'Unknown Set',
-                rarity: card.rarity || 'Unknown',
+                rarity: card.rarity,
                 image_uris: {
                     small: image,
                     normal: image,
                     large: image
                 },
-                imageUrl: image,
+                imageUrl: image, // Helper for frontend
                 prices: {
                     usd: normalPrice,
                     usd_foil: foilPrice
                 },
-                collector_number: card.number || 'N/A'
+                collector_number: card.number
             };
         });
 
