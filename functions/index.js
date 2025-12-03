@@ -367,13 +367,13 @@ exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).ht
     }
 
     try {
-        // JustTCG endpoint for Riftbound
-        const url = `https://api.justtcg.com/v1/cards?game=riftbound&name=${encodeURIComponent(query)}&limit=${limit}`;
+        // JustTCG endpoint for Riftbound - use correct game parameter and X-API-Key header
+        const url = `https://api.justtcg.com/v1/cards?game=riftbound-league-of-legends-trading-card-game&name=${encodeURIComponent(query)}&limit=${limit}`;
         
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                'X-API-Key': apiKey,
                 'Content-Type': 'application/json'
             }
         });
@@ -391,14 +391,19 @@ exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).ht
             // Find best price (JustTCG returns variants array)
             let normalPrice = null;
             let foilPrice = null;
-            let image = card.image || null; // JustTCG usually provides a top-level image
+            let image = null;
 
+            // Extract price from variants
             if (card.variants && Array.isArray(card.variants)) {
                 card.variants.forEach(v => {
-                    if (v.printing === 'Normal' && v.price) normalPrice = v.price;
-                    if (v.printing === 'Foil' && v.price) foilPrice = v.price;
-                    if (!image && v.image) image = v.image; // Fallback image
+                    if (v.printing === 'Normal' && v.price && !normalPrice) normalPrice = v.price;
+                    if (v.printing === 'Foil' && v.price && !foilPrice) foilPrice = v.price;
                 });
+            }
+
+            // Generate a placeholder image URL using TCGPlayer ID if available
+            if (card.tcgplayerId) {
+                image = `https://tcgplayer.com/product/${card.tcgplayerId}`;
             }
 
             return {
@@ -407,18 +412,18 @@ exports.searchRiftbound = functions.runWith({ secrets: ["JUSTTCG_API_KEY"] }).ht
                 name: card.name,
                 game: 'riftbound',
                 set_name: card.set_name || 'Unknown Set',
-                rarity: card.rarity,
+                rarity: card.rarity || 'Unknown',
                 image_uris: {
                     small: image,
                     normal: image,
                     large: image
                 },
-                imageUrl: image, // Helper for frontend
+                imageUrl: image,
                 prices: {
                     usd: normalPrice,
                     usd_foil: foilPrice
                 },
-                collector_number: card.number
+                collector_number: card.number || 'N/A'
             };
         });
 
