@@ -104,7 +104,11 @@ export function parseCSV(file) {
 
         reader.onload = (event) => {
             try {
-                const csv = event.target.result;
+                let csv = event.target.result;
+                // Remove BOM if present
+                if (csv.charCodeAt(0) === 0xFEFF) {
+                    csv = csv.substring(1);
+                }
                 const lines = csv.split(/\r\n|\n/).filter(line => line.trim());
                 
                 if (lines.length < 2) {
@@ -210,17 +214,27 @@ export async function processCSVImport(cards, updateCallback, selectedGame = 'mt
             // Build search query with improved logic
             let searchQuery = `!"${card.name}"`;
             
-            // Add set information if available
-            if (card.set && card.set.length > 0) {
-                searchQuery += ` set:${card.set.toLowerCase()}`;
-            } else if (card.set_name && card.set_name.length > 0) {
-                // Try to use set name if set code is not available
-                searchQuery += ` set:"${card.set_name}"`;
-            }
-            
-            // Add collector number if available
-            if (card.collector_number && card.collector_number.length > 0) {
-                searchQuery += ` cn:${card.collector_number}`;
+            if (selectedGame === 'pokemon') {
+                // TCGdex/ScryDex Pokemon search often works best with just name and set code or local ID
+                if (card.set && card.set.length > 0) {
+                    searchQuery = `"${card.name}" set:${card.set.toLowerCase()}`;
+                }
+                if (card.collector_number && card.collector_number.length > 0) {
+                    searchQuery += ` localId:${card.collector_number}`;
+                }
+            } else {
+                // Add set information if available
+                if (card.set && card.set.length > 0) {
+                    searchQuery += ` set:${card.set.toLowerCase()}`;
+                } else if (card.set_name && card.set_name.length > 0) {
+                    // Try to use set name if set code is not available
+                    searchQuery += ` set:"${card.set_name}"`;
+                }
+                
+                // Add collector number if available
+                if (card.collector_number && card.collector_number.length > 0) {
+                    searchQuery += ` cn:${card.collector_number}`;
+                }
             }
             
             console.log(`Searching for: ${searchQuery} in game: ${selectedGame}`);
@@ -346,7 +360,11 @@ export function validateCsvFormat(file) {
         
         reader.onload = (event) => {
             try {
-                const csv = event.target.result;
+                let csv = event.target.result;
+                // Remove BOM if present
+                if (csv.charCodeAt(0) === 0xFEFF) {
+                    csv = csv.substring(1);
+                }
                 const lines = csv.split(/\r\n|\n/).filter(line => line.trim());
                 
                 if (lines.length < 2) {

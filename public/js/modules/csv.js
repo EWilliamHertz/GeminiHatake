@@ -63,7 +63,11 @@ export function parseCSV(file) {
 
         reader.onload = (event) => {
             try {
-                const csv = event.target.result;
+                let csv = event.target.result;
+                // Remove BOM if present
+                if (csv.charCodeAt(0) === 0xFEFF) {
+                    csv = csv.substring(1);
+                }
                 const lines = csv.split(/\r\n|\n/).filter(line => line.trim());
                 if (lines.length < 2) {
                     return reject(new Error("CSV file must have a header row and at least one data row."));
@@ -128,8 +132,19 @@ export async function processCSVImport(cards, updateCallback) {
         
         try {
             // Search for the card using the API module
-            const searchQuery = `!"${card.name}"`;
-            const searchResult = await API.searchCards(searchQuery, 'mtg');
+            let searchQuery = `!"${card.name}"`;
+            const selectedGame = card.game || 'mtg';
+            
+            if (selectedGame === 'pokemon') {
+                if (card.set && card.set.length > 0) {
+                    searchQuery = `"${card.name}" set:${card.set.toLowerCase()}`;
+                }
+                if (card.collector_number && card.collector_number.length > 0) {
+                    searchQuery += ` localId:${card.collector_number}`;
+                }
+            }
+            
+            const searchResult = await API.searchCards(searchQuery, selectedGame);
             
             if (searchResult && searchResult.cards && searchResult.cards.length > 0) {
                 const foundCard = searchResult.cards[0];

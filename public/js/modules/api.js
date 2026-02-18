@@ -190,8 +190,7 @@ function cleanScryDexData(card, game) {
     try {
         console.log('[API] Raw ScryDex card data:', card);
         
-        // --- THIS IS THE CORRECTED PRICE LOGIC ---
-        // It correctly loops through the 'variants' array from the API.
+        // --- IMPROVED PRICE LOGIC ---
         const prices = {
             usd: null,
             usd_foil: null,
@@ -199,16 +198,31 @@ function cleanScryDexData(card, game) {
             eur_foil: null
         };
 
-        if (card.variants && Array.isArray(card.variants)) {
+        // Try to get pricing from the new 'pricing' field if available (TCGdex v2)
+        if (card.pricing) {
+            if (card.pricing.tcgplayer) {
+                const tp = card.pricing.tcgplayer;
+                if (tp.normal) prices.usd = tp.normal.marketPrice || tp.normal.midPrice;
+                if (tp.holo) prices.usd_foil = tp.holo.marketPrice || tp.holo.midPrice;
+                if (tp.reverse && !prices.usd_foil) prices.usd_foil = tp.reverse.marketPrice || tp.reverse.midPrice;
+            }
+            if (card.pricing.cardmarket) {
+                const cm = card.pricing.cardmarket;
+                prices.eur = cm.avg || cm.low || cm.trend;
+                prices.eur_foil = cm['avg-holo'] || cm['low-holo'] || cm['trend-holo'];
+            }
+        }
+
+        // Fallback to variants array if pricing field is missing
+        if (prices.usd === null && card.variants && Array.isArray(card.variants)) {
             card.variants.forEach(variant => {
-                // Check for the "Normal" or non-foil variant for the regular price
-                if (variant.name.toLowerCase() === 'normal' || variant.name.toLowerCase() === 'non-foil') {
+                const vName = (variant.name || '').toLowerCase();
+                if (vName === 'normal' || vName === 'non-foil' || vName === 'regular') {
                     if (variant.prices && variant.prices[0]?.market) {
                         prices.usd = parseFloat(variant.prices[0].market);
                     }
                 }
-                // Check for the "Foil" variant for the foil price
-                if (variant.name.toLowerCase() === 'foil') {
+                if (vName === 'foil' || vName === 'holo' || vName === 'reverse-foil') {
                     if (variant.prices && variant.prices[0]?.market) {
                         prices.usd_foil = parseFloat(variant.prices[0].market);
                     }
@@ -216,30 +230,50 @@ function cleanScryDexData(card, game) {
             });
         }
         
-        // Fallback: If the above logic finds nothing, try to get at least one price.
-        if (prices.usd === null && card.prices?.usd) {
-            prices.usd = parseFloat(card.prices.usd);
-        }
-        if (prices.usd_foil === null && card.prices?.usd_foil) {
-            prices.usd_foil = parseFloat(card.prices.usd_foil);
-        }
+        // Final fallback to top-level prices
+        if (prices.usd === null && card.prices?.usd) prices.usd = parseFloat(card.prices.usd);
+        if (prices.usd_foil === null && card.prices?.usd_foil) prices.usd_foil = parseFloat(card.prices.usd_foil);
         // --- END OF PRICE LOGIC ---
 
-        console.log('[API] Processed prices for', card.Name || card.name, ':', prices);
+        console.log('[API] Processed prices for', card.name || card.Name, ':', prices);
         
+        // --- IMPROVED IMAGE LOGIC ---
+        let image_uris = { small: null, normal: null, large: null };
+        
+        if (card.image) {
+            // TCGdex v2 direct image URL
+            image_uris = {
+                small: `${card.image}/low.jpg`,
+                normal: `${card.image}/medium.jpg`,
+                large: `${card.image}/high.jpg`
+            };
+        } else if (card.images) {
+            // Fallback for array or object images
+            if (Array.isArray(card.images) && card.images.length > 0) {
+                const img = card.images[0];
+                image_uris = {
+                    small: img.small || img.url || null,
+                    normal: img.medium || img.url || null,
+                    large: img.large || img.url || null
+                };
+            } else {
+                image_uris = {
+                    small: card.images.small || null,
+                    normal: card.images.medium || card.images.normal || null,
+                    large: card.images.large || null
+                };
+            }
+        }
+
         const cleaned = {
             api_id: card.id,
-            name: card.Name || card.name || 'Unknown Card',
-            set: card.expansion?.id || 'unknown',
-            set_name: card.expansion?.name || 'Unknown Set',
+            name: card.name || card.Name || 'Unknown Card',
+            set: card.expansion?.id || card.set?.id || 'unknown',
+            set_name: card.expansion?.name || card.set?.name || 'Unknown Set',
             rarity: card.rarity || 'Common',
-            image_uris: {
-                small: card.images?.[0]?.small || null,
-                normal: card.images?.[0]?.medium || null,
-                large: card.images?.[0]?.large || null,
-            },
+            image_uris: image_uris,
             prices: prices,
-            collector_number: card.number || '',
+            collector_number: card.number || card.localId || '',
             game: game
         };
 
